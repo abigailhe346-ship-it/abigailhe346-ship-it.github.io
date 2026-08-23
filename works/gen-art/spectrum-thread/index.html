@@ -275,6 +275,21 @@ function makeThread(rng){
           ci:(rng()*3)|0, // 三色点彩：深塘/柳绿/天光
           fa:fm<.3?0:fm<.62?1:2}; // 三档墨量：线密之处色深
 }
+/* 显影点彩：按场强撒点，线放满后随 bloom 浮出（莲叶深塘 / 莲粉 ≤8%） */
+function buildDabs(){
+  const rng=mulberry32(state.seed^0xDA5);
+  state.dabs=[];
+  let tries=0;
+  while(state.dabs.length<2400&&tries++<16000){
+    const a=rng()*Math.PI*2, rr=Math.sqrt(rng())*.98;
+    const x=Math.cos(a)*rr,y=Math.sin(a)*rr;
+    const fm=field(x,y);
+    if(rng()<Math.pow(fm,1.7)){
+      state.dabs.push({x:x,y:y,pink:fm>.8&&rng()<.55,s:.9+rng()*2.4,c:rng()});
+    }
+  }
+}
+
 /* 莲的位置：场上最密的三处 */
 function findLotuses(){
   const spots=[];
@@ -417,13 +432,14 @@ function stats(){
 }
 
 /* ---------- 渐进放线 ---------- */
+const FULL=/full=1/.test(location.hash); // QA 直通
 let pumpGen=0;
 function pump(gen){
   if(gen!==pumpGen)return;
   if(state.threads.length<state.density){
     const rng=mulberry32(state.seed^(state.threads.length*7919+13));
-    const batch=Math.min(800,Math.max(200,(state.density-state.threads.length)*3));
-    for(let i=0;i<batch;i++){
+    const batch=FULL?20000:Math.min(800,Math.max(200,(state.density-state.threads.length)*3));
+    for(let i=0;i<batch&&state.threads.length<state.density;i++){
       const t=makeThread(rng);
       if(t)state.threads.push(t);
     }
@@ -432,11 +448,12 @@ function pump(gen){
   }else{
     state.drawing=false;
     bloomTarget=1; // 线放完了：莲开（wow 显影）
+    if(FULL)bloom=1;
   }
 }
 function regen(newSeed){
   if(newSeed)state.seed=Math.floor(Math.random()*1e6);
-  buildAnchors();buildField();findLotuses();
+  buildAnchors();buildField();findLotuses();buildDabs();
   state.threads=[];state.drawing=true;bloom=0;bloomTarget=0;
   pumpGen++;pump(pumpGen);stats();
 }
@@ -516,22 +533,22 @@ function frame(){
   for(const a of state.anchors)ctx.fillRect(a[0]*R-.6,a[1]*R-.6,1.2,1.2);
   ctx.restore();
 
-  // 莲：线放满后显影（莲粉 ≤8%，只点状）
+  // 显影：线放满后，叶与花从线网里浮出来（点彩，莲粉 ≤8%）
   if(bloom>.02){
-    const br=mulberry32(state.seed^0x107);
     const lotusDeep=[184,138,158];
-    for(const lo of state.lotuses){
-      const x=cx0+lo.x*R, y=cy0+lo.y*R;
-      const n=Math.round(22*bloom)+6;
-      for(let k=0;k<n;k++){
-        const a=br()*Math.PI*2, rr=br()*R*.11*bloom;
-        const c=jit(br()<.7?lotusDeep:PAL.lotus,8,br);
-        ctx.fillStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${(bloom*(.55+br()*.4)).toFixed(2)})`;
-        ctx.beginPath();ctx.arc(x+Math.cos(a)*rr,y+Math.sin(a)*rr*.8,1.2+br()*2.6,0,7);ctx.fill();
-      }
-      // 一两点叶心水光
-      ctx.fillStyle=`rgba(${PAL.water},${(bloom*.85).toFixed(2)})`;
-      ctx.beginPath();ctx.arc(x,y,1.6,0,7);ctx.fill();
+    const deep=[52,72,62];
+    for(const d of state.dabs){
+      const x=cx0+d.x*R, y=cy0+d.y*R;
+      let c;
+      if(d.pink)c=jit(d.c<.7?lotusDeep:PAL.lotus,8,Math.random);
+      else if(d.c<.55)c=jit(deep,10,Math.random);
+      else if(d.c<.8)c=jit(PAL.willow,10,Math.random);
+      else c=jit(PAL.sky,8,Math.random);
+      const a=bloom*(d.pink?.75:.5)*(0.6+d.c*.4);
+      ctx.fillStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${Math.min(.9,a).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.ellipse(x,y,d.s*bloom,d.s*bloom*.7,d.x*3,0,7);
+      ctx.fill();
     }
   }
   // 涟漪圈

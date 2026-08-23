@@ -589,13 +589,12 @@ function render(now,dt){
       }
     });
   }
-  /* --- 架 --- */
+  /* --- 架：断续笔触，不是一条死线 --- */
   const shelfY=wTop-H*.02;
-  ctx.fillStyle=shadeHex(FAM.tang,-14);
-  ctx.fillRect(0,shelfY,W,5);
-  for(let x=0;x<W;x+=9){
+  for(let x=0;x<W;x+=11){
+    if((x*7919)%97<9)continue; // 缺口
     const s=Math.sin(x*.7);
-    stroke(x,shelfY+1+((x*13)%3),7,0,spinHex(shadeHex(FAM.tang,-14),s*6,s*5),.8,2.6);
+    stroke(x,shelfY+1+((x*13)%3),8,0,spinHex(shadeHex(FAM.tang,-10),s*6,s*5),.7,2.8);
   }
   /* --- 器物 --- */
   potLayout().forEach(lay=>{
@@ -900,10 +899,12 @@ function resize(){
   buildPlan();
 }
 window.addEventListener('resize',resize);
-// URL hash 复现：#h=17.5
+// URL hash 复现：#h=17.5（QA 钩子：&kiln=1 自动开窑，&sw=1 燕子即来）
 (function(){
   const m=location.hash.match(/h=([\d.]+)/);
   if(m){heure=parseFloat(m[1]);heureTarget=heure;lastTimeTouch=performance.now()/1000;}
+  if(/kiln=1/.test(location.hash))setTimeout(()=>openKiln(),1200);
+  if(/sw=1/.test(location.hash))nextSwallow=performance.now()/1000+1.5;
 })();
 setHeure(heure,false);
 buildPots((Math.random()*1e9)|0);

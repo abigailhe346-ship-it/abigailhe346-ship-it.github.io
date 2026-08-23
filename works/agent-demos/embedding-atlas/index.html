@@ -321,6 +321,9 @@ function hsl2rgb(h,s,l){const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1
 function lerpHSL(a,b,k){const A=rgb2hsl(a),B=rgb2hsl(b);let dh=B[0]-A[0];
   if(dh>180)dh-=360;if(dh<-180)dh+=360;
   return hsl2rgb(A[0]+dh*k,A[1]+(B[1]-A[1])*k,A[2]+(B[2]-A[2])*k)}
+/* 大气雾化：只推移饱和与明度，锁住色相（避免跨色轮污染） */
+function fade(col,target,k){const A=rgb2hsl(col),B=rgb2hsl(target);
+  return hsl2rgb(A[0],A[1]+(B[1]-A[1])*k*.8,A[2]+(B[2]-A[2])*k)}
 const KEYS=[ /* h, skyTop, skyHor, seaFar, seaNear, ink, mistA, warm */
   {h:0,   sky:hx("#6E7B8C"),hor:hx("#8B96A8"),far:hx("#98A2B2"),near:hx("#79859A"),ink:hx("#E8E6DF"),mist:.38,warm:.12},
   {h:5,   sky:hx("#9AA3B4"),hor:hx("#C4BFBB"),far:hx("#AEB6C2"),near:hx("#8B98AA"),ink:hx("#EDEAE2"),mist:.62,warm:.3},
@@ -383,7 +386,7 @@ function buildWorld(seed){
     cl.words.forEach((w,wi)=>{
       WORDS.push({w,ci,wi,cx0:cl.cx+gauss(),cy0:cl.cy+gauss(),
         j1:rng(),j2:rng(),x:0,y:0,vx:0,vy:0,dx:0,dy:0,
-        ph:rng()*Math.PI*2,r:1.8+rng()*1.8,tw:.5+rng()*.8});
+        ph:rng()*Math.PI*2,r:2.7+rng()*2.2,tw:.5+rng()*.8});
     });
   });
   CLUSTERS.forEach((cl,ci)=>cl.words.forEach((w,wi)=>order.push(WORDS.find(a=>a.ci===ci&&a.wi===wi))));
@@ -793,6 +796,9 @@ function physics(dt){
 function draw(now){
   const L=sampleLight(heure);
   const sun=sunPos();
+  /* 白昼系数：夜里词变成灯塔 */
+  const dayF=Math.min(1,Math.max(0,Math.min((heure-5.2)/1.6,(20.8-heure)/1.6,1)));
+  const nightF=1-dayF;
   const horizonY=H*.40;
   /* --- 天空 --- */
   const g=ctx.createLinearGradient(0,0,0,horizonY);
@@ -807,7 +813,7 @@ function draw(now){
   ctx.save();
   ctx.beginPath();ctx.rect(0,0,W,horizonY);ctx.clip();
   [[.06,FAM.ridge,.5],[.10,FAM.shadow,.34]].forEach(([off,col,al],li)=>{
-    ctx.fillStyle=rgb(lerpHSL(col,L.hor,.55),al*(1-L.mist*.5));
+    ctx.fillStyle=rgb(fade(col,L.hor,.62),al*(1-L.mist*.5));
     ctx.beginPath();ctx.moveTo(0,horizonY);
     for(let x=0;x<=W;x+=8){
       const y=horizonY-H*(off)*(1+Math.sin(x*.004+li*3+t*.004)*.35)-li*H*.03
@@ -821,6 +827,9 @@ function draw(now){
   const sg2=ctx.createLinearGradient(0,horizonY,0,H);
   sg2.addColorStop(0,rgb(L.far));sg2.addColorStop(1,rgb(L.near));
   ctx.fillStyle=sg2;ctx.fillRect(0,horizonY,W,H-horizonY);
+  /* 地平线一线光 */
+  ctx.fillStyle=rgb(lerpHSL(FAM.fog,L.hor,.5),.5);
+  ctx.fillRect(0,horizonY-0.5,W,1);
   /* 日光水路（碎金光带） */
   if(L.warm>.15){
     const wp=ctx.createLinearGradient(sun.x-60,horizonY,sun.x+40,H);
@@ -840,12 +849,12 @@ function draw(now){
     sy=horizonY+(sy/spanY)*(H-horizonY+140)-40;
     if(sx<-20||sx>W+20||sy<horizonY+2||sy>H+10)return;
     const base=lerpHSL(L.far,L.near,(sy-horizonY)/(H-horizonY));
-    const j=(s.hue-.5)*.16;
-    const c2=lerpHSL(base,s.hue>.82?FAM.sand:L.sky,Math.abs(j)+ (s.hue>.82?L.warm*.35:0));
+    const c2=s.hue>.55?fade(base,FAM.fog,.28+.2*s.dz):fade(base,FAM.shadow,.22);
+    const c3=s.hue>.9?lerpHSL(c2,FAM.sand,L.warm*.4):c2;
     const len=(s.len*(0.7+depth*.8))*cam.z*.9;
     const wob=Math.sin(t*.7+s.ph)*1.2;
-    ctx.strokeStyle=rgb(c2,.34+.22*s.dz);
-    ctx.lineWidth=Math.max(.7,1.15*depth);
+    ctx.strokeStyle=rgb(c3,.44+.26*s.dz);
+    ctx.lineWidth=Math.max(.8,1.5*depth);
     ctx.beginPath();ctx.moveTo(sx-len/2,sy+wob*.3);ctx.lineTo(sx+len/2,sy+wob*.3+Math.sin(s.ph)*1.1);ctx.stroke();
   });
   /* --- 岛基（词群的陆地阴影） --- */
@@ -871,9 +880,14 @@ function draw(now){
     const r=(isSel?wd.r+2:isNb?wd.r+1:wd.r)*Math.min(1.6,cam.z*.9)*tw;
     const col=(isSel||isHov||isNb)?lerpHSL(clusterColor(wd.ci,L),warmC,.75):clusterColor(wd.ci,L);
     ctx.globalAlpha=dimmed?.3:1;
-    /* 雾中光晕 */
-    ctx.fillStyle=rgb(lerpHSL(col,FAM.fog,.4),.16*(1-L.mist*.3));
-    ctx.beginPath();ctx.arc(p.x,p.y,r*3,0,7);ctx.fill();
+    /* 光晕：昼为雾中晕，夜为灯塔光 */
+    const lampC=hx("#D9A05C");
+    const haloC=nightF>.4?fade(lampC,FAM.fog,.22):lerpHSL(col,FAM.fog,.4);
+    ctx.fillStyle=rgb(haloC,(.12+nightF*.20)*(1-L.mist*.25)*tw);
+    ctx.beginPath();ctx.arc(p.x,p.y,r*(2.6+nightF*1.1),0,7);ctx.fill();
+    /* 软芯：雾中浮出的屿体 */
+    ctx.fillStyle=rgb(lerpHSL(col,FAM.fog,.18),.56+.2*dayF);
+    ctx.beginPath();ctx.ellipse(p.x,p.y,r*1.15,r*.8,Math.sin(wd.ph)*.4,0,7);ctx.fill();
     /* 碎色小笔触成屿 */
     for(let k=0;k<3;k++){
       const a=wd.ph+k*2.1,ox=Math.cos(a)*r*.5,oy=Math.sin(a)*r*.35;
@@ -920,14 +934,14 @@ function draw(now){
     });
   }
   /* --- 雾纱（大气层，选中处让开） --- */
-  const mistA=Math.min(1,L.mist*(.35+MIST*.9));
+  const mistA=Math.min(1,L.mist*(.22+MIST*.75));
   veils.forEach(v=>{
     const p=w2s(v.nx+v.ox,v.ny+v.oy);
     const R=v.R*cam.z*.8;
     if(p.x<-R||p.x>W+R||p.y<-R||p.y>H+R)return;
     const mg=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);
     const mc=lerpHSL(FAM.fog,L.hor,.4);
-    let a=mistA*.24;
+    let a=mistA*.19;
     if(hover){ /* 悬停处雾变薄 */
       const hp=w2s(hover.x+hover.dx,hover.y+hover.dy);
       const d=Math.hypot(p.x-hp.x,p.y-hp.y);

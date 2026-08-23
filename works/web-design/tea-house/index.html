@@ -541,7 +541,7 @@ function drawKomo(now){
   for(i=0;i<leafSil.length;i++){
     var lf=leafSil[i];
     var lx=lf.x+Math.sin(t*lf.sp+lf.ph)*20,ly=lf.y+Math.cos(t*lf.sp*0.7+lf.ph)*8;
-    kx.fillStyle=hexA(SHADE,0.34);
+    kx.fillStyle=hexA(SHADE,(0.08+desk.shade/100*0.44).toFixed(3));
     kx.beginPath();kx.ellipse(lx,ly,lf.r,lf.r*0.55,lf.ph,0,7);kx.fill();
   }
   kx.filter="none";
@@ -645,7 +645,7 @@ function drawEnso(seed,instant){
   if(frames<total)ensoRAF=setInterval(frame,16);
 }
 document.getElementById("ensoWrap").addEventListener("click",function(){
-  drawEnso(Math.floor(Math.random()*9000));
+  drawEnso((seed^0xE150)+(++ensoClicks)*97);
   lastActive=performance.now();
 });
 
@@ -668,7 +668,7 @@ function hSetFromEvent(e){
   var r=htrack.getBoundingClientRect();
   setHeure(4+clamp((e.clientX-r.left)/r.width,0,1)*20);
   clearTimeout(hEnsoT);
-  hEnsoT=setTimeout(function(){drawEnso(47);},180);
+  hEnsoT=setTimeout(function(){drawEnso(seed^0xE150,true);},180);
 }
 htrack.addEventListener("pointerdown",function(e){hDrag=true;htrack.setPointerCapture(e.pointerId);hSetFromEvent(e);});
 htrack.addEventListener("pointermove",function(e){if(hDrag)hSetFromEvent(e);});
@@ -798,12 +798,77 @@ if(sndOn){document.addEventListener("pointerdown",function boot(){
   document.removeEventListener("pointerdown",boot);
 },{once:true});}
 
+/* ================= 控制台 / 种子动作 / 输出 ================= */
+var ensoClicks=0;
+function reseedAll(){
+  seed=(Math.random()*0x3FFFFFFF)>>>0;
+  location.hash="seed="+seed.toString(36);
+  writeSeed();layout();drawEnso(seed^0xE150,false);
+}
+document.getElementById("btnSeed").addEventListener("click",reseedAll);
+document.getElementById("btnShare").addEventListener("click",function(){
+  var url=location.href,b=this;
+  function done(){b.textContent="已复制 ✓";setTimeout(function(){b.textContent="复制链接";},1600);}
+  if(navigator.clipboard){navigator.clipboard.writeText(url).then(done,done);}else{prompt("复制此链接",url);done();}
+});
+function exportPng(){
+  var W2=komo.width,H2=komo.height;
+  var out=document.createElement("canvas");out.width=W2;out.height=H2;
+  var g=out.getContext("2d");
+  g.drawImage(komo,0,0);
+  var sc=W2/1600;
+  g.fillStyle="rgba(35,43,32,.72)";
+  g.fillRect(0,H2-92*sc,760*sc,92*sc);
+  g.fillStyle="#D9A85C";g.font="400 "+(22*sc)+"px 'SF Mono',Menlo,monospace";
+  g.fillText("露地 ROJI — 叶隙之间的光 · "+heureName(heure).split(" ")[0]+" "+fmtH(heure),24*sc,H2-52*sc);
+  g.font="400 "+(17*sc)+"px 'SF Mono',Menlo,monospace";
+  g.fillText("ÉTUDE N°44/100 · ATELIER MIRA · SEED 0x"+seed.toString(36).toUpperCase()+" · PLEIN AIR",24*sc,H2-24*sc);
+  var a=document.createElement("a");
+  a.download="roji-komorebi-"+seed.toString(36)+".png";
+  a.href=out.toDataURL("image/png");
+  document.body.appendChild(a);a.click();a.remove();
+}
+function fmtH(h){var hh=Math.floor(h),mm=Math.floor((h-hh)*60);
+  return String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0");}
+document.getElementById("btnPng").addEventListener("click",exportPng);
+function bindDesk(id,key,fmt,after){
+  var el=document.getElementById("c"+id);
+  el.addEventListener("input",function(){
+    desk[key]=+el.value;
+    document.getElementById("o"+id).textContent=fmt(+el.value);
+    if(after)after();
+  });
+}
+bindDesk("Dap","dap",function(v){return v+" 枚";},function(){layout();});
+bindDesk("Wind","wind",function(v){return v+" %";});
+bindDesk("Shade","shade",function(v){return v+" %";},function(){layout();});
+document.getElementById("modeChips").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  spotMode=b.dataset.m;
+  this.querySelectorAll("button").forEach(function(x){x.classList.toggle("on",x===b);});
+  document.getElementById("dModeLab").textContent=spotMode==="sima"?"縞 SIMA · 簾隙条光":"丸 MARU · 叶隙圆光";
+});
+
+/* ================= 键盘 ================= */
+document.addEventListener("keydown",function(e){
+  if(/INPUT|TEXTAREA/.test((document.activeElement||{}).tagName||""))return;
+  var k=e.key;
+  if(k==="[")setHeure(heure-0.5);
+  else if(k==="]")setHeure(heure+0.5);
+  else if(k==="m"||k==="M")document.querySelector('#modeChips button:not(.on)').click();
+  else if(k==="e"||k==="E")drawEnso((seed^0xE150)+(++ensoClicks)*97,false);
+  else if(k==="r"||k==="R")reseedAll();
+  else if(k==="d"||k==="D")exportPng();
+  else if(k>="1"&&k<="4")selectTea(+k-1);
+});
+
 /* ================= 启动 ================= */
-window.addEventListener("resize",function(){layout();grainSize();drawEnso(47,true);});
+window.addEventListener("resize",function(){layout();grainSize();drawEnso(seed^0xE150,true);});
 layout();
+writeSeed();
 setHeure(heure);
-drawEnso(47);
-setTimeout(function(){drawEnso(47,true);},1900); /* 虚拟时钟/弱设备兜底：直接落成完稿 */
+drawEnso(seed^0xE150);
+setTimeout(function(){drawEnso(seed^0xE150,true);},1900); /* 虚拟时钟/弱设备兜底：直接落成完稿 */
 requestAnimationFrame(drawKomo);
 })();
 </script>
