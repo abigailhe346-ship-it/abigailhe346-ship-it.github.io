@@ -3,15 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voxel Island · 体素浮岛 — Atelier MIRA N°088</title>
+<title>N°088 · Voxel Island 体素浮岛 · 睡莲 — Atelier MIRA</title>
+<!--
+  Atelier MIRA · N°088 · 睡莲 Nymphéas（冷中带暖斑）
+  家族色锚：#F2EFE6 水光 · #DCE4DA 浅漪 · #A9BFAD 柳绿 · #5F7D6E 深塘 · #7C8FA6 天光倒影 · #C9A6B4 莲粉（点缀 ≤8%）
+  heure：访客本地时 → 浮岛从水光清晨漂到莲粉灯下；顶部日光尺可拖动
+  彩蛋：燕子会在某个时刻横渡画面，翼尖会推一把云
+-->
 <style>
   :root{
-    --paper:#f7f0e1;
-    --ink:#22303c;
-    --green:#3e7c4f;
-    --blue:#35507a;
-    --orange:#e8603c;
-    --dim:#8b8574;
+    --paper:#F2EFE6;
+    --ink:#3d4a44;
+    --green:#5F7D6E;
+    --blue:#7C8FA6;
+    --pink:#C9A6B4;
+    --dim:#8b958c;
+    --hudink:#3d4a44;
   }
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{width:100%;height:100%;overflow:hidden;background:var(--paper);
@@ -21,30 +28,47 @@
   #stage{position:fixed;inset:0;cursor:grab;}
   #stage.dragging{cursor:grabbing;}
   #stage canvas{display:block;}
-  #grainLay{position:fixed;inset:0;z-index:6;pointer-events:none;mix-blend-mode:multiply;opacity:.09;
+  #grainLay{position:fixed;inset:0;z-index:6;pointer-events:none;mix-blend-mode:multiply;opacity:.08;
        background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E");}
+  .grain-cv{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;opacity:.05;mix-blend-mode:overlay}
 
   .plate{position:fixed;top:26px;left:28px;z-index:10;pointer-events:none;}
   .sealrow{display:flex;align-items:center;gap:12px;}
   .seal{width:44px;height:44px;flex:none;}
-  .plate .no{font-family:"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.3em;color:var(--orange);line-height:1.9;}
+  .plate .no{font-family:"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.3em;color:var(--green);line-height:1.9;}
   .plate .no span{color:var(--dim);}
   .plate h1{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;font-size:30px;font-weight:700;
             letter-spacing:.04em;margin-top:8px;line-height:1;}
   .plate .sub{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;font-style:italic;
               font-size:13px;color:var(--dim);margin-top:6px;letter-spacing:.1em;}
-  .plate .stamp{display:inline-block;margin-top:10px;padding:4px 9px;border:2px solid var(--orange);
-                color:var(--orange);font-size:9px;letter-spacing:.34em;transform:rotate(-2deg);}
+  .plate .epigraphe{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;font-style:italic;
+              font-size:14px;color:var(--green);margin-top:10px;}
+  .plate .stamp{display:inline-block;margin-top:10px;padding:4px 9px;border:2px solid var(--pink);
+                color:var(--pink);font-size:9px;letter-spacing:.34em;transform:rotate(-2deg);font-family:"SF Mono",Menlo,monospace;}
 
   .caption{position:fixed;right:26px;top:28px;z-index:10;text-align:right;pointer-events:none;
            font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.2em;
            color:var(--dim);line-height:2;}
   .caption b{color:var(--green);font-weight:600;}
-  .caption .blk{color:var(--orange);}
+  .caption .blk{color:var(--pink);}
+
+  /* ---------- 日光尺（顶部中央） ---------- */
+  .ttrack{position:fixed;top:20px;left:50%;transform:translateX(-50%);width:min(320px,42vw);height:52px;z-index:11;
+          color:var(--hudink);cursor:ew-resize;touch-action:none;
+          font:9px "SF Mono",Menlo,monospace;letter-spacing:.12em;text-transform:uppercase}
+  .ttrack svg.tt-arc{position:absolute;left:0;top:6px;width:100%;height:26px;overflow:visible}
+  .tt-sun{position:absolute;width:12px;height:12px;border-radius:50%;transform:translate(-50%,-50%);
+          background:radial-gradient(circle at 35% 35%,#fff8ea,#e8c890);box-shadow:0 0 9px 2px rgba(240,220,170,.65);pointer-events:none}
+  .tt-ticks{position:absolute;left:0;right:0;bottom:16px;display:flex;justify-content:space-between;padding:0 2px}
+  .tt-ticks span{cursor:pointer;opacity:.6;padding:3px 4px;transition:opacity .2s}
+  .tt-ticks span:hover,.tt-ticks span.on{opacity:1}
+  .tt-label{position:absolute;left:0;right:0;bottom:0;text-align:center;opacity:.75;pointer-events:none}
 
   /* ---------- controls ---------- */
   .controls{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:10;
-            display:flex;gap:12px;align-items:stretch;max-width:calc(100vw - 28px);flex-wrap:wrap;justify-content:center;}
+            display:flex;gap:12px;align-items:stretch;max-width:calc(100vw - 28px);flex-wrap:wrap;justify-content:center;
+            transition:opacity .3s;}
+  .controls.hidden{opacity:0;pointer-events:none;}
   .card{background:var(--paper);border:2px solid var(--ink);
         box-shadow:4px 4px 0 var(--blue);
         padding:10px 14px;display:flex;flex-direction:column;justify-content:center;gap:6px;
@@ -52,39 +76,54 @@
   .card .k{font-family:"SF Mono",Menlo,monospace;font-size:8.5px;letter-spacing:.26em;color:var(--dim);
            display:flex;justify-content:space-between;gap:12px;white-space:nowrap;}
   .card .k b{color:var(--green);font-weight:600;font-variant-numeric:tabular-nums;}
-  .card .v{font-family:"SF Mono",Menlo,monospace;font-size:12px;letter-spacing:.1em;color:var(--green);}
   input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:2px;background:var(--ink);outline:none;cursor:pointer;}
   input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;background:var(--paper);border:2.5px solid var(--ink);border-radius:0;cursor:ew-resize;}
-  input[type=range]::-webkit-slider-thumb:hover{background:var(--orange);border-color:var(--orange);}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--pink);border-color:var(--pink);}
   input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--paper);border:2.5px solid var(--ink);border-radius:0;cursor:ew-resize;}
   .seg{display:flex;}
   .seg button{appearance:none;background:var(--paper);border:2px solid var(--ink);border-left:none;color:var(--ink);
        font-family:inherit;font-weight:700;font-size:10px;letter-spacing:.14em;padding:6px 9px;cursor:pointer;
        transition:all .15s;}
   .seg button:first-child{border-left:2px solid var(--ink);}
-  .seg button:hover{background:var(--orange);border-color:var(--orange);color:var(--paper);}
+  .seg button:hover{background:var(--pink);border-color:var(--pink);color:var(--paper);}
   .seg button.on{background:var(--ink);color:var(--paper);}
   .btn{appearance:none;background:var(--paper);border:2px solid var(--ink);color:var(--ink);
        font-family:inherit;font-weight:700;font-size:10px;letter-spacing:.2em;
        padding:10px 14px;cursor:pointer;box-shadow:4px 4px 0 var(--ink);
        transition:transform .12s cubic-bezier(.2,.7,.3,1),box-shadow .12s,background .2s,color .2s;}
-  .btn:hover{background:var(--orange);border-color:var(--orange);color:var(--paper);box-shadow:4px 4px 0 var(--blue);}
+  .btn:hover{background:var(--pink);border-color:var(--pink);color:var(--paper);box-shadow:4px 4px 0 var(--blue);}
   .btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink);}
   .btn.alt:hover{background:var(--blue);border-color:var(--blue);}
   .btnrow{display:flex;gap:8px;flex-wrap:wrap;}
+
+  /* ---------- 落款 ---------- */
+  .signature{position:fixed;right:26px;bottom:26px;z-index:9;display:flex;align-items:center;gap:8px;color:var(--hudink);
+             opacity:.68;pointer-events:none;font:10px "SF Mono",Menlo,monospace;letter-spacing:.12em;}
+  .signature svg{width:34px;height:22px;flex:none}
   .colophon{position:fixed;left:28px;bottom:26px;z-index:9;font-family:"SF Mono",Menlo,monospace;
             font-size:8.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;pointer-events:none;}
-  .colophon b{color:var(--orange);font-weight:400;}
+  .colophon b{color:var(--green);font-weight:400;}
   .hintline{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:8;
             font-family:"SF Mono",Menlo,monospace;font-size:8.5px;letter-spacing:.2em;color:var(--dim);
             pointer-events:none;text-transform:uppercase;}
-  body.t-nuit{background:#1d2440;}
-  body.t-nuit .plate h1{color:#e8e4d8;}
-  body.t-nuit .plate .sub{color:#9aa3c0;}
-  body.t-nuit .caption{color:#9aa3c0;}
-  body.t-nuit .caption b{color:#7fb7ff;}
-  body.t-nuit .colophon{color:#9aa3c0;}
-  body.t-nuit .hintline{color:#7c86a8;}
+  /* ---------- 声音开关 ---------- */
+  .sndbtn{position:fixed;top:26px;right:26px;z-index:11;width:34px;height:34px;border:2px solid var(--hudink);
+          background:var(--paper);color:var(--hudink);cursor:pointer;display:flex;align-items:center;justify-content:center;
+          opacity:.8;transition:all .3s;padding:0;box-shadow:3px 3px 0 var(--blue)}
+  .sndbtn:hover{opacity:1}
+  .sndbtn.on{background:var(--hudink);color:var(--paper)}
+  .sndbtn svg{width:16px;height:16px}
+  /* ---------- 燕子 ---------- */
+  #swallow{position:fixed;left:0;top:0;z-index:8;pointer-events:none;opacity:0;will-change:transform}
+  #swallow svg{display:block;transform-origin:50% 50%}
+
+  body.t-nuit{background:#2e3a44;}
+  body.t-nuit .plate h1{color:#e4e8e0;}
+  body.t-nuit .plate .sub{color:#9aa8b0;}
+  body.t-nuit .caption{color:#9aa8b0;}
+  body.t-nuit .caption b{color:#b8cfe0;}
+  body.t-nuit .colophon{color:#9aa8b0;}
+  body.t-nuit .hintline{color:#7c8a94;}
   body.t-nuit #grainLay{mix-blend-mode:overlay;opacity:.12;}
 
   @media (max-width:680px){
@@ -92,33 +131,43 @@
     .colophon{display:none;}
     .plate{top:16px;left:18px;}
     .plate h1{font-size:22px;}
+    .plate .epigraphe{display:none}
     .controls{bottom:14px;gap:8px;}
     .btn{padding:9px 11px;font-size:9px;}
     .card{padding:8px 10px;}
     input[type=range]{width:88px;}
+    .ttrack{width:min(260px,60vw);top:12px;}
+    .sndbtn{top:auto;bottom:auto;top:16px;right:16px;width:32px;height:32px}
+    .signature{bottom:96px;right:12px}
+    .signature span{display:none}
+    .signature::after{content:"Atelier MIRA · N°088";font-size:8px;letter-spacing:.12em}
+    .hintline{display:none}
   }
 </style>
 </head>
 <body>
 <div id="stage"></div>
 <div id="grainLay"></div>
+<canvas class="grain-cv" id="graincv" aria-hidden="true"></canvas>
 
 <header class="plate">
   <div class="sealrow">
     <svg class="seal" viewBox="0 0 46 46" aria-hidden="true">
-      <circle cx="23" cy="23" r="21.5" fill="none" stroke="#e8603c" stroke-width="1.1"/>
+      <circle cx="23" cy="23" r="21.5" fill="none" stroke="#5F7D6E" stroke-width="1.1"/>
       <defs><path id="miring88" d="M23 5.5 a17.5 17.5 0 1 1 -0.01 0"/></defs>
-      <text font-family="SF Mono,Menlo,monospace" font-size="4.6" letter-spacing="1.6" fill="#e8603c">
+      <text font-family="SF Mono,Menlo,monospace" font-size="4.6" letter-spacing="1.6" fill="#5F7D6E">
         <textPath href="#miring88" startOffset="2">ATELIER MIRA · ATELIER MIRA ·</textPath>
       </text>
       <path d="M14.5 31 C13.8 24.5 14.2 18 15.2 12.5 C17.2 18.5 20 24.5 22.6 29.5 C25.2 23.5 28 17.5 30 12.5 C30.8 18.5 31.2 25 30.6 31"
-            fill="none" stroke="#e8603c" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            fill="none" stroke="#5F7D6E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19 C 35 17, 33 17, 32 20 Z" transform="translate(28,26) scale(0.22)" fill="#5F7D6E" stroke="none"/>
     </svg>
-    <div class="no">ÉTUDE N°88 / 100<br><span>3D WORLDS · PLEIN AIR</span></div>
+    <div class="no">N°088 / 100<br><span>3D WORLDS · PLEIN AIR</span></div>
   </div>
   <h1>Voxel Island</h1>
   <div class="sub">体素浮岛 · 一座漂在云上的方块世界</div>
-  <div class="stamp">PROCEDURAL</div>
+  <div class="epigraphe">「这座岛把瀑布借给了云，燕子每年春天来收利息。」</div>
+  <div class="stamp">NYMPHÉAS</div>
 </header>
 
 <div class="caption">
@@ -128,7 +177,24 @@
   <span id="capMode">环游 ORBIT · 晴 CLEAR</span>
 </div>
 
-<div class="controls">
+<div class="ttrack" id="ttrack" title="拖动改变时刻 · 双击回到此刻">
+  <svg class="tt-arc" viewBox="0 0 220 26" preserveAspectRatio="none" aria-hidden="true"><path d="M6 23 Q 110 -6 214 23" fill="none" stroke="currentColor" stroke-width="1" opacity=".4"/></svg>
+  <div class="tt-sun" id="ttsun"></div>
+  <div class="tt-ticks" id="ttticks"><span data-h="6.5">晨</span><span data-h="12.5">午</span><span data-h="18.4">昏</span><span data-h="23">夜</span></div>
+  <div class="tt-label" id="ttlabel">HEURE —</div>
+</div>
+
+<button class="sndbtn" id="sndbtn" aria-label="环境声开关" title="环境声（瀑布、风与鸟）">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 10 v4 M8 7 v10 M12 4 v16 M16 8 v8 M20 11 v2"/></svg>
+</button>
+
+<div id="swallow" aria-hidden="true">
+  <svg width="52" height="33" viewBox="0 0 64 40" fill="#2F3B2C">
+    <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19 C 35 17, 33 17, 32 20 Z"/>
+  </svg>
+</div>
+
+<div class="controls" id="controls">
   <div class="card">
     <span class="k">山高 PEAKS <b id="peakVal">1.0×</b></span>
     <input type="range" id="peaks" min="50" max="170" value="100">
@@ -140,12 +206,6 @@
   <div class="card">
     <span class="k">风 WIND <b id="windVal">1.0 M/S</b></span>
     <input type="range" id="windAmt" min="0" max="40" value="10">
-  </div>
-  <div class="card">
-    <span class="k">时刻 HEURE</span>
-    <div class="seg" id="timeSeg">
-      <button data-t="matin">晨</button><button data-t="midi" class="on">午</button><button data-t="soir">昏</button><button data-t="nuit">夜</button>
-    </div>
   </div>
   <div class="card">
     <span class="k">天气 CIEL</span>
@@ -168,15 +228,19 @@
     </div>
   </div>
 </div>
+<div class="signature" aria-hidden="true">
+  <svg viewBox="0 0 34 22"><path d="M3 19 L5.6 5 L10.6 13.5 L15.6 5 L18.2 19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19 C 35 17, 33 17, 32 20 Z" transform="translate(16.6,4.6) scale(0.27)" fill="currentColor"/></svg>
+  <span>Atelier MIRA · N°088 · 睡莲 Nymphéas</span>
+</div>
 <div class="colophon">WebGL · THREE r128 · seed <b id="coloSeed">#0000</b> · Painted with code, plein air</div>
-<div class="hintline">点击方块开采 · 拖拽环游 · 滚轮推拉 · 1-4 时刻 · Z X C V 天气</div>
+<div class="hintline">点击方块开采 · 拖拽环游 · 滚轮推拉 · 日光尺换时刻 · Z X C V 天气 · H 收起 · 燕子偶尔会来</div>
 
 <script src="../../../vendor/three.min.js"></script>
 <script>
 (function(){
   "use strict";
 
-  /* ================= seeded rng + noise ================= */
+  /* ================= seeded rng + noise + heure ================= */
   function mulberry32(a){
     return function(){
       a|=0;a=(a+0x6D2B79F5)|0;
@@ -188,10 +252,16 @@
   var SEED=parseInt((location.hash.match(/seed=([0-9a-f]{1,6})/i)||[])[1],16);
   if(!SEED||SEED<0)SEED=(Math.random()*0xffff)|0;
   SEED=SEED&0xffffff;
-  var HASH_T=(location.hash.match(/t=(matin|midi|soir|nuit)/)||[])[1];
   var HASH_W=(location.hash.match(/w=(clear|fog|rain|snow)/)||[])[1];
+  var heure=(function(){
+    var m=location.hash.match(/h=([0-9.]+)/);
+    if(m)return Math.min(23.99,Math.max(0,+m[1]));
+    m=location.hash.match(/t=(matin|midi|soir|nuit)/);
+    if(m)return {matin:7.5,midi:12.5,soir:18.4,nuit:23}[m[1]];
+    var d=new Date();return d.getHours()+d.getMinutes()/60;
+  })();
   function fmt(s){return "#"+("000000"+s.toString(16).toUpperCase()).slice(-6);}
-  function setHash(){try{history.replaceState(null,"","#seed="+SEED.toString(16)+"&t="+timeName+"&w="+wxName);}catch(e){}}
+  function setHash(){try{history.replaceState(null,"","#seed="+SEED.toString(16)+"&h="+heure.toFixed(1)+"&w="+wxName);}catch(e){}}
   function makeNoise2(seed){
     var rand=mulberry32(seed);
     var vals=new Float32Array(256),perm=new Uint8Array(512),i,j,t;
@@ -222,12 +292,12 @@
   stage.appendChild(renderer.domElement);
 
   var scene=new THREE.Scene();
-  scene.background=new THREE.Color(0xf7f0e1);
-  scene.fog=new THREE.Fog(0xf7f0e1,10,26);
+  scene.background=new THREE.Color(0xF2EFE6);
+  scene.fog=new THREE.Fog(0xF2EFE6,10,26);
 
   var camera=new THREE.PerspectiveCamera(40,1,0.1,120);
   var azim=0.7,elev=0.42,radius=9.2;
-  var lookAt=new THREE.Vector3(0,0.15,0);
+  var lookAt=new THREE.Vector3(0.5,0.15,0); /* 主体偏左 */
   function placeCamera(){
     camera.position.set(
       lookAt.x+radius*Math.cos(elev)*Math.sin(azim),
@@ -238,8 +308,8 @@
 
   var sun=new THREE.DirectionalLight(0xfff2d8,1.15);
   sun.position.set(5,8,3);scene.add(sun);
-  var amb=new THREE.HemisphereLight(0xfff6e6,0x8a97a8,0.85);scene.add(amb);
-  var lanternLight=new THREE.PointLight(0xffa04a,0,6,2);lanternLight.position.set(0,1.2,0);scene.add(lanternLight);
+  var amb=new THREE.HemisphereLight(0xf2efe6,0x7C8FA6,0.85);scene.add(amb);
+  var lanternLight=new THREE.PointLight(0xd8a8bc,0,6,2);lanternLight.position.set(0,1.2,0);scene.add(lanternLight);
 
   /* stars + moon */
   var starMat;
@@ -267,7 +337,7 @@
     scene.add(sp);return sp;
   })();
 
-  /* ================= island build ================= */
+  /* ================= island build（睡莲色系） ================= */
   var VOX=0.34,R=8;
   var islandGroup=null,instanceMesh=null;
   var waterfallSrc=new THREE.Vector3(1.8,0.6,0);
@@ -275,15 +345,15 @@
   var instBase=[],instPos=[],instTop=[],instType=[],removed={};
   var lanterns=[];
 
-  var GRASS=[0x3e7c4f,0x4a8a55,0x35704a];
-  var DIRT=[0x7a5238,0x6e4a32];
-  var STONE=[0x8d8a80,0x7c7970,0x98958a];
-  var SNOW=0xf2f0e8;
-  var TRUNK=0x5f4230;
-  var LEAF=[0x2f6640,0x3e7c4f,0x4a8a55];
-  var WATER=0x4d7f9e;
-  var SAND=0xd9c88f;
-  var LANTERN=0xffb54a;
+  var GRASS=[0xA9BFAD,0x9db8a4,0x93b29b];
+  var DIRT=[0x8a7a60,0x7d6f56];
+  var STONE=[0x8a97a2,0x7C8FA6,0x97a2ac];
+  var SNOW=0xF2EFE6;
+  var TRUNK=0x6b5a48;
+  var LEAF=[0x5F7D6E,0x6e8a76,0x86a48e];
+  var WATER=0x7C8FA6;
+  var SAND=0xDCE4DA;
+  var LANTERN=0xC9A6B4;
 
   function buildIsland(seed){
     var rand=mulberry32(seed);
@@ -330,7 +400,7 @@
         vox.push({x:t.x,y:t.top+2,z:t.z+1,c:lc,type:"LEAF",top:false});
         vox.push({x:t.x,y:t.top+2,z:t.z-1,c:lc,type:"LEAF",top:false});
         if(rand()<0.6)vox.push({x:t.x,y:t.top+3,z:t.z,c:LEAF[Math.floor(rand()*3)],type:"LEAF",top:false});
-        /* 灯笼挂在树下（夜里发光） */
+        /* 莲粉灯笼挂在树下（夜里发光） */
         if(rand()<0.5){
           vox.push({x:t.x+1,y:t.top+1,z:t.z,c:LANTERN,type:"LANTERN",top:false});
         }
@@ -386,7 +456,7 @@
     document.getElementById("capBlocks").textContent=(blockCount-Object.keys(removed).length);
   }
 
-  /* snow recolor (tops whiten as snowT rises) */
+  /* snow recolor */
   var snowT=0,snowApplied=-1;
   var _c1=new THREE.Color(),_c2=new THREE.Color();
   function applySnow(){
@@ -396,10 +466,10 @@
       if(removed[i])continue;
       _c1.setHex(instBase[i]);
       if(instTop[i]||instType[i]==="LEAF"){
-        _c2.setHex(0xf4f6f2);
+        _c2.setHex(0xF2EFE6);
         _c1.lerp(_c2,snowT*0.9);
       }else if(instType[i]==="WATER"){
-        _c2.setHex(0xbfd8e0);
+        _c2.setHex(0xDCE4DA);
         _c1.lerp(_c2,snowT*0.5);
       }
       instanceMesh.setColorAt(i,_c1);
@@ -412,7 +482,7 @@
   var wfGeo=new THREE.BufferGeometry();
   var wfPos=new Float32Array(WF_N*3);
   wfGeo.setAttribute("position",new THREE.BufferAttribute(wfPos,3));
-  var wfMat=new THREE.PointsMaterial({size:0.075,color:0xbfe0ea,transparent:true,opacity:0.9,depthWrite:false});
+  var wfMat=new THREE.PointsMaterial({size:0.075,color:0xc8dce2,transparent:true,opacity:0.9,depthWrite:false});
   var wf=new THREE.Points(wfGeo,wfMat);
   scene.add(wf);
   var wfVel=new Float32Array(WF_N*3),wfLife=new Float32Array(WF_N);
@@ -433,7 +503,7 @@
     var c=document.createElement("canvas");c.width=c.height=128;
     var x=c.getContext("2d");
     var g=x.createRadialGradient(64,64,4,64,64,60);
-    g.addColorStop(0,"rgba(230,242,246,0.8)");g.addColorStop(1,"rgba(230,242,246,0)");
+    g.addColorStop(0,"rgba(230,242,240,0.8)");g.addColorStop(1,"rgba(230,242,240,0)");
     x.fillStyle=g;x.fillRect(0,0,128,128);
     var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,opacity:0.55,depthWrite:false}));
     sp.scale.set(1.6,1.1,1);
@@ -444,7 +514,7 @@
   var DEB=90,debGeo=new THREE.BufferGeometry();
   var debPos=new Float32Array(DEB*3),debVel=new Float32Array(DEB*3),debLife=new Float32Array(DEB);
   debGeo.setAttribute("position",new THREE.BufferAttribute(debPos,3));
-  var debMat=new THREE.PointsMaterial({size:0.09,color:0x8d8a80,transparent:true,opacity:0.95,depthWrite:false});
+  var debMat=new THREE.PointsMaterial({size:0.09,color:0x8a97a2,transparent:true,opacity:0.95,depthWrite:false});
   var deb=new THREE.Points(debGeo,debMat);scene.add(deb);
   var debRand=mulberry32(3131);
   for(var di=0;di<DEB;di++)debLife[di]=0;
@@ -477,7 +547,7 @@
     var geo=new THREE.BoxGeometry(1,1,1);
     for(var i=0;i<6;i++){
       var g=new THREE.Group();
-      var mat=new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.92});
+      var mat=new THREE.MeshLambertMaterial({color:0xF2EFE6,transparent:true,opacity:0.92});
       var nBox=5+Math.floor(rand()*5);
       for(var j=0;j<nBox;j++){
         var m=new THREE.Mesh(geo,mat);
@@ -487,45 +557,60 @@
         g.add(m);
       }
       var a=rand()*Math.PI*2;
-      g.userData={ang:a,rad:4.2+rand()*2.6,y:-1.6-rand()*1.6,spd:0.03+rand()*0.05,mat:mat};
+      g.userData={ang:a,rad:4.2+rand()*2.6,y:-1.6-rand()*1.6,spd:0.03+rand()*0.05,boost:0,mat:mat};
       g.position.set(Math.cos(a)*g.userData.rad,g.userData.y,Math.sin(a)*g.userData.rad);
       scene.add(g);clouds.push(g);
     }
   })();
 
-  /* ================= time of day + weather ================= */
-  var TIMES={
-    matin:{sky:0xf6e3c8,fog:0xf6e3c8,sun:0xffd9a0,si:1.0,hemi:0xfdeed4,gnd:0xb0a294,hi:0.75,star:0,moon:0,wf:0xcfe4da,cloud:0xfdf0dd,lp:0,sp:[6,3.4,3],amb2:0.9},
-    midi:{sky:0xf7f0e1,fog:0xf7f0e1,sun:0xfff2d8,si:1.15,hemi:0xfff6e6,gnd:0x8a97a8,hi:0.85,star:0,moon:0,wf:0xbfe0ea,cloud:0xffffff,lp:0,sp:[5,8,3],amb2:1},
-    soir:{sky:0xefd3a8,fog:0xeed0a2,sun:0xff9a4e,si:1.05,hemi:0xf6d8a8,gnd:0x7c7468,hi:0.62,star:0.15,moon:0,wf:0xd8c8a8,cloud:0xf6d9b0,lp:0.25,sp:[7,2.2,2],amb2:0.85},
-    nuit:{sky:0x1d2440,fog:0x1d2440,sun:0x8fa3d6,si:0.28,hemi:0x33406b,gnd:0x1a2036,hi:0.38,star:1,moon:1,wf:0x9fd8ff,cloud:0x8fa0c8,lp:1,sp:[-4,6,-2],amb2:0.6}
-  };
-  var timeName="midi";
+  /* ================= heure：浮岛的一天（睡莲） ================= */
+  var HK=[
+    {h:0,   sky:0x2e3a44,sun:0x8a9cc0,si:.28,hemi:0x3a4a56,gnd:0x1c242c,hi:.42,star:1,moon:1,wf:0x9fc8d8,cloud:0x5a6a78,lp:1,sp:[-4,6,-2]},
+    {h:5.5, sky:0x7a8494,sun:0xc0a898,si:.5,hemi:0x8a94a0,gnd:0x3c4450,hi:.6,star:.3,moon:0,wf:0x9fc0c8,cloud:0x9aa4ac,lp:.4,sp:[-5,3,3]},
+    {h:6.5, sky:0xDCE4DA,sun:0xf2e2c0,si:.85,hemi:0xe4eae0,gnd:0x8a9a90,hi:.8,star:0,moon:0,wf:0xc4dcd8,cloud:0xe8ece0,lp:0,sp:[6,3,3]},
+    {h:8.5, sky:0xF2EFE6,sun:0xfff2d8,si:1.1,hemi:0xf2efe6,gnd:0x7C8FA6,hi:.95,star:0,moon:0,wf:0xcfe4e2,cloud:0xfbfaf4,lp:0,sp:[6,5,3]},
+    {h:12,  sky:0xeef0e6,sun:0xfff6e8,si:1.25,hemi:0xf4f4ea,gnd:0x7C8FA6,hi:1.05,star:0,moon:0,wf:0xcfe4e2,cloud:0xffffff,lp:0,sp:[5,8,3]},
+    {h:16.5,sky:0xecead8,sun:0xf2d8a0,si:1.1,hemi:0xf0ecdc,gnd:0x74889a,hi:.92,star:0,moon:0,wf:0xd4dcd0,cloud:0xf6ecd8,lp:0,sp:[6,4.5,2]},
+    {h:18.4,sky:0xe4cdb4,sun:0xe8a860,si:1.0,hemi:0xe8d2b4,gnd:0x5F7D6E,hi:.75,star:.1,moon:0,wf:0xd8c4a8,cloud:0xf0d0ac,lp:.3,sp:[7,2.2,2]},
+    {h:19.8,sky:0x7a7a92,sun:0xb08a78,si:.45,hemi:0x6e7488,gnd:0x30384a,hi:.55,star:.5,moon:.4,wf:0x9fb4c8,cloud:0x8a8a9c,lp:.8,sp:[-3,4,-2]},
+    {h:21.5,sky:0x36414e,sun:0x8a9cc0,si:.3,hemi:0x3a4a56,gnd:0x1c242c,hi:.45,star:1,moon:1,wf:0x9fc8d8,cloud:0x5a6a78,lp:1,sp:[-4,6,-2]},
+    {h:24,  sky:0x2e3a44,sun:0x8a9cc0,si:.28,hemi:0x3a4a56,gnd:0x1c242c,hi:.42,star:1,moon:1,wf:0x9fc8d8,cloud:0x5a6a78,lp:1,sp:[-4,6,-2]}
+  ];
+  HK.forEach(function(k){k.cSky=new THREE.Color(k.sky);k.cSun=new THREE.Color(k.sun);k.cHemi=new THREE.Color(k.hemi);k.cGnd=new THREE.Color(k.gnd);k.cWf=new THREE.Color(k.wf);k.cCloud=new THREE.Color(k.cloud);k.cSp=new THREE.Vector3(k.sp[0],k.sp[1],k.sp[2]);});
+  function lerpHSL(out,a,b,t){
+    var ha={},hb={};a.getHSL(ha);b.getHSL(hb);
+    var dh=hb.h-ha.h;if(dh>.5)dh-=1;if(dh<-.5)dh+=1;
+    out.setHSL((ha.h+dh*t+1)%1,ha.s+(hb.s-ha.s)*t,ha.l+(hb.l-ha.l)*t);
+  }
   var cur={
-    sky:new THREE.Color(0xf7f0e1),sun:new THREE.Color(0xfff2d8),hemi:new THREE.Color(0xfff6e6),
-    gnd:new THREE.Color(0x8a97a8),wf:new THREE.Color(0xbfe0ea),cloud:new THREE.Color(0xffffff),
-    si:1.15,hi:0.85,star:0,moon:0,lp:0,sp:new THREE.Vector3(5,8,3),amb2:1
+    sky:new THREE.Color(0xF2EFE6),sun:new THREE.Color(0xfff2d8),hemi:new THREE.Color(0xf2efe6),
+    gnd:new THREE.Color(0x7C8FA6),wf:new THREE.Color(0xcfe4e2),cloud:new THREE.Color(0xffffff),
+    si:1.15,hi:0.85,star:0,moon:0,lp:0,sp:new THREE.Vector3(5,8,3),dayF:1
   };
   var WX={clear:{fo:0,rain:0,snow:0,gloom:0},fog:{fo:1,rain:0,snow:0,gloom:0.25},rain:{fo:0.35,rain:1,snow:0,gloom:0.55},snow:{fo:0.45,rain:0,snow:1,gloom:0.35}};
   var wxName="clear";
   var wxCur={fo:0,rain:0,snow:0,gloom:0};
   var wind=1.0,cloudAmt=1;
 
-  function lerpAll(dt){
-    var T=TIMES[timeName],W=WX[wxName],k=Math.max(0,Math.min(1,dt*1.8));
-    cur.sky.lerp(new THREE.Color(T.sky),k);
-    cur.sun.lerp(new THREE.Color(T.sun),k);
-    cur.hemi.lerp(new THREE.Color(T.hemi),k);
-    cur.gnd.lerp(new THREE.Color(T.gnd),k);
-    cur.wf.lerp(new THREE.Color(T.wf),k);
-    cur.cloud.lerp(new THREE.Color(T.cloud),k);
-    cur.si+=(T.si-cur.si)*k;cur.hi+=(T.hi-cur.hi)*k;
-    cur.star+=(T.star-cur.star)*k;cur.moon+=(T.moon-cur.moon)*k;cur.lp+=(T.lp-cur.lp)*k;
-    cur.sp.lerp(new THREE.Vector3().fromArray(T.sp),k);
-    cur.amb2+=(T.amb2-cur.amb2)*k;
+  function applyHeure(dt){
+    var h=heure,i=0;while(i<HK.length-2&&h>=HK[i+1].h)i++;
+    var a=HK[i],b=HK[i+1],t=(h-a.h)/(b.h-a.h),s=t*t*(3-2*t);
+    var k=Math.max(0,Math.min(1,dt*2.2)); /* 平滑趋近，拖动日光尺时也有过渡 */
+    lerpHSL(cur.sky,a.cSky,b.cSky,s);lerpHSL(cur.sun,a.cSun,b.cSun,s);
+    lerpHSL(cur.hemi,a.cHemi,b.cHemi,s);lerpHSL(cur.gnd,a.cGnd,b.cGnd,s);
+    lerpHSL(cur.wf,a.cWf,b.cWf,s);lerpHSL(cur.cloud,a.cCloud,b.cCloud,s);
+    var tSi=a.si+(b.si-a.si)*s,tHi=a.hi+(b.hi-a.hi)*s,tStar=a.star+(b.star-a.star)*s,
+        tMoon=a.moon+(b.moon-a.moon)*s,tLp=a.lp+(b.lp-a.lp)*s;
+    cur.si+=(tSi-cur.si)*k;cur.hi+=(tHi-cur.hi)*k;
+    cur.star+=(tStar-cur.star)*k;cur.moon+=(tMoon-cur.moon)*k;cur.lp+=(tLp-cur.lp)*k;
+    var spx=a.cSp.x+(b.cSp.x-a.cSp.x)*s,spy=a.cSp.y+(b.cSp.y-a.cSp.y)*s,spz=a.cSp.z+(b.cSp.z-a.cSp.z)*s;
+    cur.sp.x+=(spx-cur.sp.x)*k;cur.sp.y+=(spy-cur.sp.y)*k;cur.sp.z+=(spz-cur.sp.z)*k;
+    var elevS=Math.sin(Math.PI*(h-6)/12);
+    cur.dayF=Math.max(0,Math.min(1,elevS*2.2+.15));
+    var W=WX[wxName];
     wxCur.fo+=(W.fo-wxCur.fo)*k;wxCur.rain+=(W.rain-wxCur.rain)*k;
     wxCur.snow+=(W.snow-wxCur.snow)*k;wxCur.gloom+=(W.gloom-wxCur.gloom)*k;
-    snowT+=( (wxName==="snow"?1:0) - snowT)*Math.min(1,dt*0.55);
+    snowT+=((wxName==="snow"?1:0)-snowT)*Math.min(1,dt*0.55);
 
     var gloom=1-wxCur.gloom*0.55;
     scene.background.copy(cur.sky).multiplyScalar(gloom+0.18);
@@ -533,18 +618,32 @@
     scene.fog.near=10-wxCur.fo*6.5;
     scene.fog.far=26-wxCur.fo*15;
     sun.color.copy(cur.sun);sun.intensity=cur.si*gloom;sun.position.copy(cur.sp);
-    amb.color.copy(cur.hemi);amb.groundColor.copy(cur.gnd);amb.intensity=cur.hi*cur.amb2*(0.8+wxCur.fo*0.3);
+    amb.color.copy(cur.hemi);amb.groundColor.copy(cur.gnd);amb.intensity=cur.hi*(0.8+wxCur.fo*0.3);
     starMat.opacity=cur.star*(1-wxCur.fo*0.7)*0.95;
     moon.material.opacity=cur.moon*0.95;
     wfMat.color.copy(cur.wf);
     lanternLight.intensity=cur.lp*1.6;
-    for(var i=0;i<clouds.length;i++){
-      clouds[i].userData.mat.color.copy(cur.cloud).multiplyScalar(gloom+0.1);
-      clouds[i].userData.mat.opacity=0.55+cloudAmt*0.35+wxCur.fo*0.3;
-      clouds[i].visible=cloudAmt>0.05;
-      clouds[i].scale.setScalar(0.6+cloudAmt*0.5);
+    for(var ci=0;ci<clouds.length;ci++){
+      clouds[ci].userData.mat.color.copy(cur.cloud).multiplyScalar(gloom+0.1);
+      clouds[ci].userData.mat.opacity=0.55+cloudAmt*0.35+wxCur.fo*0.3;
+      clouds[ci].visible=cloudAmt>0.05;
+      clouds[ci].scale.setScalar(0.6+cloudAmt*0.5);
     }
     applySnow();
+    document.body.classList.toggle("t-nuit",cur.dayF<0.3);
+    var lum=cur.sky.getHSL({}).l||0;
+    document.documentElement.style.setProperty('--hudink',lum>.42?'#3d4a44':'#e4e8e0');
+    var hh=Math.floor(heure),mm=Math.floor((heure%1)*60);
+    var nm=heure<5?'夜':heure<7.5?'晨':heure<16.5?'昼':heure<19.6?'昏':'夜';
+    var t2=heure/24,x=6+t2*208;
+    var y=(1-t2)*(1-t2)*23+2*(1-t2)*t2*(-6)+t2*t2*23;
+    var sunEl=document.getElementById('ttsun');
+    sunEl.style.left=(x/220*100)+'%';sunEl.style.top=(6+y)+'px';
+    var sc='#'+cur.sun.getHexString();
+    sunEl.style.background='radial-gradient(circle at 35% 35%,#fff8ea,'+sc+')';
+    sunEl.style.boxShadow='0 0 '+(6+cur.dayF*6)+'px 2px '+sc;
+    document.getElementById('ttlabel').textContent='HEURE '+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+' · '+nm+' NYMPHÉAS';
+    document.querySelectorAll('#ttticks span').forEach(function(sp){sp.classList.toggle('on',Math.abs(+sp.dataset.h-heure)<1.2);});
   }
 
   /* ================= interaction: orbit / zoom / mine / hover ================= */
@@ -586,7 +685,7 @@
   });
   stage.addEventListener("wheel",function(e){
     e.preventDefault();lastInput=performance.now();
-    radius=Math.max(4.5,Math.min(16,radius+e.deltaY*0.008));
+    tRadius=Math.max(4.5,Math.min(16,tRadius+e.deltaY*0.008));
   },{passive:false});
 
   var _m4=new THREE.Matrix4(),_v3=new THREE.Vector3();
@@ -599,6 +698,7 @@
     instanceMesh.setMatrixAt(id,_m4);
     instanceMesh.instanceMatrix.needsUpdate=true;
     burst(_v3.x,_v3.y+islandGroup.position.y,_v3.z,instBase[id]);
+    Snd.knock();
     capBlock.textContent=instType[id]+" @"+instPos[id].join(",")+" — MINED";
     updateBlockCount();
   }
@@ -636,7 +736,7 @@
   }
   document.getElementById("regen").addEventListener("click",function(){regenerate(true);});
   document.getElementById("share").addEventListener("click",function(){
-    var url=location.href.split("#")[0]+"#seed="+SEED.toString(16)+"&t="+timeName+"&w="+wxName;
+    var url=location.href.split("#")[0]+"#seed="+SEED.toString(16)+"&h="+heure.toFixed(1)+"&w="+wxName;
     var b=this;
     function done(){b.textContent="已复制 ✓";setTimeout(function(){b.textContent="分享";},1400);}
     if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,done);}
@@ -645,7 +745,7 @@
   document.getElementById("save").addEventListener("click",function(){
     renderer.render(scene,camera);
     var a=document.createElement("a");
-    a.download="voxel-island-"+SEED.toString(16)+".png";
+    a.download="atelier-mira-N088-voxel-island-"+SEED.toString(16)+".png";
     a.href=renderer.domElement.toDataURL("image/png");a.click();
   });
   var peakTimer=null;
@@ -661,24 +761,19 @@
     wind=this.value/10;document.getElementById("windVal").textContent=wind.toFixed(1)+" M/S";
   });
 
-  function setTime(t,skipBtn){
-    timeName=t;
-    document.body.className="t-"+t;
-    if(!skipBtn)document.querySelectorAll("#timeSeg button").forEach(function(b){b.classList.toggle("on",b.dataset.t===t);});
-    updateCapMode();setHash();
-  }
   function setWx(w,skipBtn){
     wxName=w;
     if(!skipBtn)document.querySelectorAll("#wxSeg button").forEach(function(b){b.classList.toggle("on",b.dataset.w===w);});
     updateCapMode();setHash();
   }
-  document.querySelectorAll("#timeSeg button").forEach(function(b){b.addEventListener("click",function(){setTime(b.dataset.t);});});
   document.querySelectorAll("#wxSeg button").forEach(function(b){b.addEventListener("click",function(){setWx(b.dataset.w);});});
-  var TN={matin:"晨 MATIN",midi:"午 MIDI",soir:"昏 SOIR",nuit:"夜 NUIT"};
   var WN={clear:"晴 CLEAR",fog:"雾 BRUME",rain:"雨 PLUIE",snow:"雪 NEIGE"};
   var MN={orbit:"环游 ORBIT",drift:"贴水 DRIFT",survey:"测绘 SURVEY"};
   var modeName="orbit";
-  function updateCapMode(){document.getElementById("capMode").textContent=MN[modeName]+" · "+TN[timeName]+" · "+WN[wxName];}
+  function updateCapMode(){
+    var nm=heure<5?'夜':heure<7.5?'晨':heure<16.5?'昼':heure<19.6?'昏':'夜';
+    document.getElementById("capMode").textContent=MN[modeName]+" · "+nm+" · "+WN[wxName];
+  }
 
   /* view modes */
   var MODES={
@@ -701,16 +796,159 @@
   window.addEventListener("keydown",function(e){
     if(/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||""))return;
     var k=e.key;
-    if(k==="1")setTime("matin");else if(k==="2")setTime("midi");
-    else if(k==="3")setTime("soir");else if(k==="4")setTime("nuit");
+    if(k==="1")heure=6.5;else if(k==="2")heure=12.5;
+    else if(k==="3")heure=18.4;else if(k==="4")heure=23;
     else if(k==="z"||k==="Z")setWx("clear");else if(k==="x"||k==="X")setWx("fog");
     else if(k==="c"||k==="C")setWx("rain");else if(k==="v"||k==="V")setWx("snow");
+    else if(k==="h"||k==="H")document.getElementById("controls").classList.toggle("hidden");
     else if(k==="r"||k==="R")regenerate(true);
     else if(k==="s"||k==="S")document.getElementById("save").click();
     else if(k==="m"||k==="M")setMode(modeName==="orbit"?"drift":modeName==="drift"?"survey":"orbit");
+    updateCapMode();setHash();
     lastInput=performance.now();
   });
   stage.addEventListener("dblclick",function(){if(islandGroup)islandGroup.userData.hop=1;});
+
+  /* ================= 日光尺 ================= */
+  (function(){
+    var tt=document.getElementById('ttrack');var tdrag=false;
+    function setFromEvent(e){
+      var r=tt.getBoundingClientRect();
+      var f=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+      heure=f*24;setHash();updateCapMode();lastInput=performance.now();
+    }
+    tt.addEventListener('pointerdown',function(e){tdrag=true;tt.setPointerCapture(e.pointerId);setFromEvent(e);e.stopPropagation();});
+    tt.addEventListener('pointermove',function(e){if(tdrag)setFromEvent(e)});
+    tt.addEventListener('pointerup',function(){tdrag=false});
+    tt.addEventListener('dblclick',function(e){e.stopPropagation();var d=new Date();heure=d.getHours()+d.getMinutes()/60;setHash();updateCapMode();});
+    document.getElementById('ttticks').addEventListener('click',function(e){
+      var sp=e.target.closest('span');if(!sp)return;
+      heure=+sp.dataset.h;setHash();updateCapMode();lastInput=performance.now();e.stopPropagation();
+    });
+  })();
+
+  /* ================= 燕子飞渡（L4 彩蛋 + wow） ================= */
+  var swallow={el:document.getElementById('swallow'),svg:null,t:-1,next:18000+Math.random()*30000};
+  swallow.svg=swallow.el.querySelector('svg');
+  function stepSwallow(now,dt){
+    if(swallow.t<0){
+      if(now>swallow.next){swallow.t=0;swallow.dir=Math.random()<.5?1:-1;
+        swallow.y0=.18+Math.random()*.3;}
+      return;
+    }
+    swallow.t+=dt/5.8;
+    var t=swallow.t;
+    if(t>=1){swallow.t=-1;swallow.next=now+40000+Math.random()*50000;
+      swallow.el.style.opacity=0;return;}
+    var e=t*t*(3-2*t);
+    var x=swallow.dir>0?(-0.08+e*1.16):(1.08-e*1.16);
+    var y=swallow.y0+Math.sin(t*Math.PI*2.2)*.05;
+    var flap=.78+.3*Math.abs(Math.sin(t*26));
+    swallow.el.style.opacity=Math.min(1,Math.min(t,1-t)*8);
+    swallow.el.style.transform='translate('+(x*window.innerWidth)+'px,'+(y*window.innerHeight)+'px) scaleX('+swallow.dir+')';
+    swallow.svg.style.transform='scaleY('+flap+') rotate('+Math.sin(t*26)*5+'deg)';
+    /* 翼尖扰动云 */
+    if(t>.4&&t<.6){clouds.forEach(function(g){g.userData.boost=2.2;});}
+    if(swallow.t>0&&Math.random()<.02)Snd.chirp();
+  }
+
+  /* ================= 环境声：瀑布、风、鸟、雨 ================= */
+  var Snd={
+    on:false,ctx:null,master:null,rainGain:null,noiseBuf:null,
+    init:function(){
+      if(this.ctx)return;
+      var C=this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+      this.master=C.createGain();this.master.gain.value=0;this.master.connect(C.destination);
+      var len=C.sampleRate*2,buf=C.createBuffer(1,len,C.sampleRate),d=buf.getChannelData(0);
+      var lv=0;for(var i=0;i<len;i++){var w=Math.random()*2-1;lv=(lv+.02*w)/1.02;d[i]=lv*3.2;}
+      this.noiseBuf=buf;
+      /* 风 */
+      var src=C.createBufferSource();src.buffer=buf;src.loop=true;
+      var bp=C.createBiquadFilter();bp.type='bandpass';bp.frequency.value=560;bp.Q.value=1;
+      var wg=C.createGain();wg.gain.value=.3;
+      var lfo=C.createOscillator();lfo.frequency.value=.06;
+      var lg=C.createGain();lg.gain.value=220;
+      lfo.connect(lg);lg.connect(bp.frequency);lfo.start();
+      src.connect(bp);bp.connect(wg);wg.connect(this.master);src.start();
+      /* 瀑布：白噪低通 + 高通嘶声 */
+      var wsrc=C.createBufferSource();wsrc.buffer=buf;wsrc.loop=true;wsrc.playbackRate.value=1.1;
+      var lp=C.createBiquadFilter();lp.type='lowpass';lp.frequency.value=750;
+      var wfG=C.createGain();wfG.gain.value=.16;
+      wsrc.connect(lp);lp.connect(wfG);wfG.connect(this.master);wsrc.start();
+      var hsrc=C.createBufferSource();hsrc.buffer=buf;hsrc.loop=true;hsrc.playbackRate.value=1.6;
+      var hp=C.createBiquadFilter();hp.type='highpass';hp.frequency.value=1400;
+      var hG=C.createGain();hG.gain.value=.03;
+      hsrc.connect(hp);hp.connect(hG);hG.connect(this.master);hsrc.start();
+      /* 雨声通道 */
+      var rsrc=C.createBufferSource();rsrc.buffer=buf;rsrc.loop=true;rsrc.playbackRate.value=1.3;
+      var rhp=C.createBiquadFilter();rhp.type='highpass';rhp.frequency.value=1200;
+      this.rainGain=C.createGain();this.rainGain.gain.value=0;
+      rsrc.connect(rhp);rhp.connect(this.rainGain);this.rainGain.connect(this.master);rsrc.start();
+      var self=this;
+      var tick=function(){if(self.on&&cur.dayF>.12)self.chirp();setTimeout(tick,2500+Math.random()*6500)};
+      tick();
+      var drop=function(){
+        if(self.on&&wxCur.rain>.3){
+          var t=C.currentTime,o=C.createOscillator(),g=C.createGain();
+          o.type='sine';o.frequency.setValueAtTime(1800,t);o.frequency.exponentialRampToValueAtTime(600,t+.04);
+          g.gain.setValueAtTime(.012,t);g.gain.exponentialRampToValueAtTime(.0001,t+.05);
+          o.connect(g);g.connect(self.master);o.start(t);o.stop(t+.06);
+        }
+        setTimeout(drop,60+Math.random()*400);
+      };
+      drop();
+    },
+    chirp:function(){
+      if(!this.on||!this.ctx)return;
+      var C=this.ctx,t=C.currentTime;
+      var o=C.createOscillator(),m=C.createOscillator(),mg=C.createGain(),g=C.createGain();
+      o.type='sine';o.frequency.setValueAtTime(2400+Math.random()*300,t);
+      o.frequency.exponentialRampToValueAtTime(3000+Math.random()*400,t+.08);
+      m.frequency.value=110+Math.random()*90;mg.gain.value=500+Math.random()*500;
+      m.connect(mg);mg.connect(o.frequency);
+      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.02,t+.015);
+      g.gain.exponentialRampToValueAtTime(.0001,t+.15);
+      o.connect(g);g.connect(this.master);o.start(t);m.start(t);o.stop(t+.17);m.stop(t+.17);
+    },
+    knock:function(){
+      if(!this.on||!this.ctx)return;
+      var C=this.ctx,t=C.currentTime;
+      var s=C.createBufferSource();s.buffer=this.noiseBuf;
+      var f=C.createBiquadFilter();f.type='bandpass';f.frequency.value=700;f.Q.value=2;
+      var g=C.createGain();g.gain.setValueAtTime(.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+.08);
+      s.connect(f);f.connect(g);g.connect(this.master);s.start(t);s.stop(t+.1);
+    },
+    frame:function(){
+      if(!this.on||!this.ctx)return;
+      this.rainGain.gain.value=wxCur.rain*.22;
+    },
+    toggle:function(){
+      this.on=!this.on;
+      document.getElementById('sndbtn').classList.toggle('on',this.on);
+      try{localStorage.setItem('mira-snd-voxel-island',this.on?'1':'0')}catch(e){}
+      if(this.on){this.init();this.ctx.resume();
+        this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+        this.master.gain.setValueAtTime(this.master.gain.value,this.ctx.currentTime);
+        this.master.gain.linearRampToValueAtTime(.5,this.ctx.currentTime+1.5);
+      }else if(this.ctx){
+        this.master.gain.cancelScheduledValues(this.ctx.currentTime);
+        this.master.gain.setValueAtTime(this.master.gain.value,this.ctx.currentTime);
+        this.master.gain.linearRampToValueAtTime(0,this.ctx.currentTime+.5);
+      }
+    },
+    restore:function(){
+      var v=null;try{v=localStorage.getItem('mira-snd-voxel-island')}catch(e){}
+      if(v==='1'){
+        this.on=true;document.getElementById('sndbtn').classList.add('on');
+        var self=this;
+        window.addEventListener('pointerdown',function(){if(self.on&&!self.ctx){self.init();self.ctx.resume();
+          self.master.gain.linearRampToValueAtTime(.5,self.ctx.currentTime+1.5);}},{once:true});
+      }
+    }
+  };
+  document.getElementById('sndbtn').addEventListener('click',function(e){e.stopPropagation();Snd.toggle()});
+  Snd.restore();
+  setInterval(function(){Snd.frame()},200);
 
   /* ================= resize + boot ================= */
   function resize(){
@@ -722,28 +960,37 @@
   window.addEventListener("resize",resize);
   resize();
   regenerate(false);
-  if(HASH_T)setTime(HASH_T,true);else setTime("midi",true);
   if(HASH_W)setWx(HASH_W,true);else setWx("clear",true);
-  setTime(HASH_T||"midi");setWx(HASH_W||"clear");
   setMode("orbit");
-  lerpAll(10); /* 初始状态即刻到位（分享链接所见即所得） */
+  setHash();
+
+  /* ================= 12fps 胶片颗粒 ================= */
+  (function(){
+    var cv=document.getElementById('graincv'),g=cv.getContext('2d');
+    function size(){cv.width=Math.max(2,window.innerWidth>>2);cv.height=Math.max(2,window.innerHeight>>2);}
+    size();window.addEventListener('resize',size);
+    setInterval(function(){
+      var id=g.createImageData(cv.width,cv.height),d=id.data;
+      for(var i=0;i<d.length;i+=4){var v=128+(Math.random()-.5)*110;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255;}
+      g.putImageData(id,0,0);
+    },83);
+  })();
 
   var last=performance.now();
   function loop(now){
     requestAnimationFrame(loop);
     var dt=(now-last)/1000;if(!(dt>0))dt=0.016;dt=Math.min(0.05,dt);last=now;
 
-    /* idle drift */
     if(now-lastInput>40000)azim+=dt*0.05;
     else if(autoSpin)azim+=dt*tSpin;
 
-    /* camera damp toward mode */
     elev+=(tElev-elev)*Math.min(1,dt*1.6);
     radius+=(tRadius-radius)*Math.min(1,dt*1.6);
     lookAt.y+=(tLookY-lookAt.y)*Math.min(1,dt*1.6);
     placeCamera();
 
-    lerpAll(dt);
+    applyHeure(dt);
+    stepSwallow(now,dt);
 
     /* island bob + hop */
     var bobY=0;
@@ -755,7 +1002,7 @@
       wf.position.y=bobY;
     }
 
-    /* waterfall (rain 时更急) */
+    /* waterfall */
     var flow=1+wxCur.rain*0.8;
     for(var i=0;i<WF_N;i++){
       wfLife[i]-=dt*flow;
@@ -808,13 +1055,14 @@
     if(anyDeb)debGeo.attributes.position.needsUpdate=true;
     deb.visible=anyDeb;
 
-    /* clouds drift（风推） */
+    /* clouds drift（风推 + 燕子翼尖） */
     for(var c=0;c<clouds.length;c++){
       var g=clouds[c];
-      g.userData.ang+=dt*g.userData.spd*(0.4+wind*0.6);
+      g.userData.boost=Math.max(0,g.userData.boost-dt*1.2);
+      g.userData.ang+=dt*g.userData.spd*(0.4+wind*0.6)*(1+g.userData.boost);
       g.position.x=Math.cos(g.userData.ang)*g.userData.rad;
       g.position.z=Math.sin(g.userData.ang)*g.userData.rad;
-      g.position.y=g.userData.y+Math.sin(now*0.0005+c*2)*0.15;
+      g.position.y=g.userData.y+Math.sin(now*0.0005+c*2)*0.15+g.userData.boost*0.1*Math.sin(now*0.01+c);
     }
 
     /* lanterns flicker at night */
@@ -833,16 +1081,6 @@
     renderer.render(scene,camera);
   }
   requestAnimationFrame(loop);
-  /* lab 共存：捕获阶段截获 r/s，阻断 lab 快捷键的双重触发 */
-  window.addEventListener("keydown",function(e){
-    if(/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||""))return;
-    var k=(e.key||"").toLowerCase();
-    if(k==="r"||k==="s"){
-      e.stopImmediatePropagation();
-      if(k==="r")regenerate(true);
-      else document.getElementById("save").click();
-    }
-  },true);
 })();
 </script>
 </body>

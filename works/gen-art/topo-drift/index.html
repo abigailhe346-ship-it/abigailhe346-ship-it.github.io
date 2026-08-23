@@ -3,456 +3,333 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TOPO DRIFT 漂移地形 — Atelier MIRA · Étude N°10</title>
+<title>Topo Drift — 晨雾测绘所 · Atelier MIRA</title>
 <style>
   :root{
-    --paper:#ece8db; --panel:#e4dfd0; --line:#c6bfa8;
-    --ink:#23302a; --acc:#c1502e; --dim:#82806d;
+    /* 家族① 晨雾 Brume Matinale —— 冷，≈7500K，全系列最低对比 */
+    --mist:#E8E6DF; --lilac:#C9CDD6; --ridge:#9AA7B8; --shade:#6E7B8C; --sand:#D8CBB8;
+    --paper:#E6E4DC; --panel:#ECEAE2; --line:#C6C8BE;
+    --ink:#4A5260; --dim:#98A0AA;
     --mono:"SF Mono",Menlo,Consolas,monospace;
     --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
     --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background 1.2s var(--ease)}
-  body.atm-dawn{--paper:#e9ebe2}
-  body.atm-dusk{--paper:#f0e6d4}
-  body.atm-night{--paper:#dcdcd6}
-  ::selection{background:var(--acc);color:#fff}
+  html,body{background:var(--paper)}
+  body{color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--ridge);color:var(--mist)}
 
-  header{display:flex;justify-content:space-between;align-items:flex-end;padding:26px 30px 0;gap:20px;flex-wrap:wrap}
-  .sig{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
-  .seal{width:64px;height:64px;flex:none;color:var(--ink)}
-  .seal .ring{stroke:var(--ink)}
-  .seal .m{stroke:var(--acc)}
-  .seal text{fill:var(--dim);font-family:var(--mono);font-size:9.5px;letter-spacing:.32em}
-  .sig .tt{display:flex;flex-direction:column;gap:5px}
-  .sig h1{font-family:var(--mono);font-size:24px;font-weight:700;letter-spacing:.08em;line-height:1}
-  .sig h1 em{font-style:normal;color:var(--acc)}
-  .sig .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em}
-  .sig .no b{color:var(--acc);font-weight:400}
-  header p.tag{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.14em;text-align:right;text-transform:uppercase;line-height:1.9}
-  .rule{margin:16px 30px 0;border-top:1px solid var(--ink);position:relative}
-  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;
+    padding:20px clamp(18px,4vw,44px) 14px;
+  }
+  .brand{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .back{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:color .4s var(--ease)}
+  .back:hover{color:var(--ink)}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.4vw,40px);letter-spacing:-.01em;line-height:1}
+  h1 em{font-style:italic;color:var(--shade)}
+  .epig{font-family:var(--serif);font-style:italic;font-size:14.5px;color:#828DA0;max-width:340px;line-height:1.5}
+  .idx{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
 
-  main{display:grid;grid-template-columns:1fr 292px;gap:26px;padding:24px 30px 48px;max-width:1460px;margin:0 auto}
-  @media (max-width:960px){main{grid-template-columns:1fr}}
-
+  .stage-wrap{padding:0 clamp(18px,4vw,44px) 26px}
   .stage{
-    position:relative;background:#f2eee1;border:1px solid var(--ink);
-    box-shadow:7px 7px 0 rgba(35,48,42,.10);overflow:hidden;cursor:grab;
+    position:relative;height:min(76vh,720px);min-height:430px;border-radius:3px;overflow:hidden;
+    background:var(--mist);box-shadow:0 1px 0 var(--line),0 18px 50px -30px rgba(110,123,140,.5);
+    cursor:crosshair;
   }
-  .stage.panning{cursor:grabbing}
-  .stage::before{content:"";display:block;padding-top:70%}
-  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  canvas{display:block;width:100%;height:100%}
+
+  .etudes{position:absolute;top:14px;left:14px;right:64px;display:flex;gap:8px;flex-wrap:wrap;z-index:4;transition:opacity .5s var(--ease)}
+  .etudes button{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink);
+    background:rgba(232,230,223,.72);border:1px solid rgba(74,82,96,.28);border-radius:2px;
+    padding:7px 12px;cursor:pointer;backdrop-filter:blur(3px);
+    transition:all .45s var(--ease);
+  }
+  .etudes button:hover{background:rgba(232,230,223,.95);transform:translateY(-1px)}
+  .etudes button.on{background:var(--shade);color:var(--mist);border-color:var(--shade)}
+
+  .sndbtn{
+    position:absolute;top:14px;right:14px;z-index:4;width:34px;height:34px;border-radius:2px;
+    border:1px solid rgba(74,82,96,.28);background:rgba(232,230,223,.72);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .45s var(--ease);
+  }
+  .sndbtn:hover{background:rgba(232,230,223,.95)}
+  .sndbtn svg{width:17px;height:17px;stroke:var(--ink);fill:none;stroke-width:1.5;stroke-linecap:round}
+  .sndbtn .waves{opacity:0;transition:opacity .4s}
+  .sndbtn.on .waves{opacity:1}
+  .sndbtn.on .slash{opacity:0}
+  .sndbtn .slash{transition:opacity .4s}
+
   .readout{
-    position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;
-    letter-spacing:.12em;color:var(--ink);background:rgba(236,232,219,.9);
-    border:1px solid var(--ink);padding:5px 9px;pointer-events:none;white-space:nowrap;
+    position:absolute;right:14px;bottom:52px;z-index:4;
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink);
+    background:rgba(232,230,223,.8);border:1px solid rgba(74,82,96,.3);border-radius:2px;
+    padding:5px 9px;pointer-events:none;white-space:nowrap;opacity:.8;
   }
-  .stamp{position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink);border:1px solid var(--ink);padding:4px 9px;background:rgba(236,232,219,.9);pointer-events:none;text-transform:uppercase}
 
-  .dock{border:1px solid var(--ink);background:var(--panel);display:flex;flex-direction:column;align-self:start;position:sticky;top:20px;max-height:calc(100vh - 40px);overflow:auto}
-  @media (max-width:960px){.dock{position:static;max-height:none}}
-  .dock section{padding:14px 20px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:12px}
-  .dock section:last-child{border-bottom:none}
-  .dock h2{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);letter-spacing:.24em;text-transform:uppercase;display:flex;justify-content:space-between}
-  .dock h2 span{color:var(--acc)}
-  .ctl{display:flex;flex-direction:column;gap:8px}
-  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase}
-  .ctl label output{color:var(--acc)}
-
-  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
-  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;margin-top:-5px;background:var(--acc);border:1px solid var(--ink);border-radius:0}
-  input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
-  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--acc);border:1px solid var(--ink);border-radius:0}
-
-  .schemes{display:flex;flex-direction:column;gap:8px}
-  .schemes button{
-    display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);
-    background:transparent;cursor:pointer;transition:all .2s var(--ease);text-align:left;
-    font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);
+  .sig{
+    position:absolute;left:14px;bottom:52px;z-index:4;display:flex;align-items:center;gap:9px;
+    opacity:.68;cursor:default;user-select:none;
   }
-  .schemes button:hover{border-color:var(--ink)}
-  .schemes button.on{border:1px solid var(--ink);background:var(--ink);color:var(--paper)}
-  .schemes .ramp{display:flex;height:10px;flex:0 0 64px;border:1px solid rgba(0,0,0,.2)}
-  .schemes .ramp i{flex:1}
-  .rowline{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase}
-  .switch{position:relative;width:40px;height:20px;border:1px solid var(--ink);cursor:pointer;background:transparent;flex:none}
-  .switch i{position:absolute;left:2px;top:2px;width:14px;height:14px;background:var(--ink);transition:transform .2s var(--ease),background .2s var(--ease)}
-  .switch.on i{transform:translateX(20px);background:var(--acc)}
+  .sig svg{width:20px;height:13px}
+  .sig span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink)}
 
-  .atms{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--ink)}
-  .atms button{
-    appearance:none;border:0;border-right:1px solid var(--ink);background:transparent;
-    padding:9px 2px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
-    color:var(--ink);cursor:pointer;transition:background .2s var(--ease),color .2s var(--ease);
-    display:flex;flex-direction:column;align-items:center;gap:4px;
+  .note{
+    position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(8px);z-index:5;
+    font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink);
+    background:rgba(236,234,226,.92);border:1px solid var(--line);border-radius:2px;
+    padding:12px 20px;opacity:0;pointer-events:none;transition:all .8s var(--ease);
+    max-width:82%;text-align:center;
   }
-  .atms button:last-child{border-right:0}
-  .atms button i{width:14px;height:14px;border-radius:50%;border:1px solid var(--ink);display:block}
-  .atms button:hover{background:rgba(193,80,46,.1)}
-  .atms button.on{background:var(--ink);color:var(--paper)}
-  .atms button.on i{border-color:var(--paper)}
+  .note.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  .btns{display:flex;flex-direction:column;gap:10px}
-  button.act{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;padding:12px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:all .25s var(--ease)}
-  button.act:hover{background:var(--ink);color:var(--paper)}
-  button.act.primary{background:var(--ink);color:var(--paper)}
-  button.act.primary:hover{background:var(--acc);border-color:var(--acc)}
-  button.act.on{background:var(--acc);border-color:var(--acc);color:#fff}
-  button.act:active{transform:translateY(1px)}
+  .lume{
+    position:absolute;left:0;right:0;bottom:0;z-index:4;height:40px;
+    display:flex;align-items:center;gap:12px;padding:0 16px;
+    background:linear-gradient(to top,rgba(232,230,223,.9),rgba(232,230,223,0));
+    transition:opacity .5s var(--ease);
+  }
+  .lume .lab{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);white-space:nowrap}
+  .lume .track{position:relative;flex:1;height:22px;cursor:ew-resize;touch-action:none}
+  .lume .track::before{
+    content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
+    background:linear-gradient(90deg,#9AA7B8,#C9CDD6,#E8E6DF,#F4E3C2,#E8B96F,#8E7BA8,#4E4A6B);
+    border-radius:1px;opacity:.65;
+  }
+  .lume .thumb{
+    position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#F4E3C2,#D98E4A);
+    border:1.5px solid rgba(74,82,96,.5);transform:translate(-50%,-50%);
+    box-shadow:0 2px 8px rgba(74,82,96,.3);pointer-events:none;
+    transition:box-shadow .4s;
+  }
+  .lume .heure{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink);min-width:52px;text-align:right}
+  .hideme .etudes,.hideme .lume,.hideme .sig,.hideme .readout{opacity:0;pointer-events:none}
 
-  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase}
-  .keys span{border:1px solid var(--line);padding:5px 4px;text-align:center}
-  .keys b{color:var(--acc);font-weight:400}
-
-  .note{font-size:11px;line-height:2;color:#57534a;letter-spacing:.03em}
-  .note b{color:var(--acc)}
-
-  footer{padding:0 30px 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
-  footer .colo{color:var(--ink)}
-  footer .colo b{color:var(--acc);font-weight:400}
+  footer{padding:0 clamp(18px,4vw,44px) 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer p{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
   @media (max-width:640px){
-    header{padding:18px 18px 0}
-    header p.tag{text-align:left;max-width:100%}
-    .rule{margin:12px 18px 0}
-    main{padding:16px 18px 32px}
-    .dock section{padding:13px 16px}
-    .atms button{font-size:9px;letter-spacing:.04em;padding:8px 1px 7px}
-    .keys{font-size:8px}
-    .readout{font-size:8.5px;white-space:normal}
-    footer{padding:0 18px 24px}
+    .stage{height:66vh;min-height:400px}
+    .epig{max-width:100%}
+    .sig{bottom:56px}
+    .readout{display:none}
   }
 </style>
-<style id="mira-lab-style">
-:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
-#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
-#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
-#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
-.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
-.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
-#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
-#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
-@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
-</style></head>
-<body class="atm-mid">
+</head>
+<body>
 
 <header>
-  <div class="sig">
-    <svg class="seal" viewBox="0 0 96 96" aria-hidden="true">
-      <defs><path id="sealArc10" d="M48 13a35 35 0 1 1 0 70 35 35 0 1 1 0-70"/></defs>
-      <circle class="ring" cx="48" cy="48" r="45" fill="none" stroke-width="1.4"/>
-      <circle class="ring" cx="48" cy="48" r="26" fill="none" stroke-width=".8"/>
-      <text><textPath href="#sealArc10" startOffset="2">ATELIER MIRA · PLEIN AIR · ÉTUDE ·</textPath></text>
-      <path class="m" d="M35 63 C35 55 35.4 45.6 36 37 C40.6 43.6 44.8 49.8 48 55.2 C51.2 49.8 55.4 43.6 60 37 C60.6 45.6 61 55 61 63" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <div class="tt">
-      <h1>TOPO <em>DRIFT</em></h1>
-      <span class="no"><b>ÉTUDE N°10/100</b> — 漂移地形 · 等高线测绘所</span>
+  <div class="brand">
+    <a class="back" href="../../../index.html#work">← Archive</a>
+    <h1>Topo <em>Drift</em></h1>
+  </div>
+  <p class="epig">「这张地图拒绝装订：山在雾里，慢慢改道。」</p>
+  <span class="idx">Gen-Art · N°10</span>
+</header>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+
+    <div class="etudes" id="etudes">
+      <button data-m="clair" class="on">晴 · Clair</button>
+      <button data-m="brume">雾 · Brume</button>
+      <button data-m="vent">风 · Vent</button>
+      <button data-m="__regen">再生 ↻</button>
+      <button data-m="__save">PNG ↓</button>
+    </div>
+
+    <button class="sndbtn" id="snd" aria-label="声景开关" title="声景（默认关闭）">
+      <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="waves" d="M16.5 8.5c1.6 1.8 1.6 5.2 0 7M19 6.5c2.6 3 2.6 8 0 11"/><path class="slash" d="M17 9l5 6M22 9l-5 6"/></svg>
+    </button>
+
+    <div class="sig" id="sig">
+      <svg viewBox="0 0 64 40" fill="#4A5260" aria-hidden="true">
+        <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+                 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+                 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+                 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+                 C 35 17, 33 17, 32 20 Z"/>
+      </svg>
+      <span>Atelier MIRA · N°010 · Brume Matinale</span>
+    </div>
+
+    <div class="readout" id="readout">ELEV ---- M · --°--′N ---°--′E</div>
+    <div class="note" id="note">十月四日，雾。同一座山测了三次，三次的海拔都不一样——雾替它撒谎。</div>
+
+    <div class="lume">
+      <span class="lab">光 · HEURE</span>
+      <div class="track" id="lume"><div class="thumb" id="thumb"></div></div>
+      <span class="heure" id="heureOut">—</span>
     </div>
   </div>
-  <p class="tag">Marching squares · rivers · hillshade · plein-air light<br>等高线提取 × 流域 × 晕渲 × 天光观测</p>
-</header>
-<div class="rule"></div>
-
-<main>
-  <div class="stage" id="stage">
-    <canvas id="c"></canvas>
-    <div class="stamp" id="stamp">ÉTUDE N°10 · SHEET</div>
-    <div class="readout" id="readout">ELEV ---- M · --°--′N ---°--′E</div>
-  </div>
-
-  <aside class="dock">
-    <section>
-      <h2>天光 <span>PLEIN AIR</span></h2>
-      <div class="atms" id="atms">
-        <button data-atm="dawn"><i style="background:linear-gradient(135deg,#cfd8da,#eef0e4)"></i>晨 DAWN</button>
-        <button data-atm="mid" class="on"><i style="background:linear-gradient(135deg,#fff6da,#c9b768)"></i>午 NOON</button>
-        <button data-atm="dusk"><i style="background:linear-gradient(135deg,#d68a4e,#6e4438)"></i>昏 DUSK</button>
-        <button data-atm="night"><i style="background:linear-gradient(135deg,#2c3a50,#101820)"></i>夜 NIGHT</button>
-      </div>
-    </section>
-    <section>
-      <h2>图例 <span>LEGEND</span></h2>
-      <div class="schemes" id="schemes"></div>
-      <div class="rowline"><span>晕渲 Hillshade</span><button class="switch on" id="swShade" aria-label="hillshade"><i></i></button></div>
-    </section>
-    <section>
-      <h2>测绘 <span>SURVEY</span></h2>
-      <div class="ctl">
-        <label>等高距 Interval <output id="oInt">5.5 m</output></label>
-        <input type="range" id="rInt" min="15" max="100" value="55">
-      </div>
-      <div class="ctl">
-        <label>山势 Relief <output id="oRel">1.25 ×</output></label>
-        <input type="range" id="rRel" min="80" max="180" value="125">
-      </div>
-      <div class="ctl">
-        <label>漂移速度 Drift <output id="oSpd">1.0 ×</output></label>
-        <input type="range" id="rSpd" min="0" max="30" value="10">
-      </div>
-      <div class="ctl">
-        <label>谷雾 Mist <output id="oFog">70 %</output></label>
-        <input type="range" id="rFog" min="0" max="150" value="70">
-      </div>
-    </section>
-    <section>
-      <div class="btns">
-        <button class="act primary" id="bRegen">重新测绘 · Resurvey</button>
-        <button class="act" id="bShare">复制分享链接 · Share</button>
-        <button class="act" id="bSave">下载 PNG · Download</button>
-      </div>
-    </section>
-    <section>
-      <div class="keys">
-        <span><b>拖动</b> 移图幅</span><span><b>滚轮</b> 缩放</span><span><b>单击</b> 立标</span>
-        <span><b>双击</b> 震源</span><span><b>A</b> 天光</span><span><b>D</b> 漂移</span>
-        <span><b>N</b> 重测</span><span><b>H</b> 晕渲</span><span><b>X</b> 存图</span>
-      </div>
-    </section>
-    <section>
-      <p class="note">分形噪声铺一块<b>假想国土</b>,marching squares 提取等高线,雨水自山脊找路入海。拖动图幅走向邻区,双击制造<b>震源</b>——山体会在涟漪里改道,并在第四维时间里持续漂移。</p>
-    </section>
-  </aside>
-</main>
+</div>
 
 <footer>
-  <span class="colo">Canvas 2D · SEED <b id="fseed">—</b> · Painted with code, plein air</span>
-  <span id="stats">GRID 150×100 · fBM 4 OCT</span>
+  <p>雾散见山 · 移开晨雾靠光标，拖动时间轴看一天</p>
+  <p id="stats">Canvas 2D · marching squares · fBM-4 · ——</p>
 </footer>
 
 <script>
 (function(){
 "use strict";
+/* ---------- palette: Brume Matinale 晨雾（冷 ≈7500K，低对比） ---------- */
+const PAL={
+  mist:[232,230,223], lilac:[201,205,214], ridge:[154,167,184],
+  shade:[110,123,140], sand:[216,203,184]
+};
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const stage=document.getElementById('stage');
+let W=0,H=0,DPR=1;
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
-/* ---------- seeded 3D value noise ---------- */
+/* ---------- heure 时间系统（签名） ---------- */
+let heure=new Date().getHours()+new Date().getMinutes()/60;
+const hash=location.hash.match(/h=([\d.]+)/);if(hash)heure=parseFloat(hash[1])%24;
+const KEYS=[
+  [0,  [78,74,107],.30,[142,123,168],.05,.20],
+  [5,  [154,167,184],.22,[216,203,184],.10,.45],
+  [8,  [201,205,214],.08,[232,230,223],.06,.75],
+  [12, [232,230,223],.04,[244,240,228],.05,1.0],
+  [16, [201,205,214],.08,[244,227,194],.08,.86],
+  [18.5,[217,142,74],.16,[232,185,111],.18,.62],
+  [20.5,[110,123,140],.26,[201,166,180],.08,.34],
+  [24, [78,74,107],.30,[142,123,168],.05,.20]
+];
+function lightAt(h){
+  h=((h%24)+24)%24;
+  let i=0;while(i<KEYS.length-2&&KEYS[i+1][0]<h)i++;
+  const a=KEYS[i],b=KEYS[i+1],t=Math.min(1,Math.max(0,(h-a[0])/(b[0]-a[0]||1)));
+  const L=(x,y)=>x+(y-x)*t, mix3=(u,v)=>[L(u[0],v[0]),L(u[1],v[1]),L(u[2],v[2])];
+  return {tint:mix3(a[1],b[1]),tintA:L(a[2],b[2]),warm:mix3(a[3],b[3]),warmA:L(a[4],b[4]),light:L(a[5],b[5])};
+}
+/* 雾量随一天变化：清晨最浓，正午散去，傍晚回流 */
+function fogAt(h){
+  h=((h%24)+24)%24;
+  if(h<4.5)return .85;
+  if(h<7)return 1.0;
+  if(h<11)return 1.0-(h-7)/4*.85;   // 7→11 雾散（wow 区间）
+  if(h<17)return .15;
+  if(h<21)return .15+(h-17)/4*.55;
+  return .7;
+}
+
+/* ---------- seeded 3D value noise（沿用原引擎） ---------- */
 function makeNoise(seed){
-  var rand=mulberry32(seed), p=new Uint8Array(512), i, t;
-  var perm=new Uint8Array(256);
-  for(i=0;i<256;i++)perm[i]=i;
-  for(i=255;i>0;i--){var j=Math.floor(rand()*(i+1));t=perm[i];perm[i]=perm[j];perm[j]=t;}
-  for(i=0;i<512;i++)p[i]=perm[i&255];
-  var vals=new Float32Array(512);
-  for(i=0;i<512;i++)vals[i]=rand();
+  const rand=mulberry32(seed), p=new Uint8Array(512);
+  const perm=new Uint8Array(256);
+  for(let i=0;i<256;i++)perm[i]=i;
+  for(let i=255;i>0;i--){const j=Math.floor(rand()*(i+1));const t=perm[i];perm[i]=perm[j];perm[j]=t;}
+  for(let i=0;i<512;i++)p[i]=perm[i&255];
+  const vals=new Float32Array(512);
+  for(let i=0;i<512;i++)vals[i]=rand();
   function fade(t){return t*t*t*(t*(t*6-15)+10)}
   function n3(x,y,z){
-    var X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z);
-    var xf=x-X,yf=y-Y,zf=z-Z;
-    var u=fade(xf),v=yf,w=zf; v=fade(yf); w=fade(zf);
+    const X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z);
+    const xf=x-X,yf=y-Y,zf=z-Z;
+    const u=fade(xf),v=fade(yf),w=fade(zf);
     function h(i,j,k){return vals[p[(p[(p[i&255]+j)&255]+k)&255]]}
-    var x1=h(X,Y,Z)+(h(X+1,Y,Z)-h(X,Y,Z))*u;
-    var x2=h(X,Y+1,Z)+(h(X+1,Y+1,Z)-h(X,Y+1,Z))*u;
-    var x3=h(X,Y,Z+1)+(h(X+1,Y,Z+1)-h(X,Y,Z+1))*u;
-    var x4=h(X,Y+1,Z+1)+(h(X+1,Y+1,Z+1)-h(X,Y+1,Z+1))*u;
-    var y1=x1+(x2-x1)*v, y2=x3+(x4-x3)*v;
+    const x1=h(X,Y,Z)+(h(X+1,Y,Z)-h(X,Y,Z))*u;
+    const x2=h(X,Y+1,Z)+(h(X+1,Y+1,Z)-h(X,Y+1,Z))*u;
+    const x3=h(X,Y,Z+1)+(h(X+1,Y,Z+1)-h(X,Y,Z+1))*u;
+    const x4=h(X,Y+1,Z+1)+(h(X+1,Y+1,Z+1)-h(X,Y+1,Z+1))*u;
+    const y1=x1+(x2-x1)*v, y2=x3+(x4-x3)*v;
     return y1+(y2-y1)*w;
   }
   return function fbm(x,y,z){
-    var a=0,amp=.5,f=1;
-    for(var o=0;o<4;o++){a+=amp*n3(x*f,y*f,z*f);amp*=.5;f*=2.1;}
+    let a=0,amp=.5,f=1;
+    for(let o=0;o<4;o++){a+=amp*n3(x*f,y*f,z*f);amp*=.5;f*=2.1;}
     return a;
   };
 }
 
-/* ---------- colour helpers ---------- */
-function hex2rgb(h){var n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255]}
-function css(r,g,b){return "rgb("+Math.round(Math.min(255,r))+","+Math.round(Math.min(255,g))+","+Math.round(Math.min(255,b))+")"}
-function gradeArr(c,A){var t=hex2rgb(A.blend);return css((c[0]*(1-A.bf)+t[0]*A.bf)*A.bright,(c[1]*(1-A.bf)+t[1]*A.bf)*A.bright,(c[2]*(1-A.bf)+t[2]*A.bf)*A.bright)}
-function gradeHex(h,A){return gradeArr(hex2rgb(h),A)}
-
+/* ---------- 晕渲色带（Brume 家族内） ---------- */
 function ramp(stops,n){
-  var out=[];
-  for(var k=0;k<n;k++){
-    var t=k/(n-1)*(stops.length-1), i=Math.min(stops.length-2,Math.floor(t)), f=t-i;
-    var a=stops[i],b=stops[i+1];
-    out.push([a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]);
+  const out=[];
+  for(let k=0;k<n;k++){
+    const t=k/(n-1)*(stops.length-1), i=Math.min(stops.length-2,Math.floor(t)), f=t-i;
+    const a=stops[i],b=stops[i+1];
+    out.push([Math.round(a[0]+(b[0]-a[0])*f),Math.round(a[1]+(b[1]-a[1])*f),Math.round(a[2]+(b[2]-a[2])*f)]);
   }
   return out;
 }
-
-/* ---------- base schemes (graded per atmosphere) ---------- */
-var SCHEMES=[
-  {name:"Atlas 地貌", sea:"#b8cfc8", bathy:"#6f9690", contour:[107,74,47], contourA:.55, indexC:"#6b4a2f",
-   land:ramp([[125,155,106],[168,170,96],[201,180,88],[150,110,66],[196,186,160],[242,239,232]],24)},
-  {name:"Nautical 海图", sea:"#dbe7e8", bathy:"#7fa3b5", contour:[46,77,107], contourA:.5, indexC:"#2e4d6b",
-   land:ramp([[238,232,214],[228,220,196],[214,203,172],[198,183,146],[178,158,116],[150,130,96]],24)},
-  {name:"Survey 墨测", sea:"#ece8db", bathy:"#8a8672", contour:[51,48,42], contourA:.42, indexC:"#c1502e",
-   land:ramp([[236,232,219],[236,232,219],[236,232,219],[230,225,208],[222,215,194],[222,215,194]],24)}
-];
-var SEA=0.42;
-
-/* ---------- atmospheres: one survey, four lights ---------- */
-var ATMS={
-  dawn:{ blend:"#c9d4d6", bf:.14, bright:1.0, sunAz:-.75, sunEl:.32, fogK:1.0,
-         fog:"rgba(223,230,234,", shade:.5, paper:"#f0f0e6",
-         chromeInk:"#23302a", chromePanel:"rgba(240,240,230,.92)", contourBoost:0 },
-  mid:{  blend:"#ffffff", bf:0, bright:1.0, sunAz:-.2, sunEl:.95, fogK:.12,
-         fog:"rgba(238,242,240,", shade:.32, paper:"#f2eee1",
-         chromeInk:"#23302a", chromePanel:"rgba(236,232,219,.92)", contourBoost:0 },
-  dusk:{ blend:"#d68a4e", bf:.2, bright:.97, sunAz:.8, sunEl:.22, fogK:.3,
-         fog:"rgba(232,201,168,", shade:.62, paper:"#f2e8d6",
-         chromeInk:"#3a2c20", chromePanel:"rgba(242,232,214,.92)", contourBoost:0 },
-  night:{blend:"#27374e", bf:.42, bright:.5, sunAz:.3, sunEl:.5, fogK:.55,
-         fog:"rgba(24,32,48,", shade:.4, paper:"#131a24",
-         chromeInk:"#e3cf9e", chromePanel:"rgba(19,26,36,.9)", contourBoost:.24 }
-};
-var atm="mid";
+const SEA_C=[201,205,214], BATHY=[154,167,184];
+const LAND=ramp([[216,203,184],[220,214,198],[201,205,214],[178,187,199],[154,167,184],[130,144,160]],24);
+const SEA=0.42;
 
 /* ---------- state ---------- */
-var canvas=document.getElementById("c"), ctx=canvas.getContext("2d");
-var stage=document.getElementById("stage");
-function readSeed(){var m=location.hash.match(/seed=(\d+)/);return m?parseInt(m[1],10):Math.floor(Math.random()*1e9)}
-function writeSeed(){try{history.replaceState(null,"","#seed="+seed);}catch(e){location.hash="seed="+seed}}
-var seed=readSeed();
-var noise=makeNoise(seed);
-var P={interval:55, scheme:0, relief:1.25, speed:1, fog:.7, shade:true};
-var W=0,H=0,dpr=1, mapR={x:0,y:0,w:0,h:0};
-var GW=150, GH=100;
-var grid=new Float32Array((GW+1)*(GH+1));
-var peaks=[], rivers=[], names=[];
-var panX=0, panY=0, zoom=1;
-var markers=[], quakes=[];
-var tDrift=0;
-var baseLat, baseLon, surveyNo;
-var needDraw=true, tNow=0;
-
-var NR=mulberry32(seed+911);
-tDrift=NR()*100;
+let seed=Math.floor(Math.random()*1e9);
+let noise=makeNoise(seed);
+let mode="clair"; // clair / brume / vent
+const GW=150, GH=100;
+const grid=new Float32Array((GW+1)*(GH+1));
+let peaks=[];
+let tDrift=Math.random()*100;
+let baseLat,baseLon,surveyNo;
+let mapR={x:0,y:0,w:0,h:0};
 
 function metaFromSeed(){
-  var r=mulberry32(seed+3);
+  const r=mulberry32(seed+3);
   baseLat=28+Math.floor(r()*24); baseLon=102+Math.floor(r()*22);
   surveyNo=1000+Math.floor(r()*9000);
 }
-
-/* ---------- height field ---------- */
 function computeGrid(t){
-  var s=3.2*zoom, ox=(seed%1000)/1000*40+panX, oy=(seed%777)/777*40+panY;
-  for(var j=0;j<=GH;j++){
-    for(var i=0;i<=GW;i++){
-      var u=i/GW, v=j/GH;
-      var e=noise(u*s+ox,v*s*0.94+oy,t);
-      e=Math.pow(e,P.relief);
-      var dx=u-.5, dy=v-.5, d=Math.sqrt(dx*dx*2.4+dy*dy*2.4);
+  const s=3.2, ox=(seed%1000)/1000*40, oy=(seed%777)/777*40;
+  for(let j=0;j<=GH;j++){
+    for(let i=0;i<=GW;i++){
+      const u=i/GW, v=j/GH;
+      let e=noise(u*s+ox,v*s*0.94+oy,t);
+      e=Math.pow(e,1.25);
+      const dx=u-.5, dy=v-.5, d=Math.sqrt(dx*dx*2.4+dy*dy*2.4);
       e=e*1.06-Math.max(0,d-.52)*.55;
-      /* quake ripples */
-      for(var q=0;q<quakes.length;q++){
-        var Q=quakes[q], age=tNow-Q.t0;
-        var qdx=u-Q.u, qdy=(v-Q.v)*1.43, qd=Math.sqrt(qdx*qdx+qdy*qdy);
-        e+=0.16*Math.exp(-age*1.05)*Math.cos(11*qd-age*8.5)*Math.exp(-qd*qd/.16);
-      }
       grid[j*(GW+1)+i]=e;
     }
   }
 }
-
 function findPeaks(){
   peaks=[];
-  for(var j=2;j<GH-2;j++){
-    for(var i=2;i<GW-2;i++){
-      var h=grid[j*(GW+1)+i];
-      if(h<0.74)continue;
-      var ok=true;
-      for(var dj=-2;dj<=2&&ok;dj++)for(var di=-2;di<=2;di++){
+  for(let j=2;j<GH-2;j++){
+    for(let i=2;i<GW-2;i++){
+      const h=grid[j*(GW+1)+i];
+      if(h<0.68)continue;
+      let ok=true;
+      for(let dj=-2;dj<=2&&ok;dj++)for(let di=-2;di<=2;di++){
         if(grid[(j+dj)*(GW+1)+i+di]>h){ok=false;break}
       }
       if(ok)peaks.push({i:i,j:j,h:h});
     }
   }
-  peaks.sort(function(a,b){return b.h-a.h});
-  var keep=[];
-  peaks.forEach(function(p){
-    if(keep.length>=4)return;
-    for(var k=0;k<keep.length;k++){
-      var dx=keep[k].i-p.i, dy=keep[k].j-p.j;
-      if(dx*dx+dy*dy<500)return;
-    }
-    keep.push(p);
-  });
+  peaks.sort((a,b)=>b.h-a.h);
+  const keep=[];
+  for(const p of peaks){
+    if(keep.length>=4)break;
+    if(keep.every(k=>(k.i-p.i)*(k.i-p.i)+(k.j-p.j)*(k.j-p.j)>400))keep.push(p);
+  }
   peaks=keep;
 }
 
-/* ---------- rivers: rain finds its way to the sea ---------- */
-function findRivers(){
-  rivers=[];
-  var r=mulberry32(seed+55);
-  var starts=[];
-  for(var j=2;j<GH-2;j+=3){
-    for(var i=2;i<GW-2;i+=3){
-      if(grid[j*(GW+1)+i]>0.78)starts.push({i:i,j:j});
-    }
-  }
-  /* shuffle, take a few */
-  for(var k=starts.length-1;k>0;k--){var m=Math.floor(r()*(k+1)),tmp=starts[k];starts[k]=starts[m];starts[m]=tmp;}
-  starts=starts.slice(0,10);
-  starts.forEach(function(st){
-    var path=[], ci=st.i, cj=st.j, guard=0;
-    while(guard++<240){
-      path.push([ci,cj]);
-      var h=grid[cj*(GW+1)+ci];
-      if(h<SEA)break;
-      var bi=0,bj=0,best=h;
-      for(var dj=-1;dj<=1;dj++)for(var di=-1;di<=1;di++){
-        if(!di&&!dj)continue;
-        var ni=ci+di,nj=cj+dj;
-        if(ni<1||nj<1||ni>=GW||nj>=GH)continue;
-        var nh=grid[nj*(GW+1)+ni]+r()*0.012;
-        if(nh<best){best=nh;bi=di;bj=dj;}
-      }
-      if(!bi&&!bj)break; /* local pit — the stream sinks */
-      ci+=bi;cj+=bj;
-    }
-    if(path.length>14)rivers.push(path);
-  });
-}
-
-/* ---------- invented place names ---------- */
-var NS1=["Kes","Tor","Bel","Mar","Ael","Dun","Sel","Vor","Cal","Ith","Ost","Bran","Hal","Nim"];
-var NS2=["wyn","vel","dor","mire","gart","low","fell","nor","quen","aith","burg","shaw"];
-var NS3=["mont","haven","moor","cape","holm","ness","wick","fell"];
-function makeName(r){return (NS1[Math.floor(r()*NS1.length)]+NS2[Math.floor(r()*NS2.length)]).toUpperCase()}
-function makeNames(){
-  var r=mulberry32(seed+71); names=[];
-  peaks.forEach(function(p,i){
-    if(i<3)names.push({i:p.i+3,j:p.j-3,text:"MONT "+makeName(r),anchor:"l",peak:true});
-  });
-  /* two lowland towns */
-  var tries=0;
-  while(names.length<6&&tries++<200){
-    var i=4+Math.floor(r()*(GW-8)), j=4+Math.floor(r()*(GH-8));
-    var h=grid[j*(GW+1)+i];
-    if(h>SEA+0.04&&h<0.66){
-      var far=true;
-      for(var k=0;k<names.length;k++){var dx=names[k].i-i,dy=names[k].j-j;if(dx*dx+dy*dy<700){far=false;break}}
-      if(far)names.push({i:i,j:j,text:makeName(r)+(r()<.5?" "+NS3[Math.floor(r()*NS3.length)].toUpperCase():""),anchor:"l",town:true});
-    }
-  }
-}
-
-/* ---------- marching squares ---------- */
+/* ---------- marching squares（沿用原引擎） ---------- */
 function contourPath(g,level){
-  var cw=mapR.w/GW, ch=mapR.h/GH;
-  var sx=function(i){return mapR.x+i*cw}, sy=function(j){return mapR.y+j*ch};
+  const cw=mapR.w/GW, ch=mapR.h/GH;
+  const sx=i=>mapR.x+i*cw, sy=j=>mapR.y+j*ch;
   g.beginPath();
-  for(var j=0;j<GH;j++){
-    for(var i=0;i<GW;i++){
-      var a=grid[j*(GW+1)+i], b=grid[j*(GW+1)+i+1],
-          c=grid[(j+1)*(GW+1)+i+1], d=grid[(j+1)*(GW+1)+i];
-      var idx=(a>level?8:0)|(b>level?4:0)|(c>level?2:0)|(d>level?1:0);
+  for(let j=0;j<GH;j++){
+    for(let i=0;i<GW;i++){
+      const a=grid[j*(GW+1)+i], b=grid[j*(GW+1)+i+1],
+            c=grid[(j+1)*(GW+1)+i+1], d=grid[(j+1)*(GW+1)+i];
+      const idx=(a>level?8:0)|(b>level?4:0)|(c>level?2:0)|(d>level?1:0);
       if(idx===0||idx===15)continue;
       function pt(edge){
-        if(edge===0){var f=(level-a)/(b-a);return[sx(i)+f*cw,sy(j)]}
-        if(edge===1){var f2=(level-b)/(c-b);return[sx(i+1),sy(j)+f2*ch]}
-        if(edge===2){var f3=(level-d)/(c-d);return[sx(i)+f3*cw,sy(j+1)]}
-        var f4=(level-a)/(d-a);return[sx(i),sy(j)+f4*ch];
+        if(edge===0){const f=(level-a)/(b-a);return[sx(i)+f*cw,sy(j)]}
+        if(edge===1){const f2=(level-b)/(c-b);return[sx(i+1),sy(j)+f2*ch]}
+        if(edge===2){const f3=(level-d)/(c-d);return[sx(i)+f3*cw,sy(j+1)]}
+        const f4=(level-a)/(d-a);return[sx(i),sy(j)+f4*ch];
       }
-      function seg(e1,e2){var p1=pt(e1),p2=pt(e2);g.moveTo(p1[0],p1[1]);g.lineTo(p2[0],p2[1])}
-      var center=(a+b+c+d)/4;
+      function seg(e1,e2){const p1=pt(e1),p2=pt(e2);g.moveTo(p1[0],p1[1]);g.lineTo(p2[0],p2[1])}
+      const center=(a+b+c+d)/4;
       switch(idx){
         case 1: seg(3,2);break;
         case 2: seg(2,1);break;
@@ -473,426 +350,339 @@ function contourPath(g,level){
   }
 }
 
-/* ---------- render ---------- */
+/* ---------- 纸纹 + 颗粒 ---------- */
+let paperC=null;
+function makePaper(){
+  paperC=document.createElement('canvas');paperC.width=Math.max(2,W*DPR/2);paperC.height=Math.max(2,H*DPR/2);
+  const p=paperC.getContext('2d');p.scale(DPR/2,DPR/2);
+  const r=mulberry32(81);
+  for(let i=0;i<4200;i++){
+    p.fillStyle=`rgba(${r()<.5?'74,82,96':'255,253,248'},${(.02+r()*.04).toFixed(3)})`;
+    p.fillRect(r()*W,r()*H,1+r()*1.6,1+r()*1.2);
+  }
+  p.strokeStyle='rgba(120,124,132,.05)';p.lineWidth=.6;
+  for(let i=0;i<70;i++){
+    p.beginPath();const x=r()*W,y=r()*H,a=r()*Math.PI;
+    p.moveTo(x,y);p.lineTo(x+Math.cos(a)*(20+r()*70),y+Math.sin(a)*(20+r()*70));p.stroke();
+  }
+}
+const grainC=document.createElement('canvas');grainC.width=grainC.height=128;
+function makeGrain(){
+  const g=grainC.getContext('2d');const im=g.createImageData(128,128);
+  for(let i=0;i<im.data.length;i+=4){const v=110+Math.random()*40;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=14}
+  g.putImageData(im,0,0);
+}
+makeGrain();setInterval(makeGrain,83);
+
+/* ---------- 指针：拨雾（L1.4 hover 吹散，半径随停留扩大） ---------- */
+let px=-999,py=-999,ptx=-999,pty=-999,dwell=0,lastMove=0;
+let gusts=[];
+stage.addEventListener('pointermove',e=>{
+  const r=stage.getBoundingClientRect();ptx=e.clientX-r.left;pty=e.clientY-r.top;
+  lastMove=performance.now();
+});
+stage.addEventListener('pointerleave',()=>{ptx=-999;pty=-999;dwell=0});
+stage.addEventListener('pointerdown',e=>{
+  const r=stage.getBoundingClientRect();
+  gusts.push({x:e.clientX-r.left,y:e.clientY-r.top,r:0,a:1});
+  if(sound.on)sound.whoosh();
+});
+
+/* ---------- 声景（L5，默认 OFF） ---------- */
+const sound={on:false,ctx:null,master:null,
+  init(){ if(this.ctx)return;
+    const C=this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const M=this.master=C.createGain();M.gain.value=0;M.connect(C.destination);
+    const len=2*C.sampleRate,buf=C.createBuffer(1,len,C.sampleRate),d=buf.getChannelData(0);
+    let l=0;for(let i=0;i<len;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.2}
+    const src=C.createBufferSource();src.buffer=buf;src.loop=true;
+    const bp=C.createBiquadFilter();bp.type='bandpass';bp.frequency.value=460;bp.Q.value=1;
+    const wg=C.createGain();wg.gain.value=.14;src.connect(bp);bp.connect(wg);wg.connect(M);src.start();
+    this.wind=bp;
+    this.scheduleBird();
+  },
+  scheduleBird(){ if(!this.ctx)return;
+    setTimeout(()=>{ if(this.on)this.chirp(); this.scheduleBird(); },2500+Math.random()*7000);
+  },
+  chirp(){ const C=this.ctx,t=C.currentTime;
+    const o=C.createOscillator(),m=C.createOscillator(),mg=C.createGain(),g=C.createGain();
+    o.frequency.setValueAtTime(2400+Math.random()*300,t);
+    o.frequency.exponentialRampToValueAtTime(3200,t+.08);
+    m.frequency.value=30+Math.random()*40;mg.gain.value=200+Math.random()*300;
+    m.connect(mg);mg.connect(o.frequency);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.026,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.12);
+    o.connect(g);g.connect(this.master);o.start(t);m.start(t);o.stop(t+.14);m.stop(t+.14);
+  },
+  whoosh(){ const C=this.ctx;if(!C)return;const t=C.currentTime;
+    this.wind.frequency.cancelScheduledValues(t);
+    this.wind.frequency.setValueAtTime(this.wind.frequency.value,t);
+    this.wind.frequency.linearRampToValueAtTime(900,t+.2);
+    this.wind.frequency.exponentialRampToValueAtTime(420,t+1.5);
+  },
+  toggle(){ this.on=!this.on;
+    if(this.on){this.init();this.ctx.resume();const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.setValueAtTime(0,t);
+      this.master.gain.linearRampToValueAtTime(1,t+1.5);}
+    else if(this.ctx){const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.linearRampToValueAtTime(0,t+.6);}
+    localStorage.setItem('mira-sound',this.on?'1':'0');
+    document.getElementById('snd').classList.toggle('on',this.on);
+  }
+};
+document.getElementById('snd').addEventListener('click',e=>{e.stopPropagation();sound.toggle()});
+if(localStorage.getItem('mira-sound')==='1'){
+  const arm=()=>{sound.toggle();removeEventListener('pointerdown',arm)};addEventListener('pointerdown',arm);}
+
+/* ---------- lume 时间轴 ---------- */
+const lume=document.getElementById('lume'),thumb=document.getElementById('thumb'),heureOut=document.getElementById('heureOut');
+let lumeDrag=false;
+function lumeSet(e){const r=lume.getBoundingClientRect();
+  heure=Math.min(24,Math.max(0,(e.clientX-r.left)/r.width*24));
+  history.replaceState(null,'',`#h=${heure.toFixed(1)}`);}
+lume.addEventListener('pointerdown',e=>{lumeDrag=true;lume.setPointerCapture(e.pointerId);lumeSet(e);e.stopPropagation()});
+lume.addEventListener('pointermove',e=>{if(lumeDrag)lumeSet(e)});
+lume.addEventListener('pointerup',()=>lumeDrag=false);
+
+/* ---------- études：天气 ---------- */
+document.getElementById('etudes').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const m=b.dataset.m;
+  if(m==='__regen'){regen(true);return}
+  if(m==='__save'){download();return}
+  mode=m;
+  document.querySelectorAll('.etudes button[data-m]').forEach(x=>{
+    if(!x.dataset.m.startsWith('__'))x.classList.toggle('on',x.dataset.m===m)});
+});
+function regen(newSeed){
+  if(newSeed){seed=Math.floor(Math.random()*1e9);noise=makeNoise(seed);metaFromSeed();}
+  computeGrid(tDrift);findPeaks();
+  document.getElementById('stats').textContent=
+    "Canvas 2D · marching squares · fBM-4 · SURVEY №"+surveyNo;
+}
+function download(){
+  const a=document.createElement('a');
+  a.download="topo-drift-"+surveyNo+".png";
+  a.href=cv.toDataURL("image/png");a.click();
+}
+
+/* ---------- 高程读数 ---------- */
 function toMeters(h){return Math.round(h*3600)}
+stage.addEventListener('pointermove',e=>{
+  const r=stage.getBoundingClientRect();
+  const x=e.clientX-r.left, y=e.clientY-r.top;
+  const gx=(x-mapR.x)/mapR.w*GW, gy=(y-mapR.y)/mapR.h*GH;
+  const el=document.getElementById('readout');
+  if(gx<0||gy<0||gx>GW||gy>GH){el.textContent="ELEV ---- M · --°--′N ---°--′E";return}
+  const i=Math.min(GW-1,Math.floor(gx)), j=Math.min(GH-1,Math.floor(gy));
+  const fx=gx-i, fy=gy-j;
+  const h00=grid[j*(GW+1)+i], h10=grid[j*(GW+1)+i+1], h01=grid[(j+1)*(GW+1)+i], h11=grid[(j+1)*(GW+1)+i+1];
+  const hv=h00*(1-fx)*(1-fy)+h10*fx*(1-fy)+h01*(1-fx)*fy+h11*fx*fy;
+  const m=toMeters(hv);
+  const lat=baseLat+gy/GH*8, lon=baseLon+gx/GW*12;
+  const laD=Math.floor(lat), laM=Math.floor((lat-laD)*60);
+  const loD=Math.floor(lon), loM=Math.floor((lon-loD)*60);
+  el.textContent=(hv<SEA?"DEPTH ":"ELEV ")+("    "+m).slice(-4)+" M · "+laD+"°"+("0"+laM).slice(-2)+"′N "+loD+"°"+("0"+loM).slice(-2)+"′E";
+});
 
-function drawMap(g,w,h){
-  var A=ATMS[atm], sc=SCHEMES[P.scheme];
-  var cw=mapR.w/GW, ch=mapR.h/GH;
-  var i,j;
-  /* sun direction for hillshade */
-  var sx=A.sunAz, sy2=-.6, sz=A.sunEl;
-  var sl=Math.sqrt(sx*sx+sy2*sy2+sz*sz); sx/=sl; sy2/=sl; sz/=sl;
-  for(j=0;j<GH;j++){
-    for(i=0;i<GW;i++){
-      var h00=grid[j*(GW+1)+i], h10=grid[j*(GW+1)+i+1],
-          h01=grid[(j+1)*(GW+1)+i], h11=grid[(j+1)*(GW+1)+i+1];
-      var v=(h00+h10+h01+h11)/4;
-      var base;
-      if(v<SEA)base=sc.sea;
-      else base=sc.land[Math.floor(Math.min(0.999,(v-SEA)/(1-SEA))*24)];
-      var col=gradeArr(Array.isArray(base)?base:hex2rgb(base),A);
-      if(P.shade){
-        var gx2=(h10-h01+h11-h01)/2, gy2=(h01-h00+h11-h10)/2;
-        var nx=-gx2*9, ny=-gy2*9, nz=1;
-        var il=1/Math.sqrt(nx*nx+ny*ny+nz*nz);
-        var sh=Math.max(0,(nx*il)*sx+(ny*il)*sy2+nz*il*sz);
-        var kk=(1-A.shade)+A.shade*sh;
-        var m=col.match(/\d+/g);
-        col=css(m[0]*kk,m[1]*kk,m[2]*kk);
-      }
-      g.fillStyle=col;
-      g.fillRect(mapR.x+i*cw,mapR.y+j*ch,cw+0.6,ch+0.6);
-    }
-  }
-  /* valley mist, drifting */
-  var fogK=A.fogK*P.fog;
-  if(fogK>0.02){
-    var fogTop=SEA+0.16;
-    for(j=0;j<GH;j++){
-      for(i=0;i<GW;i++){
-        var v2=(grid[j*(GW+1)+i]+grid[j*(GW+1)+i+1]+grid[(j+1)*(GW+1)+i]+grid[(j+1)*(GW+1)+i+1])/4;
-        if(v2<fogTop){
-          var wob=noise(i*0.09+tNow*0.11,j*0.09,7.3);
-          var al=fogK*(1-v2/fogTop)*(0.4+0.6*wob)*0.85;
-          if(al>0.02){
-            g.fillStyle=A.fog+al.toFixed(3)+")";
-            g.fillRect(mapR.x+i*cw,mapR.y+j*ch,cw+0.6,ch+0.6);
-          }
-        }
-      }
-    }
-  }
-  /* contours */
-  var dh=0.135-P.interval/100*0.1;
-  var level, k=0;
-  g.lineCap="round";
-  var boost=A.contourBoost;
-  for(level=SEA-dh; level>0.06; level-=dh){
-    contourPath(g,level);
-    g.strokeStyle=gradeHex(sc.bathy,A); g.globalAlpha=.5; g.lineWidth=.7; g.stroke(); g.globalAlpha=1;
-  }
-  var cCol=css(sc.contour[0]*(1-boost)+217*boost,sc.contour[1]*(1-boost)+201*boost,sc.contour[2]*(1-boost)+158*boost);
-  for(level=SEA; level<0.98; level+=dh, k++){
-    var isIndex=(k%5===4);
-    contourPath(g,level);
-    g.strokeStyle=isIndex?gradeHex(sc.indexC,A):cCol;
-    g.lineWidth=isIndex?1.6:0.7;
-    g.stroke();
-  }
-  contourPath(g,SEA);
-  g.strokeStyle=gradeHex(sc.indexC,A); g.lineWidth=1.4; g.stroke();
-  /* rivers */
-  g.strokeStyle=atm==="night"?"rgba(150,190,220,.75)":"rgba(90,130,150,.8)";
-  g.lineWidth=.9; g.lineJoin="round";
-  rivers.forEach(function(path){
-    g.beginPath();
-    for(var p2=0;p2<path.length;p2++){
-      var x=mapR.x+path[p2][0]*cw, y=mapR.y+path[p2][1]*ch;
-      if(p2===0)g.moveTo(x,y);else g.lineTo(x,y);
-    }
-    g.stroke();
-  });
-  /* peaks + labels */
-  g.textAlign="left";
-  peaks.forEach(function(p){
-    var x=mapR.x+p.i*cw, y=mapR.y+p.j*ch;
-    g.fillStyle=gradeHex(sc.indexC,A);
-    g.beginPath(); g.moveTo(x,y-7); g.lineTo(x-6,y+4); g.lineTo(x+6,y+4); g.closePath(); g.fill();
-    var label=toMeters(p.h)+"m";
-    g.font="700 11px 'SF Mono',Menlo,monospace";
-    var tw=g.measureText(label).width;
-    g.fillStyle=A.chromePanel;
-    g.fillRect(x+9,y-9,tw+6,14);
-    g.strokeStyle=g.fillStyle=gradeHex(sc.indexC,A);
-    g.lineWidth=.6; g.strokeRect(x+9,y-9,tw+6,14);
-    g.fillText(label,x+12,y+2);
-  });
-  g.font="italic 10px Georgia,'Songti SC',serif";
-  names.forEach(function(nm){
-    var x=mapR.x+nm.i*cw, y=mapR.y+nm.j*ch;
-    if(nm.town){
-      g.fillStyle=A.chromeInk;
-      g.beginPath(); g.arc(x,y,2.2,0,6.2832); g.fill();
-      x+=6;
-    }
-    g.fillStyle=A.chromeInk;
-    g.globalAlpha=.85;
-    g.fillText(nm.text,x,y-4);
-    g.globalAlpha=1;
-  });
-  /* survey markers dropped by the user */
-  markers.forEach(function(mk,idx){
-    var x=mapR.x+mk.i*cw, y=mapR.y+mk.j*ch;
-    g.strokeStyle="#c1502e"; g.fillStyle="#c1502e"; g.lineWidth=1.4;
-    g.beginPath(); g.moveTo(x,y); g.lineTo(x,y-16); g.stroke();
-    g.beginPath(); g.moveTo(x,y-16); g.lineTo(x+10,y-12.5); g.lineTo(x,y-9); g.closePath(); g.fill();
-    g.font="700 10px 'SF Mono',Menlo,monospace";
-    g.fillText("M"+(idx+1)+" "+toMeters(mk.h)+"m",x+12,y-10);
-  });
-  /* quake flash */
-  quakes.forEach(function(Q){
-    var age=tNow-Q.t0;
-    if(age<1.6){
-      var x=mapR.x+Q.u*mapR.w, y=mapR.y+Q.v*mapR.h;
-      g.strokeStyle="rgba(193,80,46,"+(0.8*(1-age/1.6)).toFixed(3)+")";
-      g.lineWidth=1.6;
-      g.beginPath(); g.arc(x,y,age*90,0,6.2832); g.stroke();
-      g.font="700 10px 'SF Mono',Menlo,monospace"; g.fillStyle="rgba(193,80,46,"+(1-age/1.6).toFixed(3)+")";
-      g.fillText("M"+Q.mag.toFixed(1),x+8,y-8);
-    }
-  });
+/* ---------- 隐藏题记（落款连点 3 次） ---------- */
+let sigClicks=0,sigTimer=null;
+document.getElementById('sig').addEventListener('click',()=>{
+  sigClicks++;clearTimeout(sigTimer);sigTimer=setTimeout(()=>sigClicks=0,900);
+  if(sigClicks>=3){sigClicks=0;const n=document.getElementById('note');
+    n.classList.add('show');setTimeout(()=>n.classList.remove('show'),5200);}
+});
+
+/* ---------- H 键收起 / R 再生 / 1-3 天气 ---------- */
+addEventListener('keydown',e=>{
+  if(e.key==='h'||e.key==='H')stage.classList.toggle('hideme');
+  if(e.key==='r'||e.key==='R')regen(true);
+  const map={'1':'clair','2':'brume','3':'vent'};
+  if(map[e.key]){mode=map[e.key];
+    document.querySelectorAll('.etudes button[data-m]').forEach(x=>{
+      if(!x.dataset.m.startsWith('__'))x.classList.toggle('on',x.dataset.m===mode)});}
+});
+
+/* ---------- resize ---------- */
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  W=stage.clientWidth;H=stage.clientHeight;
+  cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  const m=Math.max(26,W*.04);
+  mapR={x:m+10,y:m+10,w:W-m*2-20,h:H-m*2-20};
+  makePaper();
 }
+addEventListener('resize',resize);
 
-function drawChrome(g,w,h){
-  var A=ATMS[atm];
-  var ink=A.chromeInk;
-  g.strokeStyle=ink; g.lineWidth=1.4;
-  g.strokeRect(mapR.x,mapR.y,mapR.w,mapR.h);
-  g.lineWidth=.6;
-  g.strokeRect(mapR.x-5,mapR.y-5,mapR.w+10,mapR.h+10);
-  var i;
-  g.fillStyle=ink; g.font="400 9px 'SF Mono',Menlo,monospace"; g.textAlign="center";
-  for(i=1;i<6;i++){
-    var x=mapR.x+mapR.w*i/6;
-    g.beginPath(); g.moveTo(x,mapR.y); g.lineTo(x,mapR.y+6); g.moveTo(x,mapR.y+mapR.h-6); g.lineTo(x,mapR.y+mapR.h); g.stroke();
-    g.fillText((baseLon+i*2)+"°E",x,mapR.y-10);
-    g.fillText((baseLon+i*2)+"°E",x,mapR.y+mapR.h+16);
+/* ---------- 主循环 ---------- */
+let t=0;
+function frame(){
+  t+=.016;
+  // 地形漂移（风模式更快）
+  tDrift+=mode==='vent'?.004:.0016;
+  computeGrid(tDrift);findPeaks();
+  // 指针阻尼 + 停留吹雾
+  if(ptx>-100){
+    px+=(ptx-px)*.1;py+=(pty-py)*.1;
+    if(performance.now()-lastMove<3000)dwell=Math.min(1,dwell+.004);
+    else dwell=Math.max(0,dwell-.01);
   }
-  for(i=1;i<4;i++){
-    var y=mapR.y+mapR.h*i/4;
-    g.beginPath(); g.moveTo(mapR.x,y); g.lineTo(mapR.x+6,y); g.moveTo(mapR.x+mapR.w-6,y); g.lineTo(mapR.x+mapR.w,y); g.stroke();
-    g.save(); g.translate(mapR.x-12,y); g.rotate(-Math.PI/2); g.fillText((baseLat+i*2)+"°N",0,0); g.restore();
-  }
-  /* title block */
-  g.textAlign="left";
-  g.fillStyle=A.chromePanel;
-  g.fillRect(mapR.x+14,mapR.y+14,250,72);
-  g.strokeStyle=ink; g.lineWidth=1;
-  g.strokeRect(mapR.x+14,mapR.y+14,250,72);
-  g.fillStyle=ink;
-  g.font="700 13px 'SF Mono',Menlo,monospace";
-  g.fillText("TOPO DRIFT · 漂移地形",mapR.x+24,mapR.y+35);
-  g.font="400 10px 'SF Mono',Menlo,monospace";
-  g.fillText("SURVEY №"+surveyNo+" · SCALE 1:250000",mapR.x+24,mapR.y+52);
-  g.fillText("CONTOUR "+(P.interval/10).toFixed(1)+"M · "+atm.toUpperCase(),mapR.x+24,mapR.y+65);
-  g.fillText("SEED "+seed,mapR.x+24,mapR.y+78);
-  /* north arrow */
-  var nx=mapR.x+mapR.w-46, ny=mapR.y+52;
-  g.strokeStyle=ink; g.lineWidth=1;
-  g.beginPath(); g.moveTo(nx,ny-24); g.lineTo(nx-9,ny+10); g.lineTo(nx,ny+4); g.lineTo(nx+9,ny+10); g.closePath();
-  g.fillStyle=ink; g.fill();
-  g.font="700 11px 'SF Mono',Menlo,monospace"; g.textAlign="center";
-  g.fillText("N",nx,ny-30);
-  /* scale bar */
-  var sx0=mapR.x+20, sy0=mapR.y+mapR.h-24;
-  for(i=0;i<4;i++){
-    g.fillStyle=i%2?ink:A.chromePanel;
-    g.fillRect(sx0+i*40,sy0,40,7);
-  }
-  g.strokeStyle=ink; g.strokeRect(sx0,sy0,160,7);
-  g.fillStyle=ink; g.font="400 9px 'SF Mono',Menlo,monospace";
-  ["0","5","10","15","20 KM"].forEach(function(s,i2){g.fillText(s,sx0+i2*40,sy0+18)});
-  /* legend ramp */
-  var lx=mapR.x+mapR.w-210, ly=mapR.y+mapR.h-24;
-  for(i=0;i<24;i++){
-    g.fillStyle=gradeArr(SCHEMES[P.scheme].land[i],A);
-    g.fillRect(lx+i*7,ly,7,7);
-  }
-  g.strokeStyle=ink; g.strokeRect(lx,ly,168,7);
-  g.fillStyle=ink;
-  g.fillText("0M",lx,ly+18); g.fillText("2800M",lx+168,ly+18);
-}
+  const L=lightAt(heure);
+  const fogBase=mode==='brume'?Math.max(.75,fogAt(heure)):mode==='vent'?fogAt(heure)*.5:fogAt(heure);
 
-/* ---------- frame ---------- */
-function frame(now){
-  tNow=now/1000;
-  var moving=P.speed>0;
-  quakes=quakes.filter(function(Q){return tNow-Q.t0<5});
-  if(moving||quakes.length){
-    tDrift+=0.0009*P.speed;
-    computeGrid(tDrift); findPeaks(); findRivers();
-    needDraw=true;
+  ctx.fillStyle=`rgb(${PAL.mist})`;ctx.fillRect(0,0,W,H);
+
+  // 晕渲
+  const cw=mapR.w/GW, ch=mapR.h/GH;
+  for(let j=0;j<GH;j++){
+    for(let i=0;i<GW;i++){
+      const v=(grid[j*(GW+1)+i]+grid[j*(GW+1)+i+1]+grid[(j+1)*(GW+1)+i]+grid[(j+1)*(GW+1)+i+1])/4;
+      if(v<SEA){ctx.fillStyle=`rgb(${SEA_C})`}
+      else{
+        const t2=Math.min(.999,(v-SEA)/(1-SEA));
+        ctx.fillStyle=`rgb(${LAND[Math.floor(t2*24)]})`;
+      }
+      ctx.fillRect(mapR.x+i*cw,mapR.y+j*ch,cw+.6,ch+.6);
+    }
   }
-  if(needDraw){
-    ctx.fillStyle=ATMS[atm].paper; ctx.fillRect(0,0,W,H);
-    drawMap(ctx,W,H);
-    drawChrome(ctx,W,H);
-    needDraw=false;
-    document.getElementById("stats").textContent=
-      "GRID 150×100 · fBM 4 OCT · "+rivers.length+" RIVERS · "+atm.toUpperCase();
-    document.getElementById("stamp").textContent="ÉTUDE N°10 · №"+surveyNo;
+  // 碎色罩层：让色块有笔触（hatch）
+  ctx.lineCap='round';
+  const hr=mulberry32(5000+((t*2)|0));
+  for(let k=0;k<700;k++){
+    const i=(hr()*GW)|0, j=(hr()*GH)|0;
+    const v=grid[j*(GW+1)+i];
+    const x=mapR.x+i*cw+cw*.5, y=mapR.y+j*ch+ch*.5;
+    const c=v<SEA?SEA_C:LAND[Math.min(23,Math.floor((v-SEA)/(1-SEA)*24))];
+    const dk=hr()<.5;
+    ctx.strokeStyle=`rgba(${Math.max(0,c[0]-14)},${Math.max(0,c[1]-14)},${Math.max(0,c[2]-12)},${(.10+hr()*.1).toFixed(2)})`;
+    ctx.lineWidth=.8+hr();
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+3+hr()*6,y-1-hr()*2);ctx.stroke();
   }
+  // 等高线
+  const dh=.06;
+  ctx.lineCap='round';
+  let k=0;
+  for(let level=SEA-dh;level>0.06;level-=dh){
+    contourPath(ctx,level);
+    ctx.strokeStyle=`rgba(${BATHY},.5)`;ctx.lineWidth=.7;ctx.stroke();
+  }
+  for(let level=SEA;level<0.98;level+=dh,k++){
+    const isIndex=(k%5===4);
+    contourPath(ctx,level);
+    ctx.strokeStyle=isIndex?`rgba(${PAL.shade},.9)`:`rgba(${PAL.shade},.55)`;
+    ctx.lineWidth=isIndex?1.5:.7;
+    ctx.stroke();
+  }
+  contourPath(ctx,SEA);
+  ctx.strokeStyle=`rgba(${PAL.shade},.9)`;ctx.lineWidth=1.3;ctx.stroke();
+
+  // 雾：低地积雾，随 heure 浓淡（wow：拖时间轴看雾散山现）
+  const fr=mulberry32(9000+((t*3)|0));
+  const liftR=(40+dwell*90); // hover 吹散半径
+  for(let k2=0;k2<2800;k2++){
+    const i=(fr()*GW)|0, j=(fr()*GH)|0;
+    const v=grid[j*(GW+1)+i];
+    if(v>SEA+.3)continue; // 雾只积在低地与海面
+    const depth=Math.max(0,1-(v-SEA)/.3);
+    const drift=noise(i*.06+t*.35,j*.06,3.3);
+    const dens=Math.min(1,depth*.7+ (v<SEA?.35:0))*fogBase*(0.5+drift*.9);
+    if(dens<.12)continue;
+    const x=mapR.x+i*cw+fr()*cw, y=mapR.y+j*ch+fr()*ch;
+    // hover 拨雾 / 点击阵风
+    let hole=0;
+    if(px>-100){
+      const d=Math.hypot(x-px,y-py);
+      if(d<liftR)hole=Math.max(hole,(1-d/liftR)*.9);
+    }
+    for(const gs of gusts){
+      const d=Math.hypot(x-gs.x,y-gs.y);
+      if(Math.abs(d-gs.r)<40)hole=Math.max(hole,gs.a);
+    }
+    const a=Math.max(0,dens-hole)*(.45+fr()*.35);
+    if(a<.03)continue;
+    ctx.strokeStyle=`rgba(${PAL.mist[0]},${PAL.mist[1]},${PAL.mist[2]},${Math.min(.85,a).toFixed(2)})`;
+    ctx.lineWidth=2.5+fr()*4;
+    const len=10+fr()*26;
+    ctx.beginPath();ctx.moveTo(x-len/2,y);ctx.lineTo(x+len/2,y+(fr()-.5)*3);ctx.stroke();
+  }
+
+  // 峰标
+  ctx.font="700 11px 'SF Mono',Menlo,monospace";
+  ctx.textAlign="left";
+  for(const p of peaks){
+    const x=mapR.x+p.i*cw, y=mapR.y+p.j*ch;
+    ctx.fillStyle=`rgba(${PAL.shade},.9)`;
+    ctx.beginPath();ctx.moveTo(x,y-7);ctx.lineTo(x-6,y+4);ctx.lineTo(x+6,y+4);ctx.closePath();ctx.fill();
+    const label=toMeters(p.h)+"m";
+    const tw=ctx.measureText(label).width;
+    ctx.fillStyle="rgba(232,230,223,.85)";
+    ctx.fillRect(x+9,y-9,tw+6,14);
+    ctx.strokeStyle=`rgba(${PAL.shade},.6)`;ctx.lineWidth=.6;
+    ctx.strokeRect(x+9,y-9,tw+6,14);
+    ctx.fillStyle=`rgba(${PAL.shade},.9)`;
+    ctx.fillText(label,x+12,y+2);
+  }
+
+  // 图廓：经纬刻度 + 图签 + 指北针（Brume 色系）
+  ctx.strokeStyle=`rgba(${PAL.shade},.8)`;ctx.lineWidth=1.2;
+  ctx.strokeRect(mapR.x,mapR.y,mapR.w,mapR.h);
+  ctx.lineWidth=.5;
+  ctx.strokeRect(mapR.x-4,mapR.y-4,mapR.w+8,mapR.h+8);
+  ctx.fillStyle=`rgba(${PAL.shade},.9)`;
+  ctx.font="400 9px 'SF Mono',Menlo,monospace";ctx.textAlign="center";
+  for(let i=1;i<6;i++){
+    const x=mapR.x+mapR.w*i/6;
+    ctx.beginPath();ctx.moveTo(x,mapR.y);ctx.lineTo(x,mapR.y+5);ctx.moveTo(x,mapR.y+mapR.h-5);ctx.lineTo(x,mapR.y+mapR.h);ctx.stroke();
+    ctx.fillText((baseLon+i*2)+"°E",x,mapR.y-8);
+  }
+  // 图签
+  ctx.textAlign="left";
+  ctx.fillStyle="rgba(232,230,223,.92)";
+  ctx.fillRect(mapR.x+12,mapR.y+12,212,54);
+  ctx.strokeStyle=`rgba(${PAL.shade},.7)`;ctx.lineWidth=.8;
+  ctx.strokeRect(mapR.x+12,mapR.y+12,212,54);
+  ctx.fillStyle=`rgba(${PAL.shade},.95)`;
+  ctx.font="700 12px 'SF Mono',Menlo,monospace";
+  ctx.fillText("TOPO DRIFT · 晨雾",mapR.x+22,mapR.y+31);
+  ctx.font="400 9.5px 'SF Mono',Menlo,monospace";
+  ctx.fillText("SURVEY №"+surveyNo+" · 1:250000",mapR.x+22,mapR.y+46);
+  ctx.fillText("BRUME MATINALE · fBM-4",mapR.x+22,mapR.y+58);
+
+  // 光：全局色温 + 暮光暖带（晨雾家族低对比，弱化处理）
+  ctx.globalCompositeOperation='multiply';
+  ctx.fillStyle=`rgba(${L.tint[0]|0},${L.tint[1]|0},${L.tint[2]|0},${(L.tintA*.55).toFixed(3)})`;
+  ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='overlay';
+  if(L.warmA>.03){
+    const sunX=W*(heure<12?.24:.78),sunY=H*.16;
+    const g=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,Math.max(W,H)*.7);
+    g.addColorStop(0,`rgba(${L.warm[0]|0},${L.warm[1]|0},${L.warm[2]|0},${(L.warmA*1.3).toFixed(3)})`);
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  ctx.globalCompositeOperation='source-over';
+  const dark=(1-L.light)*.24;
+  if(dark>.02){ctx.fillStyle=`rgba(74,82,96,${dark.toFixed(3)})`;ctx.fillRect(0,0,W,H)}
+
+  // 纸纹 + 颗粒
+  ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.85;
+  ctx.drawImage(paperC,0,0,W,H);
+  ctx.globalCompositeOperation='overlay';ctx.globalAlpha=.05;
+  ctx.drawImage(grainC,0,0,W,H);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+
+  for(const gs of gusts){gs.r+=4;gs.a*=.92}
+  gusts=gusts.filter(g=>g.a>.04);
+
+  thumb.style.left=(heure/24*100)+'%';
+  const hh=Math.floor(heure),mm=Math.floor((heure-hh)*60);
+  heureOut.textContent=`H ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+
   requestAnimationFrame(frame);
 }
-
-function resize(){
-  dpr=Math.min(window.devicePixelRatio||1,2);
-  var r=stage.getBoundingClientRect();
-  W=r.width; H=r.height;
-  canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  var m=Math.max(34,W*0.055);
-  mapR={x:m+14,y:m+14,w:W-m*2-28,h:H-m*2-28};
-  needDraw=true;
-}
-window.addEventListener("resize",resize);
-
-/* ---------- events ---------- */
-var panning=false, panStart=null, moved=false;
-stage.addEventListener("pointerdown",function(e){
-  if(e.button!==0)return;
-  panning=true; moved=false;
-  panStart={x:e.clientX,y:e.clientY,panX:panX,panY:panY};
-  stage.classList.add("panning");
-  stage.setPointerCapture(e.pointerId);
-});
-stage.addEventListener("pointermove",function(e){
-  var r=stage.getBoundingClientRect();
-  var x=e.clientX-r.left, y=e.clientY-r.top;
-  if(panning&&panStart){
-    var dx=e.clientX-panStart.x, dy=e.clientY-panStart.y;
-    if(Math.abs(dx)+Math.abs(dy)>4)moved=true;
-    panX=panStart.panX-dx/mapR.w*3.2*zoom;
-    panY=panStart.panY-dy/mapR.h*3.0*zoom;
-    needDraw=true;
-  }
-  /* readout: elevation, slope, nearest peak */
-  var gx=(x-mapR.x)/mapR.w*GW, gy=(y-mapR.y)/mapR.h*GH;
-  var el=document.getElementById("readout");
-  if(gx<0||gy<0||gx>GW||gy>GH){el.textContent="ELEV ---- M · --°--′N ---°--′E";return}
-  var i=Math.min(GW-1,Math.floor(gx)), j=Math.min(GH-1,Math.floor(gy));
-  var fx=gx-i, fy=gy-j;
-  var h00=grid[j*(GW+1)+i], h10=grid[j*(GW+1)+i+1], h01=grid[(j+1)*(GW+1)+i], h11=grid[(j+1)*(GW+1)+i+1];
-  var hv=h00*(1-fx)*(1-fy)+h10*fx*(1-fy)+h01*(1-fx)*fy+h11*fx*fy;
-  var m=toMeters(hv);
-  var slope=Math.sqrt((h10-h00)*(h10-h00)+(h01-h00)*(h01-h00))*100;
-  var lat=baseLat+gy/GH*8, lon=baseLon+gx/GW*12;
-  var laD=Math.floor(lat), laM=Math.floor((lat-laD)*60);
-  var loD=Math.floor(lon), loM=Math.floor((lon-loD)*60);
-  var pk="--";
-  if(peaks.length){
-    var bd=1e9;
-    peaks.forEach(function(p){var d=(p.i-gx)*(p.i-gx)+(p.j-gy)*(p.j-gy);if(d<bd)bd=d});
-    pk=(Math.sqrt(bd)/GW*120).toFixed(1)+"KM";
-  }
-  el.textContent=(hv<SEA?"DEPTH ":"ELEV ")+("    "+m).slice(-4)+" M · ∠"+slope.toFixed(0)+"% · 峰 "+pk+" · "+laD+"°"+("0"+laM).slice(-2)+"′N "+loD+"°"+("0"+loM).slice(-2)+"′E";
-});
-stage.addEventListener("pointerup",function(e){
-  stage.classList.remove("panning");
-  if(panning&&!moved){
-    /* click: drop or remove a survey marker */
-    var r=stage.getBoundingClientRect();
-    var gx=(e.clientX-r.left-mapR.x)/mapR.w*GW, gy=(e.clientY-r.top-mapR.y)/mapR.h*GH;
-    var hit=-1;
-    markers.forEach(function(mk,idx){
-      var d=(mk.i-gx)*(mk.i-gx)+(mk.j-gy)*(mk.j-gy);
-      if(d<16)hit=idx;
-    });
-    if(hit>=0)markers.splice(hit,1);
-    else if(gx>0&&gy>0&&gx<GW&&gy<GH&&markers.length<5){
-      var i=Math.min(GW-1,Math.floor(gx)), j=Math.min(GH-1,Math.floor(gy));
-      markers.push({i:i,j:j,h:grid[j*(GW+1)+i]});
-    }
-    needDraw=true;
-  }
-  panning=false; panStart=null;
-});
-stage.addEventListener("dblclick",function(e){
-  var r=stage.getBoundingClientRect();
-  var u=(e.clientX-r.left-mapR.x)/mapR.w, v=(e.clientY-r.top-mapR.y)/mapR.h;
-  if(u<0||v<0||u>1||v>1)return;
-  quakes.push({u:u,v:v,t0:tNow,mag:3+Math.random()*3});
-});
-stage.addEventListener("wheel",function(e){
-  e.preventDefault();
-  var nz=zoom*(e.deltaY>0?1.12:0.89);
-  zoom=Math.max(0.55,Math.min(2.6,nz));
-  computeGrid(tDrift); findPeaks(); findRivers(); needDraw=true;
-},{passive:false});
-
-/* ---------- controls ---------- */
-document.getElementById("rInt").addEventListener("input",function(){
-  P.interval=+this.value; document.getElementById("oInt").textContent=(this.value/10).toFixed(1)+" m"; needDraw=true;
-});
-document.getElementById("rRel").addEventListener("input",function(){
-  P.relief=+this.value/100; document.getElementById("oRel").textContent=P.relief.toFixed(2)+" ×";
-  computeGrid(tDrift); findPeaks(); findRivers(); needDraw=true;
-});
-document.getElementById("rSpd").addEventListener("input",function(){
-  P.speed=+this.value/10; document.getElementById("oSpd").textContent=P.speed.toFixed(1)+" ×";
-});
-document.getElementById("rFog").addEventListener("input",function(){
-  P.fog=+this.value/100; document.getElementById("oFog").textContent=this.value+" %"; needDraw=true;
-});
-var swShade=document.getElementById("swShade");
-swShade.addEventListener("click",function(){
-  P.shade=!P.shade; swShade.classList.toggle("on",P.shade); needDraw=true;
-});
-
-var atmBox=document.getElementById("atms");
-function setAtm(a){
-  atm=a; document.body.className="atm-"+a;
-  atmBox.querySelectorAll("button").forEach(function(el){el.classList.toggle("on",el.dataset.atm===a)});
-  needDraw=true;
-}
-atmBox.addEventListener("click",function(e){
-  var b=e.target.closest("button"); if(!b)return; setAtm(b.dataset.atm);
-});
-
-var scBox=document.getElementById("schemes");
-function setScheme(idx){
-  P.scheme=idx;
-  scBox.querySelectorAll("button").forEach(function(el,k){el.classList.toggle("on",k===idx)});
-  needDraw=true;
-}
-SCHEMES.forEach(function(s,idx){
-  var b=document.createElement("button");
-  b.className=idx===0?"on":"";
-  b.innerHTML='<span class="ramp">'+s.land.filter(function(_,k){return k%5===0}).map(function(c){return '<i style="background:'+css(c[0],c[1],c[2])+'"></i>'}).join("")+'</span>'+s.name;
-  b.addEventListener("click",function(){setScheme(idx)});
-  scBox.appendChild(b);
-});
-
-function regen(){
-  seed=Math.floor(Math.random()*1e9); writeSeed();
-  noise=makeNoise(seed); metaFromSeed();
-  markers=[]; quakes=[]; panX=panY=0; zoom=1;
-  computeGrid(tDrift); findPeaks(); findRivers(); makeNames();
-  document.getElementById("fseed").textContent=seed;
-  needDraw=true;
-}
-document.getElementById("bRegen").addEventListener("click",regen);
-document.getElementById("bShare").addEventListener("click",function(){
-  var url=location.href, btn=this;
-  function done(){btn.textContent="已复制 · Copied"; setTimeout(function(){btn.textContent="复制分享链接 · Share"},1600);}
-  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,done);}
-  else{prompt("复制分享链接",url); done();}
-});
-document.getElementById("bSave").addEventListener("click",function(){
-  var ex=document.createElement("canvas");
-  var ew=1680, eh=ew*(H/W);
-  ex.width=ew; ex.height=eh;
-  var eg=ex.getContext("2d");
-  var keep={ctx:ctx,W:W,H:H,map:mapR};
-  var m=Math.max(34,ew*0.055);
-  ctx=eg; W=ew; H=eh; mapR={x:m+14,y:m+14,w:W-m*2-28,h:H-m*2-28};
-  eg.setTransform(1,0,0,1,0,0);
-  eg.fillStyle=ATMS[atm].paper; eg.fillRect(0,0,W,H);
-  drawMap(eg,W,H); drawChrome(eg,W,H);
-  ctx=keep.ctx; W=keep.W; H=keep.H; mapR=keep.map;
-  var a=document.createElement("a");
-  a.download="topo-drift-"+surveyNo+"-"+atm+".png";
-  a.href=ex.toDataURL("image/png");
-  a.click();
-});
-
-document.addEventListener("keydown",function(e){
-  var tag=(document.activeElement&&document.activeElement.tagName)||"";
-  if(tag==="INPUT"||tag==="TEXTAREA")return;
-  var k=e.key.toLowerCase();
-  if(k==="a"){var order=["dawn","mid","dusk","night"]; setAtm(order[(order.indexOf(atm)+1)%4]);}
-  else if(k==="d"){var rs=document.getElementById("rSpd"); rs.value=P.speed>0?0:10; rs.dispatchEvent(new Event("input"));}
-  else if(k==="n"){regen();}
-  else if(k==="h"){swShade.click();}
-  else if(k==="x"){document.getElementById("bSave").click();}
-  else if(k>="1"&&k<="3"){setScheme(+k-1);}
-  else if(k==="arrowup"){panY-=0.4;needDraw=true;e.preventDefault();}
-  else if(k==="arrowdown"){panY+=0.4;needDraw=true;e.preventDefault();}
-  else if(k==="arrowleft"){panX-=0.4;needDraw=true;e.preventDefault();}
-  else if(k==="arrowright"){panX+=0.4;needDraw=true;e.preventDefault();}
-});
-
-/* boot */
-setAtm("mid");
-metaFromSeed();
-computeGrid(tDrift); findPeaks(); findRivers(); makeNames();
-document.getElementById("fseed").textContent=seed;
-resize();
+metaFromSeed();computeGrid(tDrift);findPeaks();
+resize();regen(false);
 requestAnimationFrame(frame);
 })();
 </script>
-<div id="mira-lab" data-project="topo-drift" data-num="10" style="--lab-a:#23302a;--lab-b:#c1502e"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 10 · GEN-ART</small><strong>Topo Drift</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
-(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
-const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
-function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
-function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
-function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
-launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
-document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
-qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
-const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
-grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
-tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
-tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
-function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart|重测|resurvey/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
-q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
-q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
-q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
-q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
-q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
-document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
-setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
-})();
-</script></body></html>
+</body>
+</html>

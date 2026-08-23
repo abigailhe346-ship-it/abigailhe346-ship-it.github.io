@@ -3,1086 +3,816 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ÉTUDE N°70 · TOOL FORGE — 窗边的铸剑台</title>
+<title>N°070 Tool Forge — 金色时刻的铸剑台 · Atelier MIRA</title>
 <style>
+  /* ============================================================
+     Atelier MIRA · N°070 · 金色时刻 Heure Dorée（暖 ≈3200K）
+     #F4E3C2 蜜光 · #E8B96F 金 · #D98E4A 琥珀 · #A85B3C 焦赭
+     #5E6E7E 阴影补色蓝
+     铁律：受光面走金→琥珀；阴影必须是蓝紫系，禁止黑灰。
+     ============================================================ */
   :root{
-    --paper:#F6F3EA; --panel:#EEEAE0; --ink:#141310; --ink2:#4A473E;
-    --gray:#8C887B; --line:#D8D3C5; --line2:#C2BDB0;
-    --accent:#E8490F; --ok:#0E6E4E; --err:#B02318; --key:#1D4F91;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --mono:"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
     --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
-    --mono:"SF Mono",Menlo,Consolas,monospace;
     --ease:cubic-bezier(.22,1,.36,1);
+    /* 由 JS 按 heure 写入 */
+    --bg:#F4E3C2; --frame:#F8ECD2; --ink:#5B4A34; --dim:#9A8468;
+    --line:#E2D2B0; --ambre:#D98E4A; --ombre:#5E6E7E; --chip:rgba(248,236,210,.66);
   }
-  *{margin:0;padding:0;box-sizing:border-box;border-radius:0}
-  html,body{height:100%}
-  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
-    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden;
-    transition:background 1.2s var(--ease)}
-  ::selection{background:var(--accent);color:var(--paper)}
-  :focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{min-height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+       -webkit-font-smoothing:antialiased;overflow-x:hidden;
+       transition:background-color 1.2s var(--ease),color 1.2s var(--ease)}
+  ::selection{background:var(--ambre);color:var(--frame)}
+  button{font-family:inherit}
+  body:not(.prete),body:not(.prete) *{transition:none!important}
 
-  #wxcv{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
-  header,main,footer,#deck{position:relative;z-index:1}
+  canvas#papier,canvas#grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+  canvas#papier{mix-blend-mode:multiply;opacity:.9;z-index:60}
+  canvas#grain{mix-blend-mode:overlay;opacity:.05;z-index:61}
+  header,.barre,.stage,#colo,#mot,#indice{position:relative;z-index:2}
 
-  /* ---------- header ---------- */
-  header{flex:0 0 auto;display:flex;align-items:center;gap:12px;padding:7px 14px;flex-wrap:wrap;
-    border-bottom:1px solid var(--ink);
-    background:color-mix(in srgb, var(--paper) 88%, transparent)}
-  .seal-wrap{display:flex;align-items:center;gap:10px;white-space:nowrap}
-  .seal{width:40px;height:40px;flex:0 0 40px;color:var(--ink2)}
-  .seal .ring-txt{animation:sealspin 46s linear infinite;transform-origin:32px 32px}
-  @keyframes sealspin{to{transform:rotate(360deg)}}
-  .seal .m-hand{stroke:var(--accent)}
-  .etitle{line-height:1.22}
-  .etitle .no{font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:.22em}
-  .etitle .name{font-size:15px;font-weight:700;letter-spacing:.16em}
-  .etitle .sub{font-size:9.5px;color:var(--gray);letter-spacing:.06em}
-  .seg{display:flex;border:1px solid var(--ink)}
-  .seg button{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;padding:6px 10px;
-    background:transparent;border:none;color:var(--ink2);cursor:pointer;transition:all .18s var(--ease)}
-  .seg button+button{border-left:1px solid var(--ink)}
-  .seg button:hover{background:var(--ink);color:var(--paper)}
-  .seg button.on{background:var(--accent);color:var(--paper)}
-  .seg-label{font-family:var(--mono);font-size:8px;letter-spacing:.2em;color:var(--gray);margin-right:-5px}
-  header .spacer{flex:1}
-  .hbtns{display:flex;gap:7px;align-items:center}
-  .btn{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;padding:7px 11px;cursor:pointer;
-    background:transparent;color:var(--accent);border:1px solid var(--accent);transition:all .16s var(--ease)}
-  .btn:hover{background:var(--accent);color:var(--paper)}
-  .btn.ghost{color:var(--ink2);border-color:var(--line2)}
-  .btn.ghost:hover{border-color:var(--ink);color:var(--ink);background:transparent}
-  .btn.ghost.on{color:var(--ok);border-color:var(--ok)}
-  .hstat{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:9px;
-    color:var(--gray);letter-spacing:.1em;border-left:1px solid var(--line);padding-left:12px}
-  .hstat b{font-size:12px;color:var(--ink);font-weight:600}
-  .hstat b.accent{color:var(--accent)}
+  /* ---------- 头部 ---------- */
+  header{display:flex;align-items:flex-start;gap:16px;padding:16px 26px 8px;flex-wrap:wrap}
+  header h1{font-family:var(--serif);font-weight:400;font-size:clamp(21px,2.5vw,29px);letter-spacing:.1em}
+  header h1 i{font-style:italic;color:var(--dim)}
+  header .epi{font-family:var(--serif);font-style:italic;font-size:14.5px;color:var(--dim);margin-top:3px}
+  header .acts{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .hbtn{appearance:none;background:transparent;border:1px solid var(--dim);color:var(--ink);
+        height:30px;min-width:30px;padding:0 9px;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+        font-family:var(--mono);font-size:9px;letter-spacing:.14em;cursor:pointer;transition:all .3s var(--ease)}
+  .hbtn:hover{border-color:var(--ink)}
+  .hbtn.on{background:var(--ink);border-color:var(--ink);color:var(--frame)}
+  .hbtn svg{display:block}
 
-  /* ---------- parameter deck ---------- */
-  #deck{flex:0 0 auto;display:flex;align-items:center;gap:20px;padding:6px 14px;flex-wrap:wrap;
-    border-bottom:1px solid var(--line);
-    background:color-mix(in srgb, var(--panel) 82%, transparent)}
-  .ctl{display:flex;align-items:center;gap:8px}
-  .ctl label{font-size:8.5px;letter-spacing:.18em;color:var(--gray);white-space:nowrap}
-  input[type=range]{-webkit-appearance:none;appearance:none;width:100px;height:2px;
-    background:linear-gradient(90deg,var(--accent) var(--fill,50%),var(--line2) var(--fill,50%));
-    outline:none;cursor:pointer}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;
-    background:var(--paper);border:2px solid var(--accent);transition:transform .15s var(--ease)}
-  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3)}
-  input[type=range]::-moz-range-thumb{width:8px;height:8px;background:var(--paper);border:2px solid var(--accent)}
-  .ctl output{font-family:var(--mono);font-size:9.5px;color:var(--accent);min-width:46px}
-  #deck .seedtag{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--gray);letter-spacing:.14em}
-  #deck .seedtag b{color:var(--ink2);font-weight:400}
+  /* ---------- 工具栏 ---------- */
+  .barre{display:flex;align-items:flex-end;gap:20px;padding:6px 26px 12px;flex-wrap:wrap}
+  .seg{display:flex;border:1px solid var(--dim)}
+  .seg button{appearance:none;border:none;background:transparent;color:var(--dim);
+    font-family:var(--mono);font-size:9px;letter-spacing:.12em;padding:7px 11px;cursor:pointer;
+    border-right:1px solid var(--dim);transition:all .25s var(--ease)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--ink);color:var(--frame)}
+  .seg-cap{font-family:var(--mono);font-size:8px;letter-spacing:.2em;color:var(--dim);
+           text-transform:uppercase;margin-right:-12px;align-self:center}
+  .etudes{display:flex;gap:6px}
+  .etu{appearance:none;background:transparent;border:1px solid var(--dim);color:var(--dim);
+       font-family:var(--serif);font-style:italic;font-size:12.5px;padding:6px 11px;cursor:pointer;transition:all .25s var(--ease)}
+  .etu:hover{color:var(--ink);border-color:var(--ink)}
+  .etu.on{background:var(--ink);border-color:var(--ink);color:var(--frame)}
+  .cadran-ctl{display:flex;flex-direction:column;gap:3px;flex:1;min-width:180px;max-width:330px;margin-left:auto}
+  .cadran-ctl .crow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:8px;
+                    letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+  .cadran-ctl .crow b{font-weight:400;color:var(--ink)}
+  #cadcv{width:100%;height:32px;display:block;cursor:ew-resize;touch-action:none}
 
-  /* ---------- layout ---------- */
-  main{flex:1;display:grid;grid-template-columns:248px 1fr 400px;min-height:0}
-  body[data-mode="obs"] main{grid-template-columns:248px 1fr}
-  body[data-mode="obs"] #col-schema{display:none}
-  .col{min-height:0;display:flex;flex-direction:column;border-right:1px solid var(--ink)}
-  .col:last-child{border-right:none}
-  .col-head{flex:0 0 32px;display:flex;align-items:center;gap:8px;padding:0 13px;
-    border-bottom:1px solid var(--ink);font-family:var(--mono);font-size:9px;
-    letter-spacing:.22em;color:var(--ink2);
-    background:color-mix(in srgb, var(--panel) 88%, transparent)}
-  .col-head .sq{width:7px;height:7px;background:var(--accent)}
-  .col-head .right{margin-left:auto;color:var(--gray);letter-spacing:.1em}
+  /* ---------- 主区 ---------- */
+  .stage{max-width:1260px;margin:0 auto;padding:4px 24px 70px;
+         display:grid;grid-template-columns:minmax(300px,.9fr) minmax(0,1.3fr);gap:22px}
+  @media (max-width:920px){.stage{grid-template-columns:1fr}}
 
-  /* ---------- tool list ---------- */
-  #toolfilter{flex:0 0 34px;display:flex;border-bottom:1px solid var(--ink)}
-  #toolfilter input{flex:1;border:none;outline:none;padding:0 13px;font-family:var(--mono);
-    font-size:11px;background:transparent;color:var(--ink)}
-  #toolfilter input::placeholder{color:var(--gray)}
-  #toollist{flex:1;overflow-y:auto;background:color-mix(in srgb, var(--paper) 66%, transparent)}
-  .tool{display:grid;grid-template-columns:28px 1fr auto;gap:3px 9px;padding:10px 13px 9px;
-    border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s var(--ease),color .15s var(--ease)}
-  .tool .idx{font-family:var(--mono);font-size:9.5px;color:var(--gray);padding-top:2px}
-  .tool .tname{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.02em}
-  .tool .kind{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--ink2);
-    border:1px solid var(--line2);padding:2px 5px;align-self:start}
-  .tool .tdesc{grid-column:2/4;font-size:10.5px;color:var(--gray);line-height:1.45}
-  .tool:hover{background:var(--ink);color:var(--paper)}
-  .tool:hover .tdesc,.tool:hover .idx{color:#8C887B}
-  .tool:hover .kind{border-color:#4A473E;color:#B8B3A6}
-  .tool.active{background:var(--ink);color:var(--paper);box-shadow:inset 3px 0 0 var(--accent)}
-  .tool.active .tdesc,.tool.active .idx{color:#8C887B}
-  .tool.active .kind{border-color:var(--accent);color:var(--accent)}
-  .tool.hidden{display:none}
+  .carte{background:var(--frame);border:1px solid var(--line);padding:18px 20px 16px;
+         transition:background-color 1.2s,border-color 1.2s}
+  .carte .ct{font-family:var(--mono);font-size:8.5px;letter-spacing:.24em;color:var(--dim);
+             text-transform:uppercase;display:flex;align-items:center;gap:9px;margin-bottom:13px}
+  .carte .ct::after{content:"";flex:1;height:1px;background:var(--line)}
+  .champ{margin-bottom:12px}
+  .champ label{display:block;font-family:var(--mono);font-size:8px;letter-spacing:.2em;
+               color:var(--dim);text-transform:uppercase;margin-bottom:4px}
+  .champ input[type=text]{width:100%;appearance:none;background:transparent;border:none;
+    border-bottom:1px solid var(--line);color:var(--ink);font-family:var(--serif);font-size:17px;
+    padding:4px 1px;outline:none;transition:border-color .3s}
+  .champ input[type=text]:focus{border-color:var(--ambre)}
+  .champ textarea{width:100%;appearance:none;background:transparent;border:none;resize:none;
+    border-bottom:1px solid var(--line);color:var(--dim);font-family:var(--serif);font-style:italic;
+    font-size:13px;line-height:1.6;padding:3px 1px;outline:none}
+  .param{display:grid;grid-template-columns:1fr 84px auto auto;gap:8px;align-items:center;
+         padding:7px 0;border-bottom:1px dashed var(--line)}
+  .param input[type=text]{appearance:none;background:transparent;border:none;color:var(--ink);
+    font-family:var(--mono);font-size:11px;outline:none;border-bottom:1px solid transparent;padding:2px 1px}
+  .param input[type=text]:focus{border-color:var(--ambre)}
+  .param select{appearance:none;background:transparent;border:1px solid var(--line);color:var(--dim);
+    font-family:var(--mono);font-size:9.5px;padding:3px 5px;cursor:pointer;outline:none}
+  .param .req{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:8px;
+              color:var(--dim);cursor:pointer;letter-spacing:.06em}
+  .param .req input{accent-color:var(--ambre)}
+  .param .rm{appearance:none;background:transparent;border:none;color:var(--dim);cursor:pointer;
+             font-family:var(--mono);font-size:12px;padding:0 2px;transition:color .2s}
+  .param .rm:hover{color:var(--ambre)}
+  .addrow{appearance:none;background:transparent;border:1px dashed var(--dim);color:var(--dim);
+          font-family:var(--mono);font-size:9px;letter-spacing:.14em;padding:7px 10px;cursor:pointer;
+          margin-top:11px;transition:all .25s var(--ease)}
+  .addrow:hover{color:var(--ink);border-color:var(--ink);border-style:solid}
+  #reqPrev{margin-top:14px;font-family:var(--mono);font-size:9px;line-height:1.75;color:var(--dim);
+           white-space:pre-wrap;word-break:break-all;border-top:1px solid var(--line);padding-top:10px;
+           max-height:130px;overflow:auto}
+  #reqPrev b{color:var(--ambre);font-weight:400}
 
-  /* ---------- schema editor ---------- */
-  #schema-wrap{flex:1;display:flex;min-height:0;background:color-mix(in srgb, var(--paper) 74%, transparent)}
-  #gutter{flex:0 0 38px;border-right:1px solid var(--line);
-    background:color-mix(in srgb, var(--panel) 88%, transparent);
-    font-family:var(--mono);font-size:10.5px;line-height:20px;color:var(--gray);
-    text-align:right;padding:12px 8px 12px 0;overflow:hidden;user-select:none}
-  #schema{flex:1;border:none;resize:none;outline:none;background:transparent;color:var(--ink);
-    font-family:var(--mono);font-size:12px;line-height:20px;padding:12px 14px;tab-size:2;white-space:pre;overflow:auto}
-  #schema::selection{background:rgba(232,73,15,.18);color:var(--ink)}
-  #schema-status{flex:0 0 31px;display:flex;align-items:center;gap:10px;padding:0 13px;
-    border-top:1px solid var(--line);font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;
-    background:color-mix(in srgb, var(--panel) 85%, transparent)}
-  #schema-status .dot{width:8px;height:8px;background:var(--ok)}
-  #schema-status.err .dot{background:var(--err)}
-  #schema-status .msg{color:var(--ink2)}
-  #schema-status.err .msg{color:var(--err)}
-  #schema-status .actions{margin-left:auto;display:flex;gap:7px}
-  .mini-btn{font-family:var(--mono);font-size:9px;letter-spacing:.14em;padding:5px 9px;
-    background:transparent;border:1px solid var(--line2);color:var(--ink2);cursor:pointer;
-    transition:all .15s var(--ease)}
-  .mini-btn:hover{border-color:var(--ink);color:var(--ink)}
-  .mini-btn.warn{border-color:var(--err);color:var(--err)}
-  .mini-btn.warn:hover{background:var(--err);color:var(--paper)}
-  .mini-btn.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  /* 锻炉 */
+  .forge{display:flex;flex-direction:column;min-width:0}
+  #enclume{display:block;width:100%;height:430px;cursor:crosshair;touch-action:none;
+           border:1px solid var(--line);background:var(--frame);transition:border-color 1.2s,background-color 1.2s}
+  @media (max-width:600px){#enclume{height:340px}}
+  .frapper{display:flex;gap:10px;align-items:center;padding:12px 0 0;flex-wrap:wrap}
+  .gbtn{appearance:none;background:var(--ink);border:1px solid var(--ink);color:var(--frame);
+        font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+        padding:11px 22px;cursor:pointer;transition:all .25s var(--ease)}
+  .gbtn:hover{background:var(--ambre);border-color:var(--ambre)}
+  .frapper .statut{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+  /* 回火条：响应 */
+  #reponse{margin-top:14px;border:1px solid var(--line);background:var(--frame);position:relative;
+           transition:background-color 1.2s,border-color 1.2s}
+  #trempe{position:absolute;left:0;top:0;bottom:0;width:0;pointer-events:none;opacity:.5;
+          background:linear-gradient(90deg,var(--ambre),var(--ombre))}
+  #repTxt{position:relative;font-family:var(--mono);font-size:9.5px;line-height:1.8;color:var(--ink);
+          padding:12px 16px;white-space:pre-wrap;word-break:break-all;min-height:64px;max-height:180px;overflow:auto}
+  #repTxt .k{color:var(--ombre)} #repTxt .s{color:var(--ambre)} #repTxt .n{color:#A85B3C}
 
-  /* ---------- invoke panel ---------- */
-  #mini-schema{display:none;flex:0 0 auto;padding:8px 13px;border-bottom:1px solid var(--ink);
-    font-family:var(--mono);font-size:9.5px;color:var(--ink2);line-height:1.8;
-    background:color-mix(in srgb, var(--panel) 85%, transparent)}
-  body[data-mode="obs"] #mini-schema{display:block}
-  #mini-schema .chip{display:inline-block;border:1px solid var(--line2);padding:1px 7px;margin:2px 4px 2px 0}
-  #mini-schema .chip.req{border-color:var(--accent);color:var(--accent)}
-  #params{flex:0 1 auto;max-height:42%;overflow-y:auto;border-bottom:1px solid var(--ink);
-    background:color-mix(in srgb, var(--paper) 70%, transparent)}
-  .pfield{padding:8px 13px;border-bottom:1px solid var(--line)}
-  .pfield .prow{display:flex;align-items:baseline;gap:8px;margin-bottom:5px}
-  .pfield .pname{font-family:var(--mono);font-size:11px;font-weight:600}
-  .pfield .ptype{font-family:var(--mono);font-size:8.5px;color:var(--gray);letter-spacing:.1em}
-  .pfield .req{width:6px;height:6px;background:var(--accent);align-self:center}
-  .pfield .pdesc{font-size:9.5px;color:var(--gray);margin-top:4px;line-height:1.4}
-  .pfield input[type=text],.pfield input[type=number],.pfield textarea{
-    width:100%;border:1px solid var(--line2);background:color-mix(in srgb, var(--paper) 88%, #fff);
-    color:var(--ink);font-family:var(--mono);font-size:11px;padding:6px 9px;outline:none;
-    transition:border-color .15s var(--ease),box-shadow .15s var(--ease)}
-  .pfield input:focus,.pfield textarea:focus{border-color:var(--ink);box-shadow:2px 2px 0 var(--accent)}
-  .pfield textarea{min-height:50px;resize:vertical;line-height:1.5}
-  .selwrap{position:relative}
-  .selwrap select{width:100%;appearance:none;-webkit-appearance:none;border:1px solid var(--line2);
-    background:color-mix(in srgb, var(--paper) 88%, #fff);color:var(--ink);font-family:var(--mono);
-    font-size:11px;padding:6px 26px 6px 9px;outline:none;cursor:pointer}
-  .selwrap select:focus{border-color:var(--ink);box-shadow:2px 2px 0 var(--accent)}
-  .selwrap::after{content:"";position:absolute;right:10px;top:50%;width:7px;height:7px;
-    border-right:1.5px solid var(--ink2);border-bottom:1.5px solid var(--ink2);
-    transform:translateY(-70%) rotate(45deg);pointer-events:none}
-  .boolrow{display:flex;align-items:center;gap:10px}
-  .bool{width:36px;height:18px;border:1px solid var(--ink);position:relative;cursor:pointer;
-    background:color-mix(in srgb, var(--paper) 88%, #fff)}
-  .bool::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;background:var(--gray);
-    transition:all .18s var(--ease)}
-  .bool.on::after{left:20px;background:var(--accent)}
-  .boolrow .bval{font-family:var(--mono);font-size:9.5px;color:var(--gray)}
-
-  /* ---------- actions + response ---------- */
-  #actions{flex:0 0 auto;display:flex;border-bottom:1px solid var(--ink);
-    background:color-mix(in srgb, var(--paper) 88%, transparent)}
-  #invoke{flex:1;padding:12px;background:var(--accent);color:var(--paper);border:none;
-    font-family:var(--mono);font-size:11.5px;font-weight:600;letter-spacing:.24em;cursor:pointer;
-    transition:background .15s var(--ease)}
-  #invoke:hover{filter:brightness(.9)}
-  #invoke:disabled{background:var(--line2);color:var(--paper);cursor:wait}
-  #fill-example{padding:12px 16px;background:transparent;border:none;border-right:1px solid var(--ink);
-    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--ink2);cursor:pointer;
-    transition:all .15s var(--ease)}
-  #fill-example:hover{background:var(--ink);color:var(--paper)}
-  #resp-wrap{flex:1;display:flex;flex-direction:column;min-height:110px}
-  #resp-status{flex:0 0 29px;display:flex;align-items:center;gap:10px;padding:0 13px;
-    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--gray);
-    background:color-mix(in srgb, var(--panel) 85%, transparent)}
-  #resp-status .code{font-weight:600;white-space:nowrap}
-  #resp-status .code.ok{color:var(--ok)}
-  #resp-status .code.err{color:var(--err)}
-  #resp-status .views{margin-left:auto;display:flex;gap:6px}
-  #spark-wrap{flex:0 0 38px;border-bottom:1px solid var(--line);position:relative;
-    background:color-mix(in srgb, var(--panel) 80%, transparent)}
-  #spark{position:absolute;inset:0;width:100%;height:100%}
-  #spark-wrap .slabel{position:absolute;left:13px;top:4px;font-family:var(--mono);font-size:7.5px;
-    letter-spacing:.2em;color:var(--gray);z-index:2}
-  #resp{flex:1;overflow:auto;background:color-mix(in srgb, var(--paper) 78%, #fff);
-    padding:11px 13px;font-family:var(--mono);font-size:11px;line-height:1.65;white-space:pre;min-height:0}
-  #resp .ph{color:var(--gray);font-size:10.5px;white-space:normal;line-height:1.7}
-  .tk-key{color:var(--key)} .tk-str{color:var(--ok)} .tk-num{color:var(--accent)}
-  .tk-bool{color:#7A2FA0} .tk-null{color:var(--err)} .tk-pun{color:var(--ink2)}
-  #history{flex:0 0 auto;max-height:112px;overflow-y:auto;border-top:1px solid var(--ink);
-    background:color-mix(in srgb, var(--panel) 88%, transparent)}
-  .hrow{display:flex;gap:10px;align-items:center;padding:6px 13px;border-bottom:1px solid var(--line);
-    font-family:var(--mono);font-size:9.5px;color:var(--ink2);cursor:pointer}
-  .hrow:hover{background:var(--paper)}
-  .hrow .st{width:7px;height:7px;background:var(--ok)}
-  .hrow .st.err{background:var(--err)}
-  .hrow .ht{color:var(--gray);margin-left:auto}
-
-  footer{flex:0 0 28px;display:flex;align-items:center;gap:12px;padding:0 14px;
-    border-top:1px solid var(--ink);font-family:var(--mono);font-size:8.5px;
-    color:var(--gray);letter-spacing:.1em;white-space:nowrap;overflow:hidden;
-    background:color-mix(in srgb, var(--paper) 88%, transparent)}
-  footer .dotsep{color:var(--line2)}
-  footer .sig{margin-left:auto;color:var(--ink2)}
-
-  #grain{position:fixed;inset:0;z-index:70;pointer-events:none;opacity:.10;mix-blend-mode:multiply;
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.85'/%3E%3C/svg%3E")}
-  #vignette{position:fixed;inset:0;z-index:69;pointer-events:none;
-    background:radial-gradient(ellipse 125% 110% at 50% 40%, transparent 66%, rgba(20,19,16,.14) 100%)}
-
-  ::-webkit-scrollbar{width:8px;height:8px}
-  ::-webkit-scrollbar-thumb{background:var(--line2);border:2px solid var(--paper)}
-  ::-webkit-scrollbar-track{background:transparent}
-
-  @media (max-width:1020px){
-    body{overflow:auto}
-    main,body[data-mode="obs"] main{grid-template-columns:1fr;grid-template-rows:auto auto auto}
-    body[data-mode="obs"] #col-schema{display:flex}
-    #mini-schema{display:none!important}
-    .col{border-right:none;border-bottom:1px solid var(--ink)}
-    #toollist{max-height:200px}
-    #schema-wrap{height:280px}
-    #params{max-height:none}
-    #resp-wrap{min-height:230px}
-    .hstat{display:none}
-    .seg-label{display:none}
-  }
-  @media (max-width:560px){
-    header{gap:6px}
-    header .spacer{display:none}
-    .hbtns{flex:1 0 100%;justify-content:flex-end;gap:6px}
-    .seal{width:32px;height:32px;flex-basis:32px}
-    .etitle .name{font-size:12.5px}
-    .btn{padding:5px 7px;font-size:8.5px}
-    #deck .seedtag{display:none}
-    .ctl label{display:none}
-    input[type=range]{width:62px}
+  /* 落款 / 手记 / 提示 */
+  #colo{position:fixed;z-index:70;left:22px;bottom:16px;display:flex;align-items:center;gap:9px;
+        font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink);
+        background:var(--chip);padding:6px 11px;cursor:default}
+  #mot{position:fixed;z-index:71;left:22px;bottom:52px;max-width:280px;background:var(--frame);
+       border:1px solid var(--dim);padding:13px 15px;font-family:var(--serif);font-style:italic;
+       font-size:13px;line-height:1.75;color:var(--ink);
+       opacity:0;transform:translateY(8px);pointer-events:none;
+       transition:opacity .6s var(--ease),transform .6s var(--ease)}
+  #mot.show{opacity:1;transform:none}
+  #indice{position:fixed;z-index:8;right:24px;bottom:16px;font-family:var(--mono);font-size:8.5px;
+          letter-spacing:.14em;color:var(--dim);text-align:right;line-height:1.9;
+          pointer-events:none;text-transform:uppercase}
+  @media (max-width:640px){
+    #indice{display:none}
+    #colo{position:static;display:inline-flex;margin:0 0 14px 12px;font-size:9px;padding:4px 8px}
+    header{padding:12px 14px 4px}
+    .barre{padding:4px 14px 10px;gap:12px}
+    .stage{padding:2px 14px 24px}
+    .cadran-ctl{margin-left:0}
   }
 </style>
-<style id="mira-lab-style">
-:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
-#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
-#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
-#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
-.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
-.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
-#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
-#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
-@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
-</style></head>
-<body data-mode="bench">
+</head>
+<body>
 
-<canvas id="wxcv" aria-hidden="true"></canvas>
+<canvas id="papier"></canvas>
+<canvas id="grain"></canvas>
 
 <header>
-  <div class="seal-wrap">
-    <svg class="seal" viewBox="0 0 64 64" aria-hidden="true">
-      <defs><path id="seal-ring70" d="M32,32 m-23.5,0 a23.5,23.5 0 1,1 47,0 a23.5,23.5 0 1,1 -47,0"/></defs>
-      <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1"/>
-      <circle cx="32" cy="32" r="17" fill="none" stroke="currentColor" stroke-width=".7" stroke-dasharray="1 2.6"/>
-      <g class="ring-txt"><text font-size="6" letter-spacing="1.7" fill="currentColor" font-family="SF Mono,Menlo,monospace">
-        <textPath href="#seal-ring70">ATELIER MIRA · PLEIN AIR · MMXXVI ·</textPath>
-      </text></g>
-      <path class="m-hand" d="M22.5 42.5 L22.8 24.5 L31.6 36.8 L40.6 24.2 L41 42.3" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path class="m-hand" d="M22.9 42.2 L23.1 24.8 L31.9 36.5" fill="none" stroke-width=".8" stroke-linecap="round" opacity=".45"/>
-    </svg>
-    <div class="etitle">
-      <div class="no">ÉTUDE N°70/100</div>
-      <div class="name">TOOL FORGE</div>
-      <div class="sub">窗边的铸剑台 · MCP 工具配置台</div>
-    </div>
+  <div>
+    <h1>金色时刻的<i>铸剑台</i> · Tool Forge</h1>
+    <div class="epi">「光线在下午四点开始变得值得原谅。」</div>
   </div>
-  <span class="seg-label">天色</span>
-  <div class="seg" id="wx-seg">
-    <button data-w="clear" class="on">晴</button>
-    <button data-w="fog">雾</button>
-    <button data-w="rain">雨</button>
-    <button data-w="snow">雪</button>
-  </div>
-  <span class="seg-label">案型</span>
-  <div class="seg" id="mode-seg">
-    <button data-m="bench" class="on">工作台</button>
-    <button data-m="obs">观测台</button>
-  </div>
-  <div class="hstat">调用 <b id="st-calls">0</b></div>
-  <div class="hstat">均延 <b id="st-ms">—</b></div>
-  <div class="hstat"><b class="accent" id="st-state">IDLE</b></div>
-  <div class="spacer"></div>
-  <div class="hbtns">
-    <button class="btn ghost" id="selftest">自检巡回</button>
-    <button class="btn ghost" id="dl-svg">契约 SVG</button>
-    <button class="btn ghost" id="share">分享链接</button>
-    <button class="btn ghost" id="regen">再生 ↻</button>
+  <div class="acts">
+    <button class="hbtn" id="btnSnd" title="炉火与环境声（默认关闭）" aria-label="声音开关">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3">
+        <path d="M2 6.5v3h2.6L8.4 13V3L4.6 6.5H2z" fill="currentColor" stroke="none"/>
+        <path d="M10.5 5.2c1.6 1.5 1.6 4.1 0 5.6M12.4 3.6c2.6 2.6 2.6 6.2 0 8.8"/>
+      </svg>
+    </button>
   </div>
 </header>
 
-<div id="deck">
-  <div class="ctl"><label>模拟延迟</label><input type="range" id="latency" min="40" max="900" step="10" value="320"><output id="latency-val">320ms</output></div>
-  <div class="ctl"><label>故障注入</label><input type="range" id="errpct" min="0" max="60" step="5" value="0"><output id="errpct-val">0%</output></div>
-  <div class="ctl"><label>打字速度</label><input type="range" id="typespd" min="0.4" max="3" step="0.1" value="1"><output id="typespd-val">1.0×</output></div>
-  <div class="seedtag">SEED <b id="seed-tag">—</b></div>
+<div class="barre">
+  <span class="seg-cap">窗外</span>
+  <div class="seg" id="wxSeg">
+    <button data-w="clair" class="on">晴</button>
+    <button data-w="pluie">雨</button>
+    <button data-w="brume">雾</button>
+    <button data-w="neige">雪</button>
+  </div>
+  <div class="etudes" id="etudes">
+    <button class="etu on" data-e="epee">铸剑</button>
+    <button class="etu" data-e="lame">淬刃</button>
+    <button class="etu" data-e="tranchant">开锋</button>
+  </div>
+  <div class="cadran-ctl">
+    <div class="crow"><span>日轨 LE CADRAN</span><b id="cadH">--:--</b></div>
+    <canvas id="cadcv"></canvas>
+  </div>
 </div>
 
-<main>
-  <!-- tool list -->
-  <section class="col">
-    <div class="col-head"><span class="sq"></span>TOOLS · 工具清单<span class="right" id="tool-count"></span></div>
-    <div id="toolfilter"><input id="filter" placeholder="过滤工具… (/)" spellcheck="false"></div>
-    <div id="toollist"></div>
-  </section>
-
-  <!-- schema editor -->
-  <section class="col" id="col-schema">
-    <div class="col-head"><span class="sq"></span>SCHEMA · 参数定义<span class="right" id="schema-tool"></span></div>
-    <div id="schema-wrap">
-      <div id="gutter"></div>
-      <textarea id="schema" spellcheck="false"></textarea>
-    </div>
-    <div id="schema-status">
-      <span class="dot"></span><span class="msg">—</span>
-      <div class="actions">
-        <button class="mini-btn" id="fmt">FORMAT</button>
-        <button class="mini-btn warn" id="reset-schema">RESET</button>
-      </div>
-    </div>
-  </section>
-
-  <!-- invoke panel -->
-  <section class="col">
-    <div class="col-head"><span class="sq"></span>INVOKE · 模拟调用<span class="right">stdio transport</span></div>
-    <div id="mini-schema"></div>
+<div class="stage">
+  <!-- 配方卡 -->
+  <div class="carte">
+    <div class="ct">配方卡 · Recette</div>
+    <div class="champ"><label>工具名 · NOM</label>
+      <input type="text" id="tNom" value="get_weather" spellcheck="false"></div>
+    <div class="champ"><label>自述 · DESCRIPTION</label>
+      <textarea id="tDesc" rows="2" spellcheck="false">查一座城市此刻的天气，报回温度与天色。</textarea></div>
+    <div class="ct">锻料 · PARAMÈTRES</div>
     <div id="params"></div>
-    <div id="actions">
-      <button id="fill-example">填入示例</button>
-      <button id="invoke">调用 INVOKE</button>
-    </div>
-    <div id="resp-wrap">
-      <div id="resp-status"><span>RESPONSE</span><span class="code" id="resp-code"></span><span id="resp-meta"></span>
-        <span class="views"><button class="mini-btn on" id="view-pretty">PRETTY</button><button class="mini-btn" id="view-raw">RAW RPC</button></span>
-      </div>
-      <div id="spark-wrap"><span class="slabel">LATENCY TRACE</span><canvas id="spark"></canvas></div>
-      <div id="resp"><span class="ph">选择左侧工具，填写参数后点击「调用」。返回结果为本地 mock 运行时生成，附带 trace 与延迟信息。双击工具行可立即填入示例并调用。</span></div>
-      <div id="history"></div>
-    </div>
-  </section>
-</main>
+    <button class="addrow" id="addParam">+ 添一味锻料</button>
+    <div id="reqPrev"></div>
+  </div>
 
-<footer>
-  <div>JSON Schema 草案 2020-12 · 编辑 Schema 会实时重建表单</div><span class="dotsep">·</span>
-  <div id="colophon">DOM + CANVAS 2D · SEED — · Painted with code, plein air</div>
-  <div class="sig">ATELIER MIRA · ÉTUDE N°70</div>
-</footer>
+  <!-- 锻炉 -->
+  <div class="forge">
+    <canvas id="enclume"></canvas>
+    <div class="frapper">
+      <button class="gbtn" id="btnFrapper">落锤 · INVOQUER</button>
+      <span class="statut" id="statut">炉火正温，等一锤。</span>
+    </div>
+    <div id="reponse"><div id="trempe"></div><div id="repTxt">—— 回音会在这里慢慢冷却。——</div></div>
+  </div>
+</div>
 
-<div id="vignette" aria-hidden="true"></div>
-<div id="grain" aria-hidden="true"></div>
+<div id="colo" title="连点三下，有一段手记">
+  <svg width="22" height="14" viewBox="0 0 64 40" fill="#A85B3C" aria-hidden="true">
+    <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+             C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+             C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+             C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+             C 35 17, 33 17, 32 20 Z"/>
+  </svg>
+  <span>Atelier MIRA · N°070 · Heure Dorée</span>
+</div>
+<div id="mot">铁匠说，好剑不问出炉的时辰。可我知道他在骗人——他总是等到西窗的光斜到第四根窗棂才肯落锤。那十分钟里，连火星都是金色的。——M，铸剑台旁听记</div>
+
+<div id="indice">点砧=试锤 · 落锤=调用（Enter）<br>拖动日轨，等下午四点的光</div>
 
 <script>
-'use strict';
-/* =====================================================
-   ÉTUDE N°70 — TOOL FORGE · 窗边的铸剑台
-   媒介 DOM + Canvas 2D · 种子可复现 · 晴雾雨雪天色研究
-   ===================================================== */
+(function(){
+"use strict";
 
-/* ================= 种子系统 ================= */
-function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
-function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
-function parseHash(){
-  const h=location.hash.slice(1), out={};
-  h.split('&').forEach(kv=>{ const i=kv.indexOf('='); if(i>0) out[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1)); });
-  return out;
+/* ================= 工具 ================= */
+function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)|0;var t=Math.imul(a^(a>>>15),1|a);
+  t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}
+var rng=mulberry32(70070);
+function lerp(a,b,t){return a+(b-a)*t;}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function hsla(h,s,l,a){return "hsla("+h.toFixed(1)+","+s.toFixed(1)+"%,"+l.toFixed(1)+"%,"+a+")";}
+function hex2hsl(hex){
+  var r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
+  var mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,h=0,s=0,d=mx-mn;
+  if(d>0){s=l>.5?d/(2-mx-mn):d/(mx+mn);
+    if(mx===r)h=((g-b)/d+(g<b?6:0));else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;}
+  return [h,s*100,l*100];
 }
-const HP=parseHash();
-let seed=HP.seed || String(10000+Math.floor(Math.random()*89999));
-let R=mulberry32(hashStr(seed));
-let wx=(HP.wx&&['clear','fog','rain','snow'].includes(HP.wx))?HP.wx:'clear';
-let mode=(HP.mode==='obs')?'obs':'bench';
-function writeHash(){ history.replaceState(null,'','#seed='+seed+'&wx='+wx+'&mode='+mode); }
-
-/* ================== 工具注册表（内置模拟数据） ================== */
-const TOOLS=[
-  { id:'fs.read_file', kind:'READ', version:'1.4.0',
-    desc:'读取沙箱文件系统中的文本文件，可指定编码与字节上限。',
-    schema:{ type:'object', properties:{
-        path:{type:'string',description:'沙箱内绝对路径'},
-        encoding:{type:'string',enum:['utf-8','base64'],default:'utf-8',description:'返回内容的编码'},
-        max_bytes:{type:'number',description:'读取上限，超出截断',minimum:1} },
-      required:['path'] },
-    example:{path:'/sandbox/notes/todo.txt',encoding:'utf-8',max_bytes:4096},
-    mock(p){
-      const body='# 本周事项\n- 复核 guardrail 规则集\n- 给 tool-forge 写 changelog\n- 回复 Mara 的邮件';
-      const enc=p.encoding==='base64'?btoa(unescape(encodeURIComponent(body))):body;
-      return {path:p.path, encoding:p.encoding||'utf-8', size_bytes:new Blob([body]).size, truncated:false, content:enc};
-    } },
-  { id:'web.search', kind:'NET', version:'2.1.3',
-    desc:'联网检索并返回带摘要的结果列表，按相关度排序。',
-    schema:{ type:'object', properties:{
-        query:{type:'string',description:'检索词'},
-        top_k:{type:'number',description:'返回条数 1-10',minimum:1,maximum:10},
-        time_range:{type:'string',enum:['day','week','month','any'],default:'any',description:'时间范围'} },
-      required:['query'] },
-    example:{query:'MCP server registry 2026',top_k:3,time_range:'month'},
-    mock(p){
-      const k=Math.max(1,Math.min(10,p.top_k||3));
-      const titles=['Model Context Protocol: 一年之后的生态','工具调用的正确姿势：schema 设计反模式','从 function calling 到 MCP：一次迁移记录','检索增强与工具编排的边界','沙箱执行的安全清单'];
-      const hosts=['blog.example.dev','notes.mcp-eco.io','zhuanlan.example.com','eng-wiki.internal','rss.proxy.net'];
-      const results=[];
-      for(let i=0;i<k;i++) results.push({
-        rank:i+1, title:titles[i%titles.length], url:'https://'+hosts[i%hosts.length]+'/'+(1024+i*37),
-        score:+(0.97-i*0.06).toFixed(2), snippet:'与「'+p.query+'」相关的摘要片段，约 40 字，由检索管线生成。'});
-      return {query:p.query, time_range:p.time_range||'any', total_hits:128+k*13, results};
-    } },
-  { id:'code.execute', kind:'EXEC', version:'0.9.8',
-    desc:'在隔离沙箱中执行代码，返回 stdout 与退出码。',
-    schema:{ type:'object', properties:{
-        language:{type:'string',enum:['python','node'],default:'python',description:'运行时'},
-        source:{type:'string',description:'源码，长度 ≤ 8k 字符'},
-        timeout_ms:{type:'number',description:'超时毫秒',default:5000} },
-      required:['source'] },
-    example:{language:'python',source:'import math\nprint(round(math.pi, 5))',timeout_ms:3000},
-    mock(p){
-      const isPy=(p.language||'python')==='python';
-      return {language:p.language||'python', exit_code:0, stdout:isPy?'3.14159\n':'3.14159\n',
-        stderr:'', peak_mem_kb:3812+(String(p.source).length%400), wall_ms:12+(String(p.source).length%37)};
-    } },
-  { id:'calendar.create_event', kind:'WRITE', version:'1.0.2',
-    desc:'在主日历创建事件，返回事件句柄与邀请状态。',
-    schema:{ type:'object', properties:{
-        title:{type:'string',description:'事件标题'},
-        start_iso:{type:'string',description:'开始时间 ISO-8601'},
-        duration_min:{type:'number',description:'时长（分钟）',default:30},
-        attendees:{type:'array',items:{type:'string'},description:'参会人邮箱列表'} },
-      required:['title','start_iso'] },
-    example:{title:'护栏评审会',start_iso:'2026-08-24T14:00:00+08:00',duration_min:45,attendees:['mara@atelier.dev','jun@atelier.dev']},
-    mock(p){
-      const n=Array.isArray(p.attendees)?p.attendees.length:0;
-      return {event_id:'evt_'+hex(8), title:p.title, start:p.start_iso, duration_min:p.duration_min||30,
-        invites_sent:n, status:'confirmed'};
-    } },
-  { id:'db.query', kind:'READ', version:'3.3.1',
-    desc:'对只读分析库执行 SQL，自动附加 LIMIT。',
-    schema:{ type:'object', properties:{
-        sql:{type:'string',description:'只读 SELECT 语句'},
-        row_limit:{type:'number',description:'返回行数上限',default:100,maximum:1000} },
-      required:['sql'] },
-    example:{sql:'SELECT rule, hits FROM guardrail_stats ORDER BY hits DESC',row_limit:5},
-    mock(p){
-      const rows=[{rule:'pii.email',hits:184},{rule:'jailbreak.dan',hits:97},
-        {rule:'prompt.exfil',hits:66},{rule:'toxicity.l2',hits:41},{rule:'pii.phone',hits:23}];
-      const lim=Math.max(1,Math.min(1000,p.row_limit||100));
-      return {sql:String(p.sql).slice(0,120), rows:rows.slice(0,Math.min(lim,rows.length)),
-        row_count:Math.min(lim,5), engine:'duckdb-mock', enforced_limit:lim};
-    } },
-  { id:'http.request', kind:'NET', version:'1.7.0',
-    desc:'发起一次 HTTP 请求，受域名白名单约束。',
-    schema:{ type:'object', properties:{
-        method:{type:'string',enum:['GET','POST'],default:'GET',description:'请求方法'},
-        url:{type:'string',description:'目标 URL，需在白名单内'},
-        headers:{type:'object',description:'请求头键值对'},
-        body:{type:'string',description:'POST 请求体'} },
-      required:['url'] },
-    example:{method:'GET',url:'https://api.internal/health',headers:{'x-trace':'tf-demo'},body:''},
-    mock(p){
-      return {method:p.method||'GET', url:p.url, status:200,
-        latency_ms:40+(String(p.url).length%160), bytes:512+(String(p.url).length*7)%2048,
-        json:{service:'api.internal', ok:true, version:'2026.08'}};
-    } }
-];
-
-/* ================== 状态 ================== */
-const $=id=>document.getElementById(id);
-let current=TOOLS[0], invoking=false;
-const stats={calls:0,totalMs:0};
-let rpcId=0;
-const hex=n=>[...Array(n)].map(()=>'0123456789abcdef'[R()*16|0]).join('');
-
-/* ================== 参数台 ================== */
-let baseLatency=320, errPct=0, typeSpd=1;
-function bindSlider(id,valId,fmt,cb){
-  const el=$(id),out=$(valId);
-  const paint=()=>{ const pc=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--fill',pc+'%'); out.textContent=fmt(+el.value); };
-  el.addEventListener('input',()=>{ paint(); cb(+el.value); });
-  paint(); cb(+el.value);
+function lerpHSL(c1,c2,t){
+  var dh=c2[0]-c1[0];if(dh>180)dh-=360;if(dh<-180)dh+=360;
+  return [c1[0]+dh*t,lerp(c1[1],c2[1],t),lerp(c1[2],c2[2],t)];
 }
-bindSlider('latency','latency-val',v=>v+'ms',v=>baseLatency=v);
-bindSlider('errpct','errpct-val',v=>v+'%',v=>errPct=v);
-bindSlider('typespd','typespd-val',v=>v.toFixed(1)+'×',v=>typeSpd=v);
+function css2(hsl,a){return hsla(hsl[0],hsl[1],hsl[2],a===undefined?1:a);}
 
-/* ================== 天色（晴 / 雾 / 雨 / 雪） ================== */
-const WX={
-  clear:{label:'晴', css:{'--paper':'#F6F3EA','--panel':'#EEEAE0','--ink':'#141310','--ink2':'#4A473E','--gray':'#8C887B','--line':'#D8D3C5','--line2':'#C2BDB0','--accent':'#E8490F','--ok':'#0E6E4E','--err':'#B02318','--key':'#1D4F91'},
-    sky:['#F6F3EA','#EFE8D8'], motes:'120,100,60'},
-  fog:{label:'雾', css:{'--paper':'#ECEBE3','--panel':'#E4E2D9','--ink':'#1A1915','--ink2':'#4E4C43','--gray':'#8F8C7F','--line':'#D2CFC2','--line2':'#BDBAAD','--accent':'#C6502A','--ok':'#3E6E58','--err':'#A03A2E','--key':'#3A5A88'},
-    sky:['#ECEBE3','#E0DFD5'], motes:'110,110,105'},
-  rain:{label:'雨', css:{'--paper':'#E8EBEF','--panel':'#DEE2E8','--ink':'#12151A','--ink2':'#41474F','--gray':'#7E8791','--line':'#C9CFD7','--line2':'#B2BAC4','--accent':'#D84A1E','--ok':'#0E6E55','--err':'#A52A20','--key':'#1D4F91'},
-    sky:['#E8EBEF','#D8DEE6'], motes:'70,90,120'},
-  snow:{label:'雪', css:{'--paper':'#F0F2F5','--panel':'#E6E9EE','--ink':'#14161B','--ink2':'#464B54','--gray':'#868E99','--line':'#D3D8DF','--line2':'#BCC3CD','--accent':'#C8402A','--ok':'#2E6E58','--err':'#A03025','--key':'#2A4F80'},
-    sky:['#F0F2F5','#E2E7EE'], motes:'148,163,190'},
-};
-function applyWx(){
-  const W0=WX[wx];
-  for(const k in W0.css) document.documentElement.style.setProperty(k,W0.css[k]);
-  document.querySelectorAll('#wx-seg button').forEach(b=>b.classList.toggle('on',b.dataset.w===wx));
-  writeHash();
+/* ================= heure：金色时刻 ================= */
+/* bg 墙 / frame 纸 / ink 墨 / dim 淡墨 / line 线 / ciel 窗外 / or 金光强度 / nuit */
+var KEY=[
+ [0.0, "#5E6E7E","#68788A","#F4E3C2","#B9C0C8","#4E5C6C","#3E4A5C",0.15,1.0],
+ [5.5, "#8A8A90","#94949A","#EDE0C4","#8E94A0","#5E6E7E","#7E8AA0",0.25,0.5],
+ [7.0, "#EBDDBE","#F2E6C9","#5B4A34","#9A8468","#E2D2B0","#C9CFD6",0.45,0.1],
+ [12.0,"#F4E9CE","#F9F0DA","#54452F","#9A8468","#E6D8B6","#C4CDD8",0.6,0.0],
+ [16.0,"#F4E3C2","#F8ECD2","#5B4A34","#9A8468","#E2D2B0","#C2CBD6",0.85,0.05],
+ [18.0,"#EFD6AC","#F5E2BC","#5E4A32","#9A7E60","#E0C9A0","#C9BFBE",1.0,0.1],
+ [20.5,"#7A7488","#858096","#F0E2C4","#B4AEBE","#565064","#5E6884",0.5,0.65],
+ [24.0,"#5E6E7E","#68788A","#F4E3C2","#B9C0C8","#4E5C6C","#3E4A5C",0.15,1.0]
+].map(function(k){return [k[0],hex2hsl(k[1]),hex2hsl(k[2]),hex2hsl(k[3]),hex2hsl(k[4]),hex2hsl(k[5]),hex2hsl(k[6]),k[7],k[8]];});
+var heure=(function(){var d=new Date();return d.getHours()+d.getMinutes()/60;})();
+(function(){var m=(location.hash||"").match(/h=([\d.]+)/);if(m)heure=clamp(parseFloat(m[1]),0,24);})();
+function lumiere(h){
+  h=((h%24)+24)%24;
+  var i=0;while(i<KEY.length-2&&KEY[i+1][0]<h)i++;
+  var a=KEY[i],b=KEY[i+1],t=clamp((h-a[0])/Math.max(.001,b[0]-a[0]),0,1);
+  t=t*t*(3-2*t);
+  return {bg:lerpHSL(a[1],b[1],t),frame:lerpHSL(a[2],b[2],t),ink:lerpHSL(a[3],b[3],t),
+          dim:lerpHSL(a[4],b[4],t),line:lerpHSL(a[5],b[5],t),ciel:lerpHSL(a[6],b[6],t),
+          or:lerp(a[7],b[7],t),nuit:lerp(a[8],b[8],t)};
 }
-document.querySelectorAll('#wx-seg button').forEach(b=>b.onclick=()=>{ wx=b.dataset.w; applyWx(); seedWeather(); });
+var OR=hex2hsl("#E8B96F"),AMBRE=hex2hsl("#D98E4A"),OMBRE=hex2hsl("#5E6E7E"),MIEL=hex2hsl("#F4E3C2"),BRULE=hex2hsl("#A85B3C");
+function appliquerLumiere(){
+  var L=lumiere(heure),st=document.documentElement.style;
+  st.setProperty("--bg",css2(L.bg));st.setProperty("--frame",css2(L.frame));
+  st.setProperty("--ink",css2(L.ink));st.setProperty("--dim",css2(L.dim));
+  st.setProperty("--line",css2(L.line));st.setProperty("--chip",css2(L.frame,0.66));
+  document.body.style.backgroundColor=css2(L.bg);
+}
 
-/* 天气画布：窗外的天光 */
-const wxcv=$('wxcv'), wctx=wxcv.getContext('2d');
-let ww=0,wh=0,drops=[],flakes=[],fogs=[],motes=[];
-function wxResize(){
-  const d=Math.min(2,window.devicePixelRatio||1);
-  ww=innerWidth; wh=innerHeight;
-  wxcv.width=ww*d; wxcv.height=wh*d; wctx.setTransform(d,0,0,d,0,0);
+/* ================= 画布 ================= */
+var cv=document.getElementById("enclume"),ctx=cv.getContext("2d");
+var pap=document.getElementById("papier"),pctx=pap.getContext("2d");
+var grc=document.getElementById("grain"),gctx=grc.getContext("2d");
+var DPR=1,W=0,H=0;
+var fondOff=document.createElement("canvas"),fondX=fondOff.getContext("2d");
+var fondHeure=-1,meteo="clair";
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  var r=cv.getBoundingClientRect();W=r.width;H=r.height;
+  cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  fondOff.width=W*DPR;fondOff.height=H*DPR;fondX.setTransform(DPR,0,0,DPR,0,0);
+  pap.width=innerWidth*DPR;pap.height=innerHeight*DPR;pctx.setTransform(DPR,0,0,DPR,0,0);
+  grc.width=innerWidth*DPR;grc.height=innerHeight*DPR;gctx.setTransform(DPR,0,0,DPR,0,0);
+  peindreFond();peindrePapier();tracerCadran();
 }
-window.addEventListener('resize',wxResize);
-function seedWeather(){
-  drops=[...Array(wx==='rain'?110:0)].map(()=>({x:R()*ww,y:R()*wh,l:9+R()*14,v:7+R()*5}));
-  flakes=[...Array(wx==='snow'?90:0)].map(()=>({x:R()*ww,y:R()*wh,r:1+R()*2.2,ph:R()*7,v:.4+R()*.8}));
-  fogs=[...Array(wx==='fog'?7:0)].map(()=>({x:R()*ww,y:R()*wh,r:180+R()*260,v:.12+R()*.2,o:.16+R()*.14}));
-  motes=[...Array(wx==='clear'?36:0)].map(()=>({x:R()*ww,y:R()*wh,r:.6+R()*1.4,ph:R()*7,v:.08+R()*.15}));
+window.addEventListener("resize",resize);
+function peindrePapier(){
+  var w=innerWidth,h=innerHeight;
+  pctx.clearRect(0,0,w,h);var r=mulberry32(70406);
+  var n=Math.floor(w*h/380);
+  for(var i=0;i<n;i++){
+    var a=0.02+r()*0.04,g=185+((r()*55)|0);
+    pctx.fillStyle="rgba("+g+","+(g-6)+","+(g-16)+","+a.toFixed(3)+")";
+    pctx.beginPath();pctx.arc(r()*w,r()*h,0.4+r()*1.6,0,6.29);pctx.fill();
+  }
+  pctx.strokeStyle="rgba(120,95,60,0.05)";pctx.lineWidth=0.5;
+  for(var f=0;f<40;f++){
+    var x=r()*w,y=r()*h,an=r()*6.29,ln=18+r()*46;
+    pctx.beginPath();pctx.moveTo(x,y);
+    pctx.quadraticCurveTo(x+Math.cos(an)*ln*0.5,y+Math.sin(an)*ln*0.5+(r()-.5)*7,
+                          x+Math.cos(an)*ln,y+Math.sin(an)*ln);pctx.stroke();
+  }
 }
-function drawWeather(now){
-  const t=now/1000, W0=WX[wx];
-  const g=wctx.createLinearGradient(0,0,0,wh);
-  g.addColorStop(0,W0.sky[0]); g.addColorStop(1,W0.sky[1]);
-  wctx.fillStyle=g; wctx.fillRect(0,0,ww,wh);
-  if(wx==='clear'){
-    /* 缓慢游移的窗光 */
-    const lx=ww*(0.72+Math.sin(t*0.05)*0.06), ly=wh*0.16;
-    const rg=wctx.createRadialGradient(lx,ly,0,lx,ly,Math.max(ww,wh)*0.55);
-    rg.addColorStop(0,'rgba(255,238,190,.5)'); rg.addColorStop(1,'rgba(255,238,190,0)');
-    wctx.fillStyle=rg; wctx.fillRect(0,0,ww,wh);
-    wctx.fillStyle='rgba('+W0.motes+',.28)';
-    motes.forEach(m=>{
-      m.x+=Math.sin(t*0.3+m.ph)*0.12+m.v; m.y+=Math.cos(t*0.23+m.ph)*0.08;
-      if(m.x>ww)m.x=0;
-      wctx.beginPath(); wctx.arc(m.x,m.y,m.r,0,7); wctx.fill();
-    });
-  } else if(wx==='fog'){
-    fogs.forEach(f=>{
-      f.x+=f.v; if(f.x-f.r>ww) f.x=-f.r;
-      const rg=wctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r);
-      rg.addColorStop(0,'rgba(190,190,182,'+(f.o*1.6)+')'); rg.addColorStop(1,'rgba(200,200,192,0)');
-      wctx.fillStyle=rg; wctx.beginPath(); wctx.arc(f.x,f.y,f.r,0,7); wctx.fill();
-    });
-  } else if(wx==='rain'){
-    wctx.strokeStyle='rgba('+W0.motes+',.5)'; wctx.lineWidth=1.2;
-    wctx.beginPath();
-    drops.forEach(d=>{
-      d.y+=d.v; d.x+=d.v*0.18;
-      if(d.y>wh){ d.y=-20; d.x=R()*ww; }
-      wctx.moveTo(d.x,d.y); wctx.lineTo(d.x-d.l*0.18,d.y-d.l);
-    });
-    wctx.stroke();
-    /* 玻璃上的一道水痕 */
-    wctx.strokeStyle='rgba('+W0.motes+',.12)';
-    for(let i=0;i<3;i++){
-      const x=ww*(0.2+i*0.3)+Math.sin(t*0.4+i)*6;
-      wctx.beginPath(); wctx.moveTo(x,0);
-      wctx.bezierCurveTo(x+8,wh*0.3,x-8,wh*0.6,x+4,wh);
-      wctx.stroke();
+var grTile=document.createElement("canvas");grTile.width=grTile.height=140;
+function grainTick(){
+  var gx=grTile.getContext("2d"),id=gx.createImageData(140,140),d=id.data,r=Math.random;
+  for(var i=0;i<d.length;i+=4){var v=110+((r()*90)|0);d[i]=d[i+1]=d[i+2]=v;d[i+3]=26;}
+  gx.putImageData(id,0,0);
+  gctx.clearRect(0,0,innerWidth,innerHeight);
+  gctx.fillStyle=gctx.createPattern(grTile,"repeat");gctx.fillRect(0,0,innerWidth,innerHeight);
+}
+setInterval(grainTick,83);
+
+/* ---- 锻炉背景：墙 + 西窗 + 天气 + 光柱 ---- */
+var gouttes=[],flocons=[];
+function peindreFond(){
+  var L=lumiere(heure);fondHeure=heure;
+  var x=fondX;x.clearRect(0,0,W,H);
+  var r=mulberry32(7000+((heure*4)|0));
+  /* 墙：暖纸色碎笔 */
+  x.fillStyle=css2(L.frame);x.fillRect(0,0,W,H);
+  for(var i=0;i<1800;i++){
+    var col=lerpHSL(L.frame,L.bg,r());
+    col[0]+=(r()-.5)*10;col[2]+=(r()-.5)*13;col[1]+=(r()-.5)*8;
+    x.strokeStyle=css2(col,0.1+r()*0.18);x.lineWidth=1+r()*2.2;
+    var xx=r()*W,yy=r()*H,ln=4+r()*10,an=(r()-.5)*0.3;
+    x.beginPath();x.moveTo(xx,yy);x.lineTo(xx+Math.cos(an)*ln,yy+Math.sin(an)*ln);x.stroke();
+  }
+  /* 西窗：左上 */
+  var wx=W*0.06,wy=H*0.07,ww=W*0.30,wh=H*0.46;
+  /* 窗外天空 */
+  x.save();x.beginPath();x.rect(wx,wy,ww,wh);x.clip();
+  var g=x.createLinearGradient(0,wy,0,wy+wh);
+  g.addColorStop(0,css2(L.ciel));g.addColorStop(1,css2(lerpHSL(L.ciel,L.frame,0.4)));
+  x.fillStyle=g;x.fillRect(wx,wy,ww,wh);
+  for(var i=0;i<500;i++){
+    var col=lerpHSL(L.ciel,L.frame,r()*0.5);
+    col[0]+=(r()-.5)*10;col[2]+=(r()-.5)*10;
+    x.strokeStyle=css2(col,0.1+r()*0.16);x.lineWidth=1+r()*2;
+    var xx=wx+r()*ww,yy=wy+r()*wh,ln=4+r()*10;
+    x.beginPath();x.moveTo(xx,yy);x.lineTo(xx+ln,yy+(r()-.5)*3);x.stroke();
+  }
+  /* 天气 */
+  var i2;
+  if(meteo==="pluie"){
+    x.strokeStyle=css2(lerpHSL(L.ciel,OMBRE,0.4),0.5);x.lineWidth=1;
+    for(i2=0;i2<90;i2++){
+      var gx2=wx+r()*ww,gy2=wy+r()*wh;
+      x.beginPath();x.moveTo(gx2,gy2);x.lineTo(gx2-4,gy2+12+r()*10);x.stroke();
     }
-  } else if(wx==='snow'){
-    wctx.fillStyle='rgba('+W0.motes+',.95)';
-    flakes.forEach(f=>{
-      f.y+=f.v; f.x+=Math.sin(t*0.7+f.ph)*0.35;
-      if(f.y>wh){ f.y=-6; f.x=R()*ww; }
-      wctx.beginPath(); wctx.arc(f.x,f.y,f.r,0,7); wctx.fill();
-    });
+  }else if(meteo==="neige"){
+    for(i2=0;i2<70;i2++){
+      x.fillStyle=css2(MIEL,0.5+r()*0.4);
+      x.beginPath();x.arc(wx+r()*ww,wy+r()*wh,0.8+r()*1.6,0,6.29);x.fill();
+    }
+  }else if(meteo==="brume"){
+    for(i2=0;i2<4;i2++){
+      var fg=x.createRadialGradient(wx+ww*r(),wy+wh*r(),0,wx+ww*0.5,wy+wh*0.5,ww*0.7);
+      fg.addColorStop(0,css2(L.frame,0.3));fg.addColorStop(1,css2(L.frame,0));
+      x.fillStyle=fg;x.fillRect(wx,wy,ww,wh);
+    }
+  }else{
+    /* 晴：一小片云 */
+    for(i2=0;i2<20;i2++){
+      var cc=lerpHSL(L.ciel,L.frame,0.7);
+      x.strokeStyle=css2(cc,0.1+r()*0.1);x.lineWidth=1.5+r()*2;
+      var kx=wx+ww*0.3+(r()-.5)*ww*0.4,ky=wy+wh*0.3+(r()-.5)*14,kl=8+r()*20;
+      x.beginPath();x.moveTo(kx,ky);x.lineTo(kx+kl,ky+(r()-.5)*3);x.stroke();
+    }
+  }
+  x.restore();
+  /* 窗棂：四根——题记里的"第四根窗棂" */
+  x.strokeStyle=css2(L.ink,0.75);x.lineWidth=3;
+  x.strokeRect(wx,wy,ww,wh);
+  x.lineWidth=1.6;
+  for(var m=1;m<4;m++){
+    x.beginPath();x.moveTo(wx+ww*m/4,wy);x.lineTo(wx+ww*m/4,wy+wh);x.stroke();
+  }
+  x.beginPath();x.moveTo(wx,wy+wh/2);x.lineTo(wx+ww,wy+wh/2);x.stroke();
+  /* 光柱：从窗到砧，金色时刻最盛 */
+  if(L.or>0.06){
+    var spread=lerp(0.35,1.0,L.or);
+    var bx=wx+ww*0.9,by=wy+wh*0.3;
+    var tx=W*0.62,ty=H*0.78;
+    var grad=x.createLinearGradient(bx,by,tx,ty);
+    grad.addColorStop(0,css2(OR,0.28*L.or*spread));
+    grad.addColorStop(1,css2(AMBRE,0.05*L.or));
+    x.fillStyle=grad;
+    x.beginPath();
+    x.moveTo(wx+ww*0.25,wy+wh);x.lineTo(wx+ww,wy+wh*0.55);
+    x.lineTo(tx+60,ty+40);x.lineTo(tx-90,ty+60);
+    x.closePath();x.fill();
+    /* 光尘 */
+    for(var i=0;i<60;i++){
+      var t2=r(),px2=lerp(wx+ww*0.6,tx,t2)+(r()-.5)*60,py2=lerp(wy+wh*0.7,ty,t2)+(r()-.5)*40;
+      x.fillStyle=css2(OR,L.or*0.35*r());
+      x.beginPath();x.arc(px2,py2,0.6+r()*1.2,0,6.29);x.fill();
+    }
+  }
+  /* 工作台地面 */
+  for(var i=0;i<700;i++){
+    var yy=H*0.82+r()*H*0.18;
+    var col=lerpHSL(L.bg,OMBRE,0.12+r()*0.15);col[2]+=(r()-.5)*8;
+    x.strokeStyle=css2(col,0.12+r()*0.16);x.lineWidth=1+r()*2;
+    var xx=r()*W,ln=6+r()*14;
+    x.beginPath();x.moveTo(xx,yy);x.lineTo(xx+ln,yy+(r()-.5)*3);x.stroke();
   }
 }
 
-/* ================== 案型（工作台 / 观测台） ================== */
-function applyMode(){
-  document.body.dataset.mode=mode;
-  document.querySelectorAll('#mode-seg button').forEach(b=>b.classList.toggle('on',b.dataset.m===mode));
-  writeHash();
+/* ---- 砧与锭 ---- */
+var chaleur=0.55; /* 锭温 0..1 */
+var marteau={angle:-0.5,cible:-0.5,v:0};
+var etincelles=[];
+var ondesF=[];
+function dessinerEnclume(now){
+  var L=lumiere(heure);
+  ctx.clearRect(0,0,W,H);
+  ctx.drawImage(fondOff,0,0,W,H);
+  var r=mulberry32(707);
+  var ax=W*0.56,ay=H*0.68; /* 砧心 */
+  /* 砧的影子：蓝色——莫奈不用黑色 */
+  for(var i=0;i<160;i++){
+    var sx=ax+20+r()*W*0.2,sy=ay+84+(r()-.5)*16;
+    var col=lerpHSL(OMBRE,L.bg,r()*0.3);col[2]+=(r()-.5)*8;
+    ctx.strokeStyle=css2(col,0.1+r()*0.16*(0.4+L.or*0.6));
+    ctx.lineWidth=1+r()*2.4;
+    ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+8+r()*16,sy+2+r()*3);ctx.stroke();
+  }
+  /* 砧体：补色蓝的剪影，碎笔 + 受光面罩金（分层罩染，不走色相插值） */
+  function bloc(x0,y0,x1,y1){
+    var base=[OMBRE[0]+6,OMBRE[1]+4,OMBRE[2]-4];
+    for(var i=0;i<((x1-x0)*(y1-y0))/20;i++){
+      var xx=x0+r()*(x1-x0),yy=y0+r()*(y1-y0);
+      var col=[base[0]+(r()-.5)*10,base[1]+(r()-.5)*8,base[2]+(r()-.5)*9];
+      ctx.strokeStyle=css2(col,0.42+r()*0.42);
+      ctx.lineWidth=1+r()*2;
+      ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx+3+r()*6,yy+(r()-.5)*2);ctx.stroke();
+    }
+    /* 罩金：亮面点彩，让眼睛自己混出金 */
+    for(var i=0;i<((x1-x0)*(y1-y0))/80*L.or;i++){
+      var xx=x0+r()*(x1-x0),yy=y0+r()*(y1-y0);
+      var lit=clamp((xx-x0)/(x1-x0)*0.4+(0.6-(yy-y0)/(y1-y0))*0.6,0,1);
+      if(r()>lit)continue;
+      var g2=[OR[0]+(r()-.5)*10,OR[1],OR[2]+(r()-.5)*12];
+      ctx.strokeStyle=css2(g2,0.3+r()*0.35);
+      ctx.lineWidth=1+r()*1.6;
+      ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx+3+r()*5,yy+(r()-.5)*2);ctx.stroke();
+    }
+    /* 轮廓：一笔深缘 */
+    ctx.strokeStyle=css2([base[0],base[1],base[2]-10],0.55);
+    ctx.lineWidth=1.4;
+    ctx.strokeRect(x0,y0,x1-x0,y1-y0);
+  }
+  bloc(ax-88,ay-8,ax+95,ay+38);                /* 砧身 */
+  bloc(ax+83,ay-20,ax+138,ay+10);              /* 砧角 */
+  bloc(ax-58,ay+38,ax+65,ay+80);               /* 砧座 */
+  /* 铁锭：蓝底 + 热度罩琥珀（点彩混色） */
+  for(var i=0;i<200;i++){
+    var xx=ax-55+r()*120,yy=ay-22+r()*14;
+    var col=[OMBRE[0]+(r()-.5)*10,OMBRE[1],OMBRE[2]+(r()-.5)*10];
+    ctx.strokeStyle=css2(col,0.35+r()*0.4);
+    ctx.lineWidth=1+r()*1.8;
+    ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx+4+r()*7,yy+(r()-.5)*1.6);ctx.stroke();
+  }
+  for(var i=0;i<240*chaleur;i++){
+    var xx=ax-55+r()*120,yy=ay-22+r()*14;
+    var col=[AMBRE[0]+(r()-.5)*12,clamp(AMBRE[1]+(r()-.5)*14,10,80),clamp(AMBRE[2]+(r()-.5)*14,20,80)];
+    ctx.strokeStyle=css2(col,0.3+r()*0.5);
+    ctx.lineWidth=1+r()*1.8;
+    ctx.beginPath();ctx.moveTo(xx,yy);ctx.lineTo(xx+4+r()*7,yy+(r()-.5)*1.6);ctx.stroke();
+  }
+  if(chaleur>0.25){ /* 热光晕 */
+    for(var i=0;i<26;i++){
+      var an=r()*6.29,rr=18+r()*26;
+      ctx.fillStyle=css2(AMBRE,chaleur*0.1);
+      ctx.beginPath();ctx.arc(ax+Math.cos(an)*rr,ay-12+Math.sin(an)*rr*0.4,2+r()*3,0,6.29);ctx.fill();
+    }
+  }
+  /* 锤 */
+  var hx=ax+6,hy=ay-52;
+  ctx.save();ctx.translate(hx,hy);ctx.rotate(marteau.angle);
+  /* 锤柄 */
+  ctx.strokeStyle=css2(BRULE,0.9);ctx.lineWidth=5;ctx.lineCap="round";
+  ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(74,-48);ctx.stroke();
+  /* 锤头：碎笔 */
+  var tete=[OMBRE[0]+6,OMBRE[1]+4,OMBRE[2]-4];
+  for(var hh2=0;hh2<60;hh2++){
+    var tx2=-18+mulberry32(hh2*31)()*36,ty2=-11+mulberry32(hh2*17)()*22;
+    ctx.strokeStyle=css2([tete[0],tete[1],tete[2]+(hh2%7)*2],0.6);
+    ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(tx2,ty2);ctx.lineTo(tx2+4,ty2+1);ctx.stroke();
+  }
+  ctx.strokeStyle=css2(tete,0.9);ctx.lineWidth=1.4;
+  ctx.strokeRect(-18,-11,36,22);
+  ctx.strokeStyle=css2(OR,0.4+L.or*0.35);ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(-18,-9);ctx.lineTo(18,-9);ctx.stroke();
+  ctx.restore();
+  /* 火星 */
+  for(var i=etincelles.length-1;i>=0;i--){
+    var p=etincelles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.14;p.vx*=0.985;p.vie-=0.014;
+    if(p.vie<=0||p.y>H){etincelles.splice(i,1);continue;}
+    var col=lerpHSL(OR,AMBRE,1-p.vie);
+    ctx.strokeStyle=css2(col,p.vie*0.9);
+    ctx.lineWidth=p.vie*1.8;
+    ctx.beginPath();ctx.moveTo(p.x-p.vx*2.4,p.y-p.vy*2.4);ctx.lineTo(p.x,p.y);ctx.stroke();
+  }
+  /* 压力波 */
+  for(var i=ondesF.length-1;i>=0;i--){
+    var w=ondesF[i];w.r+=w.v;w.a*=0.93;
+    if(w.a<0.03){ondesF.splice(i,1);continue;}
+    for(var k=0;k<22;k++){
+      var an=k/22*6.29;
+      ctx.fillStyle=css2(AMBRE,w.a*0.5);
+      ctx.beginPath();ctx.arc(w.x+Math.cos(an)*w.r,w.y+Math.sin(an)*w.r*0.5,1.3,0,6.29);ctx.fill();
+    }
+  }
+  /* 夜的炉火点光 */
+  if(L.nuit>0.3){
+    for(var i=0;i<40;i++){
+      var fx=W*0.12+r()*W*0.1,fy=H*0.8+r()*H*0.12;
+      var fl=0.5+0.5*Math.sin(now*0.006+i);
+      ctx.fillStyle=css2(AMBRE,L.nuit*0.25*fl);
+      ctx.beginPath();ctx.arc(fx,fy,1+r()*2.4,0,6.29);ctx.fill();
+    }
+  }
 }
-document.querySelectorAll('#mode-seg button').forEach(b=>b.onclick=()=>{ mode=b.dataset.m; applyMode(); });
 
-/* ================== 工具清单 ================== */
-const listEl=$('toollist');
-TOOLS.forEach((t,i)=>{
-  const el=document.createElement('div');
-  el.className='tool'+(i===0?' active':'');
-  el.innerHTML='<span class="idx">'+String(i+1).padStart(2,'0')+'</span>'+
-    '<span class="tname">'+t.id+'</span>'+
-    '<span class="kind">'+t.kind+'</span>'+
-    '<span class="tdesc">'+t.desc+'</span>';
-  el.onclick=()=>selectTool(t,el);
-  el.ondblclick=()=>{ selectTool(t,el); fillExample(); setTimeout(()=>$('invoke').click(),120); };
-  listEl.appendChild(el);
+/* ================= 锤击 ================= */
+function frapper(essai){
+  marteau.cible=0.62;
+  setTimeout(function(){marteau.cible=-0.5;},260);
+  setTimeout(function(){
+    var L=lumiere(heure);
+    chaleur=Math.min(1,chaleur+0.3);
+    var ax=W*0.58,ay=H*0.72;
+    for(var i=0;i<(essai?26:64);i++){
+      var an=-Math.PI*rSpread(i)+ (rng()-.5)*0.6;
+      var sp=2+rng()*(essai?3:6);
+      etincelles.push({x:ax+(rng()-.5)*30,y:ay-14,vx:Math.cos(an)*sp,vy:Math.sin(an)*sp*0.8,vie:0.7+rng()*0.5});
+    }
+    ondesF.push({x:ax,y:ay-6,r:8,v:4.6,a:1});
+    sndClink(essai);
+  },240);
+}
+function rSpread(i){return (i%12)/12*Math.PI*0.9+0.1;}
+
+/* ================= 配方卡 ================= */
+var $=function(id){return document.getElementById(id);};
+var params=[{nom:"city",type:"string",req:true},{nom:"units",type:"string",req:false}];
+var ETUDES={
+  epee:{nom:"get_weather",desc:"查一座城市此刻的天气，报回温度与天色。",
+        params:[{nom:"city",type:"string",req:true},{nom:"units",type:"string",req:false}]},
+  lame:{nom:"search_docs",desc:"在文档堆里按意思检索，返回最相近的三段。",
+        params:[{nom:"query",type:"string",req:true},{nom:"top_k",type:"number",req:false},{nom:"lang",type:"string",req:false}]},
+  tranchant:{nom:"run_sql",desc:"只读的 SQL 执行，超过一百行自动截断。",
+        params:[{nom:"sql",type:"string",req:true},{nom:"limit",type:"number",req:false},{nom:"dry_run",type:"boolean",req:false}]}
+};
+function rendreParams(){
+  var box=$("params");box.innerHTML="";
+  params.forEach(function(p,i){
+    var row=document.createElement("div");row.className="param";
+    row.innerHTML='<input type="text" value="'+p.nom+'" spellcheck="false" placeholder="nom">'+
+      '<select><option'+(p.type==="string"?" selected":"")+'>string</option>'+
+      '<option'+(p.type==="number"?" selected":"")+'>number</option>'+
+      '<option'+(p.type==="boolean"?" selected":"")+'>boolean</option></select>'+
+      '<label class="req"><input type="checkbox"'+(p.req?" checked":"")+'>必需</label>'+
+      '<button class="rm" title="去掉">×</button>';
+    row.querySelector("input[type=text]").addEventListener("input",function(e){p.nom=e.target.value;majPrev();});
+    row.querySelector("select").addEventListener("change",function(e){p.type=e.target.value;majPrev();});
+    row.querySelector("input[type=checkbox]").addEventListener("change",function(e){p.req=e.target.checked;majPrev();});
+    row.querySelector(".rm").addEventListener("click",function(){params.splice(i,1);rendreParams();majPrev();});
+    box.appendChild(row);
+  });
+}
+function exempleVal(p){
+  if(p.type==="number")return 3;
+  if(p.type==="boolean")return true;
+  var ex={city:"Lyon",query:"金色时刻 配方",sql:"SELECT 1",lang:"fr",units:"metric",top_k:3,limit:100};
+  return ex[p.nom]||("valeur_"+(p.nom||"?"));
+}
+function majPrev(){
+  var req={jsonrpc:"2.0",id:1,method:$("tNom").value||"sans_nom",params:{}};
+  params.forEach(function(p){if(p.nom)req.params[p.nom]=exempleVal(p);});
+  var s=JSON.stringify(req,null,1);
+  $("reqPrev").innerHTML="<b>—— 画框背面的铅笔字 · JSON-RPC ——</b>\n"+echapper(s);
+}
+function echapper(s){
+  return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/("[^"]*")/g,"<b>$1</b>");
+}
+$("tNom").addEventListener("input",majPrev);
+$("tDesc").addEventListener("input",majPrev);
+$("addParam").addEventListener("click",function(){
+  params.push({nom:"param_"+(params.length+1),type:"string",req:false});
+  rendreParams();majPrev();
 });
-$('tool-count').textContent=TOOLS.length+' registered';
-$('filter').addEventListener('input',e=>{
-  const q=e.target.value.trim().toLowerCase();
-  [...listEl.children].forEach((el,i)=>{
-    const t=TOOLS[i];
-    el.classList.toggle('hidden', !!(q && !t.id.toLowerCase().includes(q) && !t.kind.toLowerCase().includes(q) && !t.desc.toLowerCase().includes(q)));
-  });
+document.getElementById("etudes").addEventListener("click",function(e){
+  var b=e.target.closest(".etu");if(!b)return;
+  var et=ETUDES[b.dataset.e];if(!et)return;
+  document.querySelectorAll(".etu").forEach(function(x){x.classList.toggle("on",x===b);});
+  $("tNom").value=et.nom;$("tDesc").value=et.desc;
+  params=et.params.map(function(p){return {nom:p.nom,type:p.type,req:p.req};});
+  rendreParams();majPrev();
 });
-function selectTool(t,el){
-  if(invoking) return;
-  current=t;
-  document.querySelectorAll('.tool').forEach(x=>x.classList.remove('active'));
-  el.classList.add('active');
-  $('schema').value=JSON.stringify(t.schema,null,2);
-  onSchemaEdit(true);
-  $('schema-tool').textContent=t.id+'@'+t.version;
-  renderMiniSchema();
-  $('resp').innerHTML='<span class="ph">已载入 '+t.id+' 的 Schema。填写参数后点击「调用」，或先「填入示例」。</span>';
-  $('resp-code').textContent=''; $('resp-meta').textContent='';
-}
-function renderMiniSchema(){
-  const s=current.liveSchema||current.schema;
-  const req=new Set(s.required||[]);
-  $('mini-schema').innerHTML='<b>'+current.id+'@'+current.version+'</b><br>'+
-    Object.keys(s.properties).map(n=>'<span class="chip'+(req.has(n)?' req':'')+'">'+n+'</span>').join('');
-}
-
-/* ================== Schema 编辑 ================== */
-const schemaEl=$('schema'),gutterEl=$('gutter'),statusEl=$('schema-status');
-schemaEl.value=JSON.stringify(current.schema,null,2);
-function updateGutter(){
-  const n=schemaEl.value.split('\n').length;
-  let s=''; for(let i=1;i<=n;i++) s+=i+'\n';
-  gutterEl.textContent=s;
-  gutterEl.scrollTop=schemaEl.scrollTop;
-}
-schemaEl.addEventListener('scroll',()=>{ gutterEl.scrollTop=schemaEl.scrollTop; });
-schemaEl.addEventListener('keydown',e=>{
-  if(e.key==='Tab'){
-    e.preventDefault();
-    const s=schemaEl.selectionStart;
-    schemaEl.value=schemaEl.value.slice(0,s)+'  '+schemaEl.value.slice(schemaEl.selectionEnd);
-    schemaEl.selectionStart=schemaEl.selectionEnd=s+2;
-    onSchemaEdit();
-  }
-});
-schemaEl.addEventListener('input',()=>onSchemaEdit());
-function validateSchema(text){
-  let obj;
-  try{ obj=JSON.parse(text); }
-  catch(err){
-    const m=/position (\d+)/.exec(err.message);
-    let loc='';
-    if(m){
-      const pos=+m[1],pre=text.slice(0,pos);
-      const line=pre.split('\n').length,col=pos-pre.lastIndexOf('\n');
-      loc=' · 第 '+line+' 行 '+col+' 列';
-    }
-    return {err:'JSON 语法错误'+loc};
-  }
-  if(!obj||obj.type!=='object'||typeof obj.properties!=='object'||Array.isArray(obj.properties))
-    return {err:'结构需为 {type:"object", properties:{…}}'};
-  return {obj};
-}
-function onSchemaEdit(silent){
-  updateGutter();
-  const r=validateSchema(schemaEl.value);
-  if(r.err){
-    statusEl.classList.add('err');
-    statusEl.querySelector('.msg').textContent=r.err+' · 表单保持上一有效版本';
-    return;
-  }
-  statusEl.classList.remove('err');
-  const names=Object.keys(r.obj.properties);
-  statusEl.querySelector('.msg').textContent='Schema 有效 · '+names.length+' 个参数 · '+(r.obj.required||[]).length+' 必填';
-  current.liveSchema=r.obj;
-  buildForm(r.obj);
-  renderMiniSchema();
-  if(!silent) $('invoke').disabled=false;
-}
-$('fmt').onclick=()=>{
-  const r=validateSchema(schemaEl.value);
-  if(!r.err){ schemaEl.value=JSON.stringify(r.obj,null,2); onSchemaEdit(); }
-};
-$('reset-schema').onclick=()=>{ schemaEl.value=JSON.stringify(current.schema,null,2); onSchemaEdit(); };
-
-/* ================== 参数表单 ================== */
-const paramsEl=$('params');
-let fieldInputs={};
-function buildForm(schema){
-  paramsEl.innerHTML=''; fieldInputs={};
-  const req=new Set(schema.required||[]);
-  Object.entries(schema.properties).forEach(([name,def])=>{
-    const f=document.createElement('div');
-    f.className='pfield';
-    const enumNote=def.enum?' · '+def.enum.join(' / '):'';
-    f.innerHTML='<div class="prow"><span class="pname">'+name+'</span>'+
-      '<span class="ptype">'+def.type+enumNote+'</span>'+
-      (req.has(name)?'<span class="req"></span>':'')+'</div>';
-    let input;
-    if(def.enum){
-      const w=document.createElement('div'); w.className='selwrap';
-      input=document.createElement('select');
-      def.enum.forEach(v=>{
-        const o=document.createElement('option');
-        o.value=v; o.textContent=v+(v===def.default?'（默认）':'');
-        input.appendChild(o);
-      });
-      if(def.default) input.value=def.default;
-      w.appendChild(input); f.appendChild(w);
-    } else if(def.type==='boolean'){
-      const w=document.createElement('div'); w.className='boolrow';
-      input=document.createElement('div'); input.className='bool';
-      const val=document.createElement('span'); val.className='bval'; val.textContent='false';
-      input.onclick=()=>{ input.classList.toggle('on'); val.textContent=input.classList.contains('on')?'true':'false'; };
-      input.getVal=()=>input.classList.contains('on');
-      w.appendChild(input); w.appendChild(val); f.appendChild(w);
-    } else if(def.type==='number'||def.type==='integer'){
-      input=document.createElement('input'); input.type='number';
-      if(def.default!==undefined) input.value=def.default;
-      if(def.minimum!==undefined) input.min=def.minimum;
-      if(def.maximum!==undefined) input.max=def.maximum;
-      f.appendChild(input);
-    } else if(def.type==='array'||def.type==='object'){
-      input=document.createElement('textarea');
-      input.placeholder=def.type==='array'?'["…"] JSON 数组':'{…} JSON 对象';
-      f.appendChild(input);
-    } else {
-      input=document.createElement('input'); input.type='text';
-      if(def.default!==undefined) input.value=def.default;
-      f.appendChild(input);
-    }
-    if(def.description){
-      const d=document.createElement('div'); d.className='pdesc'; d.textContent=def.description;
-      f.appendChild(d);
-    }
-    fieldInputs[name]=input;
-    paramsEl.appendChild(f);
-  });
-}
-function gatherParams(){
-  const out={};
-  const schema=current.liveSchema||current.schema;
-  for(const [name,input] of Object.entries(fieldInputs)){
-    const def=schema.properties[name];
-    if(input.getVal){ out[name]=input.getVal(); continue; }
-    let v=input.value;
-    if(v==='') continue;
-    if(def.type==='number'||def.type==='integer'){ v=+v; if(isNaN(v)) continue; }
-    else if(def.type==='array'||def.type==='object'){
-      try{ v=JSON.parse(v); }catch(e){ throw new Error('参数 '+name+' 不是合法 JSON'); }
-    }
-    out[name]=v;
-  }
-  return out;
-}
-function fillExample(){
-  if(invoking) return;
-  const schema=current.liveSchema||current.schema;
-  Object.entries(current.example).forEach(([k,v])=>{
-    const input=fieldInputs[k]; if(!input) return;
-    const def=schema.properties[k];
-    if(input.getVal){ input.classList.toggle('on',!!v); input.nextSibling.textContent=String(!!v); }
-    else input.value=(def.type==='array'||def.type==='object')?JSON.stringify(v):v;
-  });
-}
-$('fill-example').onclick=fillExample;
-
-/* ================== JSON 语法高亮 + 打字机 ================== */
-function tokenizeJSON(str){
-  const re=/("(?:[^"\\]|\\.)*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(\btrue\b|\bfalse\b)|(\bnull\b)|([{}[\],:])|(\s+)/g;
-  const toks=[]; let m;
-  while((m=re.exec(str))){
-    if(m[1]) toks.push({t:m[1],c:m[2]?'tk-key':'tk-str'});
-    else if(m[3]) toks.push({t:m[3],c:'tk-num'});
-    else if(m[4]) toks.push({t:m[4],c:'tk-bool'});
-    else if(m[5]) toks.push({t:m[5],c:'tk-null'});
-    else if(m[6]) toks.push({t:m[6],c:'tk-pun'});
-    else if(m[7]) toks.push({t:m[7],c:''});
-  }
-  return toks;
-}
-function typeJSON(target,text,done){
-  const toks=tokenizeJSON(text);
-  target.innerHTML='';
-  const spans=toks.map(tk=>{
-    const s=document.createElement('span');
-    s.className=tk.c; target.appendChild(s);
-    return {s,t:tk.t,i:0};
-  });
-  if(HP.ff){ spans.forEach(x=>{ x.s.textContent=x.t; }); done&&done(); return; }
-  const total=text.length;
-  const perTick=()=>Math.max(4,Math.round(total/38*typeSpd));
-  function tick(){
-    let budget=perTick();
-    while(budget>0){
-      const cur=spans.find(x=>x.i<x.t.length);
-      if(!cur){ done&&done(); return; }
-      const take=Math.min(budget,cur.t.length-cur.i);
-      cur.s.textContent+=cur.t.slice(cur.i,cur.i+take);
-      cur.i+=take; budget-=take;
-    }
-    target.scrollTop=target.scrollHeight;
-    requestAnimationFrame(tick);
-  }
-  tick();
-}
-
-/* ================== PRETTY / RAW 视图 ================== */
-let lastCall=null, view='pretty';
-function setView(v){
-  view=v;
-  $('view-pretty').classList.toggle('on',v==='pretty');
-  $('view-raw').classList.toggle('on',v==='raw');
-  if(lastCall) renderLast();
-}
-$('view-pretty').onclick=()=>setView('pretty');
-$('view-raw').onclick=()=>setView('raw');
-function renderLast(){
-  const c=lastCall; if(!c) return;
-  const text= view==='pretty'
-    ? JSON.stringify(c.pretty,null,2)
-    : JSON.stringify(c.request,null,2)+'\n\n'+JSON.stringify(c.response,null,2);
-  typeJSON($('resp'),text);
-}
-
-/* ================== 延迟示波 ================== */
-const spark=$('spark'), sctx=spark.getContext('2d');
-let latHist=[]; // {ms, err}
-function drawSpark(){
-  const d=Math.min(2,window.devicePixelRatio||1);
-  const w=spark.clientWidth,h=spark.clientHeight;
-  if(!w) return;
-  spark.width=w*d; spark.height=h*d; sctx.setTransform(d,0,0,d,0,0);
-  sctx.clearRect(0,0,w,h);
-  const max=Math.max(900,...latHist.map(x=>x.ms));
-  latHist.forEach((x,i)=>{
-    const bw=Math.max(2,(w-26)/24-2);
-    const bx=w-4-(latHist.length-i)*(bw+2);
-    const bh=Math.max(2,(x.ms/max)*(h-12));
-    sctx.fillStyle=x.err?'rgba(176,35,24,.75)':'rgba(232,73,15,.55)';
-    sctx.fillRect(bx,h-4-bh,bw,bh);
-  });
-  sctx.fillStyle='rgba(140,136,123,.9)';
-  sctx.font='8px "SF Mono",Menlo,monospace';
-  if(latHist.length) sctx.fillText(latHist[latHist.length-1].ms+'ms', 100, 12);
-}
-
-/* ================== 调用 ================== */
-const invokeBtn=$('invoke'),respEl=$('resp');
-invokeBtn.onclick=()=>{
-  if(invoking) return;
-  let params;
-  try{ params=gatherParams(); }
-  catch(err){
-    $('resp-code').textContent='400 BAD ARGS'; $('resp-code').className='code err';
-    respEl.innerHTML='<span class="tk-null">'+err.message+'</span>';
-    return;
-  }
-  const schema=current.liveSchema||current.schema;
-  const missing=(schema.required||[]).filter(k=>!(k in params));
-  if(missing.length){
-    $('resp-code').textContent='422 UNPROCESSABLE'; $('resp-code').className='code err';
-    respEl.innerHTML='<span class="tk-null">缺少必填参数：'+missing.join(', ')+'</span>';
-    return;
-  }
-  invoking=true; invokeBtn.disabled=true;
-  $('st-state').textContent='RUNNING';
-  $('resp-code').textContent=''; $('resp-meta').textContent='awaiting…';
-  respEl.innerHTML='<span class="ph" id="spin">▸ 正在通过 stdio 发送 JSON-RPC 请求…</span>';
-  const frames=['▸','▹']; let fi=0;
-  const spinTimer=setInterval(()=>{
-    const sp=$('spin'); if(sp) sp.textContent=frames[fi++%2]+' 正在通过 stdio 发送 JSON-RPC 请求…';
-  },140);
-
-  const reqId=++rpcId;
-  const request={jsonrpc:'2.0', id:reqId, method:'tools/call',
-    params:{name:current.id, arguments:params}};
-  const willFail=R()*100<errPct;
-  const latency=baseLatency*(0.55+R()*0.9);
-  setTimeout(()=>{
-    clearInterval(spinTimer);
-    const took=Math.round(latency+R()*40);
-    let payload,response,ok=!willFail;
-    if(willFail){
-      response={jsonrpc:'2.0', id:reqId, error:{code:-32002,
-        message:'sandbox timeout: tool did not respond in time',
-        data:{tool:current.id, waited_ms:took, hint:'提高「模拟延迟」或降低「故障注入」'}}};
-      payload={ok:false, tool:current.id+'@'+current.version, took_ms:took, trace:'tr_'+hex(8),
-        error:response.error};
-    } else {
-      const data=current.mock(params);
-      response={jsonrpc:'2.0', id:reqId, result:{content:[{type:'text', text:JSON.stringify(data)}], isError:false}};
-      payload={ok:true, tool:current.id+'@'+current.version, took_ms:took, trace:'tr_'+hex(8), data};
-    }
-    lastCall={request, response, pretty:payload};
-    stats.calls++; stats.totalMs+=took;
-    $('st-calls').textContent=stats.calls;
-    $('st-ms').textContent=Math.round(stats.totalMs/stats.calls)+'ms';
-    $('st-state').textContent='IDLE';
-    $('resp-code').textContent=ok?'200 OK':'500 TOOL ERROR';
-    $('resp-code').className='code '+(ok?'ok':'err');
-    $('resp-meta').textContent=took+'ms · '+new Blob([JSON.stringify(response)]).size+' B · '+(ok?'tr':'err')+' · #' + reqId;
-    latHist.push({ms:took, err:!ok}); if(latHist.length>24) latHist.shift();
-    drawSpark();
-    renderLast();
-    invoking=false; invokeBtn.disabled=false;
-    addHistory(current.id, ok, took, lastCall);
-  }, HP.ff?30:latency);
-};
-
-/* ================== 历史 ================== */
-const historyEl=$('history');
-function addHistory(toolId,ok,ms,call){
-  const row=document.createElement('div');
-  row.className='hrow';
-  const time=new Date().toTimeString().slice(0,8);
-  row.innerHTML='<span class="st'+(ok?'':' err')+'"></span><span>'+toolId+'</span>'+
-    '<span class="ht">'+time+' · '+ms+'ms</span>';
-  row.onclick=()=>{
-    if(invoking) return;
-    lastCall=call;
-    $('resp-code').textContent=ok?'200 OK':'500 TOOL ERROR';
-    $('resp-code').className='code '+(ok?'ok':'err');
-    $('resp-meta').textContent=ms+'ms · 历史回放';
-    renderLast();
-  };
-  historyEl.prepend(row);
-  while(historyEl.children.length>8) historyEl.removeChild(historyEl.lastChild);
-}
-
-/* ================== 契约 SVG 输出 ================== */
-function escXml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-$('dl-svg').onclick=()=>{
-  const ac=getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()||'#E8490F';
-  const t=current, s=t.liveSchema||t.schema;
-  const schemaLines=JSON.stringify(s,null,2).split('\n');
-  const req=new Set(s.required||[]);
-  let y=0;
-  const lineH=17, top=300;
-  const hgt=top+schemaLines.length*lineH+120;
-  let out='<svg xmlns="http://www.w3.org/2000/svg" width="760" height="'+hgt+'" viewBox="0 0 760 '+hgt+'">';
-  out+='<rect width="760" height="'+hgt+'" fill="#F6F3EA"/>';
-  out+='<rect x="18" y="18" width="724" height="'+(hgt-36)+'" fill="none" stroke="#141310" stroke-width="1.5"/>';
-  out+='<rect x="26" y="26" width="708" height="'+(hgt-52)+'" fill="none" stroke="#141310" stroke-width=".5" stroke-dasharray="2 4"/>';
-  out+='<g transform="translate(56,44)"><circle cx="32" cy="32" r="30" fill="none" stroke="#4A473E"/><path d="M22.5 42.5 L22.8 24.5 L31.6 36.8 L40.6 24.2 L41 42.3" fill="none" stroke="'+ac+'" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></g>';
-  out+='<text x="112" y="66" font-family="SF Mono,Menlo,monospace" font-size="10" letter-spacing="3" fill="'+ac+'">ATELIER MIRA · ÉTUDE N°70/100</text>';
-  out+='<text x="112" y="92" font-family="Didot,Georgia,serif" font-size="30" letter-spacing="2" fill="#141310">TOOL CONTRACT</text>';
-  out+='<text x="56" y="150" font-family="SF Mono,Menlo,monospace" font-size="19" font-weight="bold" fill="#141310">'+escXml(t.id)+'</text>';
-  out+='<text x="56" y="172" font-family="SF Mono,Menlo,monospace" font-size="11" fill="#4A473E">'+escXml(t.kind)+' · v'+escXml(t.version)+' · stdio transport</text>';
-  out+='<text x="56" y="196" font-family="-apple-system,PingFang SC,sans-serif" font-size="12" fill="#4A473E">'+escXml(t.desc)+'</text>';
-  out+='<line x1="56" y1="220" x2="704" y2="220" stroke="#141310" stroke-width="1"/>';
-  out+='<text x="56" y="248" font-family="SF Mono,Menlo,monospace" font-size="10" letter-spacing="2" fill="#8C887B">INPUT SCHEMA · 必填 '+req.size+' / '+Object.keys(s.properties).length+'</text>';
-  out+='<text x="56" y="272" font-family="SF Mono,Menlo,monospace" font-size="10" letter-spacing="2" fill="#8C887B">SEED #'+escXml(seed)+' · '+escXml(WX[wx].label)+'</text>';
-  out+='<g font-family="SF Mono,Menlo,monospace" font-size="11" fill="#141310">';
-  schemaLines.forEach((l,i)=>{
-    let fill='#141310';
-    if(/"[^"]+"\s*:/.test(l)) fill='#1D4F91';
-    out+='<text x="56" y="'+(top+i*lineH)+'" fill="'+fill+'">'+escXml(l)+'</text>';
-  });
-  out+='</g>';
-  const fy=top+schemaLines.length*lineH+34;
-  out+='<line x1="56" y1="'+(fy-16)+'" x2="704" y2="'+(fy-16)+'" stroke="#141310" stroke-width=".5"/>';
-  out+='<text x="56" y="'+fy+'" font-family="SF Mono,Menlo,monospace" font-size="9" letter-spacing="2" fill="#8C887B">Painted with code, plein air · TOOL FORGE · SEED #'+escXml(seed)+'</text>';
-  out+='<text x="56" y="'+(fy+18)+'" font-family="SF Mono,Menlo,monospace" font-size="9" fill="#8C887B">本契约为本地 mock 运行时的参数约定快照，非真实服务。</text>';
-  out+='</svg>';
-  const a=document.createElement('a');
-  a.download='tool-contract-'+t.id.replace(/\W+/g,'_')+'-'+seed+'.svg';
-  a.href=URL.createObjectURL(new Blob([out],{type:'image/svg+xml'}));
-  a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
-};
-
-/* ================== 分享 / 再生 ================== */
-$('share').onclick=async e=>{
-  writeHash();
-  try{ await navigator.clipboard.writeText(location.href); e.target.textContent='已复制 ✓'; }
-  catch{ prompt('复制此链接',location.href); }
-  setTimeout(()=>e.target.textContent='分享链接',1600);
-};
-function initWorld(){
-  R=mulberry32(hashStr(seed));
-  rpcId=0; latHist=[]; drawSpark();
-  document.getElementById('seed-tag').textContent='#'+seed;
-  document.getElementById('colophon').textContent='DOM + CANVAS 2D · SEED #'+seed+' · Painted with code, plein air';
-  seedWeather();
-}
-$('regen').onclick=()=>{
-  seed=String(10000+Math.floor(Math.random()*89999));
-  initWorld(); writeHash();
-};
-
-/* ================== 自检巡回（彩蛋：双击标题或闲置 60s） ================== */
-let selftest=false, stTimer=null, stIdx=0, idleTimer=null;
-function stopSelftest(){
-  selftest=false; clearTimeout(stTimer);
-  $('selftest').classList.remove('on'); $('selftest').textContent='自检巡回';
-}
-function startSelftest(){
-  selftest=true;
-  $('selftest').classList.add('on'); $('selftest').textContent='自检中 · 点击停止';
-  const tick=()=>{
-    if(!selftest) return;
-    if(!invoking){
-      const els=[...listEl.children];
-      selectTool(TOOLS[stIdx%TOOLS.length], els[stIdx%TOOLS.length]);
-      stIdx++;
-      fillExample();
-      setTimeout(()=>{ if(selftest){ $('invoke').click(); } },200);
-    }
-    stTimer=setTimeout(tick,2600);
-  };
-  tick();
-}
-$('selftest').onclick=()=>{ selftest?stopSelftest():startSelftest(); };
-document.querySelector('.seal-wrap').addEventListener('dblclick',()=>{ selftest?stopSelftest():startSelftest(); });
-function armIdle(){
-  clearTimeout(idleTimer);
-  idleTimer=setTimeout(()=>{ if(!selftest) startSelftest(); },60000);
-}
-['pointerdown','keydown','wheel'].forEach(ev=>document.addEventListener(ev,()=>{
-  if(selftest && ev!=='pointerdown') stopSelftest();
-  armIdle();
-},{passive:true}));
-
-/* ================== 键盘 ================== */
-document.addEventListener('keydown',e=>{
-  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
-  const k=e.key.toLowerCase();
-  if(k==='i') $('invoke').click();
-  else if(k==='e') fillExample();
-  else if(k==='v') setView(view==='pretty'?'raw':'pretty');
-  else if(k==='t'){
-    const i=(TOOLS.indexOf(current)+1)%TOOLS.length;
-    selectTool(TOOLS[i],[...listEl.children][i]);
-  }
-  else if(k==='m'){ mode=mode==='obs'?'bench':'obs'; applyMode(); }
-  else if(k==='/'){ e.preventDefault(); $('filter').focus(); }
-  else if(k>='1'&&k<='4'){ wx=['clear','fog','rain','snow'][+k-1]; applyWx(); seedWeather(); }
+document.getElementById("wxSeg").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  meteo=b.dataset.w;
+  document.querySelectorAll("#wxSeg button").forEach(function(x){x.classList.toggle("on",x===b);});
+  peindreFond();sndMeteo();
 });
 
-/* ================== 主循环（天气） ================== */
-let lastT=performance.now();
-function loop(now){
-  if(wxcv.clientWidth!==ww||wxcv.clientHeight!==wh) wxResize();
-  drawWeather(now);
-  requestAnimationFrame(loop);
+/* ================= 调用与回音 ================= */
+var refroidi=0;
+$("btnFrapper").addEventListener("click",function(){
+  frapper(false);
+  $("statut").textContent="锤落了——听回音。";
+  var nom=$("tNom").value||"sans_nom";
+  var resultat={status:"ok",tool:nom,echo:{}};
+  params.forEach(function(p){if(p.nom)resultat.echo[p.nom]=exempleVal(p);});
+  resultat.forged_at=new Date().toISOString();
+  resultat.latence_ms=Math.floor(40+rng()*180);
+  if(nom==="get_weather")resultat.data={ciel:meteo,temperature:(12+Math.floor(rng()*18))+"°C",lumiere:String(Math.floor(heure))+"h"};
+  var brut=JSON.stringify({jsonrpc:"2.0",id:1,result:resultat},null,1);
+  setTimeout(function(){
+    taperTexte(colorerJson(brut));
+    refroidi=1; /* 开始冷却 */
+  },460);
+});
+function colorerJson(s){
+  return echapper(s)
+    .replace(/(&quot;|")([^"&]*)(&quot;|")(\s*:)/g,'<span class="k">"$2"</span>$4')
+    .replace(/: "([^"]*)"/g,': <span class="s">"$1"</span>')
+    .replace(/: (\d+)/g,': <span class="n">$1</span>');
 }
+var taperTimer=null;
+function taperTexte(html){
+  /* 逐段流入：按字符块 */
+  clearInterval(taperTimer);
+  var box=$("repTxt");box.innerHTML="";
+  var tmp=document.createElement("div");tmp.innerHTML=html;
+  var plein=tmp.innerHTML,i=0;
+  taperTimer=setInterval(function(){
+    i=Math.min(plein.length,i+9);
+    box.innerHTML=plein.slice(0,i);
+    box.scrollTop=box.scrollHeight;
+    if(i>=plein.length)clearInterval(taperTimer);
+  },16);
+}
+/* 冷却：回火条从琥珀褪成蓝 */
+setInterval(function(){
+  if(refroidi>0){
+    refroidi=Math.max(0,refroidi-0.008);
+    var t=$("trempe");
+    t.style.width=(refroidi*100)+"%";
+    t.style.opacity=0.14+refroidi*0.3;
+    if(refroidi===0)$("statut").textContent="回音凉透了，可以再用。";
+  }
+  chaleur=Math.max(0.42,chaleur-0.002); /* 锭慢慢退火 */
+},80);
 
-/* ================== init ================== */
-applyWx(); applyMode(); wxResize(); initWorld(); onSchemaEdit(true); renderMiniSchema();
-$('schema-tool').textContent=current.id+'@'+current.version;
-drawWeather(performance.now());
-requestAnimationFrame(loop);
-armIdle();
-/* 首屏即「正在发生」：暖机调用一次 */
-setTimeout(()=>{ fillExample(); $('invoke').click(); }, HP.ff?60:900);
-</script>
-<div id="mira-lab" data-project="tool-forge" data-num="70" style="--lab-a:#E8490F;--lab-b:#0E6E4E"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 70 · AGENT-DEMOS</small><strong>Tool Forge</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
-(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
-const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
-function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
-function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
-function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
-function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
-launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
-document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
-qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
-const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
-grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
-tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
-tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
-function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
-q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
-q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
-q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
-q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
-q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
-document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
-setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+/* ================= 指针 ================= */
+var ptr={x:-999,y:-999,sx:-999,sy:-999};
+cv.addEventListener("pointermove",function(e){
+  var r=cv.getBoundingClientRect();
+  ptr.x=e.clientX-r.left;ptr.y=e.clientY-r.top;
+  ptr.sx=ptr.sx<-900?ptr.x:lerp(ptr.sx,ptr.x,0.12);
+  ptr.sy=ptr.sy<-900?ptr.y:lerp(ptr.sy,ptr.y,0.12);
+});
+cv.addEventListener("pointerdown",function(e){
+  var r=cv.getBoundingClientRect(),nx=e.clientX-r.left,ny=e.clientY-r.top;
+  if(Math.hypot(nx-W*0.56,ny-H*0.68)<130)frapper(true);
+  else ondesF.push({x:nx,y:ny,r:6,v:3.6,a:0.7});
+});
+window.addEventListener("keydown",function(e){
+  if(e.key==="Enter"&&document.activeElement.tagName!=="TEXTAREA"&&document.activeElement.tagName!=="INPUT"){$("btnFrapper").click();}
+  else if(e.key==="ArrowLeft"){heure=(heure+23.75)%24;tracerCadran();appliquerLumiere();}
+  else if(e.key==="ArrowRight"){heure=(heure+0.25)%24;tracerCadran();appliquerLumiere();}
+});
+
+/* ================= 日轨 ================= */
+var cadcv=$("cadcv"),cadX=cadcv.getContext("2d"),cadH=$("cadH");
+function tracerCadran(){
+  var r=cadcv.getBoundingClientRect();if(r.width<10)return;
+  var w=r.width,h=r.height;
+  cadcv.width=w*DPR;cadcv.height=h*DPR;cadX.setTransform(DPR,0,0,DPR,0,0);
+  cadX.clearRect(0,0,w,h);
+  for(var i=0;i<48;i++){
+    var L=lumiere(i/48*24),col=lerpHSL(L.bg,OR,L.or*0.4);
+    cadX.strokeStyle=css2(col,0.85);cadX.lineWidth=3;
+    var xx=6+i/47*(w-12);
+    cadX.beginPath();cadX.moveTo(xx,h-12);cadX.lineTo(xx,h-4);cadX.stroke();
+  }
+  var L0=lumiere(heure);
+  cadX.fillStyle=css2(L0.ink,0.7);
+  cadX.font="7px 'SF Mono',Menlo,monospace";cadX.textAlign="center";
+  [0,6,12,18,24].forEach(function(hh){
+    var xx=6+hh/24*(w-12);
+    cadX.fillRect(xx-0.5,h-17,1,3);
+    cadX.fillText(hh===24?"0":String(hh),xx,h-20);
+  });
+  var t=heure/24,sx=6+t*(w-12),sy=h-22-Math.sin(t*Math.PI)*9;
+  cadX.strokeStyle=css2(L0.ink,0.4);cadX.lineWidth=1;
+  cadX.beginPath();cadX.moveTo(sx,h-13);cadX.lineTo(sx,sy+3);cadX.stroke();
+  var day=heure>5.5&&heure<20.5;
+  cadX.fillStyle=day?css2(OR,0.95):css2(L0.frame,0.9);
+  cadX.beginPath();cadX.arc(sx,sy,3,0,6.29);cadX.fill();
+  cadH.textContent=String(Math.floor(heure)).padStart(2,"0")+":"+String(Math.floor(heure%1*60)).padStart(2,"0");
+}
+var cadDrag=false;
+function cadranVers(e){
+  var r=cadcv.getBoundingClientRect();
+  heure=clamp((e.clientX-r.left-6)/(r.width-12),0,1)*24;
+  tracerCadran();appliquerLumiere();
+}
+cadcv.addEventListener("pointerdown",function(e){cadDrag=true;cadcv.setPointerCapture(e.pointerId);cadranVers(e);});
+cadcv.addEventListener("pointermove",function(e){if(cadDrag)cadranVers(e);});
+cadcv.addEventListener("pointerup",function(){cadDrag=false;});
+
+/* ================= 落款手记 ================= */
+var coloClicks=0,coloTimer=null;
+$("colo").addEventListener("click",function(){
+  coloClicks++;clearTimeout(coloTimer);
+  coloTimer=setTimeout(function(){coloClicks=0;},900);
+  if(coloClicks>=3){$("mot").classList.toggle("show");coloClicks=0;}
+});
+
+/* ================= 声景（L5，默认 OFF） ================= */
+var Snd={ctx:null,master:null,feu:null,on:false};
+function sndInit(){
+  if(Snd.ctx)return;
+  var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+  Snd.ctx=new AC();
+  Snd.master=Snd.ctx.createGain();Snd.master.gain.value=0;Snd.master.connect(Snd.ctx.destination);
+  /* 炉火：低噪 + 随机爆裂 */
+  var len=Snd.ctx.sampleRate*3,buf=Snd.ctx.createBuffer(1,len,Snd.ctx.sampleRate),d=buf.getChannelData(0),last=0;
+  for(var i=0;i<len;i++){var w=Math.random()*2-1;last=(last+0.03*w)/1.03;d[i]=last*2.6;}
+  var src=Snd.ctx.createBufferSource();src.buffer=buf;src.loop=true;
+  var lp=Snd.ctx.createBiquadFilter();lp.type="lowpass";lp.frequency.value=420;
+  var g=Snd.ctx.createGain();g.gain.value=0.12;
+  src.connect(lp);lp.connect(g);g.connect(Snd.master);src.start();
+  (function crepite(){
+    setTimeout(function(){
+      if(Snd.on){
+        var t=Snd.ctx.currentTime,o=Snd.ctx.createOscillator(),g2=Snd.ctx.createGain();
+        o.type="square";o.frequency.value=1400+Math.random()*2200;
+        g2.gain.setValueAtTime(0.012+Math.random()*0.014,t);
+        g2.gain.exponentialRampToValueAtTime(0.0001,t+0.03);
+        o.connect(g2);g2.connect(Snd.master);o.start(t);o.stop(t+0.04);
+      }
+      crepite();
+    },120+Math.random()*900);
+  })();
+}
+function sndClink(essai){if(!Snd.on||!Snd.ctx)return;
+  var t=Snd.ctx.currentTime;
+  [1780,2690,3340].forEach(function(f,i){
+    var o=Snd.ctx.createOscillator(),g=Snd.ctx.createGain();
+    o.type="sine";o.frequency.value=f*(essai?0.82:1)+(Math.random()-.5)*30;
+    var v=(essai?0.05:0.11)/(i+1);
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.5+0.2*i);
+    o.connect(g);g.connect(Snd.master);o.start(t);o.stop(t+0.8);
+  });}
+function sndMeteo(){/* 天气只改画，声音维持炉火的克制 */}
+$("btnSnd").addEventListener("click",function(){
+  sndInit();if(!Snd.ctx)return;
+  Snd.on=!Snd.on;$("btnSnd").classList.toggle("on",Snd.on);
+  try{localStorage.setItem("mira-sound",Snd.on?"1":"0");}catch(e){}
+  if(Snd.ctx.state==="suspended")Snd.ctx.resume();
+  Snd.master.gain.cancelScheduledValues(Snd.ctx.currentTime);
+  Snd.master.gain.setTargetAtTime(Snd.on?1:0,Snd.ctx.currentTime,0.5);
+});
+try{if(localStorage.getItem("mira-sound")==="1"){
+  var arm=function(){$("btnSnd").click();window.removeEventListener("pointerdown",arm);};
+  window.addEventListener("pointerdown",arm);
+}}catch(e){}
+
+/* ================= 主循环 ================= */
+var dernierFond=0;
+function boucle(now){
+  requestAnimationFrame(boucle);
+  if((Math.abs(heure-fondHeure)>0.08)&&now-dernierFond>150){peindreFond();dernierFond=now;}
+  /* 锤弹簧 */
+  var k=0.24,am=0.78;
+  marteau.v+=(marteau.cible-marteau.angle)*k;
+  marteau.v*=am;marteau.angle+=marteau.v;
+  dessinerEnclume(now);
+}
+rendreParams();majPrev();
+resize();
+appliquerLumiere();
+tracerCadran();
+requestAnimationFrame(function(){document.body.classList.add("prete");});
+if((location.hash||"").indexOf("frappe")>=0)setTimeout(function(){$("btnFrapper").click();},300);
+requestAnimationFrame(boucle);
 })();
-</script></body></html>
+</script>
+</body>
+</html>

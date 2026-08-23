@@ -290,7 +290,7 @@ const rgb=(c,a)=>a===undefined?`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`:`rgba(${c[0]
 const FAM={miel:hx("#F4E3C2"),or:hx("#E8B96F"),ambre:hx("#D98E4A"),ocre:hx("#A85B3C"),ombre:hx("#5E6E7E")};
 /* keyframes：h, sky, hor, fieldFar, fieldNear, ink, shLen（影长系数）, warm, night */
 const KEYS=[
-  {h:0,   sky:hx("#5E6E7E"),hor:hx("#7E8B98"),far:hx("#707C88"),near:hx("#7A6E58"),sh:1.0,warm:.15},
+  {h:0,   sky:hx("#5E6E7E"),hor:hx("#7E8B98"),far:hx("#6E7880"),near:hx("#75695A"),sh:1.0,warm:.15},
   {h:5,   sky:hx("#8B93A0"),hor:hx("#C4B49E"),far:hx("#9A9684"),near:hx("#A08A64"),sh:1.4,warm:.3},
   {h:7,   sky:hx("#D9CBB2"),hor:hx("#F4E3C2"),far:hx("#D9C49A"),near:hx("#D4AC6E"),sh:1.9,warm:.5},
   {h:10,  sky:hx("#E8DCC4"),hor:hx("#F4E9D2"),far:hx("#E4CD9C"),near:hx("#E0B96E"),sh:1.0,warm:.35},
@@ -299,8 +299,8 @@ const KEYS=[
   {h:17.8,sky:hx("#E4C39A"),hor:hx("#F4C98E"),far:hx("#DFB288"),near:hx("#D98E4A"),sh:2.4,warm:.95},
   {h:19.2,sky:hx("#B0927E"),hor:hx("#D99E6E"),far:hx("#B0825E"),near:hx("#A87A4E"),sh:3.0,warm:.8},
   {h:20.6,sky:hx("#7E7B84"),hor:hx("#9A8878"),far:hx("#847464"),near:hx("#8A7050"),sh:1.6,warm:.4},
-  {h:22,  sky:hx("#5E6E7E"),hor:hx("#7E8B98"),far:hx("#707C88"),near:hx("#7A6E58"),sh:1.0,warm:.15},
-  {h:24,  sky:hx("#5E6E7E"),hor:hx("#7E8B98"),far:hx("#707C88"),near:hx("#7A6E58"),sh:1.0,warm:.15},
+  {h:22,  sky:hx("#5E6E7E"),hor:hx("#7E8B98"),far:hx("#6E7880"),near:hx("#75695A"),sh:1.0,warm:.15},
+  {h:24,  sky:hx("#5E6E7E"),hor:hx("#7E8B98"),far:hx("#6E7880"),near:hx("#75695A"),sh:1.0,warm:.15},
 ];
 function sampleLight(h){
   h=((h%24)+24)%24;
@@ -381,7 +381,7 @@ function layoutField(){
     return{m,x:W*(.18+t*.62)+(rng()-.5)*W*.05,
            y:H*(.60+((i%2)*.05))+rng()*H*.05,
            ph:rng()*7,grow:0,growDelay:i*.14+rng()*.1,
-           strokes:Array.from({length:26},()=>({ox:(rng()-.5),len:.7+rng()*.5,
+           strokes:Array.from({length:34},()=>({ox:(rng()-.5)*2,len:.7+rng()*.5,
                     hue:rng(),tilt:(rng()-.5)*.22}))};
   });
   /* 单独离群的一捆（最近的，最低分） */
@@ -634,10 +634,19 @@ function draw(now){
   const g=ctx.createLinearGradient(0,0,0,horizonY);
   g.addColorStop(0,rgb(L.sky));g.addColorStop(1,rgb(L.hor));
   ctx.fillStyle=g;ctx.fillRect(0,0,W,horizonY+1);
-  /* 太阳光晕 */
+  /* 太阳光晕 + 低垂的日轮（金色时刻的主角） */
   const sg=ctx.createRadialGradient(sun.x,sun.y,0,sun.x,sun.y,H*.4);
   sg.addColorStop(0,rgb(FAM.miel,.5*L.warm+.12));sg.addColorStop(1,rgb(FAM.miel,0));
   ctx.fillStyle=sg;ctx.fillRect(0,0,W,horizonY+2);
+  if(sun.day){
+    const low=1-Math.min(1,Math.abs(sun.y-horizonY)/(H*.34)); /* 越贴近地平线越大越红 */
+    const sr=H*(.030+.030*low);
+    const sunC=lerpHSL(FAM.miel,FAM.ambre,low*.55);
+    ctx.fillStyle=rgb(sunC,.92);
+    ctx.beginPath();ctx.arc(sun.x,sun.y,sr,0,7);ctx.fill();
+    ctx.fillStyle=rgb(FAM.miel,.5);
+    ctx.beginPath();ctx.arc(sun.x,sun.y,sr*.55,0,7);ctx.fill();
+  }
   /* 云（碎色团） */
   clouds.forEach(c=>{
     c.nx+=c.sp*.00016;if(c.nx>1.2)c.nx=-.2;if(c.nx<-.2)c.nx=1.2;
@@ -645,7 +654,7 @@ function draw(now){
     for(let k=0;k<9;k++){
       const a=k/9*Math.PI*2+c.ph;
       const px=cx+Math.cos(a)*c.r*.6,py=cy+Math.sin(a)*c.r*.16;
-      ctx.fillStyle=rgb(fade(FAM.miel,L.sky,.35),.10*dayF+.04);
+      ctx.fillStyle=rgb(fade(FAM.miel,L.sky,.3),.16*dayF+.05);
       ctx.beginPath();ctx.ellipse(px,py,c.r*.34,c.r*.10,0,0,7);ctx.fill();
     }
   });
@@ -672,7 +681,7 @@ function draw(now){
     const base=lerpHSL(L.far,L.near,depth);
     const c=s.hue>.6?fade(base,FAM.miel,.3+.3*s.hue*L.warm+.1):fade(base,FAM.ambre,.35*s.v+.1);
     const wave=Math.sin(t*1.4+s.nx*9+s.ny*20)*windAmp*depth;
-    ctx.strokeStyle=rgb(c,.36+.3*depth);
+    ctx.strokeStyle=rgb(c,.46+.3*depth);
     ctx.lineWidth=Math.max(.7,1.6*depth);
     ctx.beginPath();
     ctx.moveTo(x-s.len*depth*.8,y+wave*.4);
@@ -723,22 +732,26 @@ function draw(now){
     const h=sheafH(s);if(h<2)return;
     const isHov=s===hovered,isSel=s.m.id===selectedId;
     const sway=Math.sin(t*1.3+s.ph+s.x*.01)*(VENT*7+1.2)*(isHov?1.8:1);
-    /* 捆身：金→琥珀碎笔触 */
+    /* 捆身：金→琥珀碎笔触，底收顶放的麦捆形 */
     s.strokes.forEach((st,k)=>{
       const visible=k/s.strokes.length<Math.min(1,s.grow*1.15);
       if(!visible)return;
-      const bx=s.x+st.ox*22*(1-.25*(k%3)/3);
       const sh=h*st.len;
-      const tipX=bx+sway*(sh/h)+st.tilt*sh*.3;
-      const lit=st.hue>.45;
-      const c=lit?lerpHSL(FAM.or,FAM.miel,L.warm*.35+st.hue*.15)
-                 :lerpHSL(FAM.ambre,FAM.ocre,st.hue*.3);
-      ctx.strokeStyle=rgb(c,.85);
-      ctx.lineWidth=2.6;
+      const bx=s.x+st.ox*9;                     /* 底部收拢 */
+      const fan=st.ox*(13+sh*.11);              /* 顶部扇开 */
+      const tipX=s.x+fan+sway*(sh/h)+st.tilt*sh*.3;
+      const litSide=(st.ox*shDir)<0;            /* 朝太阳的一面受光 */
+      const lit=st.hue>.45?litSide:!litSide?st.hue>.7:false;
+      const c0=lit?lerpHSL(FAM.or,FAM.miel,L.warm*.35+st.hue*.2)
+                 :st.hue>.6?lerpHSL(FAM.ambre,FAM.ocre,.35)
+                 :lerpHSL(FAM.ambre,FAM.or,st.hue*.5);
+      const c=dayF<.99?fade(c0,FAM.ombre,(1-dayF)*.5):c0; /* 夜色：锁色相，只降明度饱和 */
+      ctx.strokeStyle=rgb(c,.88);
+      ctx.lineWidth=2.4;
       ctx.beginPath();ctx.moveTo(bx,s.y);ctx.lineTo(tipX,s.y-sh);ctx.stroke();
       /* 点彩穗尖 */
-      if(lit){ctx.fillStyle=rgb(FAM.miel,.7);
-        ctx.beginPath();ctx.arc(tipX,s.y-sh,1.3,0,7);ctx.fill()}
+      if(lit){ctx.fillStyle=rgb(FAM.miel,.75);
+        ctx.beginPath();ctx.arc(tipX,s.y-sh,1.4,0,7);ctx.fill()}
     });
     /* 束腰：焦赭带 */
     ctx.strokeStyle=rgb(FAM.ocre,.85);ctx.lineWidth=3;
@@ -753,22 +766,23 @@ function draw(now){
       ctx.moveTo(s.x+sway-5,y+ciPx);ctx.lineTo(s.x+sway+5,y+ciPx);ctx.stroke();
     }
     /* Δ 签 */
+    const inkC=lerpHSL(FAM.ocre,FAM.miel,(1-dayF)*.55); /* 入暮后标签提亮 */
     ctx.font="9px 'SF Mono',Menlo,monospace";ctx.textAlign="center";
-    ctx.fillStyle=s.m.delta>=0?rgb(FAM.ocre,.9):rgb(FAM.ombre,.9);
+    ctx.fillStyle=s.m.delta>=0?rgb(inkC,.92):rgb(lerpHSL(FAM.ombre,FAM.miel,(1-dayF)*.4),.9);
     ctx.fillText((s.m.delta>=0?"+":"")+s.m.delta.toFixed(1),s.x,s.y+16);
     /* 选中：量绳连到尺 */
     if(isSel){
-      ctx.strokeStyle=rgb(FAM.ocre,.65);ctx.setLineDash([4,5]);ctx.lineDashOffset=-t*12;
+      ctx.strokeStyle=rgb(inkC,.65);ctx.setLineDash([4,5]);ctx.lineDashOffset=-t*12;
       ctx.beginPath();ctx.moveTo(s.x,s.y-h);
       ctx.lineTo(rulerX,rBot-(rBot-rTop)*Math.min(1,heightOf(s.m)));ctx.stroke();
       ctx.setLineDash([]);
     }
     /* 名字 */
     ctx.font=(isSel||isHov?"600 ":"")+"10.5px 'SF Mono',Menlo,monospace";
-    ctx.fillStyle=isSel?rgb(FAM.ocre):rgb(FAM.ocre,.78);
+    ctx.fillStyle=isSel?rgb(inkC):rgb(inkC,.82);
     ctx.fillText(s.m.id,s.x,s.y+30);
     if(isHov||isSel){
-      ctx.fillStyle=rgb(FAM.ocre);
+      ctx.fillStyle=rgb(inkC);
       ctx.fillText(fmt(bench,s.m.s[bench]),s.x,s.y-h-10);
     }
   });

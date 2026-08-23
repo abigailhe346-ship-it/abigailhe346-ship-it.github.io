@@ -27,6 +27,8 @@
        transition:background-color 1.2s var(--ease),color 1.2s var(--ease)}
   ::selection{background:var(--sand);color:var(--bg)}
   button{font-family:inherit}
+  /* 首帧前禁用过渡：heure 初次应用即时生效，之后再开动画 */
+  body:not(.prete),body:not(.prete) *{transition:none!important}
 
   canvas#papier,canvas#grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
   canvas#papier{mix-blend-mode:multiply;opacity:.9;z-index:60}
@@ -167,9 +169,9 @@
           pointer-events:none;text-transform:uppercase}
   @media (max-width:640px){
     #indice{display:none}
-    #colo{position:absolute;left:12px;bottom:10px;font-size:9px;padding:4px 8px}
+    #colo{position:static;display:inline-flex;margin:0 0 14px 12px;font-size:9px;padding:4px 8px}
     header{padding:12px 14px 6px}
-    .stage{padding:4px 12px 80px}
+    .stage{padding:4px 12px 20px}
   }
 </style>
 </head>
@@ -295,8 +297,8 @@ function css2(hsl,a){return hsla(hsl[0],hsl[1],hsl[2],a===undefined?1:a);}
 /* ================= heure：晨雾家族的光 ================= */
 /* 角色：bg 纸面 / frame 画框 / ink 墨 / dim 淡墨 / line 线 / sand 暖沙 / brume 雾密度 / nuit 夜权重 */
 var KEY=[
- [0.0, "#6E7B8C","#77839A","#ECDFD2","#B4BEC9","#5E6A7C","#C9B99E",0.4,1.0],
- [5.0, "#8A94A6","#939DAC","#E3E1D8","#828EA0","#6E7B8C","#C9B99E",0.55,0.5],
+ [0.0, "#6E7B8C","#77839A","#ECDFD2","#C2CBD4","#5E6A7C","#C9B99E",0.4,1.0],
+ [5.0, "#8A94A6","#939DAC","#E3E1D8","#A8B2C2","#6E7B8C","#C9B99E",0.55,0.5],
  [7.0, "#E8E6DF","#EDEAE1","#5B6878","#8B96A5","#C9CDD6","#B8A888",0.8,0.12],
  [12.0,"#F0EEE8","#F4F2EB","#5E6B7D","#7E8A99","#CDD1DA","#A89578",0.12,0.0],
  [16.0,"#EAE7DC","#EEEAE0","#5B6878","#8B96A5","#C9CDD6","#B09E80",0.35,0.05],
@@ -306,6 +308,7 @@ var KEY=[
 ].map(function(k){return [k[0],hex2hsl(k[1]),hex2hsl(k[2]),hex2hsl(k[3]),hex2hsl(k[4]),hex2hsl(k[5]),hex2hsl(k[6]),k[7],k[8]];});
 var heure=(function(){var d=new Date();return d.getHours()+d.getMinutes()/60;})();
 (function(){var m=(location.hash||"").match(/h=([\d.]+)/);if(m)heure=clamp(parseFloat(m[1]),0,24);})();
+var QA_ALIGN=(location.hash||"").indexOf("align")>=0;
 function lumiere(h){
   h=((h%24)+24)%24;
   var i=0;while(i<KEY.length-2&&KEY[i+1][0]<h)i++;
@@ -875,6 +878,8 @@ resize();
 appliquerLumiere();
 tracerCadran();
 syncHash();
+requestAnimationFrame(function(){document.body.classList.add("prete");});
+if(QA_ALIGN)grandeConjonction();
 requestAnimationFrame(boucle);
 })();
 </script>
