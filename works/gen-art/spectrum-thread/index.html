@@ -201,7 +201,7 @@ function lightAt(h){
 
 /* ---------- 线画引擎（沿用原作：圆周锚点 + 明暗场 + 拒绝采样） ---------- */
 const state={
-  density:2600, tension:.30, mode:"nenuphar",
+  density:3600, tension:.30, mode:"nenuphar",
   seed:Math.floor(Math.random()*1e6),
   rot:0, rotTarget:0,
   anchors:[], blobs:[], threads:[], lotuses:[], drawing:false
@@ -255,18 +255,22 @@ function field(x,y){
 }
 function makeThread(rng){
   const A=state.anchors;
-  const a=A[(rng()*N_ANCHORS)|0];
-  let b=null;
-  for(let t=0;t<14;t++){
-    const c=A[(rng()*N_ANCHORS)|0];
-    const mx=(a[0]+c[0])/2,my=(a[1]+c[1])/2;
-    if(rng()<Math.pow(field(mx,my),1.25)){b=c;break}
+  const ia=(rng()*N_ANCHORS)|0;
+  const a=A[ia];
+  let b;
+  if(rng()<.72){
+    /* 短弦优先：墨色留在局部，莲丛才显形 */
+    const off=(rng()*rng()*90+4)* (rng()<.5?-1:1);
+    b=A[((ia+Math.round(off))%N_ANCHORS+N_ANCHORS)%N_ANCHORS];
+  }else{
+    b=A[(rng()*N_ANCHORS)|0];
   }
-  if(!b)b=A[(rng()*N_ANCHORS)|0];
   if(b===a)return null;
   const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
-  const k=state.tension*.9;
   const fm=field(mx,my);
+  /* 一枪拒绝采样：通过概率 ∝ 场强，线才真正在密处堆积 */
+  if(rng()>Math.pow(fm,1.1))return null;
+  const k=state.tension*.9;
   return {ax:a[0],ay:a[1],bx:b[0],by:b[1],cx:mx*(1-k),cy:my*(1-k),
           ci:(rng()*3)|0, // 三色点彩：深塘/柳绿/天光
           fa:fm<.3?0:fm<.62?1:2}; // 三档墨量：线密之处色深
@@ -418,7 +422,7 @@ function pump(gen){
   if(gen!==pumpGen)return;
   if(state.threads.length<state.density){
     const rng=mulberry32(state.seed^(state.threads.length*7919+13));
-    const batch=Math.min(200,state.density-state.threads.length);
+    const batch=Math.min(800,Math.max(200,(state.density-state.threads.length)*3));
     for(let i=0;i<batch;i++){
       const t=makeThread(rng);
       if(t)state.threads.push(t);
@@ -486,7 +490,7 @@ function frame(){
   ctx.lineWidth=.6;
   const buckets=[[[],[],[]],[[],[],[]],[[],[],[]]];
   for(const th of state.threads)buckets[th.ci][th.fa].push(th);
-  const FA=[.05,.13,.30];
+  const FA=[.03,.12,.34];
   for(let ci=0;ci<3;ci++){
     const c=THREAD_C[ci];
     for(let fa=0;fa<3;fa++){

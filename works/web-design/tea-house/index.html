@@ -236,6 +236,32 @@
   </div>
 </section>
 
+<!-- ============ ATELIER DESK ============ -->
+<div id="desk">
+  <div class="d-head"><span>画室控制台 ATELIER DESK — 调节这片叶隙</span><em id="dModeLab">丸 MARU · 叶隙圆光</em></div>
+  <div class="d-body">
+    <div class="d-ctl"><div class="r"><span>光斑 DAPPLES</span><output id="oDap">24 枚</output></div>
+      <input type="range" id="cDap" min="8" max="40" step="1" value="24"></div>
+    <div class="d-ctl"><div class="r"><span>枝上风 WIND</span><output id="oWind">30 %</output></div>
+      <input type="range" id="cWind" min="0" max="100" step="1" value="30"></div>
+    <div class="d-ctl"><div class="r"><span>叶影 SHADE</span><output id="oShade">55 %</output></div>
+      <input type="range" id="cShade" min="0" max="100" step="1" value="55"></div>
+    <div class="d-side">
+      <div class="d-grouplab">画法 ÉTUDE — 同一束光的两种研究</div>
+      <div class="d-chips" id="modeChips">
+        <button data-m="maru" class="on">丸 · 叶隙圆光</button>
+        <button data-m="sima">縞 · 簾隙条光</button>
+      </div>
+      <div class="d-actions">
+        <button id="btnSeed">再生 ↻</button>
+        <button id="btnShare">复制链接</button>
+        <button id="btnPng">下载 PNG</button>
+      </div>
+      <div class="d-seed"><span>SEED <b id="seedVal">—</b></span><span>[/] 移光 · M 换画法 · E 重画円相 · R 再生 · D 下载</span></div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ MENU ============ -->
 <section class="block" id="menu">
   <div class="sec-k">MENU — お品書き</div>
@@ -324,6 +350,26 @@ function hexA(hex,a){
 /* ================= 家族色 ================= */
 var FLECK="#E8E3CE",LEAFHI="#B5B98A",LEAF="#7E8F5E",LEAFDK="#4E5E42",SHADE="#2F3B2C",GOLD="#D9A85C";
 
+/* ================= 种子系统 ================= */
+var seed=(function(){
+  var m=/[#&]seed=([a-z0-9]+)/i.exec(location.hash||"");
+  if(m){var v=parseInt(m[1],36);if(isFinite(v))return v>>>0;}
+  return (Math.random()*0x3FFFFFFF)>>>0;
+})();
+function writeSeed(){
+  var s="0x"+seed.toString(36).toUpperCase();
+  document.getElementById("seedVal").textContent=s;
+  document.getElementById("coloSeed").textContent=s;
+}
+window.addEventListener("hashchange",function(){
+  var m=/[#&]seed=([a-z0-9]+)/i.exec(location.hash||"");
+  if(m){var v=parseInt(m[1],36)>>>0;if(v!==seed){seed=v;writeSeed();layout();drawEnso(seed^0xE150,true);}}
+});
+
+/* ================= 控制台状态 ================= */
+var desk={dap:24,wind:30,shade:55};
+var spotMode="maru";
+
 /* ================= heure ================= */
 var nowD=new Date();
 var heure=nowD.getHours()+nowD.getMinutes()/60;
@@ -391,15 +437,16 @@ function layout(){
   bgCache.width=W*DPR;bgCache.height=H*DPR;
   bgx.setTransform(DPR,0,0,DPR,0,0);
   bgKey="";
-  var R=mulberry32(313);
+  var R=mulberry32(seed^0xC0DE);
   spots=[];
-  var n=Math.round(clamp(W*H/42000,16,34)),i;
+  var n=Math.round(clamp(desk.dap*(W*H)/(42000*24),8,44)),i;
   for(i=0;i<n;i++)spots.push({
     x:R()*W,y:H*0.15+R()*H*0.7,rx:14+R()*46,ry:8+R()*22,
-    ph:R()*7,sp:0.14+R()*0.3,ox:0,oy:0,vx:0,vy:0
+    ph:R()*7,sp:0.14+R()*0.3,ox:0,oy:0,vx:0,vy:0,as:R()
   });
   leafSil=[];
-  for(i=0;i<5;i++)leafSil.push({x:R()*W*1.2-W*0.1,y:-H*0.08+R()*H*0.24,r:120+R()*150,ph:R()*7,sp:0.2+R()*0.3});
+  var nl=1+Math.round(desk.shade/25);
+  for(i=0;i<nl;i++)leafSil.push({x:R()*W*1.2-W*0.1,y:-H*0.08+R()*H*0.24,r:120+R()*150,ph:R()*7,sp:0.2+R()*0.3});
 }
 
 function paintBg(sun){
@@ -450,9 +497,10 @@ function drawKomo(now){
 
   kx.globalCompositeOperation="lighter";
   var i,s;
+  var windF=0.4+desk.wind/100*1.5;
   for(i=0;i<spots.length;i++){
     s=spots[i];
-    var drift=idle?0.3:1;
+    var drift=(idle?0.3:1)*windF;
     var bx=s.x+Math.sin(t*s.sp+s.ph)*22*drift+sun.tilt*(s.y-H*0.3)*0.22;
     var by=s.y+Math.cos(t*s.sp*0.8+s.ph*1.7)*12*drift;
     var dx=bx-mouse.x,dy=by-mouse.y,d2=dx*dx+dy*dy;
@@ -462,13 +510,16 @@ function drawKomo(now){
     }
     s.vx*=0.94;s.vy*=0.94;s.ox=(s.ox+s.vx)*0.985;s.oy=(s.oy+s.vy)*0.985;
     var pulse=0.75+0.25*Math.sin(t*0.7+s.ph*3);
-    var a=sun.sa*pulse*(0.5+(s.y/H)*0.6);
+    var a=sun.sa*pulse*(0.5+(s.y/H)*0.6)*(spotMode==="sima"?0.8:1);
     var grd=kx.createRadialGradient(bx+s.ox,by+s.oy,0,bx+s.ox,by+s.oy,s.rx);
     grd.addColorStop(0,hexA(sun.spot,a));
     grd.addColorStop(0.6,hexA(sun.spot,a*0.4));
     grd.addColorStop(1,hexA(sun.spot,0));
     kx.fillStyle=grd;
-    kx.save();kx.translate(bx+s.ox,by+s.oy);kx.scale(1,s.ry/s.rx);kx.translate(-bx-s.ox,-by-s.oy);
+    kx.save();kx.translate(bx+s.ox,by+s.oy);
+    if(spotMode==="sima"){kx.rotate(sun.tilt*0.55+0.42);kx.scale(1,0.14+s.as*0.12);}
+    else{kx.scale(1,s.ry/s.rx);}
+    kx.translate(-bx-s.ox,-by-s.oy);
     kx.beginPath();kx.arc(bx+s.ox,by+s.oy,s.rx,0,7);kx.fill();kx.restore();
   }
   /* 夜：石灯笼两点暖光 */

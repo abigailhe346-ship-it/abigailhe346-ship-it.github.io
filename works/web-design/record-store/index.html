@@ -562,7 +562,7 @@ function setHeure(h,reflect){
   hread.innerHTML='<b>'+String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+'</b> '+heureName(heure);
   var skyL=hexToHsl(seaState(heure).sky)[2];
   document.body.classList.toggle('dark',skyL<0.5);
-  if(reflect){try{history.replaceState(null,'','#h='+heure.toFixed(1))}catch(e){}}
+  if(reflect)writeSeed(true);
 }
 var hdrag=false;
 function hFromEvent(e){var r=htrack.getBoundingClientRect();return clamp((e.clientX-r.left)/r.width,0,1)*24}
@@ -832,7 +832,7 @@ function startPlay(i){
   ensureCtx();
   stopPlay(true);
   var r=RECORDS[i];
-  var R=mulberry32(r.seed);
+  var R=mulberry32((r.seed*2654435761^SEED)>>>0);
   NOISE=noiseBuffer();
   stepDur=60/r.bpm/2;
   var bars=8,steps=8;
@@ -1035,6 +1035,52 @@ $("#colophon").addEventListener("click",function(){
     setTimeout(function(){$("#hiddenNote").classList.remove("show")},6000);
   }
 });
+
+/* ============ 画室身份：种子 / 输出 / 快捷键 ============ */
+var selIdx=0;
+function updateSel(){cardEls.forEach(function(c,n){c.classList.toggle("sel",n===selIdx)});}
+grid.addEventListener("pointerdown",function(e){
+  var c=e.target.closest(".card");if(!c)return;
+  selIdx=cardEls.indexOf(c);updateSel();
+});
+updateSel();
+function reseed(){
+  SEED=1000+Math.floor(Math.random()*89000);
+  paintSleeves();
+  writeSeed(true);
+}
+function savePNG(){
+  var i=playing>=0?playing:selIdx;
+  var a=document.createElement("a");
+  a.download="groove-"+RECORDS[i].en.toLowerCase().replace(/\s+/g,"-")+"-seed"+SEED+".png";
+  a.href=sleeveCvs[i].toDataURL("image/png");
+  a.click();
+}
+function shareLink(){
+  var url=location.href.split("#")[0]+"#h="+heure.toFixed(1)+"&seed="+SEED;
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(url).catch(function(){prompt("复制分享链接",url);});
+  else prompt("复制分享链接",url);
+}
+document.getElementById("bReseed").addEventListener("click",reseed);
+document.getElementById("bSave").addEventListener("click",savePNG);
+document.getElementById("bShare").addEventListener("click",shareLink);
+var LIGHT_PRESETS=[7,12,17.5,22],lpIdx=1;
+document.getElementById("sealSvg").addEventListener("dblclick",function(){
+  lpIdx=(lpIdx+1)%4;setHeure(LIGHT_PRESETS[lpIdx],true);
+});
+document.addEventListener("keydown",function(e){
+  if(["INPUT","TEXTAREA","SELECT"].indexOf((document.activeElement||{}).tagName)>=0)return;
+  var k=e.key;
+  if(k==="r"||k==="R")reseed();
+  else if(k==="s"||k==="S")savePNG();
+  else if(k===" "){e.preventDefault();togglePlay(selIdx);}
+  else if(k==="f"||k==="F")cardEls[selIdx].classList.toggle("flipped");
+  else if(k==="ArrowLeft"&&!e.target.closest("#heureRail")){selIdx=(selIdx-1+RECORDS.length)%RECORDS.length;updateSel();}
+  else if(k==="ArrowRight"&&!e.target.closest("#heureRail")){selIdx=(selIdx+1)%RECORDS.length;updateSel();}
+  else if(k>="1"&&k<="4"){lpIdx=+k-1;setHeure(LIGHT_PRESETS[lpIdx],true);}
+});
+writeSeed(true);
 
 /* ============ resize / init ============ */
 var rt;

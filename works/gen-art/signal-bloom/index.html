@@ -439,7 +439,7 @@ const lume=document.getElementById('lume'),thumb=document.getElementById('thumb'
 let lumeDrag=false;
 function lumeSet(e){const r=lume.getBoundingClientRect();
   heure=Math.min(24,Math.max(0,(e.clientX-r.left)/r.width*24));
-  history.replaceState(null,'',`#h=${heure.toFixed(1)}`);}
+  writeHash();}
 lume.addEventListener('pointerdown',e=>{lumeDrag=true;lume.setPointerCapture(e.pointerId);lumeSet(e);e.stopPropagation()});
 lume.addEventListener('pointermove',e=>{if(lumeDrag)lumeSet(e)});
 lume.addEventListener('pointerup',()=>lumeDrag=false);
@@ -450,6 +450,7 @@ document.getElementById('etudes').addEventListener('click',e=>{
   const m=b.dataset.m;
   if(m==='__regen'){regen();return}
   if(m==='__save'){download();return}
+  if(m==='__share'){shareLink();return}
   state.wave=m;
   document.querySelectorAll('.etudes button[data-m]').forEach(x=>{
     if(!x.dataset.m.startsWith('__'))x.classList.toggle('on',x.dataset.m===m)});
@@ -457,26 +458,54 @@ document.getElementById('etudes').addEventListener('click',e=>{
 });
 function regen(){
   const waves=["sine","square","saw","tri","noise"];
-  state.seed=Math.floor(Math.random()*1e6);
+  state.seed=Math.floor(Math.random()*65536);
   buildNoise();buildBG();
   state.wave=waves[(Math.random()*waves.length)|0];
   state.petals=3+((Math.random()*18)|0);
   state.amp=.25+Math.random()*.7;
   state.layers=14+((Math.random()*22)|0);
   state.twist=Math.random()*.9;
+  syncParams();
+  writeHash();
   document.querySelectorAll('.etudes button[data-m]').forEach(x=>{
     if(!x.dataset.m.startsWith('__'))x.classList.toggle('on',x.dataset.m===state.wave)});
   stats();
 }
+function shareLink(){
+  const url=location.href.split('#')[0]+'#h='+heure.toFixed(1)+'&seed='+seedHex();
+  const done=()=>{const n=document.getElementById('note');
+    const orig=n.dataset.orig||(n.dataset.orig=n.textContent);
+    n.textContent='分享链接已复制 — '+url.split('#')[1];
+    n.classList.add('show');
+    setTimeout(()=>{n.classList.remove('show');n.textContent=orig},2600);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done).catch(()=>{prompt('Copy this link',url);done()});
+  }else{prompt('Copy this link',url);done()}
+}
 function download(){
   const a=document.createElement('a');
-  a.download="signal-bloom-"+state.seed+".png";
+  a.download="signal-bloom-"+seedHex()+".png";
   a.href=cv.toDataURL("image/png");a.click();
 }
+/* ---------- 参数台滑杆（补强） ---------- */
+function syncParams(){
+  document.getElementById('pPet').value=state.petals;
+  document.getElementById('pAmp').value=Math.round(state.amp*100);
+  document.getElementById('pLay').value=state.layers;
+  document.getElementById('pPetO').textContent=state.petals;
+  document.getElementById('pAmpO').textContent=state.amp.toFixed(2);
+  document.getElementById('pLayO').textContent=state.layers;
+}
+document.getElementById('pPet').addEventListener('input',e=>{
+  state.petals=+e.target.value;document.getElementById('pPetO').textContent=state.petals;stats()});
+document.getElementById('pAmp').addEventListener('input',e=>{
+  state.amp=+e.target.value/100;document.getElementById('pAmpO').textContent=state.amp.toFixed(2);stats()});
+document.getElementById('pLay').addEventListener('input',e=>{
+  state.layers=+e.target.value;document.getElementById('pLayO').textContent=state.layers;stats()});
 function stats(){
   document.getElementById('stats').textContent=
-    "Canvas 2D · "+state.wave.toUpperCase()+" · "+state.petals+" folds · №"+
-    (state.seed%4096).toString(16).toUpperCase().padStart(3,"0");
+    "Canvas 2D · "+state.wave.toUpperCase()+" · "+state.petals+" folds · Seed "+seedHex()+
+    " · Painted with code, plein air";
 }
 
 /* ---------- 隐藏题记（落款连点 3 次） ---------- */
@@ -487,10 +516,12 @@ document.getElementById('sig').addEventListener('click',()=>{
     n.classList.add('show');setTimeout(()=>n.classList.remove('show'),5200);}
 });
 
-/* ---------- H 键收起 / R 再生 / 1-5 波形 ---------- */
+/* ---------- H 键收起 / R 再生 / 1-5 波形 / C 链接 / D 存图 ---------- */
 addEventListener('keydown',e=>{
   if(e.key==='h'||e.key==='H')stage.classList.toggle('hideme');
   if(e.key==='r'||e.key==='R')regen();
+  if(e.key==='c'||e.key==='C')shareLink();
+  if(e.key==='d'||e.key==='D')download();
   const waves=["sine","square","saw","tri","noise"];
   const k=parseInt(e.key);
   if(k>=1&&k<=5){
@@ -624,7 +655,7 @@ function frame(){
 
   requestAnimationFrame(frame);
 }
-buildNoise();resize();stats();
+buildNoise();resize();syncParams();writeHash();stats();
 requestAnimationFrame(frame);
 })();
 </script>
