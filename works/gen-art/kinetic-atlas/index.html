@@ -1,2 +1,760 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Kinetic Atlas / MIRA</title><style>:root{--ink:#151515;--paper:#ebe8e1;--acid:#d8ff47;--coral:#ff6b50;--mono:"SF Mono",Menlo,monospace;--serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif}header{height:66px;border-bottom:1px solid #15151533;display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase}header a{color:inherit;text-decoration:none}.back{display:flex;gap:12px;align-items:center}.back b{font-size:18px;font-family:var(--serif);font-weight:400}.hero{padding:5vw 4vw 3vw;display:grid;grid-template-columns:1fr 1fr;gap:5vw;align-items:end}.kicker{font-family:var(--mono);font-size:10px;color:#777;letter-spacing:.12em;text-transform:uppercase}.hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(60px,10vw,145px);line-height:.78;letter-spacing:-.06em;margin:22px 0 28px}.hero h1 em{color:var(--coral);font-style:italic}.hero p{max-width:410px;color:#5d5851;font-size:15px;line-height:1.6;margin:0}.stage-wrap{padding:0 4vw 4vw}.stage{height:min(63vw,680px);min-height:450px;background:#141414;position:relative;overflow:hidden}.stage canvas{width:100%;height:100%;display:block}.hud{position:absolute;inset:19px;display:flex;justify-content:space-between;pointer-events:none;color:#aaa;font:9px var(--mono);letter-spacing:.1em}.hud strong{color:var(--acid);font-weight:400}.controls{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:26px;padding:20px 0;border-bottom:1px solid #15151533;align-items:center}.control label{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#777;display:flex;justify-content:space-between;margin-bottom:8px}.control output{color:var(--ink)}input[type=range]{width:100%;accent-color:var(--coral)}button{border:1px solid var(--ink);background:var(--ink);color:var(--paper);font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:12px 16px;transition:.25s}button:hover{background:var(--acid);color:var(--ink)}.notes{display:grid;grid-template-columns:1fr 1fr;gap:5vw;padding:4vw 4vw 7vw}.notes h2{font:400 42px/.9 var(--serif);letter-spacing:-.05em;margin:0}.notes h2 em{color:var(--coral);font-style:italic}.notes p{font-size:13px;line-height:1.65;color:#605a53;margin:0;max-width:470px}.micro{font:9px var(--mono);color:#8a847c;letter-spacing:.1em;text-transform:uppercase;margin-top:25px}@media(max-width:760px){.hero{grid-template-columns:1fr;padding-top:11vw}.hero h1{font-size:20vw}.stage{min-height:340px;height:84vw}.controls{grid-template-columns:1fr 1fr;gap:18px}.controls button{grid-column:1/-1}.notes{grid-template-columns:1fr;gap:28px}}
-</style></head><body><header><a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a><span>01 / 100 · Image + Motion</span><span>Kinetic Atlas</span></header><main><section class="hero"><div><div class="kicker">Generative environment / 2026</div><h1>Kinetic<br><em>Atlas</em></h1><p>把一百万个微小决定，编译成一张会呼吸的城市。鼠标移动改变观测角度，参数旋钮改变城市的密度与潮汐。</p></div><div class="micro">Flux / ComfyUI / Canvas 2D<br>Art direction + system design</div></section><section class="stage-wrap"><div class="stage"><canvas id="atlas"></canvas><div class="hud"><span>FIELD NOTE 001 / LIVE</span><strong id="readout">DENSITY 064 · TIDE 032</strong></div></div><div class="controls"><div class="control"><label>Density <output id="densityOut">64</output></label><input id="density" type="range" min="20" max="110" value="64"></div><div class="control"><label>Tide <output id="tideOut">32</output></label><input id="tide" type="range" min="0" max="100" value="32"></div><div class="control"><label>Drift <output id="driftOut">18</output></label><input id="drift" type="range" min="0" max="60" value="18"></div><button id="regen">Regenerate ↗</button><button id="download">Download PNG</button></div></section><section class="notes"><h2>A city is a<br><em>moving image.</em></h2><div><p>我把生成模型的“不可控”当成地形学：先建立一组可解释的规则，再让噪声把边界推向未知。每一次再生，都是同一座城的一条平行时间线。</p><div class="micro">Interaction / pointer field · 3 live parameters · export</div></div></section></main><script>const c=document.getElementById('atlas'),x=c.getContext('2d');let w,h,dpr,t=0,seed=Math.random()*99,mx=.5,my=.5,density=64,tide=32,drift=18;function size(){dpr=Math.min(devicePixelRatio||1,2);w=c.clientWidth;h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;x.setTransform(dpr,0,0,dpr,0,0)}function rnd(i){return (Math.sin(seed*12.9898+i*78.233)*43758.5453)%1}function draw(){t+=.009; x.fillStyle='#141414';x.fillRect(0,0,w,h);const horizon=h*.53; x.strokeStyle='rgba(216,255,71,.14)';x.lineWidth=1;for(let i=0;i<density;i++){const q=i/density,base=horizon+q*q*h*.52+Math.sin(q*8+t*drift*.018)*tide*.2; x.beginPath();for(let j=0;j<18;j++){const px=j*w/17,py=base+Math.sin(j*.9+q*13+t*(.6+drift*.02))*18+Math.cos(j*.28+seed)*9;x.lineTo(px,py)}x.stroke()}for(let i=0;i<density*.66;i++){const q=i/(density*.66),px=(rnd(i*4.1)*.5+.25)*w+Math.sin(t*.3+i)*drift,py=horizon-q*q*h*.48;const ww=4+rnd(i*6)*Math.max(8,30*q);x.fillStyle=i%7===0?'#ff6b50':i%5===0?'#d8ff47':'rgba(244,239,233,.52)';x.globalAlpha=.16+.6*q;x.fillRect(px,py,ww,1+rnd(i)*5*q)}x.globalAlpha=1;x.strokeStyle='rgba(244,239,233,.2)';x.beginPath();x.moveTo(w*.5+(mx-.5)*50,0);x.lineTo(w*.5+(mx-.5)*50,h);x.stroke();requestAnimationFrame(draw)}function val(id,out){document.getElementById(id).addEventListener('input',e=>{window[id]=+e.target.value;document.getElementById(out).textContent=e.target.value;document.getElementById('readout').textContent=`DENSITY ${String(density).padStart(3,'0')} · TIDE ${String(tide).padStart(3,'0')}`})}val('density','densityOut');val('tide','tideOut');val('drift','driftOut');document.getElementById('regen').onclick=()=>{seed=Math.random()*99};document.getElementById('download').onclick=()=>{const a=document.createElement('a');a.download='kinetic-atlas.png';a.href=c.toDataURL('image/png');a.click()};c.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect();mx=(e.clientX-r.left)/r.width;my=(e.clientY-r.top)/r.height});addEventListener('resize',size);size();draw();</script><script>["density","tide","drift"].forEach(id=>document.getElementById(id).addEventListener("input",e=>{if(id==="density")density=+e.target.value;if(id==="tide")tide=+e.target.value;if(id==="drift")drift=+e.target.value}));</script></body></html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kinetic Atlas — 潮汐海图 · Atelier MIRA</title>
+<style>
+  :root{
+    --paper:#E3E0D5; --panel:#EDEAE0; --line:#C9C6BA;
+    --ink:#3D4442; --dim:#8B918C;
+    --shallow:#B5C2C4; --sea:#7E9399; --deep:#4F666E;
+    --sand:#C8B89A; --rust:#D97B5A;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--paper)}
+  body{color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--deep);color:var(--paper)}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;
+    padding:20px clamp(18px,4vw,44px) 14px;
+  }
+  .brand{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .back{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:color .4s var(--ease)}
+  .back:hover{color:var(--ink)}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.4vw,40px);letter-spacing:-.01em;line-height:1}
+  h1 em{font-style:italic;color:var(--deep)}
+  .epig{font-family:var(--serif);font-style:italic;font-size:14.5px;color:#6E7672;max-width:340px;line-height:1.5}
+  .idx{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+
+  .brandline{display:flex;align-items:center;gap:13px}
+  .seal{width:46px;height:46px;color:var(--deep);flex:none}
+  .seal text{font-family:var(--mono);font-size:7.2px;letter-spacing:.21em;fill:currentColor}
+  .seal .seal-m{stroke:currentColor}
+  .etude{font-family:var(--mono);font-size:9.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);line-height:1.7}
+  .etude b{color:var(--rust);font-weight:400}
+
+  .heures{position:absolute;top:56px;left:14px;display:flex;gap:8px;flex-wrap:wrap;z-index:4;transition:opacity .5s var(--ease)}
+  .heures button{
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink);
+    background:rgba(227,224,213,.55);border:1px solid rgba(61,68,66,.2);border-radius:2px;
+    padding:5px 10px;cursor:pointer;backdrop-filter:blur(3px);transition:all .45s var(--ease);
+  }
+  .heures button:hover{background:rgba(227,224,213,.95);transform:translateY(-1px)}
+  .heures button.on{background:var(--rust);color:var(--paper);border-color:var(--rust)}
+
+  .sonde{
+    position:absolute;z-index:5;pointer-events:none;display:none;
+    font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--ink);
+    background:rgba(237,234,224,.92);border:1px solid var(--line);border-radius:2px;
+    padding:5px 9px;transform:translate(14px,-22px);white-space:nowrap;
+  }
+
+  .console{
+    display:grid;grid-template-columns:repeat(3,1fr) auto;gap:26px;align-items:end;
+    padding:18px clamp(18px,4vw,44px) 0;
+  }
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+  .ctl output{color:var(--rust)}
+  .ctl input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  .ctl input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  .ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-6px;border-radius:50%;background:var(--paper);border:1.5px solid var(--ink);transition:background .25s var(--ease),border-color .25s var(--ease)}
+  .ctl input[type=range]:hover::-webkit-slider-thumb{background:var(--rust);border-color:var(--rust)}
+  .ctl input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  .ctl input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--paper);border:1.5px solid var(--ink)}
+  .acts{display:flex;gap:9px}
+  .btn{
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    padding:9px 13px;cursor:pointer;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    transition:all .3s var(--ease);white-space:nowrap;
+  }
+  .btn:hover{background:var(--rust);border-color:var(--rust);color:var(--paper)}
+  .btn.primary{background:var(--ink);color:var(--paper)}
+  .btn.primary:hover{background:var(--rust);border-color:var(--rust)}
+  .keys{padding:10px clamp(18px,4vw,44px) 0;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--dim)}
+  .keys b{font-weight:400;color:var(--ink);border:1px solid var(--line);padding:1px 5px;margin:0 2px}
+
+  #grain{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.09;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}
+
+  .stage-wrap{padding:0 clamp(18px,4vw,44px) 26px}
+  .stage{
+    position:relative;height:min(76vh,720px);min-height:430px;border-radius:3px;overflow:hidden;
+    background:var(--paper);box-shadow:0 1px 0 var(--line),0 18px 50px -30px rgba(79,102,110,.45);
+    cursor:crosshair;
+  }
+  canvas{display:block;width:100%;height:100%}
+
+  .etudes{position:absolute;top:14px;left:14px;display:flex;gap:8px;flex-wrap:wrap;z-index:4;transition:opacity .5s var(--ease)}
+  .etudes button{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink);
+    background:rgba(227,224,213,.72);border:1px solid rgba(61,68,66,.28);border-radius:2px;
+    padding:7px 12px;cursor:pointer;backdrop-filter:blur(3px);
+    transition:all .45s var(--ease);
+  }
+  .etudes button:hover{background:rgba(227,224,213,.95);transform:translateY(-1px)}
+  .etudes button.on{background:var(--deep);color:var(--paper);border-color:var(--deep)}
+
+  .sndbtn{
+    position:absolute;top:14px;right:14px;z-index:4;width:34px;height:34px;border-radius:2px;
+    border:1px solid rgba(61,68,66,.28);background:rgba(227,224,213,.72);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .45s var(--ease);
+  }
+  .sndbtn:hover{background:rgba(227,224,213,.95)}
+  .sndbtn svg{width:17px;height:17px;stroke:var(--ink);fill:none;stroke-width:1.5;stroke-linecap:round}
+  .sndbtn .waves{opacity:0;transition:opacity .4s}
+  .sndbtn.on .waves{opacity:1}
+  .sndbtn.on .slash{opacity:0}
+  .sndbtn .slash{transition:opacity .4s}
+
+  .sig{
+    position:absolute;left:14px;bottom:52px;z-index:4;display:flex;align-items:center;gap:9px;
+    opacity:.68;cursor:default;user-select:none;
+  }
+  .sig svg{width:20px;height:13px}
+  .sig span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink)}
+
+  .note{
+    position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(8px);z-index:5;
+    font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink);
+    background:rgba(237,234,224,.92);border:1px solid var(--line);border-radius:2px;
+    padding:12px 20px;opacity:0;pointer-events:none;transition:all .8s var(--ease);
+    max-width:82%;text-align:center;
+  }
+  .note.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .lume{
+    position:absolute;left:0;right:0;bottom:0;z-index:4;height:40px;
+    display:flex;align-items:center;gap:12px;padding:0 16px;
+    background:linear-gradient(to top,rgba(227,224,213,.9),rgba(227,224,213,0));
+    transition:opacity .5s var(--ease);
+  }
+  .lume .lab{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);white-space:nowrap}
+  .lume .track{
+    position:relative;flex:1;height:22px;cursor:ew-resize;touch-action:none;
+  }
+  .lume .track::before{
+    content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
+    background:linear-gradient(90deg,#9AA7B8,#C9CDD6,#E8E6DF,#F4E3C2,#E8B96F,#8E7BA8,#4E4A6B);
+    border-radius:1px;opacity:.65;
+  }
+  .lume .thumb{
+    position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#F4E3C2,#D98E4A);
+    border:1.5px solid rgba(61,68,66,.5);transform:translate(-50%,-50%);
+    box-shadow:0 2px 8px rgba(61,68,66,.3);pointer-events:none;
+    transition:box-shadow .4s;
+  }
+  .lume .heure{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink);min-width:52px;text-align:right}
+  .hideme .etudes,.hideme .heures,.hideme .lume,.hideme .sig{opacity:0;pointer-events:none}
+
+  footer{padding:0 clamp(18px,4vw,44px) 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer p{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  @media (max-width:640px){
+    .stage{height:66vh;min-height:400px}
+    .epig{max-width:100%}
+    .sig{bottom:56px}
+    .console{grid-template-columns:1fr;gap:16px}
+    .acts{flex-wrap:wrap}
+  }
+</style>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
+<body>
+
+<header>
+  <div class="brand">
+    <a class="back" href="../../../index.html#work">← Archive</a>
+    <div class="brandline">
+      <svg class="seal" viewBox="0 0 76 76" aria-hidden="true">
+        <defs><path id="ka-ring" d="M38,38 m-26,0 a26,26 0 1,1 52,0 a26,26 0 1,1 -52,0"/></defs>
+        <circle cx="38" cy="38" r="35" fill="none" stroke="currentColor" stroke-width="1"/>
+        <circle cx="38" cy="38" r="20.5" fill="none" stroke="currentColor" stroke-width=".6"/>
+        <text><textPath href="#ka-ring">ATELIER MIRA · MARÉE · ATELIER MIRA · MARÉE ·</textPath></text>
+        <path class="seal-m" d="M29.5 49 C28.5 41 28 33 29 26.5 C33.5 32.5 36 38.5 38 43.5 C40 38.5 42.5 32.5 47 26.5 C48 33 47.5 41 46.5 49"
+              fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h1>Kinetic <em>Atlas</em></h1>
+    </div>
+    <span class="etude">ÉTUDE <b>N°02/100</b> · 潮汐海图 · 同一道海岸的二十四小时</span>
+  </div>
+  <p class="epig">« La marée redessine la côte deux fois par jour, et ne se répète jamais. »</p>
+</header>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <canvas id="sea"></canvas>
+
+    <div class="etudes" id="etudes">
+      <button data-m="pleine">满潮</button>
+      <button data-m="basse">落潮</button>
+      <button data-m="brume">海雾</button>
+      <button data-m="grain">风暴</button>
+    </div>
+
+    <div class="heures" id="heures">
+      <button data-h="6.5">晨</button>
+      <button data-h="12">午</button>
+      <button data-h="18.5">昏</button>
+      <button data-h="22.5">夜</button>
+    </div>
+
+    <div class="sonde" id="sonde">—</div>
+
+    <button class="sndbtn" id="snd" aria-label="声景开关" title="声景（默认关闭）">
+      <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="waves" d="M16.5 8.5c1.6 1.8 1.6 5.2 0 7M19 6.5c2.6 3 2.6 8 0 11"/><path class="slash" d="M17 9l5 6M22 9l-5 6"/></svg>
+    </button>
+
+    <div class="sig" id="sig">
+      <svg viewBox="0 0 64 40" fill="#4F666E" aria-hidden="true">
+        <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+                 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+                 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+                 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+                 C 35 17, 33 17, 32 20 Z"/>
+      </svg>
+      <span>Atelier MIRA · N°002 · Marée</span>
+    </div>
+
+    <div class="note" id="note">六月十四日，雾。把同一道海岸画了二十七遍，潮水每次都替我改掉几笔。</div>
+
+    <div class="lume">
+      <span class="lab">光 · HEURE</span>
+      <div class="track" id="lume"><div class="thumb" id="thumb"></div></div>
+      <span class="heure" id="heureOut">—</span>
+    </div>
+  </div>
+
+  <div class="console">
+    <div class="ctl"><label>风速 VENT <output id="oVent">100%</output></label><input id="rVent" type="range" min="30" max="200" value="100"></div>
+    <div class="ctl"><label>潮幅 MARNAGE <output id="oMar">100%</output></label><input id="rMar" type="range" min="30" max="180" value="100"></div>
+    <div class="ctl"><label>笔触 TOUCHES <output id="oTou">100%</output></label><input id="rTou" type="range" min="40" max="160" value="100"></div>
+    <div class="acts">
+      <button class="btn primary" id="bSeed">再生 ↻</button>
+      <button class="btn" id="bShare">复制链接</button>
+      <button class="btn" id="bPng">PNG ↓</button>
+    </div>
+  </div>
+  <div class="keys">
+    <b>1–4</b>潮汐练习曲 <b>晨午昏夜</b>或拖动 HEURE 换光 <b>H</b>收起界面 <b>R</b>再生 <b>S</b>存图 <b>L</b>复制链接 · 悬停测深 · 落款连点三次有题记
+  </div>
+</div>
+
+<footer>
+  <p>千笔顺流，潮汐改道 · 拖动激溅，点击涌波</p>
+  <p>Canvas 2D · ÉTUDE N°02/100 · seed <span id="footSeed">#0602</span> · Painted with code, plein air</p>
+</footer>
+
+<div id="grain" aria-hidden="true"></div>
+
+<script>
+(function(){
+"use strict";
+/* ---------- palette: Marée 潮汐（诺曼底海岸，冷调 ≈6500K） ---------- */
+const PAL = {
+  paper:[227,224,213], shallow:[168,190,192], sea:[112,140,148],
+  deep:[58,84,96], sand:[205,183,146], rust:[217,123,90], ink:[61,68,66]
+};
+const cvs=document.getElementById('sea'), ctx=cvs.getContext('2d');
+const stage=document.getElementById('stage');
+let W=0,H=0,DPR=1;
+
+/* ---------- seeded rng + value noise fbm ---------- */
+let SEED=602;
+const hseed=location.hash.match(/seed=(\d+)/);if(hseed)SEED=((+hseed[1])>>>0)%100000;
+let seed=SEED;
+function srand(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646}
+const P=new Uint8Array(512);
+function buildPerm(s0){const p=[...Array(256).keys()];let s=(s0%2147483646)+1;
+  const r=()=>{s=(s*16807)%2147483647;return (s-1)/2147483646};
+  for(let i=255;i>0;i--){const j=(r()*(i+1))|0;[p[i],p[j]]=[p[j],p[i]]}
+  for(let i=0;i<512;i++)P[i]=p[i&255];}
+buildPerm(SEED);
+
+/* ---------- 参数台 ---------- */
+const PAR={vent:1,marnage:1,touches:1};
+function vnoise(x,y){
+  const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  const h=(X,Y)=>P[(P[(X&255)]+(Y&255))&511]/255;
+  const a=h(xi,yi),b=h(xi+1,yi),c=h(xi,yi+1),d=h(xi+1,yi+1);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+}
+function fbm(x,y){return vnoise(x,y)*.55+vnoise(x*2.1+13,y*2.1+7)*.3+vnoise(x*4.3+31,y*4.3+17)*.15}
+
+/* ---------- heure 时间系统 ---------- */
+let heure=new Date().getHours()+new Date().getMinutes()/60;
+const hash=location.hash.match(/h=([\d.]+)/);if(hash)heure=parseFloat(hash[1])%24;
+/* 光关键帧：晨冷平光 → 午白顶 → 暮金长影 → 夜蓝紫（不是黑） */
+const KEYS=[ // h, tint(rgb), tintAlpha, warm(rgb), warmAlpha, light(0..1)
+  [0,  [78,74,107],.34,[142,123,168],.05,.18],
+  [5,  [154,167,184],.26,[216,203,184],.10,.42],
+  [8,  [201,205,214],.10,[232,230,223],.06,.72],
+  [12, [227,224,213],.04,[244,240,228],.05,1.0],
+  [16, [232,214,178],.10,[244,227,194],.10,.86],
+  [18.5,[217,142,74],.20,[232,185,111],.20,.62],
+  [20.5,[110,123,140],.28,[201,166,180],.10,.34],
+  [24, [78,74,107],.34,[142,123,168],.05,.18]
+];
+function lightAt(h){
+  h=((h%24)+24)%24;
+  let i=0;while(i<KEYS.length-2&&KEYS[i+1][0]<h)i++;
+  const a=KEYS[i],b=KEYS[i+1],t=Math.min(1,Math.max(0,(h-a[0])/(b[0]-a[0]||1)));
+  const L=(x,y)=>x+(y-x)*t, mix3=(u,v)=>[L(u[0],v[0]),L(u[1],v[1]),L(u[2],v[2])];
+  return {tint:mix3(a[1],b[1]),tintA:L(a[2],b[2]),warm:mix3(a[3],b[3]),warmA:L(a[4],b[4]),light:L(a[5],b[5])};
+}
+
+/* ---------- études 练习曲 ---------- */
+let mode=null; // pleine / basse / brume / grain
+const mh=location.hash.match(/m=(\w+)/);if(mh)mode=mh[1];
+const tideBase=()=>0.5+0.11*PAR.marnage*Math.cos((heure-6)/12*Math.PI*2); // 半日潮（海岸线常驻画面）
+function tideLevel(){let l=tideBase();if(mode==='pleine')l+=.10;if(mode==='basse')l-=.10;return l}
+
+/* ---------- 纸纹（离屏预生成） ---------- */
+let paperC=null;
+function makePaper(){
+  paperC=document.createElement('canvas');paperC.width=Math.max(2,W*DPR/2);paperC.height=Math.max(2,H*DPR/2);
+  const p=paperC.getContext('2d');p.scale(DPR/2,DPR/2);
+  for(let i=0;i<4200;i++){
+    p.fillStyle=`rgba(${srand()<.5?'61,68,66':'255,255,250'},${(.02+srand()*.04).toFixed(3)})`;
+    p.fillRect(srand()*W,srand()*H,1+srand()*1.6,1+srand()*1.2);
+  }
+  p.strokeStyle='rgba(120,118,105,.05)';p.lineWidth=.6;
+  for(let i=0;i<70;i++){
+    p.beginPath();const x=srand()*W,y=srand()*H,a=srand()*Math.PI;
+    p.moveTo(x,y);p.lineTo(x+Math.cos(a)*(20+srand()*70),y+Math.sin(a)*(20+srand()*70));p.stroke();
+  }
+}
+
+/* ---------- 颗粒 12fps ---------- */
+let grainC=document.createElement('canvas');grainC.width=grainC.height=128;
+function makeGrain(){
+  const g=grainC.getContext('2d');const im=g.createImageData(128,128);
+  for(let i=0;i<im.data.length;i+=4){const v=110+Math.random()*40;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=14}
+  g.putImageData(im,0,0);
+}
+makeGrain();setInterval(makeGrain,83);
+
+/* ---------- 碎色笔触粒子 ---------- */
+let strokes=[],waves=[],BUOYS=[];
+function buildField(){
+  strokes=[];const n=Math.min(5200,Math.round(W*H/300*PAR.touches));
+  for(let i=0;i<n;i++)strokes.push({x:srand()*W,y:srand()*H,vx:0,vy:0,life:srand()*200});
+  BUOYS=[];for(let i=0;i<5;i++)BUOYS.push({x:W*(0.18+i*0.16+srand()*.05),y:H*(0.3+srand()*.45),ph:srand()*9});
+}
+function depth(x,y,t){
+  // 大形态：左上一道岬角伸入海（低频 fbm + 宏观坡降），细节叠加小尺度涌
+  const m=Math.max(W,H);
+  const warp=fbm(x*1.1/m+7.3,y*1.1/m+3.1);
+  let d=fbm(x*1.6/m+warp*.9+t*.05, y*1.6/m+t*.03);
+  d=d*.72+(x/W*.34+(1-y/H)*.30)*.28; // 宏观坡：左上为陆，右下为海
+  d+=fbm(x*6/m+41,y*6/m+19)*.08;
+  return d;
+}
+/* ---------- 底彩层（underpainting：低分辨率深度渲染，水彩罩染） ---------- */
+const underC=document.createElement('canvas');
+let uw=0,uh=0,underImg=null;
+function makeUnder(){
+  uw=Math.max(2,Math.ceil(W/5));uh=Math.max(2,Math.ceil(H/5));
+  underC.width=uw;underC.height=uh;
+  underImg=underC.getContext('2d').createImageData(uw,uh);
+}
+function paintUnder(tide){
+  const data=underImg.data;let i=0;
+  for(let y=0;y<uh;y++)for(let x=0;x<uw;x++){
+    const d=depth(x*5+2.5,y*5+2.5,t);
+    const b=bandColor(d,tide);
+    const m=b.land?.18:.12; // 罩染：向纸色收敛，留出笔触的振动
+    data[i++]=b.c[0]+(PAL.paper[0]-b.c[0])*m;
+    data[i++]=b.c[1]+(PAL.paper[1]-b.c[1])*m;
+    data[i++]=b.c[2]+(PAL.paper[2]-b.c[2])*m;
+    data[i++]=255;
+  }
+  underC.getContext('2d').putImageData(underImg,0,0);
+  ctx.imageSmoothingEnabled=true;
+  ctx.drawImage(underC,0,0,W,H);
+}
+
+function hslJit(c,amt){ // hue/lightness jitter in rgb space (cheap)
+  const j=(Math.random()-.5)*2*amt;
+  return [c[0]+j*.8,c[1]+j,c[2]+j*1.2];
+}
+function bandColor(d,tide){
+  // 陆（沙）在 tide 之上；水在 tide 之下
+  if(d>tide+0.02){
+    const k=Math.min(1,(d-tide)*3.2);
+    // 湿沙带：潮线上方一圈更深的湿沙
+    if(d<tide+0.055)return {c:[178,158,124],a:.9,land:true};
+    return {c:[PAL.sand[0]+k*16,PAL.sand[1]+k*14,PAL.sand[2]+k*8],a:.86,land:true};
+  }
+  const sub=Math.min(1,(tide-d)*3.0); // 越深越向 deep
+  const c=sub<.5
+    ? [PAL.shallow[0]+(PAL.sea[0]-PAL.shallow[0])*sub*2,PAL.shallow[1]+(PAL.sea[1]-PAL.shallow[1])*sub*2,PAL.shallow[2]+(PAL.sea[2]-PAL.shallow[2])*sub*2]
+    : [PAL.sea[0]+(PAL.deep[0]-PAL.sea[0])*(sub-.5)*2,PAL.sea[1]+(PAL.deep[1]-PAL.sea[1])*(sub-.5)*2,PAL.sea[2]+(PAL.deep[2]-PAL.sea[2])*(sub-.5)*2];
+  return {c,a:.92-sub*.3,land:false,sub};
+}
+
+/* ---------- 指针 / 物理 ---------- */
+let px=-999,py=-999,pvx=0,pvy=0,ptx=-999,pty=-999,lastMove=0;
+stage.addEventListener('pointermove',e=>{
+  const r=stage.getBoundingClientRect();ptx=e.clientX-r.left;pty=e.clientY-r.top;lastMove=performance.now();
+});
+stage.addEventListener('pointerleave',()=>{ptx=-999;pty=-999});
+stage.addEventListener('pointerdown',e=>{
+  const r=stage.getBoundingClientRect();
+  waves.push({x:e.clientX-r.left,y:e.clientY-r.top,r:0,a:1});
+  if(sound.on)sound.plop();
+});
+
+/* ---------- 燕子飞渡（L4 彩蛋） ---------- */
+const SW='M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19 C 35 17, 33 17, 32 20 Z';
+const swallowPath=new Path2D(SW);
+let swallow=null,nextSwallow=performance.now()+9000+Math.random()*8000;
+
+/* ---------- 声景（L5，默认 OFF） ---------- */
+const sound={on:false,ctx:null,master:null,
+  init(){ if(this.ctx)return;
+    const C=this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const M=this.master=C.createGain();M.gain.value=0;M.connect(C.destination);
+    // 风：brown noise -> bandpass
+    const len=2*C.sampleRate,buf=C.createBuffer(1,len,C.sampleRate),d=buf.getChannelData(0);
+    let l=0;for(let i=0;i<len;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.2}
+    const src=C.createBufferSource();src.buffer=buf;src.loop=true;
+    const bp=C.createBiquadFilter();bp.type='bandpass';bp.frequency.value=560;bp.Q.value=1;
+    const wg=C.createGain();wg.gain.value=.16;src.connect(bp);bp.connect(wg);wg.connect(M);src.start();
+    this.wind=bp;this.windG=wg;
+    // 远水：lowpass brown
+    const src2=C.createBufferSource();src2.buffer=buf;src2.loop=true;src2.playbackRate.value=.5;
+    const lp=C.createBiquadFilter();lp.type='lowpass';lp.frequency.value=240;
+    const sg=C.createGain();sg.gain.value=.22;src2.connect(lp);lp.connect(sg);sg.connect(M);src2.start();
+    this.scheduleBird();
+  },
+  scheduleBird(){ if(!this.ctx)return;
+    const C=this.ctx,delay=2000+Math.random()*7000;
+    setTimeout(()=>{ if(this.on)this.chirp(); this.scheduleBird(); },delay);
+  },
+  chirp(){ const C=this.ctx,t=C.currentTime;
+    const o=C.createOscillator(),m=C.createOscillator(),mg=C.createGain(),g=C.createGain();
+    o.frequency.setValueAtTime(2400+Math.random()*300,t);
+    o.frequency.exponentialRampToValueAtTime(3200,t+.08);
+    m.frequency.value=30+Math.random()*40;mg.gain.value=200+Math.random()*300;
+    m.connect(mg);mg.connect(o.frequency);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.028,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.12);
+    o.connect(g);g.connect(this.master);o.start(t);m.start(t);o.stop(t+.14);m.stop(t+.14);
+  },
+  plop(){ const C=this.ctx;if(!C)return;const t=C.currentTime;
+    const o=C.createOscillator(),g=C.createGain();
+    o.frequency.setValueAtTime(900,t);o.frequency.exponentialRampToValueAtTime(300,t+.09);
+    g.gain.setValueAtTime(.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+.12);
+    o.connect(g);g.connect(this.master);o.start(t);o.stop(t+.14);
+  },
+  toggle(){ this.on=!this.on;
+    if(this.on){this.init();this.ctx.resume();const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.setValueAtTime(0,t);
+      this.master.gain.linearRampToValueAtTime(1,t+1.5);}
+    else if(this.ctx){const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.linearRampToValueAtTime(0,t+.6);}
+    localStorage.setItem('mira-sound',this.on?'1':'0');
+    document.getElementById('snd').classList.toggle('on',this.on);
+  }
+};
+document.getElementById('snd').addEventListener('click',e=>{e.stopPropagation();sound.toggle()});
+if(localStorage.getItem('mira-sound')==='1'){/* 不自动播放：等首次交互 */
+  const arm=()=>{sound.toggle();removeEventListener('pointerdown',arm)};addEventListener('pointerdown',arm);}
+
+/* ---------- lume 时间轴 ---------- */
+const lume=document.getElementById('lume'),thumb=document.getElementById('thumb'),heureOut=document.getElementById('heureOut');
+let lumeDrag=false;
+function lumeSet(e){const r=lume.getBoundingClientRect();
+  heure=Math.min(24,Math.max(0,(e.clientX-r.left)/r.width*24));syncHash();markHeureChip();}
+lume.addEventListener('pointerdown',e=>{lumeDrag=true;lume.setPointerCapture(e.pointerId);lumeSet(e);e.stopPropagation()});
+lume.addEventListener('pointermove',e=>{if(lumeDrag)lumeSet(e)});
+lume.addEventListener('pointerup',()=>lumeDrag=false);
+function syncHash(){
+  history.replaceState(null,'',`#seed=${SEED}&h=${heure.toFixed(1)}${mode?'&m='+mode:''}`);
+  document.getElementById('footSeed').textContent='#'+String(SEED).padStart(4,'0');
+}
+
+/* ---------- études 按钮 ---------- */
+document.getElementById('etudes').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  mode=(mode===b.dataset.m)?null:b.dataset.m;
+  document.querySelectorAll('.etudes button').forEach(x=>x.classList.toggle('on',x.dataset.m===mode));
+  syncHash();
+  if(mode==='brume'&&sound.on&&sound.wind)sound.wind.frequency.value=380;
+  else if(sound.on&&sound.wind)sound.wind.frequency.value=mode==='grain'?760:560;
+});
+if(mode)document.querySelector(`.etudes button[data-m="${mode}"]`)?.classList.add('on');
+
+/* ---------- 晨午昏夜 快捷键 chips ---------- */
+function markHeureChip(){
+  const snap=[6.5,12,18.5,22.5];
+  document.querySelectorAll('.heures button').forEach(x=>{
+    x.classList.toggle('on',Math.abs(parseFloat(x.dataset.h)-heure)<1.2);
+  });
+}
+document.getElementById('heures').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  heure=parseFloat(b.dataset.h);syncHash();markHeureChip();
+});
+
+/* ---------- 测深读数（hover 细节层） ---------- */
+const sonde=document.getElementById('sonde');
+stage.addEventListener('pointermove',e=>{
+  const r=stage.getBoundingClientRect();
+  const sx=e.clientX-r.left,sy=e.clientY-r.top;
+  const d=depth(sx,sy,t),tide=tideLevel();
+  const land=d>tide+0.02;
+  const depthM=land?null:((tide-d)*22).toFixed(1);
+  sonde.style.display='block';
+  sonde.style.left=sx+'px';sonde.style.top=sy+'px';
+  sonde.textContent=land?`SOND ${d.toFixed(2)} · TERRE 陆地`:`SOND ${d.toFixed(2)} · MER 水深 ${depthM}m`;
+});
+stage.addEventListener('pointerleave',()=>{sonde.style.display='none'});
+
+/* ---------- 参数台 + 输出 ---------- */
+const $=id=>document.getElementById(id);
+let touTimer=null;
+$('rVent').addEventListener('input',e=>{PAR.vent=e.target.value/100;$('oVent').textContent=e.target.value+'%'});
+$('rMar').addEventListener('input',e=>{PAR.marnage=e.target.value/100;$('oMar').textContent=e.target.value+'%'});
+$('rTou').addEventListener('input',e=>{
+  PAR.touches=e.target.value/100;$('oTou').textContent=e.target.value+'%';
+  clearTimeout(touTimer);touTimer=setTimeout(buildField,240);
+});
+function reseed(){
+  SEED=((SEED*1664525+1013904223)>>>0)%100000;
+  seed=SEED;buildPerm(SEED);makePaper();buildField();syncHash();
+}
+$('bSeed').addEventListener('click',reseed);
+$('bShare').addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText(location.href);$('bShare').textContent='已复制 ✓';}
+  catch{prompt('复制这张海图的链接',location.href);}
+  setTimeout(()=>$('bShare').textContent='复制链接',1600);
+});
+function savePng(){
+  const a=document.createElement('a');
+  a.download=`kinetic-atlas-${SEED}-h${heure.toFixed(1)}.png`;
+  a.href=cvs.toDataURL('image/png');a.click();
+}
+$('bPng').addEventListener('click',savePng);
+
+/* ---------- 隐藏题记（落款连点 3 次） ---------- */
+let sigClicks=0,sigTimer=null;
+document.getElementById('sig').addEventListener('click',()=>{
+  sigClicks++;clearTimeout(sigTimer);sigTimer=setTimeout(()=>sigClicks=0,900);
+  if(sigClicks>=3){sigClicks=0;const n=document.getElementById('note');
+    n.classList.add('show');setTimeout(()=>n.classList.remove('show'),5200);}
+});
+
+/* ---------- H 键收起 / 数字键练习曲 / R 再生 / S 存图 / L 链接 ---------- */
+addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA'].includes(document.activeElement?.tagName))return;
+  const k=e.key.toLowerCase();
+  if(k==='h')stage.classList.toggle('hideme');
+  if(k==='r')reseed();
+  if(k==='s')savePng();
+  if(k==='l')$('bShare').click();
+  const map={'1':'pleine','2':'basse','3':'brume','4':'grain'};
+  if(map[e.key]){mode=(mode===map[e.key])?null:map[e.key];
+    document.querySelectorAll('.etudes button').forEach(x=>x.classList.toggle('on',x.dataset.m===mode));syncHash();}
+});
+
+/* ---------- resize ---------- */
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  W=stage.clientWidth;H=stage.clientHeight;
+  cvs.width=W*DPR;cvs.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  makePaper();buildField();makeUnder();
+}
+addEventListener('resize',resize);resize();
+syncHash();markHeureChip();
+
+/* ---------- 主循环 ---------- */
+let t=0;
+function frame(now){
+  t+=.008;
+  // 指针阻尼插值（L1.1）
+  if(ptx>-100){px+=(ptx-px)*.09;py+=(pty-py)*.09;
+    pvx=pvx*.86+(ptx-px)*.14;pvy=pvy*.86+(pty-py)*.14;}
+  const L=lightAt(heure),tide=tideLevel();
+  const agit=(mode==='grain'?2.2:1)*PAR.vent;
+
+  // 底：纸 → 底彩罩染
+  ctx.fillStyle=`rgb(${PAL.paper})`;ctx.fillRect(0,0,W,H);
+  paintUnder(tide);
+
+  // 碎色笔触层
+  ctx.lineCap='round';
+  const foggy=mode==='brume';
+  for(const s of strokes){
+    const d=depth(s.x,s.y,t);
+    const b=bandColor(d,tide);
+    // 流向：陆上沿等深线（梯度垂直），水下沿流场
+    const e=2.5;
+    const gx=(depth(s.x+e,s.y,t)-depth(s.x-e,s.y,t))/(2*e);
+    const gy=(depth(s.x,s.y+e,t)-depth(s.x,s.y-e,t))/(2*e);
+    let ang;
+    if(b.land)ang=Math.atan2(gy,gx)+Math.PI/2;
+    else ang=Math.atan2(gy,gx)+Math.sin(t*2+s.x*.01)*.6;
+    // 指针速度向量扰动（L1.3）
+    const dx=s.x-px,dy=s.y-py,dd=dx*dx+dy*dy;
+    if(dd<16000){const f=(1-dd/16000);s.vx+=pvx*f*.06*agit;s.vy+=pvy*f*.06*agit}
+    // 压力波（L1.5）
+    for(const wv of waves){
+      const wx=s.x-wv.x,wy=s.y-wv.y,wd=Math.hypot(wx,wy);
+      if(Math.abs(wd-wv.r)<26&&wd>1){const f=wv.a*.5;s.vx+=wx/wd*f;s.vy+=wy/wd*f}
+    }
+    // 燕子翼尖扰动
+    if(swallow){const sx=s.x-swallow.x,sy=s.y-swallow.y,sd=sx*sx+sy*sy;
+      if(sd<3600){const f=(1-sd/3600)*1.6;s.vx+=sx*.01*f;s.vy+=sy*.01*f}}
+    s.vx*=.94;s.vy*=.94;
+    s.x+=Math.cos(ang)*.35*agit+s.vx;s.y+=Math.sin(ang)*.35*agit+s.vy;
+    if(++s.life>260||s.x<-8||s.x>W+8||s.y<-8||s.y>H+8){
+      s.x=Math.random()*W;s.y=Math.random()*H;s.vx=s.vy=0;s.life=0;continue;
+    }
+    // 潮线：点彩混色（divisionism）
+    if(Math.abs(d-tide)<.014){
+      ctx.fillStyle=(s.life%2<1)?`rgba(${PAL.sand},.95)`:`rgba(${PAL.sea},.95)`;
+      ctx.beginPath();ctx.arc(s.x,s.y,1.6+Math.random()*1.2,0,7);ctx.fill();continue;
+    }
+    // 潮线上的泡沫白点
+    if(Math.abs(d-tide)<.03&&Math.random()<.06){
+      ctx.fillStyle='rgba(240,238,228,.8)';
+      ctx.beginPath();ctx.arc(s.x,s.y,.9+Math.random(),0,7);ctx.fill();continue;
+    }
+    // 笔触与罩染错开明暗：三色阶交替，让碎色在底彩上振动
+    const tone=(s.life%3<1)?-1:((s.life%3<2)?0:1);
+    let bc=b.c;
+    if(tone!==0){
+      const tgt=b.land?(tone<0?[178,158,124]:PAL.paper):(tone<0?PAL.deep:PAL.shallow);
+      bc=[b.c[0]+(tgt[0]-b.c[0])*.5,b.c[1]+(tgt[1]-b.c[1])*.5,b.c[2]+(tgt[2]-b.c[2])*.5];
+    }
+    const c=hslJit(bc,13),a=Math.min(.95,b.a*(0.78+Math.random()*.26));
+    let len=4+Math.random()*11*(b.land?.8:1.35);
+    // 大气透视：画面上部（远景）向纸色收敛
+    const depthK=1-s.y/H; // 顶部=远
+    const fog=foggy?Math.min(.8,.3+depthK*.55):depthK*.22;
+    let fc=[c[0]+(PAL.paper[0]-c[0])*fog,c[1]+(PAL.paper[1]-c[1])*fog,c[2]+(PAL.paper[2]-c[2])*fog];
+    // 金色反光碎笔：暮光水面的互补色振动
+    if(!b.land&&Math.random()<.055){
+      const g=heure>15&&heure<20?[232,190,110]:[214,196,150];
+      fc=[g[0]+(PAL.paper[0]-g[0])*fog*.5,g[1]+(PAL.paper[1]-g[1])*fog*.5,g[2]+(PAL.paper[2]-g[2])*fog*.5];
+    }
+    ctx.strokeStyle=`rgba(${fc[0]|0},${fc[1]|0},${fc[2]|0},${a.toFixed(2)})`;
+    ctx.lineWidth=1.2+Math.random()*1.1;
+    const aa=Math.atan2(Math.sin(ang)*1+ s.vy*2,Math.cos(ang)+s.vx*2);
+    ctx.beginPath();ctx.moveTo(s.x,s.y);
+    ctx.lineTo(s.x-Math.cos(aa)*len,s.y-Math.sin(aa)*len);ctx.stroke();
+  }
+
+  // 浮标（锈红点缀 ≤10%，点状）
+  for(const b of BUOYS){
+    const bob=Math.sin(t*3+b.ph)*2.2;
+    // 影：带色温的蓝灰，长度随 heure
+    const sl=(1-L.light)*14+3,sa=(heure/24)*Math.PI*2-Math.PI/2;
+    ctx.fillStyle='rgba(94,110,126,.35)';
+    ctx.beginPath();ctx.ellipse(b.x+Math.cos(sa)*sl,b.y+bob+4+Math.abs(Math.sin(sa))*sl*.3,6,2.6,0,0,7);ctx.fill();
+    ctx.fillStyle=`rgba(${PAL.rust},.9)`;
+    ctx.beginPath();ctx.arc(b.x,b.y+bob,3.4,0,7);ctx.fill();
+    ctx.fillStyle='rgba(227,224,213,.8)';
+    ctx.beginPath();ctx.arc(b.x-1,b.y+bob-1,1.1,0,7);ctx.fill();
+  }
+
+  // 燕子飞渡
+  if(!swallow&&now>nextSwallow&&heure>5&&heure<20.5){
+    const dir=Math.random()<.5?1:-1;
+    swallow={t:0,dir,y0:H*(.2+Math.random()*.3),amp:20+Math.random()*40};
+    nextSwallow=now+22000+Math.random()*26000;
+  }
+  if(swallow){
+    swallow.t+=1/210; // ~3.5s
+    const u=swallow.t;
+    if(u>=1)swallow=null;
+    else{
+      const x=swallow.dir>0?-40+u*(W+80):W+40-u*(W+80);
+      const y=swallow.y0+Math.sin(u*Math.PI*2.2)*swallow.amp-u*10;
+      swallow.x=x;swallow.y=y;
+      ctx.save();ctx.translate(x,y);
+      ctx.scale(swallow.dir*1.15,1.15);ctx.rotate(Math.sin(u*20)*.12);
+      ctx.fillStyle='rgba(61,68,66,.85)';ctx.fill(swallowPath);ctx.restore();
+    }
+  }
+
+  // 光：全局色温 + 暮光暖带
+  ctx.globalCompositeOperation='multiply';
+  ctx.fillStyle=`rgba(${L.tint[0]|0},${L.tint[1]|0},${L.tint[2]|0},${(L.tintA*.55).toFixed(3)})`;
+  ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='overlay';
+  if(L.warmA>.03){
+    const sunX=W*(heure<12?.25:.78),sunY=H*.24;
+    const g=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,Math.max(W,H)*.7);
+    g.addColorStop(0,`rgba(${L.warm[0]|0},${L.warm[1]|0},${L.warm[2]|0},${L.warmA.toFixed(3)})`);
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  ctx.globalCompositeOperation='source-over';
+
+  // 夜不是黑：压一层有色的暗
+  const dark=(1-L.light)*.30;
+  if(dark>.02){ctx.fillStyle=`rgba(46,58,66,${dark.toFixed(3)})`;ctx.fillRect(0,0,W,H)}
+
+  // 纸纹
+  ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.9;
+  ctx.drawImage(paperC,0,0,W,H);
+  ctx.globalCompositeOperation='overlay';ctx.globalAlpha=.05;
+  ctx.drawImage(grainC,0,0,W,H);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+
+  // 波衰减
+  for(const wv of waves){wv.r+=3.2;wv.a*=.94}
+  waves=waves.filter(w=>w.a>.03);
+
+  // lume UI
+  thumb.style.left=(heure/24*100)+'%';
+  const hh=Math.floor(heure),mm=Math.floor((heure-hh)*60);
+  heureOut.textContent=`H ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+<div id="mira-lab" data-project="kinetic-atlas" data-num="02" style="--lab-a:#d8ff47;--lab-b:#ff6b50"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 02 · GEN-ART</small><strong>Kinetic Atlas</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

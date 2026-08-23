@@ -3,36 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Gobo Light — 光影戏 · AI Video 02</title>
+<title>Gobo Light — 光影戏 · Étude N°37</title>
 <style>
 :root{
   --bg:#0d0b09; --cream:#efe6d5; --amber:#f2b544; --cool:#8fb8c9;
+  --amb:#8fb8c9;
   --hair:rgba(239,230,213,.28);
   --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
   --mono:"SF Mono",Menlo,monospace;
   --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--cream);font-family:var(--sans)}
+html,body{margin:0;background:var(--bg);color:var(--cream);font-family:var(--sans);overflow-x:hidden}
 ::selection{background:var(--amber);color:var(--bg)}
 a{color:inherit;text-decoration:none}
 header{
-  height:58px;border-bottom:1px solid var(--hair);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 30px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  min-height:64px;border-bottom:1px solid var(--hair);
+  display:flex;align-items:center;justify-content:space-between;gap:18px;
+  padding:8px 30px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
 }
-header .lft{display:flex;gap:14px;align-items:baseline}
-header .no{font-family:var(--serif);font-size:16px;letter-spacing:.06em}
-.hero{padding:44px 30px 30px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px;align-items:end}
-.kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amber)}
+.brand{display:flex;align-items:center;gap:14px}
+.seal{display:block;flex:none}
+.brand .et{line-height:1.7}
+.brand .et b{display:block;font-weight:400;color:var(--cream)}
+.brand .et span{color:rgba(239,230,213,.5)}
+header .nav{display:flex;gap:22px;align-items:center;white-space:nowrap}
+header .nav a:hover{color:var(--amber)}
+.hero{padding:40px 30px 28px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:30px;align-items:end}
+.kicker{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--amb);transition:color 1.2s}
 h1{
   margin:10px 0 0;font-family:var(--serif);font-weight:400;
-  font-size:clamp(54px,8.4vw,120px);line-height:.92;letter-spacing:-.015em;
+  font-size:clamp(52px,8vw,112px);line-height:.92;letter-spacing:-.015em;
 }
 h1 em{font-style:italic;color:var(--amber)}
 .meta{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;line-height:2.1;text-align:right;color:rgba(239,230,213,.55);white-space:nowrap}
 .meta b{color:var(--cream);font-weight:400}
-.lede{max-width:520px;font-size:14px;line-height:1.75;color:rgba(239,230,213,.72);margin:16px 0 0}
+.lede{max-width:540px;font-size:14px;line-height:1.75;color:rgba(239,230,213,.72);margin:16px 0 0}
 .stage-wrap{padding:8px 30px 0}
 .stage{
   position:relative;height:min(60vw,620px);min-height:400px;
@@ -41,20 +47,36 @@ h1 em{font-style:italic;color:var(--amber)}
 }
 .stage:active{cursor:grabbing}
 .stage canvas{width:100%;height:100%;display:block}
+.stage .tex{
+  position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.5;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .5 0 0 0 0 .44 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+.stage .weave{
+  position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;opacity:.16;
+  background:repeating-linear-gradient(0deg,rgba(239,230,213,.5) 0 1px,transparent 1px 3px),
+             repeating-linear-gradient(90deg,rgba(239,230,213,.35) 0 1px,transparent 1px 3px);
+}
 .billboard{
   position:absolute;top:14px;left:16px;pointer-events:none;
   font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(239,230,213,.55);
   display:flex;gap:20px;
 }
 .billboard b{color:var(--amber);font-weight:400}
+.annot{
+  position:absolute;pointer-events:none;display:none;z-index:3;
+  font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--cream);white-space:nowrap;
+}
+.annot .ln{display:block;width:64px;height:1px;background:rgba(239,230,213,.55);margin-bottom:6px;transform-origin:0 0}
+.annot b{color:var(--amber);font-weight:400}
 .controls{
-  display:grid;grid-template-columns:auto auto minmax(0,1fr) auto auto;gap:28px;align-items:end;
-  padding:26px 30px;border-bottom:1px solid var(--hair);
+  display:grid;grid-template-columns:auto auto auto minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);gap:26px;align-items:end;
+  padding:26px 30px 20px;border-bottom:1px solid var(--hair);
 }
-.cgroup label{
-  display:block;font-family:var(--mono);font-size:9px;letter-spacing:.18em;
-  text-transform:uppercase;color:rgba(239,230,213,.5);margin-bottom:10px;
-}
+.cgroup label,.ctl label{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.18em;
+  text-transform:uppercase;color:rgba(239,230,213,.5);margin-bottom:10px}
+.ctl label{display:flex;justify-content:space-between}
+.ctl output{color:var(--amber)}
 .pats{display:flex;gap:8px;flex-wrap:wrap}
 .pat{
   font-family:var(--mono);font-size:10px;letter-spacing:.1em;
@@ -70,13 +92,26 @@ h1 em{font-style:italic;color:var(--amber)}
 }
 .sw:hover{transform:scale(1.15)}
 .sw.on{outline:1px solid var(--cream);outline-offset:3px}
-.ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(239,230,213,.5);margin-bottom:10px}
-.ctl output{color:var(--amber)}
+.seg{display:flex;border:1px solid var(--hair)}
+.seg button{
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;background:transparent;border:none;
+  color:rgba(239,230,213,.7);padding:9px 13px;cursor:pointer;transition:all .18s;
+}
+.seg button+button{border-left:1px solid var(--hair)}
+.seg button.on{background:var(--cream);color:var(--bg)}
+.hours{display:flex;gap:0;border:1px solid var(--hair)}
+.hours button{
+  flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.08em;background:transparent;border:none;
+  color:rgba(239,230,213,.65);padding:9px 10px;cursor:pointer;transition:all .25s;position:relative;
+}
+.hours button+button{border-left:1px solid var(--hair)}
+.hours button.on{color:var(--bg);background:var(--amb)}
 input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
 input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--hair)}
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;margin-top:-5.5px;background:var(--amber);border:none}
 input[type=range]::-moz-range-track{height:1px;background:var(--hair)}
 input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--amber);border:none}
+.actions{display:flex;gap:12px;padding:18px 30px 26px;border-bottom:1px solid var(--hair);flex-wrap:wrap}
 button.act{
   font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
   background:transparent;border:1px solid var(--hair);color:var(--cream);
@@ -85,50 +120,94 @@ button.act{
 button.act:hover{background:var(--cream);color:var(--bg)}
 button.act.acc{border-color:var(--amber);color:var(--amber)}
 button.act.acc:hover{background:var(--amber);color:var(--bg)}
+.row2{padding-top:18px;border-bottom:none;grid-template-columns:auto auto}
+.kbd-hint{
+  padding:12px 30px 0;font-family:var(--mono);font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:rgba(239,230,213,.4);
+}
+.kbd-hint b{color:rgba(239,230,213,.75);font-weight:400;border:1px solid var(--hair);padding:1px 5px;margin:0 2px}
 .notes{display:grid;grid-template-columns:1fr 1fr;gap:44px;padding:54px 30px 66px}
 .notes h2{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(30px,4vw,50px);line-height:1.06}
 .notes h2 em{font-style:italic;color:var(--amber)}
-.notes p{font-size:14px;line-height:1.85;color:rgba(239,230,213,.7);max-width:480px;margin:0}
+.notes p{font-size:14px;line-height:1.85;color:rgba(239,230,213,.7);max-width:520px;margin:0 0 14px}
 .notes .sig{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,230,213,.4);margin-top:18px}
-footer{border-top:1px solid var(--hair);padding:12px 30px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,230,213,.45);display:flex;justify-content:space-between}
+footer{border-top:1px solid var(--hair);padding:12px 30px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(239,230,213,.45);display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+footer .colo{color:rgba(239,230,213,.6)}
+footer .colo b{color:var(--amber);font-weight:400}
 @media(max-width:880px){
   .hero{grid-template-columns:1fr}
   .meta{text-align:left}
   .controls{grid-template-columns:1fr 1fr}
   .controls .ctl{grid-column:1/-1}
-  .controls button{width:100%}
+  .row2{grid-template-columns:minmax(0,1fr)}
+  .row2 .cgroup{min-width:0}
+  .hours{flex-wrap:wrap}
+  .hours button{flex:1 1 40%;padding:9px 5px;font-size:9px;letter-spacing:.04em;border-top:1px solid var(--hair)}
+  .billboard{flex-wrap:wrap;gap:6px 14px;right:14px}
   .notes{grid-template-columns:1fr;gap:22px}
   .stage{min-height:320px}
+  header .nav span.series{display:none}
 }
 </style>
-</head>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
 <body>
 <header>
-  <div class="lft"><span class="no">AV·02</span><a href="../../../index.html#work">← Archive</a></div>
-  <span>Gobo Light / 光影戏</span>
-  <span>AI Video Series</span>
+  <div class="brand">
+    <svg class="seal" viewBox="0 0 64 64" width="46" height="46" aria-hidden="true">
+      <defs><path id="sealCirc37" d="M32,32 m-24,0 a24,24 0 1,1 48,0 a24,24 0 1,1 -48,0"/></defs>
+      <circle cx="32" cy="32" r="30.5" fill="none" stroke="#f2b544" stroke-width="1" opacity=".9"/>
+      <circle cx="32" cy="32" r="17" fill="none" stroke="#f2b544" stroke-width=".6" opacity=".5"/>
+      <text font-family="SF Mono,Menlo,monospace" font-size="6" letter-spacing="2.1" fill="#f2b544" opacity=".85">
+        <textPath href="#sealCirc37">ATELIER MIRA · PLEIN AIR ·</textPath>
+      </text>
+      <path d="M23.5,43 C24.2,36 24.8,28 25.6,22.5 C27.8,27.6 29.9,32.4 32,36.2 C34.1,32.4 36.2,27.6 38.4,22.5 C39.2,28 39.8,36 40.5,43"
+            fill="none" stroke="#efe6d5" stroke-width="2.1" stroke-linecap="round"/>
+      <path d="M24.2,42.4 C25,35.6 25.6,28.4 26.4,23.4 M37.6,23.4 C38.4,28.4 39,35.6 39.8,42.4"
+            fill="none" stroke="#efe6d5" stroke-width=".7" stroke-linecap="round" opacity=".45"/>
+    </svg>
+    <div class="et"><b>ÉTUDE N°37/100 · 光影戏 Gobo Light</b><span>Théâtre d'ombres — 一盏灯的戏剧</span></div>
+  </div>
+  <div class="nav">
+    <a href="../../../index.html#work">← Archive</a>
+    <span class="series">AI Video Series</span>
+  </div>
 </header>
 
 <section class="hero">
   <div>
-    <div class="kicker">Théâtre d'ombres · 一盏灯的戏剧</div>
+    <div class="kicker" id="kicker">Aube · 晨排 06:10 — 光从天窗外还未来得及退场</div>
     <h1>Gobo <em>Light</em></h1>
-    <p class="lede">舞台上一盏可以随手拖动的灯，一块刻有图案的 gobo 挡片，一个永远在踱步的剪影人。光是演员，图案是台词。拖动灯具、换一块挡片、换一味灯色——戏就变了。</p>
+    <p class="lede">舞台上一盏可以随手拖动的灯，一块刻有图案的 gobo 挡片，一个永远在踱步的剪影人。光是演员，图案是台词——而墙上还藏着几笔炭稿，只有光扫到时才肯显影。拖动灯具、换一块挡片、换一个排练时刻，戏就变了。</p>
   </div>
   <div class="meta">
     Canvas 2D · Procedural shadow play · <b>LIVE</b><br>
     Pattern <b id="mPat">DECO FAN</b> · Gel <b id="mGel">AMBER</b><br>
-    Art direction + code · 2026
+    Mode <b id="mMode">SCÈNE</b> · Seed <b id="mSeed">—</b>
   </div>
 </section>
 
 <div class="stage-wrap">
   <div class="stage" id="stage">
     <canvas id="cv"></canvas>
+    <div class="tex"></div>
+    <div class="weave"></div>
     <div class="billboard">
-      <span>SCENE I — <b>THE WALKER</b></span>
+      <span id="bbScene">SCENE I — <b>THE WALKER</b></span>
       <span>LAMP <b>DRAGGABLE</b></span>
+      <span>WALL <b>HIDES A SKETCH</b></span>
     </div>
+    <div class="annot" id="annot"><span class="ln"></span><span id="annotTxt"></span></div>
   </div>
 </div>
 
@@ -149,21 +228,47 @@ footer{border-top:1px solid var(--hair);padding:12px 30px;font-family:var(--mono
       <button class="sw" data-c="#9fd67a" style="background:#9fd67a" aria-label="absinthe"></button>
     </div>
   </div>
-  <div class="ctl"><label>Walk tempo 踱步节奏 <output id="oTempo">1.0</output></label>
+  <div class="cgroup"><label>构图研究</label>
+    <div class="seg" id="modes">
+      <button class="on" data-m="scene">全景 SCÈNE</button>
+      <button data-m="mur">墙幕 MUR</button>
+    </div>
+  </div>
+  <div class="ctl"><label>Walk tempo 踱步节奏 <output id="oTempo">1.00 m/s</output></label>
     <input type="range" id="sTempo" min="20" max="260" value="100"></div>
-  <button id="bRegen" class="act acc">随机再生 ↻</button>
-  <button id="bDown" class="act">下载 PNG</button>
+  <div class="ctl"><label>Focus 焦距柔边 <output id="oFocus">55%</output></label>
+    <input type="range" id="sFocus" min="0" max="100" value="55"></div>
+  <div class="ctl"><label>Haze 烟雾浓度 <output id="oHaze">45%</output></label>
+    <input type="range" id="sHaze" min="0" max="100" value="45"></div>
 </div>
+<div class="controls row2">
+  <div class="cgroup"><label>时刻 · 同一舞台的四次排练</label>
+    <div class="hours" id="hours">
+      <button class="on" data-h="0">晨 AUBE</button>
+      <button data-h="1">午 JOUR</button>
+      <button data-h="2">昏 CRÉPUSCULE</button>
+      <button data-h="3">夜 MINUIT</button>
+    </div>
+  </div>
+  <div class="cgroup"><label>&nbsp;</label>
+    <div class="seg"><button id="bRegen" style="color:var(--amber)">再生 SEED ↻</button><button id="bShare">复制分享链接</button><button id="bDown">下载 PNG</button></div>
+  </div>
+</div>
+<div class="kbd-hint">快捷键 <b>1–4</b> 挡片 · <b>G</b> 灯色 · <b>M</b> 构图 · <b>T</b> 时刻 · <b>R</b> 再生 · <b>P</b> 存图 —— 双击舞台： blackout ；悬停灯具读数；光扫过左墙有惊喜</div>
 
 <section class="notes">
   <h2>影子比人<br><em>先到场。</em></h2>
   <div>
-    <p>挡片在离屏画布上生成，投影时按透视放大——光锥与地面光池共用同一块纹样，所以墙上的光斑和脚下的光斑永远来自同一张负片。剪影人的步态是纯正弦骨架，影子的方向则由灯的位置实时解算。</p>
-    <div class="sig">Interaction — drag lamp / 4 gobos / 4 gels / tempo / reseed / export PNG</div>
+    <p>挡片在离屏画布上生成，投影时按透视放大——光锥与地面光池共用同一块纹样，所以墙上的光斑和脚下的光斑永远来自同一张负片。剪影人的步态是纯正弦骨架，影子的方向由灯的位置实时解算；灯被松手后还会像真正的吊杆灯一样摆动几下。</p>
+    <p>墙幕模式把同一盏灯推到墙前：光池挂上墙面，人走到灯与墙之间，影子被放大成第二个演员。左侧墙皮里藏着一幅炭笔速写，只在光池经过时显影——这是向 <i>Just a Reflektor</i> 借的手法：光不仅照明，光还揭示。</p>
+    <div class="sig">Interaction — drag lamp (inertial) / light-revealed sketch / 4 gobos / 4 gels / 2 scenes / 4 hours / 3 parameters / hover readout / keyboard / reseed / share link / export PNG</div>
   </div>
 </section>
 
-<footer><span>AV·02 — GOBO LIGHT</span><span>AI PORTFOLIO · VIDEO REEL</span></footer>
+<footer>
+  <span class="colo">Canvas 2D · Seed <b id="fSeed">—</b> · Painted with code, plein air</span>
+  <span>ÉTUDE N°37/100 — ATELIER MIRA</span>
+</footer>
 
 <script>
 (function(){
@@ -171,14 +276,38 @@ footer{border-top:1px solid var(--hair);padding:12px 30px;font-family:var(--mono
 var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
 var stage=document.getElementById('stage');
 var W=0,H=0,dpr=1,t=0;
-var seed=Math.random()*999;
-function rnd(){seed=(seed*9301+49297)%233280;return seed/233280;}
 
-var lamp={x:0.5,y:0.16};           // normalized, draggable
-var gel='#f2b544', patName='deco';
-var tempo=1.0;
+/* ---------- seed system (hash-reproducible) ---------- */
+var seed=(Math.random()*899999+100000)|0;
+var m=location.hash.match(/seed=(\d+)/);if(m)seed=+m[1];
+var _s=seed;
+function rnd(){_s=(_s*9301+49297)%233280;return _s/233280;}
+function reseed(){_s=seed;}
+function setSeed(s){seed=s;reseed();try{history.replaceState(null,'','#seed='+s);}catch(e){location.hash='seed='+s;}
+  var hex6=String(s).padStart(6,'0');
+  document.getElementById('mSeed').textContent='#'+hex6;
+  document.getElementById('fSeed').textContent='#'+hex6;}
+
+/* ---------- state ---------- */
+var lamp={x:0.5,y:0.16,vx:0,vy:0,swing:0,swingV:0};
+var gel='#f2b544', patName='deco', mode='scene';
+var P={tempo:1.0,focus:0.55,haze:0.45};
 var walker={x:0.2,dir:1,phase:0};
-var motes=[];
+var motes=[],sketchStrokes=[];
+var blackout=0, lastPointer=performance.now(), ghost=false;
+
+/* ---------- ambience: four rehearsals of the same stage ---------- */
+var AMB=[
+ {name:'Aube · 晨排 06:10 — 光从天窗外还未来得及退场',
+  top:'#0e1016',mid:'#12100d',bot:'#0a0908',floor:'#0c0a09',spill:'rgba(143,184,201,',spillA:.11,arc:.07,vig:.62,mote:.8,amb:'#8fb8c9'},
+ {name:'Jour · 日场 13:40 — 排练厅最坦白的一小时',
+  top:'#14110c',mid:'#171310',bot:'#0d0b09',floor:'#100d0b',spill:'rgba(239,230,213,',spillA:.10,arc:.10,vig:.42,mote:.55,amb:'#efe6d5'},
+ {name:'Crépuscule · 昏排 19:25 — 穹顶还存着一页橙',
+  top:'#17100a',mid:'#150e09',bot:'#0c0806',floor:'#0f0a08',spill:'rgba(232,98,61,',spillA:.14,arc:.09,vig:.55,mote:.7,amb:'#e8623d'},
+ {name:'Minuit · 夜场 00:50 — 只剩这盏灯还醒着',
+  top:'#050507',mid:'#070605',bot:'#040302',floor:'#060504',spill:'rgba(90,110,160,',spillA:.06,arc:.04,vig:.78,mote:1,amb:'#6f83b8'}
+];
+var ambIdx=0;
 
 /* ---------- gobo pattern (offscreen, seeded) ---------- */
 var gobo=document.createElement('canvas');gobo.width=gobo.height=512;
@@ -187,7 +316,7 @@ function buildGobo(name){
   g.clearRect(0,0,S,S);
   g.fillStyle='#fff';g.fillRect(0,0,S,S);
   g.fillStyle='#000';g.strokeStyle='#000';
-  if(name==='deco'){                       // radiating deco fan
+  if(name==='deco'){
     g.save();g.translate(S/2,S*1.05);
     var n=26,i;
     for(i=0;i<n;i+=2){g.save();g.rotate(-Math.PI/2+(i/n-0.5)*Math.PI*1.35);
@@ -195,26 +324,27 @@ function buildGobo(name){
     for(var r=0;r<5;r++){g.beginPath();g.arc(0,0,S*(0.24+r*0.16),-Math.PI*1.18,Math.PI*0.18);
       g.lineWidth=14;g.stroke();}
     g.restore();
-  }else if(name==='blinds'){               // venetian blinds, slight warp
+  }else if(name==='blinds'){
     for(var y=-20;y<S+20;y+=44){
-      g.save();g.translate(S/2,y);g.rotate(Math.sin(y*0.02+seed)*0.02);
+      g.save();g.translate(S/2,y);g.rotate(Math.sin(y*0.02+_s*0.01)*0.02);
       g.fillRect(-S,0,S*2,20);g.restore();
     }
-  }else if(name==='rose'){                 // gothic rose window
+  }else if(name==='rose'){
     g.save();g.translate(S/2,S/2);
-    var p=10;
+    var p=12;
     for(var i=0;i<p;i++){g.save();g.rotate(i/p*Math.PI*2);
-      g.beginPath();g.ellipse(0,-S*0.3,S*0.11,S*0.2,0,0,7);g.fill();g.restore();}
-    g.lineWidth=18;g.beginPath();g.arc(0,0,S*0.42,0,7);g.stroke();
-    g.beginPath();g.arc(0,0,S*0.16,0,7);g.fill();
+      g.beginPath();g.ellipse(0,-S*0.31,S*0.055,S*0.12,0,0,7);g.fill();g.restore();}
+    g.lineWidth=14;g.beginPath();g.arc(0,0,S*0.44,0,7);g.stroke();
+    g.lineWidth=8;g.beginPath();g.arc(0,0,S*0.20,0,7);g.stroke();
+    g.beginPath();g.arc(0,0,S*0.09,0,7);g.fill();
     g.restore();
-    g.fillRect(0,0,S,S*0.06);g.fillRect(0,S*0.94,S,S*0.06);
-    g.fillRect(0,0,S*0.06,S);g.fillRect(S*0.94,0,S*0.06,S);
-  }else{                                   // foliage
-    for(var i=0;i<170;i++){
-      var x=rnd()*S,y=rnd()*S,r=rnd()*26+8,a=rnd()*Math.PI;
-      g.save();g.translate(x,y);g.rotate(a);
-      g.beginPath();g.ellipse(0,0,r,r*0.42,0,0,7);g.fill();g.restore();
+    g.fillRect(0,0,S,S*0.045);g.fillRect(0,S*0.955,S,S*0.045);
+    g.fillRect(0,0,S*0.045,S);g.fillRect(S*0.955,0,S*0.045,S);
+  }else{
+    for(var j=0;j<170;j++){
+      var x=rnd()*S,y2=rnd()*S,r2=rnd()*26+8,a=rnd()*Math.PI;
+      g.save();g.translate(x,y2);g.rotate(a);
+      g.beginPath();g.ellipse(0,0,r2,r2*0.42,0,0,7);g.fill();g.restore();
     }
     g.lineWidth=7;
     for(var b=0;b<9;b++){
@@ -224,17 +354,49 @@ function buildGobo(name){
   }
 }
 
+/* ---------- hidden charcoal sketch on the wall (seeded) ---------- */
+var sketch=document.createElement('canvas');
+function buildSketch(){
+  sketch.width=Math.max(2,W*dpr);sketch.height=Math.max(2,H*dpr);
+  var g=sketch.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  g.strokeStyle='rgba(210,198,178,0.9)';g.lineCap='round';
+  var cx0=W*0.14,cy0=H*0.34,u=Math.min(W,H)*0.0042;
+  function stroke(pts,w,a){g.globalAlpha=a;g.lineWidth=w;g.beginPath();
+    g.moveTo(cx0+pts[0][0]*u,cy0+pts[0][1]*u);
+    for(var i=1;i<pts.length;i++)g.lineTo(cx0+pts[i][0]*u,cy0+pts[i][1]*u);g.stroke();}
+  // a profile face, drawn and redrawn like a charcoal study
+  for(var pass=0;pass<3;pass++){
+    var j=function(v){return v+(rnd()-0.5)*3;};
+    stroke([[j(0),j(-30)],[j(14),j(-34)],[j(24),j(-26)],[j(22),j(-14)],[j(28),j(-6)],[j(20),j(2)],[j(22),j(10)],[j(12),j(16)],[j(10),j(28)]],1.1,0.5); // face line
+    stroke([[j(2),j(-30)],[j(-6),j(-22)],[j(-8),j(-6)],[j(-4),j(16)],[j(-2),j(34)]],1,0.42);   // back of head
+    stroke([[j(8),j(30)],[j(6),j(44)],[j(16),j(50)]],1,0.4);                                     // neck
+  }
+  // a bird in flight beside the face
+  for(var b2=0;b2<2;b2++){
+    var bx=W*0.06,by=H*0.14,jj=function(v){return v+(rnd()-0.5)*4;};
+    g.globalAlpha=0.45;g.lineWidth=1;
+    g.beginPath();g.moveTo(bx+jj(0),by+jj(0));
+    g.quadraticCurveTo(bx+30*u+jj(0),by-24*u+jj(0),bx+60*u+jj(0),by+jj(0));
+    g.quadraticCurveTo(bx+90*u+jj(0),by-20*u+jj(0),bx+118*u+jj(0),by+4*u+jj(0));g.stroke();
+  }
+  // hand-written note
+  g.globalAlpha=0.55;g.font='italic '+Math.max(11,H*0.022)+'px Georgia,serif';
+  g.fillStyle='rgba(210,198,178,0.85)';
+  g.fillText('la lumière arrive avant l\u2019acteur',cx0-8*u,cy0+58*u);
+  g.globalAlpha=1;
+}
+
 /* ---------- sizing ---------- */
 function size(){
   dpr=Math.min(window.devicePixelRatio||1,2);
   W=stage.clientWidth;H=stage.clientHeight;
   cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
   motes=[];
-  for(var i=0;i<60;i++)motes.push({r:Math.random(),o:Math.random(),s:Math.random()*0.5+0.2});
+  for(var i=0;i<90;i++)motes.push({r:rnd(),o:rnd(),s:rnd()*0.5+0.2});
+  buildSketch();
 }
 window.addEventListener('resize',size);
 
-/* ---------- hex → rgba ---------- */
 function rgba(hex,a){
   var n=parseInt(hex.slice(1),16);
   return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';
@@ -244,10 +406,9 @@ function rgba(hex,a){
 function drawWalker(g,x,y,h,phase,flip,alpha,color){
   g.save();g.translate(x,y);g.scale(flip,1);g.globalAlpha=alpha;
   g.fillStyle=color;g.strokeStyle=color;g.lineCap='round';
-  var s=h/100;                            // unit scale
+  var s=h/100;
   var hipY=-46*s,sway=Math.sin(phase*2)*2.2*s;
   g.translate(sway,0);
-  // legs
   var lA=Math.sin(phase),lB=Math.sin(phase+Math.PI);
   function leg(sw){
     var kx=Math.sin(sw)*16*s,ky=hipY+24*s+Math.max(0,-Math.cos(sw))*6*s;
@@ -256,10 +417,8 @@ function drawWalker(g,x,y,h,phase,flip,alpha,color){
     g.beginPath();g.moveTo(0,hipY);g.lineTo(kx,ky);g.lineTo(fx,fy);g.stroke();
   }
   leg(lA);leg(lB);
-  // torso
   g.lineWidth=9*s;
   g.beginPath();g.moveTo(0,hipY);g.lineTo(2*s,hipY-30*s);g.stroke();
-  // arms
   function arm(sw){
     g.lineWidth=5.5*s;
     var ex=2*s+Math.sin(sw)*13*s,ey=hipY-16*s;
@@ -267,87 +426,223 @@ function drawWalker(g,x,y,h,phase,flip,alpha,color){
     g.beginPath();g.moveTo(2*s,hipY-28*s);g.lineTo(ex,ey);g.lineTo(hx,hy);g.stroke();
   }
   arm(lB);arm(lA);
-  // head + hat brim
   g.beginPath();g.arc(3*s,hipY-40*s,7.5*s,0,7);g.fill();
   g.lineWidth=2.5*s;g.beginPath();g.moveTo(-4*s,hipY-45*s);g.lineTo(11*s,hipY-45*s);g.stroke();
   g.restore();
 }
 
-/* ---------- drag lamp ---------- */
+/* ---------- drag lamp with inertia + pendulum ---------- */
 var dragging=false;
 function pos(e){var r=stage.getBoundingClientRect();return {x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};}
-stage.addEventListener('pointerdown',function(e){dragging=true;stage.setPointerCapture(e.pointerId);var p=pos(e);lamp.x=Math.min(.95,Math.max(.05,p.x));lamp.y=Math.min(.6,Math.max(.06,p.y));});
-stage.addEventListener('pointermove',function(e){if(!dragging)return;var p=pos(e);lamp.x=Math.min(.95,Math.max(.05,p.x));lamp.y=Math.min(.6,Math.max(.06,p.y));});
-stage.addEventListener('pointerup',function(){dragging=false;});
-stage.addEventListener('pointercancel',function(){dragging=false;});
+stage.addEventListener('pointerdown',function(e){
+  dragging=true;ghost=false;lastPointer=performance.now();
+  stage.setPointerCapture(e.pointerId);
+  var p=pos(e);lamp.px=lamp.x;lamp.py=lamp.y;
+  lamp.x=Math.min(.95,Math.max(.05,p.x));lamp.y=Math.min(.6,Math.max(.06,p.y));
+});
+stage.addEventListener('pointermove',function(e){
+  lastPointer=performance.now();ghost=false;
+  var p=pos(e);
+  if(dragging){
+    var nx=Math.min(.95,Math.max(.05,p.x)),ny=Math.min(.6,Math.max(.06,p.y));
+    lamp.vx=(nx-lamp.x)*14;lamp.x=nx;lamp.y=ny;
+    lamp.swingV+=lamp.vx*0.02;
+  }
+  hoverAnnot(e);
+});
+function endDrag(){if(dragging){dragging=false;lamp.swingV+=(rnd()-0.5)*0.06;}}
+stage.addEventListener('pointerup',endDrag);
+stage.addEventListener('pointercancel',endDrag);
+stage.addEventListener('pointerleave',function(){hideAnnot();});
+stage.addEventListener('dblclick',function(){blackout=1;});
 
-/* ---------- render ---------- */
-function frame(){
-  t+=0.016*tempo;
+/* ---------- hover annotation on the lamp ---------- */
+var annot=document.getElementById('annot'),annotTxt=document.getElementById('annotTxt');
+function hoverAnnot(e){
+  var r=stage.getBoundingClientRect();
+  var px=e.clientX-r.left,py=e.clientY-r.top;
   var lx=lamp.x*W,ly=lamp.y*H;
-  var floorY=H*0.72;
+  var d=Math.hypot(px-lx,py-ly);
+  if(d<70){
+    var floorY=mode==='mur'?H*0.80:H*0.72;
+    var throwM=((floorY-ly)/H*6).toFixed(1);
+    var ang=(Math.atan2(lx-W/2,floorY-ly)*180/Math.PI).toFixed(0);
+    annotTxt.innerHTML='THROW <b>'+throwM+' M</b> · TILT <b>'+ang+'°</b> · <b>'+patName.toUpperCase()+'</b>';
+    annot.style.display='block';
+    annot.style.left=Math.min(W-190,lx+18)+'px';
+    annot.style.top=Math.max(30,ly-34)+'px';
+  }else hideAnnot();
+}
+function hideAnnot(){annot.style.display='none';}
 
-  // room
+/* ---------- render helpers ---------- */
+function softPool(cx,cy,rx,ry,base){
+  // focus → where the falloff starts; elliptical radial gradient, no banding
+  var hard=0.25+P.focus*0.62;
+  ctx.save();ctx.translate(cx,cy);ctx.scale(1,ry/rx);
+  var g=ctx.createRadialGradient(0,0,0,0,0,rx);
+  g.addColorStop(0,rgba(gel,base));
+  g.addColorStop(hard,rgba(gel,base*0.9));
+  g.addColorStop(1,rgba(gel,0));
+  ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,rx,0,7);ctx.fill();
+  ctx.restore();
+}
+
+/* ---------- scene mode: full stage ---------- */
+function drawScene(lx,ly,A){
+  var floorY=H*0.72;
   var bg=ctx.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#070605');bg.addColorStop(0.7,'#0d0b09');bg.addColorStop(1,'#060504');
+  bg.addColorStop(0,A.top);bg.addColorStop(0.7,A.mid);bg.addColorStop(1,A.bot);
   ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-  // floor
-  ctx.fillStyle='#0a0807';ctx.fillRect(0,floorY,W,H-floorY);
+  ctx.fillStyle=A.floor;ctx.fillRect(0,floorY,W,H-floorY);
   ctx.strokeStyle='rgba(239,230,213,0.06)';ctx.lineWidth=1;
   ctx.beginPath();ctx.moveTo(0,floorY+.5);ctx.lineTo(W,floorY+.5);ctx.stroke();
-  // art-deco wall arcs (very faint)
-  ctx.strokeStyle='rgba(239,230,213,0.05)';
+  ctx.strokeStyle='rgba(239,230,213,'+A.arc+')';
   for(var ar=0;ar<4;ar++){ctx.beginPath();ctx.arc(W*0.5,floorY,H*(0.2+ar*0.16),Math.PI,0);ctx.stroke();}
 
-  // light pool on floor (ellipse below lamp, offset by lamp tilt)
   var poolX=lx+(0.5-lamp.x)*W*0.15,poolW=W*0.24*(0.7+lamp.y),poolH=H*0.075;
-  // cone path
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(lx,ly);
-  ctx.lineTo(poolX-poolW,floorY+poolH*0.4);
-  ctx.quadraticCurveTo(poolX,floorY+poolH*1.7,poolX+poolW,floorY+poolH*0.4);
-  ctx.closePath();ctx.clip();
+
+  // cone + floor pool as one reveal region for the hidden sketch
+  var reveal=new Path2D();
+  reveal.moveTo(lx,ly);
+  reveal.lineTo(poolX-poolW,floorY+poolH*0.4);
+  reveal.quadraticCurveTo(poolX,floorY+poolH*1.7,poolX+poolW,floorY+poolH*0.4);
+  reveal.closePath();
+  reveal.ellipse(poolX,floorY+poolH*0.4,poolW*1.05,poolH*2.1,0,0,7);
+  ctx.save();ctx.clip(reveal);
+  ctx.globalAlpha=0.5+P.haze*0.4;ctx.drawImage(sketch,0,0,W,H);ctx.globalAlpha=1;
+  ctx.restore();
+
+  // light cone
+  ctx.save();ctx.clip(reveal);
   var cone=ctx.createLinearGradient(0,ly,0,floorY+poolH);
-  cone.addColorStop(0,rgba(gel,0.5));cone.addColorStop(1,rgba(gel,0.12));
+  cone.addColorStop(0,rgba(gel,0.42+P.haze*0.2));cone.addColorStop(1,rgba(gel,0.10));
   ctx.fillStyle=cone;ctx.fillRect(0,0,W,H);
-  // gobo texture inside cone
   ctx.globalCompositeOperation='multiply';
-  ctx.save();ctx.translate(lx,ly);ctx.rotate((0.5-lamp.x)*0.5);
+  ctx.save();ctx.translate(lx,ly);ctx.rotate((0.5-lamp.x)*0.5+lamp.swing);
   var gs=Math.max(W,H)*1.5;ctx.drawImage(gobo,-gs/2,0,gs,gs);
   ctx.restore();
   ctx.globalCompositeOperation='source-over';
-  // dust motes in beam
-  for(var m=0;m<motes.length;m++){
-    var mo=motes[m],my2=ly+((mo.o+t*0.03*mo.s)%1)*(floorY-ly);
+  var nM=Math.floor(motes.length*(0.25+P.haze*0.75));
+  for(var mi=0;mi<nM;mi++){
+    var mo=motes[mi],my2=ly+((mo.o+t*0.03*mo.s)%1)*(floorY-ly);
     var spread=(my2-ly)/(floorY-ly);
     var mx2=lx+(mo.r-0.5)*2*poolW*spread;
-    ctx.fillStyle=rgba(gel,0.5*(1-spread)*spread+0.05);
+    ctx.fillStyle=rgba(gel,(0.5*(1-spread)*spread+0.05)*A.mote);
     ctx.fillRect(mx2,my2,1.6,1.6);
   }
   ctx.restore();
 
-  // bright pool on floor with gobo
+  // pool on the floor, gobo-printed
   ctx.save();
   ctx.beginPath();ctx.ellipse(poolX,floorY+poolH*0.4,poolW,poolH,0,0,7);ctx.clip();
-  ctx.fillStyle=rgba(gel,0.75);ctx.fillRect(poolX-poolW,floorY-poolH,poolW*2,poolH*3);
+  ctx.fillStyle=rgba(gel,0.72);ctx.fillRect(poolX-poolW,floorY-poolH,poolW*2,poolH*3);
   ctx.globalCompositeOperation='multiply';
   ctx.drawImage(gobo,poolX-poolW,floorY-poolH*2,poolW*2,poolW*2*(poolH*3/poolW)*2);
   ctx.globalCompositeOperation='source-over';
   ctx.restore();
-  // soft glow at pool edge
-  var gl=ctx.createRadialGradient(poolX,floorY+poolH*0.4,0,poolX,floorY+poolH*0.4,poolW*1.15);
-  gl.addColorStop(0,rgba(gel,0.25));gl.addColorStop(1,rgba(gel,0));
-  ctx.fillStyle=gl;ctx.beginPath();ctx.ellipse(poolX,floorY+poolH*0.4,poolW*1.15,poolH*2.2,0,0,7);ctx.fill();
+  softPool(poolX,floorY+poolH*0.4,poolW*1.35,poolH*2.6,0.30);
 
-  // walker update
-  walker.phase+=0.09*tempo;
-  walker.x+=walker.dir*0.0016*tempo;
+  drawWalkerAndShadow(lx,ly,floorY,H*0.30,false);
+  return floorY;
+}
+
+/* ---------- mur mode: the wall study ---------- */
+function drawMur(lx,ly,A){
+  var floorY=H*0.80;
+  var bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,A.mid);bg.addColorStop(0.8,A.top);bg.addColorStop(1,A.bot);
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=A.floor;ctx.fillRect(0,floorY,W,H-floorY);
+  ctx.strokeStyle='rgba(239,230,213,0.06)';
+  ctx.beginPath();ctx.moveTo(0,floorY+.5);ctx.lineTo(W,floorY+.5);ctx.stroke();
+  // wall panel seams
+  ctx.strokeStyle='rgba(239,230,213,'+(A.arc*0.7)+')';
+  for(var s=1;s<5;s++){ctx.beginPath();ctx.moveTo(W*s/5+.5,0);ctx.lineTo(W*s/5+.5,floorY);ctx.stroke();}
+
+  // wall pool — big and low, so the walker crosses it
+  var wpX=lx+(0.5-lamp.x)*W*0.4, wpY=H*0.44, wpR=Math.min(W,H)*0.36*(0.75+lamp.y*0.8);
+
+  // beam: trapezoid from lamp to pool edges
+  var beam=new Path2D();
+  beam.moveTo(lx,ly);
+  beam.lineTo(wpX-wpR*0.72,wpY-wpR*0.55);
+  beam.quadraticCurveTo(wpX-wpR*0.95,wpY,wpX-wpR*0.72,wpY+wpR*0.55);
+  beam.lineTo(wpX+wpR*0.72,wpY+wpR*0.55);
+  beam.quadraticCurveTo(wpX+wpR*0.95,wpY,wpX+wpR*0.72,wpY-wpR*0.55);
+  beam.closePath();
+
+  // hidden sketch revealed by beam + pool
+  var reveal=new Path2D(beam);
+  reveal.ellipse(wpX,wpY,wpR,wpR*0.9,0,0,7);
+  ctx.save();ctx.clip(reveal);
+  ctx.globalAlpha=0.45+P.haze*0.35;ctx.drawImage(sketch,0,0,W,H);ctx.globalAlpha=1;
+  ctx.restore();
+
+  // beam light
+  ctx.save();ctx.clip(beam);
+  var cone=ctx.createLinearGradient(lx,ly,wpX,wpY);
+  cone.addColorStop(0,rgba(gel,0.36+P.haze*0.2));cone.addColorStop(1,rgba(gel,0.12));
+  ctx.fillStyle=cone;ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='multiply';
+  ctx.save();ctx.translate(lx,ly);
+  var aim=Math.atan2(wpY-ly,wpX-lx)+Math.PI/2;
+  ctx.rotate(aim*0.4+lamp.swing);
+  var gs=Math.max(W,H)*1.6;ctx.drawImage(gobo,-gs/2,0,gs,gs);
+  ctx.restore();
+  ctx.globalCompositeOperation='source-over';
+  var nM=Math.floor(motes.length*(0.25+P.haze*0.75));
+  for(var mi=0;mi<nM;mi++){
+    var mo=motes[mi],k=(mo.o+t*0.03*mo.s)%1;
+    var mx2=lx+(wpX-lx)*k+(mo.r-0.5)*2*wpR*k*0.8;
+    var my2=ly+(wpY-ly)*k;
+    ctx.fillStyle=rgba(gel,(0.5*(1-k)*k+0.05)*A.mote);
+    ctx.fillRect(mx2,my2,1.6,1.6);
+  }
+  ctx.restore();
+
+  // the printed wall pool
+  ctx.save();
+  ctx.beginPath();ctx.ellipse(wpX,wpY,wpR,wpR*0.9,0,0,7);ctx.clip();
+  ctx.fillStyle=rgba(gel,0.85);ctx.fillRect(wpX-wpR,wpY-wpR,wpR*2,wpR*2);
+  ctx.globalCompositeOperation='multiply';
+  ctx.save();ctx.translate(wpX,wpY);ctx.rotate(lamp.swing*0.6);
+  ctx.drawImage(gobo,-wpR*1.35,-wpR*1.35,wpR*2.7,wpR*2.7);ctx.restore();
+  ctx.globalCompositeOperation='source-over';
+  // centre brighter, falloff inward
+  var cen=ctx.createRadialGradient(wpX,wpY,0,wpX,wpY,wpR);
+  cen.addColorStop(0,rgba(gel,0.30));cen.addColorStop(1,rgba(gel,0));
+  ctx.fillStyle=cen;ctx.fillRect(wpX-wpR,wpY-wpR,wpR*2,wpR*2);
+  ctx.restore();
+  softPool(wpX,wpY,wpR*1.3,wpR*1.15,0.22);
+
+  // walker crosses between lamp and wall; his shadow grows on the wall
+  walker.phase+=0.09*P.tempo;
+  walker.x+=walker.dir*0.0016*P.tempo;
   if(walker.x>0.88){walker.dir=-1;}
   if(walker.x<0.12){walker.dir=1;}
-  var wx=walker.x*W,wy=floorY,wh=H*0.30;
+  var wx=walker.x*W,wy=floorY,wh=H*0.40;
+  var ratio=Math.abs(wx-lx)/W;
+  var sx=wx+(wx-lx)*0.55, sh=wh*(1.15+ratio*0.9);
+  ctx.save();
+  ctx.beginPath();ctx.rect(0,0,W,floorY);ctx.clip();        // shadow lives on the wall only
+  ctx.translate(2,2);
+  drawWalker(ctx,sx,floorY,sh,walker.phase,walker.dir,0.22,'#000');
+  ctx.translate(-4,-2);
+  drawWalker(ctx,sx,floorY,sh,walker.phase,walker.dir,0.38,'#000');
+  ctx.restore();
+  var inCone=Math.abs(wx-wpX)<wpR*0.8;
+  drawWalker(ctx,wx,wy,wh,walker.phase,walker.dir,1,inCone?'#080604':'#1a1510');
+  if(inCone)drawWalker(ctx,wx-1.5*walker.dir,wy,wh,walker.phase,walker.dir,0.4,rgba(gel,0.9));
+  return floorY;
+}
 
-  // cast shadow (skew away from lamp)
+function drawWalkerAndShadow(lx,ly,floorY,wh,skip){
+  walker.phase+=0.09*P.tempo;
+  walker.x+=walker.dir*0.0016*P.tempo;
+  if(walker.x>0.88){walker.dir=-1;}
+  if(walker.x<0.12){walker.dir=1;}
+  var wx=walker.x*W,wy=floorY;
   var shDir=(wx-lx)>0?1:-1;
   var shLen=Math.min(2.2,Math.abs(wx-lx)/(H*0.4)+0.5);
   ctx.save();
@@ -356,18 +651,17 @@ function frame(){
   ctx.translate(-wx,-wy);
   drawWalker(ctx,wx,wy,wh,walker.phase,walker.dir,0.42,'#000');
   ctx.restore();
-
-  // walker body — rim-lit when inside the pool
-  var inPool=Math.abs(wx-poolX)<poolW*0.85;
   drawWalker(ctx,wx,wy,wh,walker.phase,walker.dir,1,'#050403');
-  if(inPool){
+  var poolX=lx+(0.5-lamp.x)*W*0.15,poolW=W*0.24*(0.7+lamp.y);
+  if(Math.abs(wx-poolX)<poolW*0.85)
     drawWalker(ctx,wx-1.5*walker.dir,wy,wh,walker.phase,walker.dir,0.35,rgba(gel,0.9));
-  }
+}
 
-  // lamp fixture
-  ctx.save();ctx.translate(lx,ly);
+/* ---------- lamp fixture with pendulum sway ---------- */
+function drawLamp(lx,ly){
+  ctx.save();ctx.translate(lx,ly);ctx.rotate(lamp.swing*2.2);
   ctx.strokeStyle='rgba(239,230,213,0.7)';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(0,-H*0.2);ctx.lineTo(0,-6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,-H*0.25);ctx.lineTo(0,-6);ctx.stroke();
   ctx.fillStyle='#0d0b09';ctx.strokeStyle=rgba(gel,0.95);
   ctx.beginPath();ctx.moveTo(-12,-6);ctx.lineTo(12,-6);ctx.lineTo(7,8);ctx.lineTo(-7,8);ctx.closePath();
   ctx.fill();ctx.stroke();
@@ -376,45 +670,159 @@ function frame(){
   halo.addColorStop(0,rgba(gel,0.8));halo.addColorStop(1,rgba(gel,0));
   ctx.fillStyle=halo;ctx.beginPath();ctx.arc(0,6,26,0,7);ctx.fill();
   ctx.restore();
+}
+
+/* ---------- main loop ---------- */
+function frame(){
+  t+=0.016;
+  var A=AMB[ambIdx];
+  // pendulum physics
+  lamp.swingV+=-lamp.swing*0.06;lamp.swingV*=0.985;lamp.swing+=lamp.swingV;
+  // ghost drift after 30s idle
+  if(!dragging&&performance.now()-lastPointer>30000){
+    ghost=true;
+    lamp.x=0.5+0.3*Math.sin(t*0.13);lamp.y=0.16+0.06*Math.sin(t*0.21+1);
+  }
+  var lx=lamp.x*W,ly=lamp.y*H;
+  var floorY=(mode==='mur')?drawMur(lx,ly,A):drawScene(lx,ly,A);
+  drawLamp(lx,ly);
+
+  // ambience spill from a high window, top-right
+  var sp=ctx.createLinearGradient(W,0,W*0.35,H*0.7);
+  sp.addColorStop(0,A.spill+A.spillA+')');sp.addColorStop(1,A.spill+'0)');
+  ctx.fillStyle=sp;ctx.fillRect(0,0,W,H);
 
   // vignette
   var vg=ctx.createRadialGradient(W/2,H*0.45,H*0.2,W/2,H*0.45,W*0.75);
-  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.55)');
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,'+A.vig+')');
   ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
 
+  // blackout easter egg
+  if(blackout>0){
+    ctx.fillStyle='rgba(0,0,0,'+Math.min(1,blackout*1.6)+')';ctx.fillRect(0,0,W,H);
+    blackout-=0.02;
+    if(blackout<0.35&&blackout+0.02>=0.35){          // relight with a shuffled scene
+      seed=(seed*1664525+1013904223)%899999+100000;reseed();
+      buildGobo(patName);buildSketch();
+      walker.x=0.15+rnd()*0.7;walker.dir=rnd()<0.5?-1:1;
+      setSeed(seed);
+    }
+  }
   requestAnimationFrame(frame);
 }
 
 /* ---------- controls ---------- */
 var pats=document.getElementById('pats'),gels=document.getElementById('gels');
-pats.addEventListener('click',function(e){
-  var b=e.target.closest('.pat');if(!b)return;
-  pats.querySelectorAll('.pat').forEach(function(x){x.classList.remove('on');});
-  b.classList.add('on');patName=b.dataset.p;buildGobo(patName);
-  document.getElementById('mPat').textContent=b.textContent.trim().toUpperCase();
-});
+var patKeys=['deco','blinds','rose','leaf'];
+function setPat(p,btn){
+  patName=p;buildGobo(p);
+  pats.querySelectorAll('.pat').forEach(function(x){x.classList.toggle('on',x.dataset.p===p);});
+  var label=(btn||pats.querySelector('[data-p="'+p+'"]')).textContent.trim().toUpperCase();
+  document.getElementById('mPat').textContent=label;
+}
+pats.addEventListener('click',function(e){var b=e.target.closest('.pat');if(b)setPat(b.dataset.p,b);});
+var gelKeys=['#f2b544','#e8623d','#8fb8c9','#9fd67a'];
 var gelNames={'#f2b544':'AMBER','#e8623d':'EMBER','#8fb8c9':'ICE','#9fd67a':'ABSINTHE'};
-gels.addEventListener('click',function(e){
-  var b=e.target.closest('.sw');if(!b)return;
-  gels.querySelectorAll('.sw').forEach(function(x){x.classList.remove('on');});
-  b.classList.add('on');gel=b.dataset.c;
-  document.getElementById('mGel').textContent=gelNames[gel]||'CUSTOM';
-});
+function setGel(c){
+  gel=c;
+  gels.querySelectorAll('.sw').forEach(function(x){x.classList.toggle('on',x.dataset.c===c);});
+  document.getElementById('mGel').textContent=gelNames[c]||'CUSTOM';
+}
+gels.addEventListener('click',function(e){var b=e.target.closest('.sw');if(b)setGel(b.dataset.c);});
+
+var modes=document.getElementById('modes');
+function setMode(mm){
+  mode=mm;
+  modes.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x.dataset.m===mm);});
+  document.getElementById('mMode').textContent=mm==='mur'?'MUR':'SCÈNE';
+  document.getElementById('bbScene').innerHTML=mm==='mur'?'SCENE II — <b>THE WALL</b>':'SCENE I — <b>THE WALKER</b>';
+}
+modes.addEventListener('click',function(e){var b=e.target.closest('button[data-m]');if(b)setMode(b.dataset.m);});
+
+var hours=document.getElementById('hours');
+function setHour(i){
+  ambIdx=((i%4)+4)%4;
+  var A=AMB[ambIdx];
+  hours.querySelectorAll('button').forEach(function(x,n){x.classList.toggle('on',n===ambIdx);});
+  document.getElementById('kicker').textContent=A.name;
+  document.documentElement.style.setProperty('--amb',A.amb);
+}
+hours.addEventListener('click',function(e){var b=e.target.closest('button[data-h]');if(b)setHour(+b.dataset.h);});
+
 document.getElementById('sTempo').addEventListener('input',function(){
-  tempo=+this.value/100;document.getElementById('oTempo').textContent=tempo.toFixed(2);
+  P.tempo=+this.value/100;document.getElementById('oTempo').textContent=P.tempo.toFixed(2)+' m/s';
+});
+document.getElementById('sFocus').addEventListener('input',function(){
+  P.focus=+this.value/100;document.getElementById('oFocus').textContent=this.value+'%';
+});
+document.getElementById('sHaze').addEventListener('input',function(){
+  P.haze=+this.value/100;document.getElementById('oHaze').textContent=this.value+'%';
 });
 document.getElementById('bRegen').addEventListener('click',function(){
-  seed=Math.random()*999;buildGobo(patName);
-  walker.x=0.2+Math.random()*0.6;walker.dir=Math.random()<0.5?-1:1;
+  setSeed((Math.random()*899999+100000)|0);
+  buildGobo(patName);buildSketch();
+  motes=[];for(var i=0;i<90;i++)motes.push({r:rnd(),o:rnd(),s:rnd()*0.5+0.2});
+  walker.x=0.15+rnd()*0.7;walker.dir=rnd()<0.5?-1:1;
+});
+document.getElementById('bShare').addEventListener('click',function(){
+  var url=location.href;
+  function done(){document.getElementById('bShare').textContent='已复制 ✓';setTimeout(function(){document.getElementById('bShare').textContent='复制分享链接';},1600);}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,done);
+  else{prompt('Copy this link',url);done();}
 });
 document.getElementById('bDown').addEventListener('click',function(){
+  var out=document.createElement('canvas');out.width=cv.width;out.height=cv.height;
+  var o=out.getContext('2d');o.drawImage(cv,0,0);
+  // hand the export a film-grain pass too
+  var id=o.getImageData(0,0,out.width,out.height),d=id.data;
+  for(var i=0;i<d.length;i+=16){var n=(Math.random()-0.5)*14;d[i]+=n;d[i+1]+=n;d[i+2]+=n;}
+  o.putImageData(id,0,0);
   var a=document.createElement('a');
-  a.download='gobo-light-av02.png';a.href=cv.toDataURL('image/png');a.click();
+  a.download='gobo-light-n37-seed'+seed+'.png';a.href=out.toDataURL('image/png');a.click();
 });
 
-buildGobo('deco');size();
+/* ---------- keyboard ---------- */
+window.addEventListener('keydown',function(e){
+  if(['INPUT','TEXTAREA','SELECT'].indexOf((document.activeElement||{}).tagName)>=0)return;
+  var k=e.key.toLowerCase();
+  if(k>='1'&&k<='4')setPat(patKeys[+k-1]);
+  else if(k==='g')setGel(gelKeys[(gelKeys.indexOf(gel)+1)%gelKeys.length]);
+  else if(k==='m')setMode(mode==='scene'?'mur':'scene');
+  else if(k==='t')setHour(ambIdx+1);
+  else if(k==='r')document.getElementById('bRegen').click();
+  else if(k==='p')document.getElementById('bDown').click();
+});
+
+/* ---------- boot ---------- */
+setSeed(seed);
+setMode(mode);
+setHour(ambIdx);
+buildGobo(patName);
+size();
 requestAnimationFrame(frame);
 })();
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="gobo-light" data-num="37" style="--lab-a:#f2b544;--lab-b:#efe6d5"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 37 · AI-VIDEO</small><strong>Gobo Light</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

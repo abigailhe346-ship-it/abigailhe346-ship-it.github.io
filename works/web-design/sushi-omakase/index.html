@@ -1,120 +1,205 @@
-<!DOCTYPE HTML>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>鮨 一文字 — 板前预约</title>
+<title>鮨 一文字 — ÉTUDE N°55 · Atelier MIRA</title>
 <style>
   :root{
     --sumi:#14181D; --sumi2:#1B2129; --rice:#F4EFE3; --shu:#C03A2B; --hinoki:#C9A876;
+    --r90:color-mix(in srgb,var(--rice) 90%,transparent);
+    --r70:color-mix(in srgb,var(--rice) 70%,transparent);
+    --r55:color-mix(in srgb,var(--rice) 55%,transparent);
+    --r40:color-mix(in srgb,var(--rice) 40%,transparent);
+    --r25:color-mix(in srgb,var(--rice) 25%,transparent);
+    --r15:color-mix(in srgb,var(--rice) 15%,transparent);
+    --grain-op:.34; --wash-op:.6;
     --serif:"Songti SC","Didot",Georgia,serif;
     --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
     --mono:"SF Mono",Menlo,monospace;
     --ease:cubic-bezier(.22,1,.36,1);
   }
+  body[data-wx="rain"]{--sumi:#121922;--sumi2:#182230;--rice:#ECE9DF;--shu:#B83A2E;--hinoki:#B89A6E;}
+  body[data-wx="snow"]{--sumi:#1A2027;--sumi2:#232B34;--rice:#F7F4EC;--shu:#C84434;--hinoki:#D2B183;--wash-op:.75;}
+  body[data-wx="fog"]{--sumi:#171C22;--sumi2:#1F262E;--rice:#E6E3DA;--shu:#AE3A2E;--hinoki:#B39B74;--wash-op:.85;}
   *{margin:0;padding:0;box-sizing:border-box;}
   html{scroll-behavior:smooth;}
   body{background:var(--sumi);color:var(--rice);font-family:var(--sans);overflow-x:hidden;
-    background-image:repeating-linear-gradient(90deg,rgba(244,239,227,.025) 0 1px,transparent 1px 90px);}
+    transition:background 1.2s ease,color 1.2s ease;
+    background-image:repeating-linear-gradient(90deg,var(--r15) 0 1px,transparent 1px 90px);}
   ::selection{background:var(--shu);color:var(--rice);}
   button{font-family:inherit;cursor:pointer;}
 
+  #wash{position:fixed;inset:-12%;z-index:3;pointer-events:none;mix-blend-mode:soft-light;opacity:var(--wash-op);
+    transition:opacity 1.2s ease;animation:washdrift 38s ease-in-out infinite alternate;}
+  @keyframes washdrift{from{transform:translate(-2%,-1.6%) rotate(-1deg);}to{transform:translate(2%,1.8%) rotate(1.2deg);}}
+  #grain{position:fixed;inset:0;z-index:4;pointer-events:none;mix-blend-mode:overlay;opacity:var(--grain-op);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .48 0 0 0 0 .45 0 0 0 .2 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");}
+  #vig{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(120% 95% at 50% 42%,transparent 58%,rgba(0,0,0,.42) 100%);}
+
   header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:flex-start;
-    padding:18px 3.5vw;mix-blend-mode:difference;color:#fff;}
-  .sig{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.8;}
-  .sig .no{color:var(--shu);font-weight:700;}
+    padding:16px 3.5vw;pointer-events:none;}
+  header>*{pointer-events:auto;}
+  .brand{display:flex;gap:13px;align-items:center;text-decoration:none;color:var(--rice);}
+  .seal{width:50px;height:50px;flex:none;}
+  .brand .et{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.9;}
+  .brand .et b{font-weight:700;color:var(--shu);}
+  .brand .et span{display:block;color:var(--r55);}
+  .hright{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
   nav{display:flex;gap:24px;}
-  nav a{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-decoration:none;color:#fff;opacity:.8;transition:.3s;}
+  nav a{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-decoration:none;color:var(--rice);opacity:.8;transition:.3s;}
   nav a:hover{opacity:1;color:var(--hinoki);}
   @media(max-width:640px){nav{display:none;}}
+  .wx-sw{display:flex;border:1px solid var(--r25);background:color-mix(in srgb,var(--sumi) 72%,transparent);backdrop-filter:blur(6px);}
+  .wx-sw button{border:none;background:transparent;color:var(--r55);font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;padding:8px 11px;transition:.3s;border-right:1px solid var(--r15);}
+  .wx-sw button:last-child{border-right:none;}
+  .wx-sw button:hover{color:var(--hinoki);}
+  .wx-sw button.on{background:var(--rice);color:var(--sumi);}
+  @media(max-width:640px){
+    .wx-sw{position:fixed;left:12px;bottom:12px;z-index:60;}
+    .wx-sw button{padding:8px 10px;}
+    .seal{width:40px;height:40px;}
+    .brand .et{font-size:9px;}
+    .brand .et span{display:none;}
+  }
 
   .v-text{writing-mode:vertical-rl;font-family:var(--serif);letter-spacing:.5em;}
 
   /* ---------- hero ---------- */
-  .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;padding:0 6vw;}
-  .hero-center{text-align:center;}
-  .hero .seal{width:64px;height:64px;margin:0 auto 4vh;border:1.5px solid var(--shu);display:flex;align-items:center;justify-content:center;
-    font-family:var(--serif);font-size:30px;color:var(--shu);border-radius:8px;transform:rotate(-4deg);}
+  .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;position:relative;padding:0 6vw;overflow:hidden;}
+  #sky{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+  .hero-center{text-align:center;position:relative;z-index:2;}
+  .hero .sealbox{width:64px;height:64px;margin:0 auto 4vh;border:1.5px solid var(--shu);display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:30px;color:var(--shu);border-radius:8px;transform:rotate(-4deg);
+    animation:stamp .9s var(--ease) both .3s;}
+  @keyframes stamp{from{transform:rotate(-14deg) scale(1.8);opacity:0;}to{transform:rotate(-4deg) scale(1);opacity:1;}}
   .hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(52px,9vw,150px);letter-spacing:.18em;line-height:1.1;text-indent:.18em;}
   .hero h1 span{color:var(--hinoki);}
-  .hero .sub{margin-top:3.5vh;font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:rgba(244,239,227,.55);text-indent:.5em;}
-  .hero .desc{margin:4.5vh auto 0;font-size:14px;line-height:2.4;color:rgba(244,239,227,.7);max-width:40ch;}
-  .hero .side{position:absolute;top:50%;transform:translateY(-50%);font-size:15px;color:rgba(244,239,227,.4);}
+  .hero .sub{margin-top:3.5vh;font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:var(--r55);text-indent:.5em;}
+  .hero .desc{margin:4.5vh auto 0;font-size:14px;line-height:2.4;color:var(--r70);max-width:40ch;}
+  .hero .side{position:absolute;top:50%;transform:translateY(-50%);font-size:15px;color:var(--r40);z-index:2;}
   .hero .side.l{left:4vw;}.hero .side.r{right:4vw;}
   @media(max-width:900px){.hero .side{display:none;}}
   .scroll-hint{position:absolute;bottom:4vh;left:50%;transform:translateX(-50%);font-family:var(--mono);
-    font-size:9px;letter-spacing:.4em;color:rgba(244,239,227,.4);animation:hint 2.4s infinite;}
+    font-size:9px;letter-spacing:.4em;color:var(--r40);animation:hint 2.4s infinite;z-index:2;}
   @keyframes hint{50%{opacity:.25;transform:translateX(-50%) translateY(6px);}}
+  .hero-actions{position:absolute;bottom:4vh;right:4vw;display:flex;gap:8px;z-index:2;}
+  @media(max-width:900px){.hero-actions{display:none;}}
+  .abtn{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;padding:10px 14px;border:1px solid var(--r25);
+    background:transparent;color:var(--r70);transition:.3s;}
+  .abtn:hover{border-color:var(--hinoki);color:var(--hinoki);}
 
   /* ---------- sections ---------- */
-  section{padding:12vh 6vw;max-width:1240px;margin:0 auto;}
-  .sec-head{display:flex;align-items:center;gap:26px;margin-bottom:7vh;}
+  section{padding:12vh 6vw;max-width:1240px;margin:0 auto;position:relative;z-index:5;}
+  .sec-head{display:flex;align-items:center;gap:26px;margin-bottom:6vh;}
   .sec-head .v-text{font-size:13px;color:var(--hinoki);height:110px;}
   .sec-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(30px,4vw,54px);letter-spacing:.1em;}
-  .sec-head .en{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(244,239,227,.45);margin-top:10px;}
+  .sec-head .en{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--r40);margin-top:10px;}
 
   /* ---------- seat map ---------- */
   .seat-wrap{display:grid;grid-template-columns:1.25fr .75fr;gap:5vw;align-items:start;}
   @media(max-width:960px){.seat-wrap{grid-template-columns:1fr;}}
-  .seat-stage{border:1px solid rgba(244,239,227,.15);background:var(--sumi2);padding:3vh 2vw;position:relative;}
-  #seatSVG{width:100%;display:block;}
-  .seat-node{cursor:pointer;transition:transform .2s;}
-  .seat-node circle{transition:.25s;}
-  .seat-node text{font-family:var(--mono);font-size:10px;fill:rgba(244,239,227,.7);pointer-events:none;}
-  .seat-node.free:hover circle{stroke:var(--hinoki);}
+  .seat-stage{border:1px solid var(--r15);background:var(--sumi2);padding:3vh 2vw 2vh;position:relative;transition:background 1.2s;}
+  #seatSVG{width:100%;display:block;touch-action:none;}
+  .seat-node{cursor:pointer;}
+  .seat-node .halo{transition:transform .25s var(--ease),opacity .3s;transform-box:fill-box;transform-origin:center;}
+  .seat-node text{font-family:var(--mono);font-size:10px;fill:var(--r70);pointer-events:none;}
+  .seat-node.free:hover .halo{stroke:var(--hinoki);}
   .seat-node.taken{cursor:not-allowed;opacity:.32;}
-  .seat-node.picked circle{fill:var(--shu);stroke:var(--shu);}
+  .seat-node.picked .halo{fill:var(--shu);stroke:var(--shu);}
   .seat-node.picked text{fill:var(--rice);}
-  .legend{display:flex;gap:22px;margin-top:2.5vh;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:rgba(244,239,227,.6);flex-wrap:wrap;}
+  .seat-tip{position:absolute;pointer-events:none;font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+    background:var(--rice);color:var(--sumi);padding:6px 10px;opacity:0;transition:opacity .25s;white-space:nowrap;z-index:5;}
+  .legend{display:flex;gap:22px;margin-top:2vh;font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--r55);flex-wrap:wrap;}
   .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:-1px;}
+  .mode-sw{display:flex;border:1px solid var(--r25);margin-bottom:2vh;width:fit-content;}
+  .mode-sw button{border:none;background:transparent;color:var(--r55);font-family:var(--mono);font-size:10px;
+    letter-spacing:.16em;padding:8px 16px;transition:.3s;border-right:1px solid var(--r15);}
+  .mode-sw button:last-child{border-right:none;}
+  .mode-sw button.on{background:var(--hinoki);color:var(--sumi);}
+  .drag-hint{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--r40);margin-top:1.4vh;}
 
-  .rsv-panel{border:1px solid rgba(244,239,227,.15);background:var(--sumi2);padding:34px 30px;}
+  .rsv-panel{border:1px solid var(--r15);background:var(--sumi2);padding:34px 30px;transition:background 1.2s;}
   .rsv-panel h3{font-family:var(--serif);font-weight:400;font-size:24px;letter-spacing:.1em;margin-bottom:3vh;}
-  .fld{margin-bottom:3.2vh;}
-  .fld label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:rgba(244,239,227,.5);margin-bottom:12px;}
+  .fld{margin-bottom:3vh;}
+  .fld label{display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:var(--r55);margin-bottom:12px;}
   .opt-row{display:flex;gap:8px;flex-wrap:wrap;}
-  .opt{border:1px solid rgba(244,239,227,.3);background:transparent;color:var(--rice);font-family:var(--mono);
+  .opt{border:1px solid var(--r25);background:transparent;color:var(--rice);font-family:var(--mono);
     font-size:11px;letter-spacing:.08em;padding:9px 14px;transition:.2s;min-width:44px;}
   .opt:hover{border-color:var(--hinoki);color:var(--hinoki);}
   .opt.on{background:var(--rice);color:var(--sumi);border-color:var(--rice);font-weight:700;}
   .opt.off{opacity:.3;pointer-events:none;text-decoration:line-through;}
-  .course{border:1px solid rgba(244,239,227,.25);padding:14px 16px;text-align:left;background:transparent;color:var(--rice);
+  .course{border:1px solid var(--r25);padding:14px 16px;text-align:left;background:transparent;color:var(--rice);
     width:100%;transition:.2s;margin-bottom:8px;}
   .course .cn{font-family:var(--serif);font-size:17px;letter-spacing:.2em;}
-  .course .cp{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(244,239,227,.55);margin-top:5px;}
+  .course .cp{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--r55);margin-top:5px;}
   .course:hover{border-color:var(--hinoki);}
-  .course.on{border-color:var(--shu);background:rgba(192,58,43,.12);}
+  .course.on{border-color:var(--shu);background:color-mix(in srgb,var(--shu) 12%,transparent);}
   .course.on .cn{color:var(--shu);}
-  .total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid rgba(244,239,227,.2);
+  .course.dim{opacity:.35;pointer-events:none;}
+  .course.dim .cp::after{content:" · 超出预算";color:var(--shu);}
+  .ctl{margin-bottom:2.6vh;}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.16em;margin-bottom:10px;color:var(--r70);}
+  .ctl label b{color:var(--hinoki);font-weight:600;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,var(--hinoki) var(--fill,50%),var(--r25) var(--fill,50%));}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-5.5px;
+    background:var(--sumi);border:2px solid var(--rice);transform:rotate(45deg);transition:.2s;}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--shu);border-color:var(--shu);}
+  input[type=range]::-moz-range-track{height:2px;background:var(--r25);}
+  input[type=range]::-moz-range-progress{height:2px;background:var(--hinoki);}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:0;background:var(--sumi);border:2px solid var(--rice);transform:rotate(45deg);}
+  .pref-note{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--r40);line-height:2;margin-top:-1vh;margin-bottom:2vh;}
+  .total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--r25);
     padding-top:18px;margin-top:1vh;font-family:var(--mono);}
   .total b{font-size:26px;color:var(--hinoki);font-weight:600;letter-spacing:.04em;}
-  .total span{font-size:10px;letter-spacing:.2em;color:rgba(244,239,227,.5);}
+  .total span{font-size:10px;letter-spacing:.2em;color:var(--r55);}
   .confirm{width:100%;margin-top:2.5vh;padding:17px;border:1px solid var(--shu);background:var(--shu);color:var(--rice);
     font-family:var(--mono);font-size:12px;letter-spacing:.34em;transition:.25s;text-indent:.34em;}
   .confirm:hover:not(:disabled){background:transparent;color:var(--shu);}
   .confirm:disabled{opacity:.35;cursor:not-allowed;}
-  .rsv-note{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(244,239,227,.4);margin-top:2vh;line-height:2;}
+  .rsv-note{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--r40);margin-top:2vh;line-height:2;}
+
+  /* ---------- blackboard ---------- */
+  .board{border:1px solid var(--r15);background:color-mix(in srgb,var(--sumi2) 88%,#000);padding:22px 26px;margin-bottom:6vh;
+    display:flex;gap:3vw;align-items:center;flex-wrap:wrap;}
+  .board .bt{font-family:var(--serif);font-size:15px;letter-spacing:.3em;color:var(--hinoki);border-right:1px solid var(--r15);padding-right:2.5vw;}
+  .board .items{display:flex;gap:2.6vw;flex-wrap:wrap;}
+  .catch{position:relative;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--r70);padding-bottom:8px;}
+  .catch .st{display:block;font-size:8.5px;letter-spacing:.2em;margin-top:5px;}
+  .catch .st.ok{color:#8FAE7C;}.catch .st.low{color:var(--hinoki);}.catch .st.out{color:var(--shu);}
+  .catch svg{position:absolute;left:0;bottom:0;width:100%;height:5px;overflow:visible;}
 
   /* ---------- seasonal menu ---------- */
-  .menu-tabs{display:flex;gap:0;border:1px solid rgba(244,239,227,.2);width:fit-content;margin-bottom:6vh;flex-wrap:wrap;}
+  .menu-tabs{display:flex;gap:0;border:1px solid var(--r25);width:fit-content;margin-bottom:6vh;flex-wrap:wrap;}
   .mtab{border:none;background:transparent;color:var(--rice);padding:14px 30px;font-family:var(--serif);
-    font-size:16px;letter-spacing:.3em;text-indent:.3em;transition:.25s;border-right:1px solid rgba(244,239,227,.2);}
+    font-size:16px;letter-spacing:.3em;text-indent:.3em;transition:.25s;border-right:1px solid var(--r25);}
   .mtab:last-child{border-right:none;}
   .mtab.on{background:var(--rice);color:var(--sumi);}
   .mtab .now{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--shu);display:block;text-indent:0;margin-top:2px;}
   .menu-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 5vw;}
   @media(max-width:760px){.menu-grid{grid-template-columns:1fr;}}
   .dish{display:flex;justify-content:space-between;align-items:baseline;gap:18px;padding:20px 0;
-    border-bottom:1px solid rgba(244,239,227,.12);transition:.25s;cursor:default;}
+    border-bottom:1px solid var(--r15);transition:.25s;cursor:default;position:relative;}
   .dish:hover{padding-left:12px;border-color:var(--hinoki);}
   .dish .dn{font-family:var(--serif);font-size:17px;letter-spacing:.12em;white-space:nowrap;}
-  .dish .dd{font-size:12px;color:rgba(244,239,227,.55);line-height:1.8;margin-top:5px;}
-  .dish .dots{flex:1;border-bottom:1px dotted rgba(244,239,227,.3);transform:translateY(-4px);min-width:20px;}
+  .dish .dd{font-size:12px;color:var(--r55);line-height:1.8;margin-top:5px;}
+  .dish .dots{flex:1;border-bottom:1px dotted var(--r25);transform:translateY(-4px);min-width:20px;transition:border-color .3s;}
+  .dish:hover .dots{border-color:var(--hinoki);}
   .dish .dp{font-family:var(--mono);font-size:11px;color:var(--hinoki);white-space:nowrap;}
-  .menu-foot{margin-top:4vh;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:rgba(244,239,227,.4);line-height:2.2;}
+  .dish .shun{position:absolute;right:0;top:-8px;font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;
+    background:var(--hinoki);color:var(--sumi);padding:4px 9px;opacity:0;transform:translateY(4px);transition:.3s var(--ease);pointer-events:none;}
+  .dish:hover .shun{opacity:1;transform:none;}
+  .menu-foot{margin-top:4vh;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--r40);line-height:2.2;}
+  .secret-line{margin-top:3vh;border:1px dashed var(--shu);padding:16px 20px;font-family:var(--mono);font-size:11px;
+    letter-spacing:.14em;color:var(--shu);display:none;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .secret-line.show{display:flex;animation:fadein .6s var(--ease);}
+  @keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
 
   /* ---------- confirm modal ---------- */
-  .overlay{position:fixed;inset:0;z-index:100;background:rgba(10,12,15,.8);display:flex;align-items:center;justify-content:center;
+  .overlay{position:fixed;inset:0;z-index:100;background:rgba(8,10,13,.82);display:flex;align-items:center;justify-content:center;
     padding:5vw;opacity:0;pointer-events:none;transition:opacity .35s;}
   .overlay.open{opacity:1;pointer-events:auto;}
   .ticket{background:var(--rice);color:var(--sumi);max-width:420px;width:100%;padding:44px 38px;position:relative;
@@ -128,30 +213,69 @@
     padding:10px 0;border-bottom:1px dashed rgba(20,24,29,.3);}
   .ticket .trow b{font-weight:600;}
   .ticket .tnote{margin-top:3vh;font-size:11px;line-height:2.1;color:rgba(20,24,29,.65);text-align:center;}
-  .ticket .tclose{margin-top:3vh;width:100%;padding:14px;border:1px solid var(--sumi);background:var(--sumi);color:var(--rice);
-    font-family:var(--mono);font-size:11px;letter-spacing:.3em;transition:.25s;}
+  .ticket .tbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:3vh;}
+  .ticket .tclose,.ticket .tsave{padding:14px;border:1px solid var(--sumi);font-family:var(--mono);font-size:11px;letter-spacing:.2em;transition:.25s;}
+  .ticket .tclose{background:var(--sumi);color:var(--rice);}
   .ticket .tclose:hover{background:transparent;color:var(--sumi);}
+  .ticket .tsave{background:transparent;color:var(--sumi);}
+  .ticket .tsave:hover{background:var(--shu);border-color:var(--shu);color:var(--rice);}
 
-  footer{border-top:1px solid rgba(244,239,227,.15);padding:7vh 6vw;display:flex;justify-content:space-between;
-    flex-wrap:wrap;gap:16px;font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:rgba(244,239,227,.45);line-height:2.2;}
+  footer{border-top:1px solid var(--r15);padding:8vh 6vw 6vh;position:relative;z-index:5;}
+  .foot-grid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:18px;align-items:flex-end;}
+  .foot-grid .fb{font-family:var(--serif);font-size:clamp(20px,2.4vw,32px);letter-spacing:.14em;}
+  .foot-grid .fb em{font-style:italic;color:var(--hinoki);}
+  .keys{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--r40);line-height:2.4;text-align:right;}
+  .keys b{color:var(--r70);font-weight:600;border:1px solid var(--r25);padding:1px 5px;margin:0 1px;}
+  @media(max-width:640px){.keys{text-align:left;}}
+  .colophon{margin-top:4vh;padding-top:16px;border-top:1px dashed var(--r15);font-family:var(--mono);
+    font-size:9.5px;letter-spacing:.16em;color:var(--r40);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 </style>
 </head>
-<body>
+<body data-wx="clear">
+
+<div id="wash"></div>
+<div id="vig"></div>
+<div id="grain"></div>
 
 <header>
-  <div class="sig"><span class="no">№ 09</span> · <b>鮨 一文字</b><br>WEB DESIGN / OMAKASE RESERVATION</div>
-  <nav><a href="#seats">席位 SEATS</a><a href="#menu">季节菜单 MENU</a><a href="#seats">预约 RESERVE</a></nav>
+  <a class="brand" href="#top">
+    <svg class="seal" viewBox="0 0 104 104" aria-hidden="true">
+      <defs><path id="ringPath55" d="M52 14 a38 38 0 1 1 -0.01 0"/></defs>
+      <circle cx="52" cy="52" r="49" fill="none" stroke="var(--shu)" stroke-width="1.4"/>
+      <circle cx="52" cy="52" r="30" fill="none" stroke="var(--shu)" stroke-width=".8" opacity=".55"/>
+      <text font-family="SF Mono,Menlo,monospace" font-size="10.5" letter-spacing="3.2" fill="var(--shu)">
+        <textPath href="#ringPath55" startOffset="2">ATELIER MIRA · ÉTUDE · ATELIER MIRA ·</textPath>
+      </text>
+      <path d="M37 66 C37 55 37 46 39 37 C43 44 47 51 51 57 C54 49 57 42 61 35 C64 45 66 55 67 66"
+        fill="none" stroke="var(--shu)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="et"><b>ÉTUDE N°55/100</b> · 鮨 一文字<span>WEB DESIGN / OMAKASE RESERVATION</span></span>
+  </a>
+  <div class="hright">
+    <div class="wx-sw" id="wxSw" role="group" aria-label="窗外天气">
+      <button data-w="clear" class="on">晴</button>
+      <button data-w="rain">雨</button>
+      <button data-w="snow">雪</button>
+      <button data-w="fog">雾</button>
+    </div>
+    <nav><a href="#seats">席位 SEATS</a><a href="#menu">季节菜单 MENU</a><a href="#seats">预约 RESERVE</a></nav>
+  </div>
 </header>
 
 <!-- hero -->
-<div class="hero">
+<div class="hero" id="top">
+  <canvas id="sky"></canvas>
   <div class="side v-text l">一期一会</div>
   <div class="side v-text r">板前十席 · 每晚两轮</div>
   <div class="hero-center">
-    <div class="seal">鮨</div>
+    <div class="sealbox">鮨</div>
     <h1>一<span>文</span>字</h1>
     <div class="sub">SUSHI ICHIMONJI · OMAKASE</div>
-    <p class="desc">十个座位，一位大将，二十贯寿司。菜单每天晚上六点才定——取决于今早丰洲到了什么鱼。预约制，两轮入替，过时不候。</p>
+    <p class="desc">十个座位，一位大将，二十贯寿司。菜单每天晚上六点才定——取决于今早丰洲到了什么鱼。窗外是今夜的天候，案内是此刻的种子。预约制，两轮入替，过时不候。</p>
+  </div>
+  <div class="hero-actions">
+    <button class="abtn" id="reseed">今日渔获 ↻</button>
+    <button class="abtn" id="shareBtn">复制分享链接</button>
   </div>
   <div class="scroll-hint">SCROLL · 选席</div>
 </div>
@@ -160,18 +284,24 @@
 <section id="seats">
   <div class="sec-head">
     <div class="v-text">板前の席</div>
-    <div><h2>选择您的席位</h2><div class="en">COUNTER SEATS · 十席 · 点击空席选择</div></div>
+    <div><h2>选择您的席位</h2><div class="en">COUNTER SEATS · 十席 · 点选或横向拖动连选</div></div>
   </div>
   <div class="seat-wrap">
     <div>
+      <div class="mode-sw" id="modeSw">
+        <button data-m="plan" class="on">俯瞰 PLAN</button>
+        <button data-m="elev">正面 ELEVATION</button>
+      </div>
       <div class="seat-stage">
         <svg id="seatSVG" viewBox="0 0 640 380"></svg>
+        <div class="seat-tip" id="seatTip"></div>
         <div class="legend">
           <span><i style="background:#F4EFE3;"></i>空席 AVAILABLE</span>
           <span><i style="background:#C03A2B;"></i>已选 SELECTED</span>
           <span><i style="background:#3A4350;"></i>已约 TAKEN</span>
-          <span>正对大将为「正面」，惯用左手者建议 1–2 番席</span>
+          <span id="takenNote">今晚已约 3 席</span>
         </div>
+        <div class="drag-hint">悬停感受席位磁性 · 按住横向拖动 = 连选相邻席 · 双击大将 = 隐藏菜单</div>
       </div>
     </div>
     <div class="rsv-panel">
@@ -179,7 +309,7 @@
       <div class="fld"><label>人数 PARTY SIZE</label>
         <div class="opt-row" id="partyRow"></div>
       </div>
-      <div class="fld"><label>日期 DATE</label>
+      <div class="fld"><label>日期 DATE · 空席随日期与种子而变</label>
         <div class="opt-row" id="dateRow"></div>
       </div>
       <div class="fld"><label>场次 TIME</label>
@@ -195,9 +325,22 @@
           <button class="course" data-p="880" data-n="梅"><div class="cn">梅 UME</div><div class="cp">十二贯 · 轻量晚酌 · ¥880 / 位</div></button>
         </div>
       </div>
+      <div class="ctl">
+        <label><span>饭量 RICE SIZE</span><b id="riceVal">中 · 标准</b></label>
+        <input type="range" id="rice" min="0" max="2" value="1" step="1">
+      </div>
+      <div class="ctl">
+        <label><span>芥末 WASABI</span><b id="wasabiVal">中 · 适量</b></label>
+        <input type="range" id="wasabi" min="0" max="2" value="1" step="1">
+      </div>
+      <div class="ctl">
+        <label><span>预算 BUDGET / 位</span><b id="budgetVal">¥ 1,700</b></label>
+        <input type="range" id="budget" min="800" max="2000" value="1700" step="50">
+      </div>
+      <div class="pref-note" id="prefNote"></div>
       <div class="total"><span>合计 TOTAL</span><b id="totalOut">¥ 0</b></div>
       <button class="confirm" id="confirmBtn" disabled>请先选择席位</button>
-      <div class="rsv-note">· 席位保留 15 分钟<br>· 套餐外追加以当日渔获报价<br>·  cancellation 请于前日 18:00 前</div>
+      <div class="rsv-note">· 席位保留 15 分钟<br>· 套餐外追加以当日渔获报价<br>· 取消请于前日 18:00 前</div>
     </div>
   </div>
 </section>
@@ -206,16 +349,33 @@
 <section id="menu">
   <div class="sec-head">
     <div class="v-text">旬の味</div>
-    <div><h2>季节菜单</h2><div class="en">SEASONAL MENU · 应季而食 · 点击四季切换</div></div>
+    <div><h2>季节菜单</h2><div class="en">SEASONAL MENU · 悬停菜品查看旬度 · <span id="wxMenuNote">今夜晴</span></div></div>
+  </div>
+  <div class="board">
+    <div class="bt">本日黑板</div>
+    <div class="items" id="boardItems"></div>
   </div>
   <div class="menu-tabs" id="menuTabs"></div>
   <div class="menu-grid" id="menuGrid"></div>
+  <div class="secret-line" id="secretLine">
+    <span>裏 · 大将の気まぐれ三貫 — 只今追加 · 时价 ¥380 / 位</span>
+    <span id="secretAdd" style="cursor:pointer;text-decoration:underline;">加入预约单 →</span>
+  </div>
   <div class="menu-foot">＊ 菜单随渔获每日微调，实际以板前当日黑板为准。有忌口请预约时备注，大将会为您替换同价位一品。</div>
 </section>
 
 <footer>
-  <span>鮨 一文字 · 东京丰洲直送 · 预约制</span>
-  <span>作品 № 09 / WEB DESIGN</span>
+  <div class="foot-grid">
+    <div class="fb">鮨 一文字 · <em>一期一会</em></div>
+    <div class="keys">
+      <b>1</b>–<b>4</b> 天气 · <b>R</b> 渔获 · <b>V</b> 俯瞰/正面 · <b>D</b> 存票 PNG · <b>K</b> 复制链接<br>
+      拖动连选席位 · 双击大将 = 隐藏菜单 · <b>ESC</b> 收起票券
+    </div>
+  </div>
+  <div class="colophon">
+    <span>SVG · Canvas 2D · CSS — 木纹与雪雨皆为程序所绘</span>
+    <span id="colophSeed">seed #0000 · Painted with code, plein air</span>
+  </div>
 </footer>
 
 <!-- confirm modal -->
@@ -224,71 +384,230 @@
     <h3>预约确认</h3>
     <div class="tno" id="tno"></div>
     <div id="trows"></div>
-    <p class="tnote">请将本页截图保存。入店时报预约编号即可，<br>祝您用餐愉快——一期一会。</p>
-    <button class="tclose" id="tclose">好的，到时见</button>
+    <p class="tnote">请将票券存好。入店时报预约编号即可，<br>祝您用餐愉快——一期一会。</p>
+    <div class="tbtns">
+      <button class="tsave" id="tsave">↓ 存票 PNG</button>
+      <button class="tclose" id="tclose">好的，到时见</button>
+    </div>
   </div>
 </div>
 
 <script>
+"use strict";
+/* ================= utils & seed ================= */
+function mulberry(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let seed=(()=>{const m=location.hash.match(/seed=([A-Za-z0-9_-]+)/);if(!m)return Math.floor(Math.random()*100000);return /^\d+$/.test(m[1])?parseInt(m[1],10)%100000:hashStr(m[1])%100000;})();
+function seedLabel(){return "#"+String(seed).padStart(4,"0");}
+function setSeedHash(){const h="#seed="+seed;if(location.hash!==h)history.replaceState(null,"",h);}
+setSeedHash();
 
-/* ================= seat map ================= */
-const TAKEN=new Set([2,5,8]);           // booked seats today
-let picked=new Set(), party=1;
-const SEATS=10, CX=320, CY=330, R=205;
-let svgHTML=`
-  <defs><filter id="soft"><feGaussianBlur stdDeviation="6"/></filter></defs>
-  <!-- counter -->
-  <path d="M90 300 A 250 250 0 0 1 550 300 L 505 300 A 190 190 0 0 0 135 300 Z" fill="#C9A876" opacity=".9"/>
-  <path d="M90 300 A 250 250 0 0 1 550 300" fill="none" stroke="#F4EFE3" stroke-width="1.5" opacity=".5"/>
-  <path d="M135 300 A 190 190 0 0 1 505 300" fill="none" stroke="#14181D" stroke-width="2" opacity=".4"/>
-  <!-- itamae -->
-  <circle cx="320" cy="268" r="17" fill="none" stroke="#F4EFE3" stroke-width="1.5"/>
-  <text x="320" y="272" text-anchor="middle" font-size="9" fill="#F4EFE3" font-family="serif">将</text>
-  <text x="320" y="250" text-anchor="middle" font-size="9.5" fill="rgba(244,239,227,.55)" font-family="monospace" letter-spacing="3">大将 ITAMAE</text>
-  <text x="320" y="355" text-anchor="middle" font-size="10" fill="rgba(244,239,227,.4)" font-family="monospace" letter-spacing="4">HINOKI COUNTER · 桧木一枚板</text>`;
-const seatPos=[];
-for(let i=0;i<SEATS;i++){
-  const a=Math.PI-(i+.5)*Math.PI/SEATS;   // 180°..0°
-  const x=CX+R*Math.cos(a), y=CY-R*Math.sin(a);
-  seatPos.push({x,y});
-  const label=["壱","弐","参","四","伍","六","七","八","九","拾"][i];
-  svgHTML+=`<g class="seat-node ${TAKEN.has(i+1)?"taken":"free"}" data-s="${i+1}">
-    <circle cx="${x}" cy="${y}" r="24" fill="${TAKEN.has(i+1)?"#3A4350":"#14181D"}" stroke="${TAKEN.has(i+1)?"#3A4350":"#F4EFE3"}" stroke-width="1.5"/>
-    <text x="${x}" y="${y+3.5}" text-anchor="middle">${label}</text>
-    <text x="${x}" y="${y+42}" text-anchor="middle" font-size="9" fill="rgba(244,239,227,.4)" font-family="monospace">${i+1}番</text>
-  </g>`;
+/* ================= weather atmosphere ================= */
+const WX={
+  clear:{name:"晴 CLEAR",menu:"今夜晴",wash:"radial-gradient(55% 50% at 76% 8%,rgba(201,168,118,.5),transparent 70%),radial-gradient(50% 45% at 12% 90%,rgba(60,60,90,.5),transparent 75%)"},
+  rain:{name:"雨 RAIN",menu:"夜雨入店",wash:"radial-gradient(60% 55% at 60% 0%,rgba(90,120,150,.55),transparent 72%),radial-gradient(50% 45% at 10% 92%,rgba(40,50,70,.55),transparent 75%)"},
+  snow:{name:"雪 SNOW",menu:"雪见酒肴",wash:"radial-gradient(65% 55% at 50% 0%,rgba(220,228,238,.6),transparent 74%),radial-gradient(45% 40% at 88% 90%,rgba(150,160,180,.35),transparent 70%)"},
+  fog:{name:"雾 FOG",menu:"雾中灯笼",wash:"radial-gradient(70% 60% at 50% 30%,rgba(150,155,160,.5),transparent 76%)"}
+};
+let wx="clear";
+function applyWx(w){
+  wx=w;document.body.dataset.wx=w;
+  $("wash").style.background=WX[w].wash;
+  $("wxMenuNote").textContent=WX[w].menu;
+  document.querySelectorAll("#wxSw button").forEach(b=>b.classList.toggle("on",b.dataset.w===w));
 }
-$("seatSVG").innerHTML=svgHTML;
-const seatName=s=>["壱","弐","参","四","伍","六","七","八","九","拾"][s-1]+"番席";
-document.querySelectorAll(".seat-node.free").forEach(n=>{
-  n.addEventListener("click",()=>{
-    const s=+n.dataset.s;
-    if(picked.has(s)){picked.delete(s);n.classList.remove("picked");}
-    else{
-      if(picked.size>=party){ // replace oldest
-        const first=picked.values().next().value;picked.delete(first);
-        document.querySelector(`.seat-node[data-s="${first}"]`).classList.remove("picked");
-      }
-      picked.add(s);n.classList.add("picked");
-    }
-    syncTotal();
+document.querySelectorAll("#wxSw button").forEach(b=>b.addEventListener("click",()=>applyWx(b.dataset.w)));
+
+/* ================= sky canvas (weather outside) ================= */
+const sky=$("sky"),skx=sky.getContext("2d");
+let SW,SH,DPR=Math.min(devicePixelRatio||1,2),flakes=[],drops=[],fogs=[],stars=[];
+function skySize(){
+  const r=sky.parentElement.getBoundingClientRect();
+  SW=r.width;SH=r.height;sky.width=SW*DPR;sky.height=SH*DPR;skx.setTransform(DPR,0,0,DPR,0,0);
+  stars=Array.from({length:70},()=>({x:Math.random()*SW,y:Math.random()*SH*.6,r:Math.random()*1.2+.3,tw:Math.random()*6}));
+  fogs=Array.from({length:9},()=>({x:Math.random()*SW,y:SH*.3+Math.random()*SH*.6,r:120+Math.random()*180,v:.08+Math.random()*.15}));
+}
+skySize();addEventListener("resize",skySize);
+function skyTick(){
+  skx.clearRect(0,0,SW,SH);
+  const t=performance.now()*.001;
+  if(wx==="clear"){
+    const mx=SW*.74,my=SH*.26;
+    const g=skx.createRadialGradient(mx,my,10,mx,my,150);
+    g.addColorStop(0,"rgba(240,230,205,.9)");g.addColorStop(.18,"rgba(240,230,205,.55)");g.addColorStop(1,"rgba(240,230,205,0)");
+    skx.fillStyle=g;skx.beginPath();skx.arc(mx,my,150,0,7);skx.fill();
+    skx.fillStyle="rgba(244,238,222,.95)";skx.beginPath();skx.arc(mx,my,34,0,7);skx.fill();
+    stars.forEach(s=>{skx.globalAlpha=.25+.35*Math.abs(Math.sin(t+s.tw));skx.fillStyle="#F4EFE3";skx.beginPath();skx.arc(s.x,s.y,s.r,0,7);skx.fill();});
+    skx.globalAlpha=1;
+  }else if(wx==="rain"){
+    if(drops.length<130&&Math.random()<.8)drops.push({x:Math.random()*SW,y:-20,v:9+Math.random()*5,l:12+Math.random()*14});
+    skx.strokeStyle="rgba(180,200,220,.4)";skx.lineWidth=1;
+    drops.forEach(d=>{d.y+=d.v;d.x+=d.v*.12;
+      skx.beginPath();skx.moveTo(d.x,d.y);skx.lineTo(d.x-d.v*.12,d.y+d.l);skx.stroke();});
+    drops=drops.filter(d=>d.y<SH+30);
+  }else if(wx==="snow"){
+    if(flakes.length<110&&Math.random()<.7)flakes.push({x:Math.random()*SW,y:-8,r:1+Math.random()*2.4,v:.5+Math.random()*1.1,ph:Math.random()*6});
+    flakes.forEach(f=>{f.y+=f.v;f.x+=Math.sin(t+f.ph)*.5;
+      skx.globalAlpha=.5+.4*Math.sin(t*2+f.ph);
+      skx.fillStyle="#F0F2F5";skx.beginPath();skx.arc(f.x,f.y,f.r,0,7);skx.fill();});
+    skx.globalAlpha=1;flakes=flakes.filter(f=>f.y<SH+10);
+  }else{
+    fogs.forEach(f=>{f.x+=f.v;if(f.x-f.r>SW)f.x=-f.r;
+      const g=skx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r);
+      g.addColorStop(0,"rgba(170,175,182,.13)");g.addColorStop(1,"rgba(170,175,182,0)");
+      skx.fillStyle=g;skx.beginPath();skx.arc(f.x,f.y,f.r,0,7);skx.fill();});
+  }
+  requestAnimationFrame(skyTick);
+}
+skyTick();
+
+/* ================= seat map: plan & elevation ================= */
+const SEATS=10;
+let picked=new Set(),party=1,mode="plan",dateIdx=0;
+const KANJI=["壱","弐","参","四","伍","六","七","八","九","拾"];
+const VIEWNOTES=["正对大将 · 看刀工首选","略偏左 · 左手握箸友好","左侧中段 · 安静","左端 · 离囲炉最近","中左 · 均衡","正中 · 与大将对目","中右 · 均衡","右侧中段 · 适合交谈","略偏右 · 看取酒方便","右端 · 出入方便"];
+function takenSet(){
+  const r=mulberry((seed^0x7AC0)+dateIdx*7919);
+  const n=2+Math.floor(r()*3),s=new Set();
+  while(s.size<n)s.add(1+Math.floor(r()*SEATS));
+  return s;
+}
+function woodLines(r,x0,y0,x1,y1,n,amp){
+  let s="";
+  for(let i=0;i<n;i++){
+    const t=i/(n-1),yy=y0+(y1-y0)*t;
+    const a=amp*(.5+r());
+    s+=`<path d="M${x0} ${yy} q ${(x1-x0)*.25} ${-a} ${(x1-x0)*.5} 0 t ${(x1-x0)*.5} 0" stroke="rgba(60,38,20,.35)" stroke-width="${(.8+r()*.8).toFixed(2)}" fill="none"/>`;
+  }
+  return s;
+}
+function seatNodes(pos){
+  const taken=takenSet();
+  let s="";
+  for(let i=0;i<SEATS;i++){
+    const {x,y}=pos[i],n=i+1;
+    const st=taken.has(n)?"taken":"free";
+    s+=`<g class="seat-node ${st}${picked.has(n)?" picked":""}" data-s="${n}">
+      <circle class="halo" cx="${x}" cy="${y}" r="24" fill="${taken.has(n)?"#3A4350":"#14181D"}" stroke="${taken.has(n)?"#3A4350":"var(--rice)"}" stroke-width="1.5"/>
+      <text x="${x}" y="${y+3.5}" text-anchor="middle">${KANJI[i]}</text>
+      <text x="${x}" y="${y+42}" text-anchor="middle" font-size="9" fill="var(--r40)" font-family="monospace">${n}番</text>
+    </g>`;
+  }
+  return s;
+}
+function renderSeats(){
+  const r=mulberry(seed^0x0D0D);
+  let h="";
+  if(mode==="plan"){
+    const CX=320,CY=330,R=205;
+    h+=`<path d="M90 300 A 250 250 0 0 1 550 300 L 505 300 A 190 190 0 0 0 135 300 Z" fill="var(--hinoki)" opacity=".92"/>`;
+    h+=woodLines(r,110,306,530,306,7,5);
+    h+=`<path d="M90 300 A 250 250 0 0 1 550 300" fill="none" stroke="var(--rice)" stroke-width="1.5" opacity=".5"/>`;
+    h+=`<path d="M135 300 A 190 190 0 0 1 505 300" fill="none" stroke="var(--sumi)" stroke-width="2" opacity=".4"/>`;
+    h+=`<g id="itamaeG" style="cursor:pointer"><circle cx="320" cy="268" r="17" fill="none" stroke="var(--rice)" stroke-width="1.5"/>
+      <text x="320" y="272" text-anchor="middle" font-size="9" fill="var(--rice)" font-family="serif">将</text>
+      <text x="320" y="250" text-anchor="middle" font-size="9.5" fill="var(--r55)" font-family="monospace" letter-spacing="3">大将 ITAMAE</text></g>
+      <text x="320" y="355" text-anchor="middle" font-size="10" fill="var(--r40)" font-family="monospace" letter-spacing="4">HINOKI COUNTER · 桧木一枚板</text>`;
+    const pos=[];
+    for(let i=0;i<SEATS;i++){const a=Math.PI-(i+.5)*Math.PI/SEATS;pos.push({x:CX+R*Math.cos(a),y:CY-R*Math.sin(a)});}
+    h+=seatNodes(pos);
+  }else{
+    h+=`<ellipse cx="150" cy="66" rx="26" ry="34" fill="var(--shu)" opacity=".85"/><rect x="146" y="24" width="8" height="8" fill="var(--hinoki)"/>
+        <ellipse cx="490" cy="66" rx="26" ry="34" fill="var(--shu)" opacity=".85"/><rect x="486" y="24" width="8" height="8" fill="var(--hinoki)"/>`;
+    h+=`<rect x="60" y="180" width="520" height="60" rx="6" fill="var(--hinoki)"/>`;
+    h+=woodLines(r,70,188,570,232,9,4);
+    h+=`<rect x="60" y="180" width="520" height="60" rx="6" fill="none" stroke="var(--rice)" stroke-width="1" opacity=".4"/>`;
+    h+=`<g id="itamaeG" style="cursor:pointer"><circle cx="320" cy="140" r="17" fill="none" stroke="var(--rice)" stroke-width="1.5"/>
+      <text x="320" y="144" text-anchor="middle" font-size="9" fill="var(--rice)" font-family="serif">将</text>
+      <text x="320" y="120" text-anchor="middle" font-size="9.5" fill="var(--r55)" font-family="monospace" letter-spacing="3">大将 ITAMAE</text></g>`;
+    h+=`<text x="320" y="272" text-anchor="middle" font-size="10" fill="var(--r40)" font-family="monospace" letter-spacing="4">FRONT VIEW · 桧木一枚板 长六间</text>`;
+    const pos=[];
+    for(let i=0;i<SEATS;i++)pos.push({x:92+i*50.7,y:320});
+    h+=seatNodes(pos);
+  }
+  $("seatSVG").innerHTML=h;
+  $("takenNote").textContent=`今晚已约 ${takenSet().size} 席`;
+  bindSeats();
+}
+function seatName(s){return KANJI[s-1]+"番席";}
+let dragSel=null;
+function bindSeats(){
+  const svg=$("seatSVG");
+  svg.querySelectorAll(".seat-node.free").forEach(n=>{
+    n.addEventListener("click",()=>{if(dragSel)return;toggleSeat(+n.dataset.s);});
   });
+  svg.addEventListener("pointerdown",e=>{
+    const n=e.target.closest(".seat-node");
+    if(!n||n.classList.contains("taken"))return;
+    dragSel={start:+n.dataset.s,moved:false};
+    svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener("pointermove",e=>{
+    const pt=svgPoint(e);
+    svg.querySelectorAll(".seat-node.free .halo").forEach(c=>{
+      const cx=+c.getAttribute("cx"),cy=+c.getAttribute("cy");
+      const d=Math.hypot(pt.x-cx,pt.y-cy);
+      c.style.transform=d<64?`scale(${(1+(64-d)/64*.14).toFixed(3)})`:"scale(1)";
+    });
+    const n=e.target.closest(".seat-node");
+    const tip=$("seatTip");
+    if(n){
+      const s=+n.dataset.s;
+      const r=svg.getBoundingClientRect();
+      tip.style.left=(e.clientX-r.left+14)+"px";tip.style.top=(e.clientY-r.top-8)+"px";
+      tip.textContent=n.classList.contains("taken")?`${seatName(s)} · 已约`:n.classList.contains("picked")?`${seatName(s)} · 已选`:`${seatName(s)} · ${VIEWNOTES[s-1]}`;
+      tip.style.opacity=1;
+    }else tip.style.opacity=0;
+    if(!dragSel)return;
+    const over=e.target.closest(".seat-node");
+    if(over&&!over.classList.contains("taken")){
+      const cur=+over.dataset.s;
+      const a=Math.min(dragSel.start,cur),b=Math.max(dragSel.start,cur);
+      let range=[];for(let i=a;i<=b;i++)range.push(i);
+      range=range.filter(i=>!takenSet().has(i)).slice(0,party);
+      if(range.length){picked=new Set(range);dragSel.moved=true;refreshPicked();}
+    }
+  });
+  svg.addEventListener("pointerup",()=>{setTimeout(()=>{dragSel=null;},0);});
+  svg.addEventListener("pointerleave",()=>{$("seatTip").style.opacity=0;
+    svg.querySelectorAll(".halo").forEach(c=>c.style.transform="scale(1)");});
+  $("itamaeG")?.addEventListener("dblclick",revealSecret);
+}
+function svgPoint(e){
+  const svg=$("seatSVG"),pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+  return pt.matrixTransform(svg.getScreenCTM().inverse());
+}
+function toggleSeat(s){
+  if(picked.has(s))picked.delete(s);
+  else{
+    if(picked.size>=party)picked.delete(picked.values().next().value);
+    picked.add(s);
+  }
+  refreshPicked();
+}
+function refreshPicked(){
+  document.querySelectorAll(".seat-node").forEach(n=>n.classList.toggle("picked",picked.has(+n.dataset.s)));
+  syncTotal();
+}
+$("modeSw").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  mode=b.dataset.m;
+  document.querySelectorAll("#modeSw button").forEach(x=>x.classList.toggle("on",x===b));
+  renderSeats();
 });
 
-/* ================= party / date / time / course ================= */
-let dateStr="",timeStr="18:00",course={p:1680,n:"松"};
+/* ================= party / date / time / course / prefs ================= */
+let dateStr="",timeStr="18:00",course={p:1680,n:"松"},secretOn=false;
 const partyRow=$("partyRow");
 [1,2,3,4].forEach(n=>{
   const b=document.createElement("button");
   b.className="opt"+(n===1?" on":"");b.textContent=n+" 位";
   b.addEventListener("click",()=>{
     party=n;partyRow.querySelectorAll(".opt").forEach(x=>x.classList.toggle("on",x===b));
-    while(picked.size>party){ // trim extra seats
-      const first=picked.values().next().value;picked.delete(first);
-      document.querySelector(`.seat-node[data-s="${first}"]`).classList.remove("picked");
-    }
-    syncTotal();
+    while(picked.size>party)picked.delete(picked.values().next().value);
+    refreshPicked();
   });
   partyRow.appendChild(b);
 });
@@ -300,7 +619,9 @@ for(let i=0;i<7;i++){
   const lbl=`${d.getMonth()+1}/${d.getDate()} 周${wd[d.getDay()]}`;
   b.textContent=lbl;b.dataset.d=lbl;
   b.addEventListener("click",()=>{
-    dateStr=lbl;dateRow.querySelectorAll(".opt").forEach(x=>x.classList.toggle("on",x===b));syncTotal();
+    dateStr=lbl;dateIdx=i;
+    dateRow.querySelectorAll(".opt").forEach(x=>x.classList.toggle("on",x===b));
+    picked.clear();renderSeats();syncTotal();
   });
   dateRow.appendChild(b);
 }
@@ -310,62 +631,174 @@ $("timeRow").addEventListener("click",e=>{
   timeStr=b.dataset.t;$("timeRow").querySelectorAll(".opt").forEach(x=>x.classList.toggle("on",x===b));
 });
 $("courseCol").addEventListener("click",e=>{
-  const b=e.target.closest(".course");if(!b)return;
+  const b=e.target.closest(".course");if(!b||b.classList.contains("dim"))return;
   course={p:+b.dataset.p,n:b.dataset.n};
   $("courseCol").querySelectorAll(".course").forEach(x=>x.classList.toggle("on",x===b));
   syncTotal();
 });
-
-/* ================= total & confirm ================= */
+const RICE=["小 · 浅盛 −¥40","中 · 标准","大 · 盛盛 +¥40"],WASABI=["少 · 淡雅","中 · 适量","多 · 冲鼻"];
+function paintRange(el){const pc=(el.value-el.min)/(el.max-el.min)*100;el.style.setProperty("--fill",pc+"%");}
+function seatPrice(){return course.p+[-40,0,40][+$("rice").value]+(secretOn?380:0);}
+function syncPrefs(){
+  const ri=+$("rice").value,wa=+$("wasabi").value,bu=+$("budget").value;
+  $("riceVal").textContent=RICE[ri];$("wasabiVal").textContent=WASABI[wa];
+  $("budgetVal").textContent="¥ "+bu.toLocaleString();
+  $("prefNote").textContent=`偏好读数 · 饭${["小","中","大"][ri]} / 芥末${["少","中","多"][wa]} / 预算 ¥${bu}${bu<course.p?" — 当前套餐超预算，请下调或换档":"，足以覆盖"+course.n+"套餐"}`;
+  document.querySelectorAll(".course").forEach(c=>c.classList.toggle("dim",+c.dataset.p>bu));
+  if(document.querySelector(".course.on.dim")){
+    document.querySelectorAll(".course").forEach(c=>c.classList.remove("on"));
+    const ok=[...document.querySelectorAll(".course")].find(c=>!c.classList.contains("dim"));
+    if(ok){ok.classList.add("on");course={p:+ok.dataset.p,n:ok.dataset.n};}
+  }
+  syncTotal();
+}
+["rice","wasabi","budget"].forEach(id=>{const el=$(id);el.addEventListener("input",()=>{paintRange(el);syncPrefs();});paintRange(el);});
 function syncTotal(){
   const n=picked.size;
-  $("totalOut").textContent="¥ "+(course.p*n).toLocaleString();
+  $("totalOut").textContent="¥ "+(seatPrice()*n).toLocaleString();
   const btn=$("confirmBtn");
   if(n===0){btn.disabled=true;btn.textContent="请先选择席位";}
   else if(n<party){btn.disabled=true;btn.textContent=`还需选择 ${party-n} 席`;}
   else{btn.disabled=false;btn.textContent="确认预约 RESERVE";}
 }
-$("confirmBtn").addEventListener("click",()=>{
-  const no="I-"+Date.now().toString(36).toUpperCase().slice(-6);
-  $("tno").textContent="预约编号 № "+no;
-  const seats=[...picked].sort((a,b)=>a-b).map(seatName).join(" · ");
-  $("trows").innerHTML=`
-    <div class="trow"><span>日期</span><b>${dateStr}</b></div>
-    <div class="trow"><span>场次</span><b>${timeStr} 入店</b></div>
-    <div class="trow"><span>席位</span><b>${seats}</b></div>
-    <div class="trow"><span>套餐</span><b>${course.n} × ${picked.size} 位</b></div>
-    <div class="trow"><span>合计</span><b>¥ ${(course.p*picked.size).toLocaleString()}</b></div>`;
-  $("overlay").classList.add("open");
+function revealSecret(){
+  const el=$("secretLine");
+  if(!el.classList.contains("show")){el.classList.add("show");el.scrollIntoView({behavior:"smooth",block:"center"});}
+}
+$("secretAdd").addEventListener("click",()=>{
+  secretOn=!secretOn;
+  $("secretAdd").textContent=secretOn?"已加入 · 点击移除":"加入预约单 →";
+  syncPrefs();
 });
-$("tclose").addEventListener("click",()=>$("overlay").classList.remove("open"));
-$("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")$("overlay").classList.remove("open");});
-syncTotal();
+
+/* ================= blackboard ================= */
+const CATCHES=[["大间鲔 大腹","青森"],["北海道云丹","礼文"],["明石鲷","兵库"],["岛根喉黑","山阴"],["富山白虾","富山湾"],["爱知车虾","三河"],["青森平目","陆奥湾"],["长崎鲭","五岛"]];
+function renderBoard(){
+  const r=mulberry(seed^0xB0A2);
+  const pool=[...CATCHES].sort(()=>r()-.5).slice(0,4);
+  const states=[["入荷","ok"],["残少","low"],["终了","out"]];
+  $("boardItems").innerHTML=pool.map(([n,o])=>{
+    const [st,cls]=states[Math.floor(r()*3)];
+    return `<div class="catch">${n}<span class="st ${cls}">${o} · ${st}</span>
+      <svg viewBox="0 0 60 5" preserveAspectRatio="none"><path d="M0 3 q ${(8+r()*8).toFixed(1)} ${(r()*4-2).toFixed(1)} ${(20+r()*10).toFixed(1)} 2 t ${(20+r()*10).toFixed(1)} 0" stroke="var(--r55)" stroke-width="1" fill="none"/></svg></div>`;
+  }).join("");
+}
 
 /* ================= seasonal menu ================= */
 const MENUS={
   春:[["初鲣 稻草烧","明火炙烤，配芥末盐与新生姜","时价"],["樱鲷 薄造","淡盐缔，缀一枚盐渍樱叶","+2"],["春笋 木之芽味噌","若竹煮，山椒芽点睛",""],["萤火鱿 醋味噌","富山湾初物，一口的春夜",""],["蛤真丈 椀","潮汁打底，柚子皮一缕",""],["樱鳟 握り","渍け三日，脂如薄樱","+1"]],
   夏:[["天然鮎 盐烧","琵琶湖稚鮎，苦瓜苦尾","时价"],["鱧 落とし","冰缚，梅肉与紫苏花",""],["云丹 小钵","利尻马粪海胆，越光米小丼","+3"],["冷制玉米浓汤","甜玉米冷萃，一滴白酱油",""],["太刀鱼 炙り","皮目炭烧，柑橘醋",""],["玉 烧","出汁蛋烧，收尾的一口甘",""]],
   秋:[["秋刀鱼 肝酱油","脂厚三分，炭火直烧","时价"],["松茸 土瓶蒸","丹波松茸，汤汁先饮","+2"],["喉黑 炙り","赤睦，盐昆布渍",""],["鲭 棒寿司","醋缔青花，白昆布卷",""],["栗子 涩皮煮","餐后小甘，煎茶伴侣",""],["蟹 真丈","松叶蟹拆肉，姜泥一点","+1"]],
-  冬:[["寒鰤 照り","冰见寒鰤，煮付三日熟成","时价"],["白子 汤霜","鳕鱼白子，柚子醋冻","+2"],["河豚 てっさ","虎河豚薄造，葱卷食","时价"],["鮟鱇锅 小锅","浊汁锅底，肝酱增稠",""],["大根 风吕吹","味噌田乐，收尾暖胃",""],["草莓 炼乳冰","季节限定，替卷甜品",""]],
+  冬:[["寒鰤 照り","冰见寒鰤，煮付三日熟成","时价"],["白子 汤霜","鳕鱼白子，柚子醋冻","+2"],["河豚 てっさ","虎河豚薄造，葱卷食","时价"],["鮟鱇锅 小锅","浊汁锅底，肝酱增稠",""],["大根 风吕吹","味噌田乐，收尾暖胃",""],["草莓 炼乳冰","季节限定，替卷甜品",""]]
 };
+const PAIR=["配浊酒一杯","配现磨山葵","趁热三秒内","配煎茶","佐腌姜片"];
 const seasonIdx=(()=>{const m=new Date().getMonth();return m<2||m===11?"冬":m<5?"春":m<8?"夏":"秋";})();
+let curSeason=seasonIdx;
 const tabs=$("menuTabs");
 ["春","夏","秋","冬"].forEach(s=>{
   const b=document.createElement("button");
   b.className="mtab"+(s===seasonIdx?" on":"");
+  b.dataset.s=s;
   b.innerHTML=s+(s===seasonIdx?'<span class="now">当季 NOW</span>':"");
   b.addEventListener("click",()=>{
+    curSeason=s;
     tabs.querySelectorAll(".mtab").forEach(x=>x.classList.toggle("on",x===b));
     renderMenu(s);
   });
   tabs.appendChild(b);
 });
 function renderMenu(s){
-  $("menuGrid").innerHTML=MENUS[s].map(([n,d,x])=>`
-    <div class="dish"><div><div class="dn">${n}</div><div class="dd">${d}</div></div>
-    <div class="dots"></div><div class="dp">${x==="时价"?"时价":x?("追加 "+x+" 贯"):"套餐内"}</div></div>`).join("");
+  $("menuGrid").innerHTML=MENUS[s].map(([n,d,x])=>{
+    const rr=mulberry(hashStr(n)^seed);
+    const shun=Math.floor(62+rr()*38),pair=PAIR[Math.floor(rr()*PAIR.length)];
+    return `<div class="dish"><div><div class="dn">${n}</div><div class="dd">${d}</div></div>
+      <div class="dots"></div><div class="dp">${x==="时价"?"时价":x?("追加 "+x+" 贯"):"套餐内"}</div>
+      <div class="shun">旬度 ${"▮".repeat(Math.round(shun/20))}${"▯".repeat(5-Math.round(shun/20))} ${shun} · ${pair}</div></div>`;
+  }).join("");
 }
 renderMenu(seasonIdx);
+
+/* ================= confirm & ticket PNG ================= */
+let booking={};
+$("confirmBtn").addEventListener("click",()=>{
+  const no="I-"+(hashStr(seed+dateStr+timeStr)%46656).toString(36).toUpperCase().padStart(3,"0");
+  const seats=[...picked].sort((a,b)=>a-b).map(seatName).join(" · ");
+  booking={no,date:dateStr,time:timeStr,seats,n:picked.size,
+    course:course.n+(secretOn?"+裏":""),price:seatPrice(),total:seatPrice()*picked.size,
+    rice:RICE[+$("rice").value],wasabi:WASABI[+$("wasabi").value],wx:WX[wx].name};
+  $("tno").textContent="预约编号 № "+no;
+  $("trows").innerHTML=`
+    <div class="trow"><span>日期</span><b>${dateStr}</b></div>
+    <div class="trow"><span>场次</span><b>${timeStr} 入店</b></div>
+    <div class="trow"><span>席位</span><b>${seats}</b></div>
+    <div class="trow"><span>套餐</span><b>${course.n} × ${picked.size} 位${secretOn?" · 含裏三贯":""}</b></div>
+    <div class="trow"><span>偏好</span><b>饭${["小","中","大"][+$("rice").value]} · 芥末${["少","中","多"][+$("wasabi").value]}</b></div>
+    <div class="trow"><span>合计</span><b>¥ ${booking.total.toLocaleString()}</b></div>`;
+  $("overlay").classList.add("open");
+});
+$("tclose").addEventListener("click",()=>$("overlay").classList.remove("open"));
+$("overlay").addEventListener("click",e=>{if(e.target.id==="overlay")$("overlay").classList.remove("open");});
+$("tsave").addEventListener("click",()=>{
+  const W=900,H=1200,cv=document.createElement("canvas");cv.width=W;cv.height=H;
+  const x=cv.getContext("2d");
+  x.fillStyle="#F4EFE3";x.fillRect(0,0,W,H);
+  const r=mulberry(seed^0x71C);
+  for(let i=0;i<1800;i++){x.fillStyle="#14181D";x.globalAlpha=.02+r()*.04;x.fillRect(r()*W,r()*H,1.5,1.5);}
+  x.globalAlpha=1;
+  x.strokeStyle="#14181D";x.lineWidth=2.5;x.strokeRect(36,36,W-72,H-72);
+  x.lineWidth=.8;x.strokeRect(50,50,W-100,H-100);
+  for(let i=0;i<9;i++){x.fillStyle=i%2?"#C03A2B":"#14181D";x.fillRect(36+i*((W-72)/9),36,(W-72)/9,8);}
+  x.save();x.translate(W/2,140);x.rotate(-.06);
+  x.strokeStyle="#C03A2B";x.lineWidth=3;x.strokeRect(-42,-42,84,84);
+  x.fillStyle="#C03A2B";x.font="52px 'Songti SC',serif";x.textAlign="center";x.textBaseline="middle";x.fillText("鮨",0,4);
+  x.restore();
+  x.fillStyle="#14181D";x.textAlign="center";
+  x.font="400 52px 'Songti SC',serif";x.fillText("预 约 票 券",W/2,268);
+  x.font="13px Menlo,monospace";x.fillStyle="#C03A2B";x.fillText("SUSHI ICHIMONJI · № "+booking.no,W/2,306);
+  const rows=[["日期 DATE",booking.date],["场次 TIME",booking.time+" 入店"],["席位 SEATS",booking.seats],
+    ["套餐 COURSE",booking.course+" × "+booking.n+" 位"],["偏好 PREF",booking.rice+" / "+booking.wasabi],
+    ["天气 WX",booking.wx],["合计 TOTAL","¥ "+booking.total.toLocaleString()]];
+  x.font="13px Menlo,monospace";
+  rows.forEach(([k,v],i)=>{
+    const y=390+i*72;
+    x.fillStyle="#14181D";x.globalAlpha=.55;x.textAlign="left";x.fillText(k,110,y);
+    x.globalAlpha=1;x.textAlign="right";x.fillStyle="#C03A2B";x.fillText(String(v),W-110,y);
+    x.strokeStyle="#14181D";x.globalAlpha=.22;x.beginPath();x.setLineDash([3,4]);x.moveTo(110,y+20);x.lineTo(W-110,y+20);x.stroke();x.setLineDash([]);x.globalAlpha=1;
+  });
+  x.fillStyle="#14181D";x.textAlign="center";x.font="11px Menlo,monospace";x.globalAlpha=.6;
+  x.fillText("入店时报预约编号即可 · 一期一会",W/2,H-96);
+  x.fillText(`seed ${seedLabel()} · Painted with code, plein air — ÉTUDE N°55/100`,W/2,H-70);
+  x.globalAlpha=1;
+  const a=document.createElement("a");a.download=`ichimonji-ticket-${booking.no}.png`;a.href=cv.toDataURL("image/png");a.click();
+});
+
+/* ================= seed actions ================= */
+function reseed(){
+  seed=Math.floor(Math.random()*100000);setSeedHash();syncSeedLabels();
+  picked.clear();renderSeats();renderBoard();renderMenu(curSeason);syncPrefs();
+}
+function syncSeedLabels(){$("colophSeed").textContent="seed "+seedLabel()+" · Painted with code, plein air";}
+syncSeedLabels();
+$("reseed").addEventListener("click",reseed);
+$("shareBtn").addEventListener("click",async()=>{
+  try{await navigator.clipboard.writeText(location.href);$("shareBtn").textContent="已复制 ✓";}
+  catch{prompt("复制此链接（含种子）",location.href);}
+  setTimeout(()=>$("shareBtn").textContent="复制分享链接",2200);
+});
+
+/* ================= keyboard ================= */
+document.addEventListener("keydown",e=>{
+  if(["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName))return;
+  const k=e.key.toLowerCase();
+  if(k==="1")applyWx("clear");if(k==="2")applyWx("rain");
+  if(k==="3")applyWx("snow");if(k==="4")applyWx("fog");
+  if(k==="r")reseed();if(k==="k")$("shareBtn").click();
+  if(k==="v")$("modeSw").querySelector(mode==="plan"?"[data-m=elev]":"[data-m=plan]").click();
+  if(k==="d"&&$("overlay").classList.contains("open"))$("tsave").click();
+  if(k==="escape")$("overlay").classList.remove("open");
+});
+
+applyWx("clear");renderSeats();renderBoard();syncPrefs();
 </script>
 </body>
 </html>

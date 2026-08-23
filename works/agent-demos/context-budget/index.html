@@ -3,146 +3,147 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CONTEXT BUDGET — 上下文预算可视化</title>
+<title>Context Budget — 睡莲账房 · Atelier MIRA N°074</title>
+<!--
+  Atelier MIRA · N°074 · 睡莲 Nymphéas
+  家族：水光 #F2EFE6 · 浅漪 #DCE4DA · 柳绿 #A9BFAD · 深塘 #5F7D6E · 天光倒影 #7C8FA6 · 莲粉 #C9A6B4（点缀 ≤8%）
+  色温：冷中带暖斑。128K 的窗口是一池水，每段占用是一片莲叶——历史被压缩时，叶子散成满池涟漪。
+-->
 <style>
   :root{
-    --paper:#F4F1EA; --ink:#16130C; --red:#E03A00; --blue:#2547C9;
-    --g70:#4A4538; --g50:#7A7462; --g30:#A39D8B; --g15:#CFC9BA; --line:#D8D2C2;
-    --sans:"Helvetica Neue",Helvetica,-apple-system,"PingFang SC",Arial,sans-serif;
+    --paper:#F2EFE6; --paper2:#E9E5D8; --card:#F7F4EB;
+    --ink:#41544A; --dim:#7C8A80; --faint:#B4BCB0;
+    --willow:#A9BFAD; --pond:#5F7D6E; --ripple:#DCE4DA; --skyref:#7C8FA6; --lotus:#C9A6B4;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
     --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{height:100%;overflow-x:clip}
+  html,body{height:100%}
   body{background:var(--paper);color:var(--ink);font-family:var(--sans);
-    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh}
-  ::selection{background:var(--red);color:var(--paper)}
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--pond);color:var(--card)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;
+    background-image:var(--papertex);mix-blend-mode:multiply;opacity:.5}
 
-  header{flex:0 0 auto;display:flex;align-items:center;gap:16px;padding:14px 28px;
-    border-bottom:2px solid var(--ink)}
-  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
-  .brand .no{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--red)}
-  .brand .name{font-size:14px;font-weight:700;letter-spacing:.3em}
-  .brand .sub{font-size:11px;color:var(--g50);letter-spacing:.1em}
-  .spacer{flex:1}
-  .presets{display:flex;gap:0;border:1.5px solid var(--ink)}
-  .preset{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:8px 13px;
-    background:transparent;border:none;border-right:1.5px solid var(--ink);color:var(--ink);
-    cursor:pointer;transition:background .15s var(--ease),color .15s var(--ease)}
+  header{display:flex;align-items:baseline;gap:16px;padding:18px 28px 12px;flex-wrap:wrap}
+  .brand .no{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim)}
+  .brand h1{font-family:var(--serif);font-size:clamp(22px,2.8vw,32px);font-weight:600;line-height:1.05}
+  .brand h1 em{font-style:italic;color:var(--pond)}
+  .epigraphe{font-family:var(--serif);font-style:italic;font-size:14.5px;color:var(--dim)}
+  .hspace{flex:1}
+  .presets{display:flex;border:1px solid var(--faint);background:var(--card)}
+  .preset{font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:8px 12px;
+    background:transparent;border:none;border-right:1px solid var(--faint);color:var(--dim);
+    cursor:pointer;transition:all .2s var(--ease)}
   .preset:last-child{border-right:none}
-  .preset:hover{background:var(--g15)}
-  .preset.on{background:var(--ink);color:var(--paper)}
+  .preset:hover{color:var(--ink)}
+  .preset.on{background:var(--pond);color:var(--card)}
+  .sndbtn{background:none;border:1px solid var(--faint);border-radius:50%;width:32px;height:32px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s var(--ease);
+    color:var(--dim);align-self:center}
+  .sndbtn:hover{border-color:var(--ink);color:var(--ink)}
+  .sndbtn.on{background:var(--pond);border-color:var(--pond);color:var(--card)}
 
-  main{flex:1;display:flex;flex-direction:column;min-height:0}
+  /* ---- pond ---- */
+  .pondwrap{position:relative;margin:0 28px;border:1px solid var(--faint)}
+  #pond{display:block;width:100%;height:clamp(300px,42vh,440px);cursor:crosshair;touch-action:pan-y}
+  .pond-cap{position:absolute;left:14px;bottom:10px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.22em;color:rgba(65,84,74,.55);text-transform:uppercase;pointer-events:none}
+  #pond-readout{position:absolute;right:16px;top:12px;text-align:right;pointer-events:none}
+  #pond-readout .big{font-family:var(--serif);font-size:clamp(28px,3.4vw,44px);font-weight:600;color:var(--ink)}
+  #pond-readout .big small{font-size:.42em;color:var(--dim);font-weight:400}
+  #pond-readout .sub{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--dim);margin-top:2px}
+  #pond-status{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+    padding:4px 9px;border:1px solid var(--pond);color:var(--pond);margin-top:6px;transition:all .3s}
+  #pond-status.tight{border-color:var(--skyref);color:var(--skyref)}
+  #pond-status.over{border-color:var(--lotus);color:#B4828E;animation:blink 1.2s steps(2) infinite}
+  @keyframes blink{50%{opacity:.5}}
 
-  /* ---- big readout ---- */
-  .readout{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:28px;align-items:end;
-    padding:34px 28px 22px;border-bottom:1px solid var(--line)}
-  .ro-label{font-family:var(--mono);font-size:10px;letter-spacing:.28em;color:var(--g50);margin-bottom:10px}
-  .ro-total{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;
-    font-size:clamp(42px,7.2vw,96px);line-height:.95;letter-spacing:-.02em;display:flex;align-items:baseline;gap:10px}
-  .ro-total .of{font-size:clamp(13px,1.6vw,20px);font-weight:400;color:var(--g50);letter-spacing:0}
-  .ro-cell{text-align:right;padding-bottom:6px}
-  .ro-cell .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:700}
-  .ro-cell .k{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--g50);margin-top:5px}
-  #status{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.2em;
-    padding:5px 10px;border:1.5px solid var(--ink);margin-top:8px;transition:all .3s var(--ease)}
-  #status.tight{border-color:var(--red);color:var(--red)}
-  #status.over{background:var(--red);border-color:var(--red);color:var(--paper);animation:blink 1s steps(2) infinite}
-  @keyframes blink{50%{opacity:.55}}
-
-  /* ---- the bar ---- */
-  .barzone{padding:30px 28px 8px}
-  .bar-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;flex-wrap:wrap;gap:4px}
-  .bar-title{font-size:11px;font-weight:700;letter-spacing:.24em}
-  #hoverline{font-family:var(--mono);font-size:10.5px;color:var(--g50);letter-spacing:.04em;
-    min-height:14px;transition:color .2s}
-  #hoverline b{color:var(--ink);font-weight:700}
-  .barwrap{position:relative}
-  .bar{position:relative;display:flex;height:64px;border:2px solid var(--ink);background:var(--paper)}
-  .seg{height:100%;position:relative;transition:filter .15s;cursor:crosshair}
-  .seg.dim{filter:opacity(.35)}
-  .seg.free{background:repeating-linear-gradient(-45deg,transparent 0 5px,var(--line) 5px 6px)}
-  .seg.hov{outline:2px solid var(--ink);outline-offset:-2px;z-index:2}
-  #over-in{position:absolute;top:0;bottom:0;display:none;pointer-events:none;z-index:1;
-    background:repeating-linear-gradient(-45deg,rgba(224,58,0,.9) 0 6px,rgba(224,58,0,.4) 6px 12px)}
-  #over-tag{position:absolute;top:74px;right:0;font-family:var(--mono);font-size:9.5px;
-    letter-spacing:.1em;color:var(--red);white-space:nowrap;display:none}
-  .budget-line{position:absolute;top:-10px;bottom:-10px;width:0;border-left:2px solid var(--red);
-    display:none;z-index:2;pointer-events:none}
-  .budget-line::after{content:"LIMIT 128K";position:absolute;top:-16px;left:-3px;font-family:var(--mono);
-    font-size:8.5px;letter-spacing:.18em;color:var(--red);white-space:nowrap}
-  .ruler{position:relative;height:26px;margin-top:8px}
-  .tick{position:absolute;top:0;width:1px;height:7px;background:var(--ink)}
-  .tick span{position:absolute;top:9px;left:0;transform:translateX(-50%);font-family:var(--mono);
-    font-size:9px;letter-spacing:.08em;color:var(--g50);white-space:nowrap}
-  .tick:first-child span{transform:none}
-  .tick:last-child span{transform:translateX(-100%)}
-
-  /* ---- bottom grid ---- */
-  .grid{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 340px;min-height:0;border-top:1px solid var(--line);margin-top:18px}
-  .segs{padding:8px 28px 30px;display:flex;flex-direction:column}
-  .srow{display:grid;grid-template-columns:200px minmax(120px,1fr) 118px 64px;gap:18px;align-items:center;
-    padding:13px 0;border-bottom:1px solid var(--line);cursor:default;transition:background .15s}
-  .srow:hover{background:rgba(22,19,12,.025)}
-  .srow .nm{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:700;letter-spacing:.14em}
-  .srow .nm i{flex:0 0 11px;height:11px;background:var(--c)}
-  .srow .nm small{display:block;font-weight:400;font-size:9.5px;color:var(--g50);letter-spacing:.06em;margin-top:2px}
-  .srow input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--g15);
+  /* ---- lower grid ---- */
+  .grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;margin:16px 28px 0}
+  .panel{background:var(--card);border:1px solid var(--faint)}
+  .panel-h{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;
+    border-bottom:1px solid var(--paper2);font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--dim)}
+  .segs{padding:6px 18px 14px}
+  .srow{display:grid;grid-template-columns:190px minmax(120px,1fr) 110px 58px;gap:16px;align-items:center;
+    padding:12px 0;border-bottom:1px solid var(--paper2);transition:background .15s}
+  .srow:last-child{border-bottom:none}
+  .srow:hover{background:rgba(95,125,110,.05)}
+  .srow .nm{display:flex;align-items:center;gap:9px;font-size:11px;font-weight:600;letter-spacing:.1em}
+  .srow .nm i{flex:0 0 11px;height:11px;border-radius:50%;background:var(--c)}
+  .srow .nm small{display:block;font-weight:400;font-size:9px;color:var(--dim);letter-spacing:.05em;margin-top:2px}
+  .srow input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--ripple);
     outline:none;cursor:ew-resize}
   .srow input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;
-    background:var(--ink);border:none;border-radius:0;transition:transform .15s var(--ease)}
-  .srow input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35);background:var(--red)}
-  .srow input[type=range]::-moz-range-thumb{width:13px;height:13px;background:var(--ink);border:none;border-radius:0}
-  .srow .val{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13px;font-weight:700;text-align:right}
-  .srow .pct{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:10.5px;color:var(--g50);text-align:right}
+    border-radius:50%;background:var(--card);border:2px solid var(--pond);transition:transform .15s var(--ease)}
+  .srow input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35);border-color:#B4828E}
+  .srow input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--card);border:2px solid var(--pond)}
+  .srow .val{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600;text-align:right}
+  .srow .pct{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:10px;color:var(--dim);text-align:right}
   .srow.locked{opacity:.45}
   .srow.locked input{pointer-events:none}
 
-  /* ---- compress panel ---- */
-  .panel{border-left:2px solid var(--ink);padding:26px 26px 30px;display:flex;flex-direction:column;gap:18px;background:#EFECE3}
-  .panel h2{font-size:12px;font-weight:700;letter-spacing:.26em}
-  .panel h2 small{display:block;font-weight:400;font-size:10px;color:var(--g50);letter-spacing:.12em;margin-top:4px}
-  .panel p{font-size:11.5px;line-height:1.75;color:var(--g70)}
-  .ratios{display:flex;gap:0;border:1.5px solid var(--ink);align-self:flex-start}
+  .cpanel{padding:18px 20px 22px;display:flex;flex-direction:column;gap:14px}
+  .cpanel h2{font-family:var(--serif);font-size:17px;font-weight:600}
+  .cpanel h2 small{display:block;font-family:var(--mono);font-weight:400;font-size:9px;
+    color:var(--dim);letter-spacing:.18em;margin-top:4px;text-transform:uppercase}
+  .cpanel p{font-size:11.5px;line-height:1.75;color:var(--dim)}
+  .ratios{display:flex;border:1px solid var(--faint);align-self:flex-start}
   .ratio{font-family:var(--mono);font-size:10px;padding:7px 12px;background:transparent;border:none;
-    border-right:1.5px solid var(--ink);cursor:pointer;color:var(--ink);transition:all .15s}
+    border-right:1px solid var(--faint);cursor:pointer;color:var(--dim);transition:all .2s}
   .ratio:last-child{border-right:none}
-  .ratio.on{background:var(--red);color:var(--paper)}
-  .cbtn{font-family:var(--mono);font-size:11px;letter-spacing:.18em;padding:13px 18px;
-    background:var(--ink);color:var(--paper);border:none;cursor:pointer;transition:all .2s var(--ease)}
-  .cbtn:hover{background:var(--red)}
-  .cbtn.restore{background:transparent;color:var(--ink);border:1.5px solid var(--ink)}
-  .cbtn.restore:hover{background:var(--ink);color:var(--paper)}
-  .cstat{border-top:1px solid var(--line);padding-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  .cstat .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:20px;font-weight:700}
-  .cstat .v.red{color:var(--red)}
-  .cstat .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--g50);margin-top:4px}
-  .note{font-family:var(--mono);font-size:9.5px;line-height:1.8;color:var(--g50);letter-spacing:.04em}
+  .ratio.on{background:var(--pond);color:var(--card)}
+  .cbtn{font-family:var(--serif);font-size:13px;letter-spacing:.12em;padding:11px 16px;
+    background:var(--ink);color:var(--card);border:none;cursor:pointer;transition:all .25s var(--ease)}
+  .cbtn:hover{background:var(--pond)}
+  .cbtn.restore{background:transparent;color:var(--ink);border:1px solid var(--ink)}
+  .cbtn.restore:hover{background:var(--ink);color:var(--card)}
+  .cstat{border-top:1px solid var(--paper2);padding-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .cstat .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:19px;font-weight:600}
+  .cstat .v.pink{color:#B4828E}
+  .cstat .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;color:var(--dim);margin-top:4px;text-transform:uppercase}
+  .note{font-family:var(--mono);font-size:9px;line-height:1.8;color:var(--dim);letter-spacing:.04em}
 
-  footer{flex:0 0 auto;display:flex;gap:22px;align-items:center;padding:10px 28px;
-    border-top:1px solid var(--line);font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--g50)}
-  .f-dot{width:6px;height:6px;background:var(--red)}
+  footer{display:flex;align-items:center;gap:16px;margin:16px 28px 26px;padding:12px 16px;
+    border:1px solid var(--faint);background:var(--card);flex-wrap:wrap}
+  .sig{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.12em;color:var(--ink);opacity:.68;user-select:none}
+  .heurebox{display:flex;align-items:center;gap:10px;margin-left:auto}
+  .heurebox .sun{color:var(--dim);display:flex}
+  input[type=range].hslider{-webkit-appearance:none;appearance:none;width:170px;height:2px;
+    background:var(--ripple);outline:none;cursor:pointer}
+  input[type=range].hslider::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;
+    border-radius:50%;background:var(--card);border:2px solid var(--pond)}
+  input[type=range].hslider::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--card);border:2px solid var(--pond)}
+  #heureLbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink);min-width:84px}
+  #heureLbl i{font-style:normal;color:var(--dim)}
+  .fmono{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--dim)}
+  #panelToggle{position:fixed;right:14px;bottom:12px;z-index:70;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.18em;background:var(--card);border:1px solid var(--faint);color:var(--dim);
+    padding:6px 12px;cursor:pointer;transition:all .3s var(--ease);text-transform:uppercase}
+  #panelToggle:hover{color:var(--ink);border-color:var(--ink)}
 
   @media (max-width:960px){
     .grid{grid-template-columns:1fr}
-    .panel{border-left:none;border-top:2px solid var(--ink)}
-    .readout{grid-template-columns:1fr 1fr;gap:18px}
-    .ro-total{grid-column:1/-1}
   }
-  @media (max-width:640px){
-    header{flex-wrap:wrap;padding:12px 16px;gap:10px}
-    .presets{order:3;width:100%;overflow-x:auto}
-    .preset{flex:1;white-space:nowrap}
-    .readout,.barzone{padding-left:16px;padding-right:16px}
-    .segs{padding:4px 16px 24px}
-    .srow{grid-template-columns:1fr 90px;grid-template-rows:auto auto;gap:8px 14px}
+  @media (max-width:860px){
+    header{padding:14px 16px 8px;gap:10px}
+    .epigraphe{flex:1 1 100%;min-width:0;font-size:13px}
+    .hspace{display:none}
+    .presets{width:100%;overflow-x:auto}
+    .preset{flex:1;white-space:nowrap;font-size:9px;padding:8px 7px}
+    .pondwrap{margin:0 16px}
+    #pond{height:44vh}
+    .grid{margin:12px 16px 0}
+    .srow{grid-template-columns:1fr 90px;grid-template-rows:auto auto;gap:8px 12px}
     .srow .nm{grid-column:1/-1}
     .srow .pct{display:none}
-    .bar{height:48px}
-    #hoverline{display:none}
-    .preset{font-size:9px;padding:8px 7px}
-    .brand .sub{display:none}
+    footer{margin:12px 16px 70px}
+    input[type=range].hslider{width:110px}
+    #pond-readout .big{font-size:24px}
   }
 </style>
 </head>
@@ -150,312 +151,631 @@
 
 <header>
   <div class="brand">
-    <span class="no">A·06</span>
-    <span class="name">CONTEXT BUDGET</span>
-    <span class="sub">上下文预算可视化</span>
+    <div class="no">AGENT DEMOS · N°074</div>
+    <h1>Context Budget <em>· 睡莲账房</em></h1>
   </div>
-  <div class="spacer"></div>
+  <div class="epigraphe">« 我们画的不是睡莲，是水面上的下午。 »</div>
+  <div class="hspace"></div>
   <div class="presets" id="presets">
     <button class="preset" data-p="light">轻量对话</button>
     <button class="preset" data-p="rag">RAG 检索</button>
     <button class="preset" data-p="agent">长链 AGENT</button>
     <button class="preset on" data-p="balanced">均衡负载</button>
   </div>
+  <button class="sndbtn" id="sndBtn" title="环境声（默认关闭）" aria-label="toggle sound">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+      <path d="M2 6 Q4 8 2 10"/><path d="M5.5 4.5 Q8.5 8 5.5 11.5"/><path d="M9 3 Q13.5 8 9 13"/>
+    </svg>
+  </button>
 </header>
 
-<main>
-  <section class="readout">
-    <div>
-      <div class="ro-label">CONTEXT WINDOW USAGE / 已占用 TOKEN</div>
-      <div class="ro-total"><span id="total">0</span><span class="of">/ 131,072 TOK</span></div>
-    </div>
-    <div class="ro-cell">
-      <div class="v" id="free">0</div>
-      <div class="k">剩余 FREE</div>
-    </div>
-    <div class="ro-cell">
-      <div class="v" id="pct">0%</div>
-      <div class="k">占用率 RATIO</div>
-      <div><span id="status">WITHIN BUDGET</span></div>
-    </div>
-  </section>
+<div class="pondwrap">
+  <canvas id="pond"></canvas>
+  <div id="pond-readout">
+    <div class="big"><span id="total">0</span><small> / 131,072 TOK</small></div>
+    <div class="sub"><span id="free">0</span> FREE · <span id="pct">0%</span></div>
+    <div><span id="pond-status">WITHIN BUDGET · 宽裕</span></div>
+  </div>
+  <div class="pond-cap">吉维尼 · 一池账 · 点水面试涟漪</div>
+</div>
 
-  <section class="barzone">
-    <div class="bar-head">
-      <div class="bar-title">SEGMENT MAP — 128K 窗口分段</div>
-      <div id="hoverline">将指针移入条形查看分段明细</div>
-    </div>
-    <div class="barwrap">
-      <div class="bar" id="bar">
-        <div class="budget-line" id="blimit"></div>
-        <div id="over-in"></div>
-        <div id="over-tag"></div>
-      </div>
-      <div class="ruler" id="ruler"></div>
-    </div>
-  </section>
-
-  <section class="grid">
+<div class="grid" id="grid">
+  <section class="panel">
+    <div class="panel-h"><span>分段账 · 六片叶子</span><span id="hoverline">移入一行，看它在池里的位置</span></div>
     <div class="segs" id="segs"></div>
-    <aside class="panel">
-      <h2>COMPACTION<small>压缩模拟 — 历史浓缩</small></h2>
-      <p>当对话历史逼近窗口上限，Agent 将旧轮次浓缩为一段摘要，以固定压缩比换取继续工作的空间。选择压缩比并执行，观察分段条与计数的变化。</p>
-      <div class="ratios" id="ratios">
-        <button class="ratio" data-r="8">8 : 1</button>
-        <button class="ratio on" data-r="12">12 : 1</button>
-        <button class="ratio" data-r="20">20 : 1</button>
-      </div>
-      <button class="cbtn" id="compress">执行压缩 COMPRESS</button>
-      <div class="cstat">
-        <div><div class="v red" id="freed">0</div><div class="k">释放空间 FREED</div></div>
-        <div><div class="v" id="summary">0</div><div class="k">摘要成本 SUMMARY</div></div>
-      </div>
-      <div class="note">压缩不可逆：细节丢失，仅保留结论。实际系统中常以 LLM 生成摘要，此处按固定比率模拟。</div>
-    </aside>
   </section>
-</main>
+  <aside class="panel cpanel" id="cpanel">
+    <h2>Compaction<small>压缩模拟 · 历史浓缩</small></h2>
+    <p>对话历史逼近窗口上限时，Agent 把旧轮次浓缩成一段摘要——那片最老的莲叶会散成涟漪，再聚成小小的一片。</p>
+    <div class="ratios" id="ratios">
+      <button class="ratio" data-r="8">8 : 1</button>
+      <button class="ratio on" data-r="12">12 : 1</button>
+      <button class="ratio" data-r="20">20 : 1</button>
+    </div>
+    <button class="cbtn" id="compress">让历史散开 · COMPRESS</button>
+    <div class="cstat">
+      <div><div class="v pink" id="freed">0</div><div class="k">释放 FREED</div></div>
+      <div><div class="v" id="summary">0</div><div class="k">摘要 SUMMARY</div></div>
+    </div>
+    <div class="note">压缩不可逆：细节丢失，仅保留结论。此处按固定比率模拟。</div>
+  </aside>
+</div>
 
-<footer>
-  <span class="f-dot"></span>
-  <span>CONTEXT BUDGET — A·06 — AGENT DEMOS</span>
-  <span>数据为模拟演示 · 1 TOK ≈ 0.75 英文词</span>
+<footer id="foot">
+  <div class="sig">
+    <svg width="22" height="14" viewBox="0 0 64 40" fill="#41544A" aria-hidden="true">
+      <path d="M 61 15 C 58 12.5, 55.5 11.8, 53 12.8 C 50 13.8, 47 14.2, 44 14.5 C 34 9, 22 4.5, 10 2 C 13 7, 25 14, 37 16.8 C 34 16.9, 31.5 17, 29.5 17.2 C 22 14, 12 10, 2.5 6.5 C 6 10.5, 12 14.5, 19 17.3 C 14 19.5, 8.5 24, 3.5 29.5 C 11 25.5, 20 21.5, 28.5 19.5 C 27 25, 24 31.5, 22.5 38.5 C 28 33, 33 26, 39.5 20 C 44 19, 49 18, 53.5 17 C 57 16.2, 59.5 15.5, 61 15 Z"/>
+    </svg>
+    <span>Atelier MIRA · N°074 · 睡莲 Nymphéas</span>
+  </div>
+  <span class="fmono">数据为模拟 · 1 TOK ≈ 0.75 英文词</span>
+  <div class="heurebox">
+    <span class="sun">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+        <circle cx="7" cy="7" r="2.6"/><path d="M7 1v1.6M7 11.4V13M1 7h1.6M11.4 7H13M2.8 2.8l1.1 1.1M10.1 10.1l1.1 1.1M11.2 2.8l-1.1 1.1M3.9 10.1l-1.1 1.1"/>
+      </svg>
+    </span>
+    <input type="range" class="hslider" id="heure" min="0" max="24" step="0.25" value="12">
+    <span id="heureLbl">12:00 <i>· 午</i></span>
+  </div>
 </footer>
+
+<button id="panelToggle">H · 收起画具</button>
 
 <script>
 (function(){
-  "use strict";
-  var BUDGET = 131072;
-  var SEGS = [
-    {id:"sys",    en:"SYSTEM PROMPT", cn:"系统提示",   color:"#16130C", val:4200,  max:20000},
-    {id:"tools",  en:"TOOL SCHEMA",   cn:"工具定义",   color:"#4A4538", val:6800,  max:30000},
-    {id:"rag",    en:"MEMORY / RAG",  cn:"记忆检索",   color:"#7A7462", val:18500, max:64000},
-    {id:"hist",   en:"HISTORY",       cn:"对话历史",   color:"#A39D8B", val:34000, max:110000},
-    {id:"tout",   en:"TOOL OUTPUT",   cn:"工具返回",   color:"#2547C9", val:21000, max:64000},
-    {id:"rsv",    en:"OUTPUT RESERVE",cn:"输出预留",   color:"#CFC9BA", val:8000,  max:32000}
-  ];
-  var PRESETS = {
-    light:   [2200, 1200, 0,     6000,  800,   4000],
-    rag:     [4800, 3200, 46000, 14000, 9000,  8000],
-    agent:   [9000, 14000,22000, 56000, 38000, 12000],
-    balanced:[4200, 6800, 18500, 34000, 21000, 8000]
-  };
-  var shown = SEGS.map(function(s){ return s.val; });
-  var compressed = false, histBefore = 0, ratio = 12;
-  var freedShown = 0, freedTarget = 0, summaryShown = 0, summaryTarget = 0;
-  var hovIdx = -1;
+"use strict";
+/* ================= utils ================= */
+function hexRGB(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function rgbHex(r,g,b){var f=function(v){return Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,"0");};return "#"+f(r)+f(g)+f(b);}
+function hexHsl(h){var c=hexRGB(h).map(function(v){return v/255;});var r=c[0],g=c[1],b=c[2];
+  var mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,s=0,hh=0;
+  if(mx!==mn){var d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);
+    if(mx===r)hh=((g-b)/d+(g<b?6:0))/6;else if(mx===g)hh=((b-r)/d+2)/6;else hh=((r-g)/d+4)/6;}
+  return [hh*360,s*100,l*100];}
+function hslHex(h,s,l){h=((h%360)+360)%360/360;s=Math.max(0,Math.min(1,s/100));l=Math.max(0,Math.min(1,l/100));
+  var q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q;
+  var f=function(t){t=((t%1)+1)%1;
+    if(t<1/6)return p+(q-p)*6*t;if(t<1/2)return q;if(t<2/3)return p+(q-p)*(2/3-t)*6;return p;};
+  return rgbHex(f(h+1/3)*255,f(h)*255,f(h-1/3)*255);}
+function mixHsl(c1,c2,t){var a=hexHsl(c1),b=hexHsl(c2);
+  var dh=b[0]-a[0];if(dh>180)dh-=360;if(dh<-180)dh+=360;
+  return hslHex(a[0]+dh*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t);}
+function rgba(h,a){var c=hexRGB(h);return "rgba("+c[0]+","+c[1]+","+c[2]+","+a+")";}
+var seed=74;function rnd(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
+function R(a,b){return a+Math.random()*(b-a);}
+function fmt(n){return Math.round(n).toLocaleString("en-US");}
 
-  var bar = document.getElementById("bar");
-  var segsEl = document.getElementById("segs");
-  var totalEl = document.getElementById("total");
-  var freeEl = document.getElementById("free");
-  var pctEl = document.getElementById("pct");
-  var statusEl = document.getElementById("status");
-  var hoverline = document.getElementById("hoverline");
-  var overIn = document.getElementById("over-in");
-  var overTag = document.getElementById("over-tag");
-  var blimit = document.getElementById("blimit");
-  var freedEl = document.getElementById("freed");
-  var summaryEl = document.getElementById("summary");
-  var compressBtn = document.getElementById("compress");
-  var curScale = BUDGET;
+var PAL={water:"#F2EFE6",ripple:"#DCE4DA",willow:"#A9BFAD",pond:"#5F7D6E",sky:"#7C8FA6",lotus:"#C9A6B4"};
 
-  /* ruler ticks */
-  var ruler = document.getElementById("ruler");
-  var tickDivs = [0, 32768, 65536, 98304, 131072].map(function(t){
-    var d = document.createElement("div");
-    d.className = "tick";
-    d.style.left = (t / BUDGET * 100) + "%";
-    d.innerHTML = "<span>" + (t === 0 ? "0" : Math.round(t/1024) + "K") + "</span>";
-    ruler.appendChild(d);
-    return {el:d, t:t};
-  });
+/* ================= paper + grain ================= */
+function makePaper(w,h){
+  var c=document.createElement("canvas");c.width=w;c.height=h;var x=c.getContext("2d");
+  x.fillStyle="#F2EFE6";x.fillRect(0,0,w,h);
+  for(var i=0;i<w*h/900;i++){
+    x.fillStyle="rgba("+(rnd()<0.5?"65,84,74":"255,253,246")+","+(0.02+rnd()*0.04)+")";
+    x.beginPath();x.arc(rnd()*w,rnd()*h,0.4+rnd()*1.6,0,7);x.fill();
+  }
+  x.strokeStyle="rgba(124,138,128,.05)";x.lineWidth=0.5;
+  for(var j=0;j<w/16;j++){
+    x.beginPath();var fx2=rnd()*w,fy=rnd()*h,fa=rnd()*Math.PI,fl=8+rnd()*26;
+    x.moveTo(fx2,fy);x.lineTo(fx2+Math.cos(fa)*fl,fy+Math.sin(fa)*fl);x.stroke();
+  }
+  return c;
+}
+document.body.style.setProperty("--papertex","url("+makePaper(280,280).toDataURL()+")");
+var grainFrames=[];
+(function(){
+  for(var f=0;f<4;f++){
+    var c=document.createElement("canvas");c.width=160;c.height=160;var x=c.getContext("2d");
+    var im=x.createImageData(160,160);
+    for(var i=0;i<im.data.length;i+=4){var v=118+rnd()*20|0;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=255;}
+    x.putImageData(im,0,0);grainFrames.push(c);
+  }
+})();
+var grainT=0,grainF=0;
+function drawGrain(ctx,w,h,now){
+  if(now-grainT>83){grainT=now;grainF=(grainF+1)%4;}
+  ctx.save();ctx.globalAlpha=0.026;ctx.globalCompositeOperation="overlay";
+  var g=grainFrames[grainF];
+  for(var x=0;x<w;x+=160)for(var y=0;y<h;y+=160)ctx.drawImage(g,x,y);
+  ctx.restore();
+}
 
-  /* bar segments (created once, widths animated) */
-  var segDivs = SEGS.map(function(s, i){
-    var d = document.createElement("div");
-    d.className = "seg";
-    d.dataset.i = i;
-    d.style.background = s.color;
-    bar.insertBefore(d, blimit);
-    return d;
-  });
-  var freeDiv = document.createElement("div");
-  freeDiv.className = "seg free";
-  bar.insertBefore(freeDiv, blimit);
+/* ================= heure ================= */
+var LK=[
+  [0,  "#3E4A54","#5A6A6E","#2E3A3C",0.4],
+  [5,  "#9AA7B8","#DCE4DA","#C9CDD6",0.2],
+  [8,  "#B8C4C2","#F2EFE6","#F2EFE6",0.05],
+  [12, "#A9BFAD","#F6F3EA","#FFFFFF",0.0],
+  [16, "#A3B4A4","#EFEAD2","#F4E3C2",0.07],
+  [19, "#9A93A0","#E8C9A0","#E8B96F",0.16],
+  [21, "#5A5A6E","#7E7E8E","#4E4A6B",0.32],
+  [24, "#3E4A54","#5A6A6E","#2E3A3C",0.4]
+];
+function lightAt(h){
+  h=((h%24)+24)%24;
+  var i=0;while(i<LK.length-2&&LK[i+1][0]<h)i++;
+  var a=LK[i],b=LK[i+1],t=Math.max(0,Math.min(1,(h-a[0])/Math.max(0.001,b[0]-a[0])));
+  return {top:mixHsl(a[1],b[1],t),bot:mixHsl(a[2],b[2],t),tint:mixHsl(a[3],b[3],t),tintA:a[4]+(b[4]-a[4])*t};
+}
+function phaseName(h){return h<5?"夜":h<8?"晨":h<16?"午":h<20?"暮":"夜";}
+var heure=new Date().getHours()+new Date().getMinutes()/60;
+(function(){var m=location.hash.match(/h=([\d.]+)/);if(m)heure=parseFloat(m[1]);})();
 
-  /* control rows */
-  var rows = SEGS.map(function(s, i){
-    var r = document.createElement("div");
-    r.className = "srow";
-    r.style.setProperty("--c", s.color);
-    r.innerHTML =
-      '<div class="nm"><i></i><div>' + s.en + "<small>" + s.cn + "</small></div></div>" +
-      '<input type="range" min="0" max="' + s.max + '" step="100" value="' + s.val + '">' +
-      '<div class="val">0</div><div class="pct">0%</div>';
-    var input = r.querySelector("input");
-    input.addEventListener("input", function(){
-      if (s.id === "hist" && compressed) setCompressed(false);
-      s.val = +input.value;
-      markCustom();
-    });
-    r.addEventListener("mouseenter", function(){ setHov(i); });
-    r.addEventListener("mouseleave", function(){ setHov(-1); });
-    segsEl.appendChild(r);
-    return {row:r, input:input, val:r.querySelector(".val"), pct:r.querySelector(".pct")};
-  });
+/* ================= budget model ================= */
+var BUDGET=131072;
+var SEGS=[
+  {id:"sys",   en:"SYSTEM PROMPT", cn:"系统提示", val:4200,  max:20000, tint:0.15},
+  {id:"tools", en:"TOOL SCHEMA",   cn:"工具定义", val:6800,  max:30000, tint:0.32},
+  {id:"rag",   en:"MEMORY / RAG",  cn:"记忆检索", val:18500, max:64000, tint:0.5},
+  {id:"hist",  en:"HISTORY",       cn:"对话历史", val:34000, max:110000,tint:0.72},
+  {id:"tout",  en:"TOOL OUTPUT",   cn:"工具返回", val:21000, max:64000, tint:0.42},
+  {id:"rsv",   en:"OUTPUT RESERVE",cn:"输出预留", val:8000,  max:32000, tint:0.6}
+];
+var PRESETS={
+  light:   [2200, 1200, 0,     6000,  800,   4000],
+  rag:     [4800, 3200, 46000, 14000, 9000,  8000],
+  agent:   [9000, 14000,22000, 56000, 38000, 12000],
+  balanced:[4200, 6800, 18500, 34000, 21000, 8000]
+};
+var shown=SEGS.map(function(s){return s.val;});
+var compressed=false,histBefore=0,ratio=12;
+var freedShown=0,freedTarget=0,summaryShown=0,summaryTarget=0;
+var hovIdx=-1;
 
-  function setHov(i){
-    hovIdx = i;
-    segDivs.forEach(function(d, j){ d.classList.toggle("hov", j === i); });
-    if (i >= 0){
-      var s = SEGS[i];
-      var tot = targetTotal();
-      hoverline.innerHTML = "<b>" + s.en + " " + s.cn + "</b> — " +
-        fmt(s.val) + " TOK · " + (tot ? (s.val / tot * 100).toFixed(1) : "0.0") + "% 占用";
-    } else {
-      hoverline.textContent = "将指针移入条形查看分段明细";
+/* ================= pond canvas ================= */
+var pc=document.getElementById("pond"),px=pc.getContext("2d");
+var PW=0,PH=0,PDPR=1,baseCv=null;
+function presize(){
+  PDPR=Math.min(2,window.devicePixelRatio||1);
+  var r=pc.getBoundingClientRect();PW=r.width;PH=r.height;
+  pc.width=PW*PDPR;pc.height=PH*PDPR;px.setTransform(PDPR,0,0,PDPR,0,0);
+  seed=74;paintWater();
+}
+window.addEventListener("resize",presize);
+
+function paintWater(){
+  baseCv=document.createElement("canvas");baseCv.width=PW*PDPR;baseCv.height=PH*PDPR;
+  var b=baseCv.getContext("2d");b.setTransform(PDPR,0,0,PDPR,0,0);
+  b.fillStyle=PAL.water;b.fillRect(0,0,PW,PH);
+  var n=Math.floor(PW*PH/300);
+  for(var j=0;j<n;j++){
+    var gy=rnd()*PH;
+    var depth=gy/PH;
+    var base=mixHsl(PAL.ripple,PAL.sky,0.15+depth*0.35);
+    base=mixHsl(base,PAL.willow,rnd()*0.3);
+    var hsl=hexHsl(base);
+    base=hslHex(hsl[0]+(rnd()-0.5)*14,hsl[1],hsl[2]+(rnd()-0.5)*10);
+    var len=5+rnd()*20;
+    b.strokeStyle=base;b.globalAlpha=0.4+rnd()*0.35;b.lineWidth=0.9+depth*0.9;
+    var gx=rnd()*PW;
+    b.beginPath();b.moveTo(gx,gy);b.lineTo(gx+len,gy+(rnd()-0.5)*2);b.stroke();
+  }
+  b.globalAlpha=1;
+}
+
+/* ---- lily pad unit-circle stroke caches ---- */
+function padColor(seg){
+  return mixHsl(mixHsl(PAL.willow,PAL.pond,seg.tint),PAL.sky,seg.tint*0.25);
+}
+function makePadStrokes(seg){
+  var strokes=[],base=padColor(seg);
+  var n=150;
+  for(var i=0;i<n;i++){
+    var a=rnd()*Math.PI*2;
+    if(a>0.25&&a<0.62)continue;              /* 叶缺 */
+    var rr=Math.sqrt(rnd())*0.92;
+    var hsl=hexHsl(base);
+    var col=hslHex(hsl[0]+(rnd()-0.5)*18,Math.min(100,hsl[1]*1.15),hsl[2]*0.82+(rnd()-0.5)*12);
+    strokes.push({x:Math.cos(a)*rr,y:Math.sin(a)*rr*0.86,a:a+1.57+(rnd()-0.5)*0.6,
+      len:0.06+rnd()*0.12,col:col,al:0.6+rnd()*0.35,w:1+rnd()*1.6});
+  }
+  /* 叶脉 */
+  for(var v=0;v<7;v++){
+    var a2=0.7+v*0.75+rnd()*0.2;
+    strokes.push({x:0,y:0,a:a2,len:0.86,col:rgba(PAL.pond,0.55),al:0.55,w:0.9,vein:true});
+  }
+  return strokes;
+}
+var padCaches=SEGS.map(makePadStrokes);
+
+/* pad layout: x by cumulative share of 128K, y staggered, r ∝ sqrt(value/BUDGET) */
+function padLayout(){
+  var tot=0,i;
+  for(i=0;i<SEGS.length;i++)tot+=shown[i];
+  var scale=Math.max(tot,BUDGET);
+  var acc=0,pads=[];
+  for(i=0;i<SEGS.length;i++){
+    var wFrac=shown[i]/scale;
+    if(wFrac<=0.001){pads.push(null);continue;}
+    var cx=(acc+wFrac/2)*0.86*PW+PW*0.05;
+    acc+=wFrac;
+    var r=Math.sqrt(shown[i]/BUDGET)*PH*0.72;
+    r=Math.max(15,Math.min(r,PH*0.34));
+    cx=Math.max(cx,r*0.82); /* 不被左岸裁掉 */
+    var y=PH*(0.32+((i*53)%38)/100)+Math.sin(i*2.3)*PH*0.1;
+    pads.push({x:cx,y:y,r:r});
+  }
+  return {pads:pads,tot:tot,scale:scale};
+}
+
+var ripples=[];
+var dissolving=null; /* {t0, fromR, x, y, seg} */
+function drawPond(now){
+  var L=lightAt(heure);
+  /* sky reflection band */
+  var g=px.createLinearGradient(0,0,0,PH*0.3);
+  g.addColorStop(0,rgba(L.top,0.5));g.addColorStop(1,rgba(L.bot,0));
+  px.drawImage(baseCv,0,0,PW,PH);
+  px.fillStyle=g;px.fillRect(0,0,PW,PH*0.3);
+  /* sun / moon glitter */
+  var i;
+  if(heure>5&&heure<20){
+    var sunT=(heure-6)/12,sx=PW*(0.2+sunT*0.6);
+    for(i=0;i<34;i++){
+      var gy=PH*0.1+Math.random()*PH*0.6;
+      var gx=sx+(Math.random()-0.5)*(26+gy*0.16);
+      px.strokeStyle=rgba(heure>17?"#E8B96F":"#FFFFFF",0.3+Math.random()*0.35);
+      px.lineWidth=1;
+      var gl=3+Math.random()*9;
+      px.beginPath();px.moveTo(gx-gl/2,gy);px.lineTo(gx+gl/2,gy);px.stroke();
+    }
+  }else{
+    px.fillStyle=rgba("#F2EFE6",0.8);
+    px.beginPath();px.arc(PW*0.82,PH*0.14,6,0,7);px.fill();
+    for(i=0;i<18;i++){
+      px.fillStyle=rgba("#F2EFE6",R(0.2,0.6));
+      px.fillRect(R(0,PW),R(0,PH*0.4),1.1,1.1);
     }
   }
 
-  bar.addEventListener("mousemove", function(e){
-    var rect = bar.getBoundingClientRect();
-    var x = (e.clientX - rect.left) / rect.width * curScale;
-    var acc = 0;
-    for (var i = 0; i < SEGS.length; i++){
-      acc += shown[i];
-      if (x <= acc){ setHov(i); return; }
-    }
-    setHov(-1);
-  });
-  bar.addEventListener("mouseleave", function(){ setHov(-1); });
+  var lay=padLayout();
+  var limitX=(BUDGET/lay.scale)*0.86*PW+PW*0.05;
 
-  /* presets */
-  document.getElementById("presets").addEventListener("click", function(e){
-    var b = e.target.closest(".preset");
-    if (!b) return;
-    document.querySelectorAll(".preset").forEach(function(p){ p.classList.toggle("on", p === b); });
-    var vals = PRESETS[b.dataset.p];
+  /* 超支：右侧满出的水变粉 */
+  if(lay.tot>BUDGET){
+    var og=px.createLinearGradient(limitX,0,PW,0);
+    og.addColorStop(0,rgba(PAL.lotus,0));
+    og.addColorStop(1,rgba(PAL.lotus,0.35));
+    px.fillStyle=og;px.fillRect(limitX,0,PW-limitX,PH);
+  }
+
+  /* pads */
+  lay.pads.forEach(function(p,idx){
+    if(!p)return;
+    var seg=SEGS[idx];
+    var bob=Math.sin(now/1400+idx*1.7)*2.2;
+    var sway=Math.sin(now/2100+idx)*0.02;
+    var isHov=hovIdx===idx;
+    px.save();
+    px.translate(p.x,p.y+bob);
+    px.rotate(sway);
+    /* 水下影 */
+    px.fillStyle=rgba(PAL.pond,0.18);
+    px.beginPath();px.ellipse(2,4,p.r*0.96,p.r*0.8,0,0,7);px.fill();
+    var strokes=padCaches[idx];
+    for(var s2=0;s2<strokes.length;s2++){
+      var st=strokes[s2];
+      px.strokeStyle=st.col;px.globalAlpha=st.al*(isHov?1:0.92);px.lineWidth=st.w;
+      px.beginPath();
+      px.moveTo(st.x*p.r,st.y*p.r);
+      px.lineTo(st.x*p.r+Math.cos(st.a)*st.len*p.r,st.y*p.r+Math.sin(st.a)*st.len*p.r);
+      px.stroke();
+    }
+    px.globalAlpha=1;
+    if(isHov){
+      px.strokeStyle=rgba("#41544A",0.7);px.lineWidth=1.2;
+      px.beginPath();px.arc(0,0,p.r+3,0,7);px.stroke();
+    }
+    /* 历史叶上的莲花 */
+    if(seg.id==="hist"&&!compressed){
+      px.fillStyle=PAL.lotus;
+      for(var pet=0;pet<6;pet++){
+        var pa=pet/6*Math.PI*2;
+        px.beginPath();
+        px.ellipse(Math.cos(pa)*5+p.r*0.3,Math.sin(pa)*4-p.r*0.25,4.5,2.2,pa,0,7);
+        px.fill();
+      }
+      px.fillStyle="#F2EFE6";
+      px.beginPath();px.arc(p.r*0.3,-p.r*0.25,2.4,0,7);px.fill();
+    }
+    px.restore();
+    /* 名称铅笔字 */
+    px.font="9px 'SF Mono',Menlo,monospace";
+    px.fillStyle="rgba(65,84,74,.6)";
+    px.fillText(seg.en,p.x-p.r*0.8,p.y+p.r+14+bob);
+  });
+
+  /* dissolving history pad → pointillist dots */
+  if(dissolving){
+    var dt2=(now-dissolving.t0)/1400;
+    if(dt2>=1){dissolving=null;}
+    else{
+      dissolving.dots.forEach(function(d){
+        var spread=d.r*(1+dt2*2.6);
+        var x=dissolving.x+Math.cos(d.a)*spread+d.jx*dt2;
+        var y=dissolving.y+Math.sin(d.a)*spread*0.86+d.jy*dt2+dt2*dt2*8;
+        px.fillStyle=d.col;
+        px.globalAlpha=(1-dt2)*0.8;
+        px.beginPath();px.arc(x,y,d.sz*(1-dt2*0.5),0,7);px.fill();
+      });
+      px.globalAlpha=1;
+    }
+  }
+
+  /* 128K 界桩 */
+  px.strokeStyle=rgba("#41544A",0.55);px.lineWidth=1;
+  px.setLineDash([3,4]);
+  px.beginPath();px.moveTo(limitX,6);px.lineTo(limitX,PH-6);px.stroke();
+  px.setLineDash([]);
+  px.font="8.5px 'SF Mono',Menlo,monospace";
+  px.fillStyle="rgba(65,84,74,.6)";
+  px.fillText("LIMIT 128K",limitX-56,14);
+
+  /* ripples */
+  ripples=ripples.filter(function(r){return now-r.born<1300;});
+  ripples.forEach(function(r){
+    var t=(now-r.born)/1300;
+    px.strokeStyle=rgba("#FFFFFF",(1-t)*0.55);px.lineWidth=1.1;
+    px.beginPath();px.ellipse(r.x,r.y,t*70+3,(t*70+3)*0.42,0,0,7);px.stroke();
+    px.strokeStyle=rgba(PAL.pond,(1-t)*0.25);
+    px.beginPath();px.ellipse(r.x,r.y,t*46+2,(t*46+2)*0.42,0,0,7);px.stroke();
+  });
+
+  /* tint + grain */
+  px.fillStyle=L.tint;px.globalAlpha=L.tintA;px.fillRect(0,0,PW,PH);px.globalAlpha=1;
+  drawGrain(px,PW,PH,now);
+}
+
+pc.addEventListener("pointerdown",function(e){
+  var r=pc.getBoundingClientRect();
+  ripples.push({x:e.clientX-r.left,y:e.clientY-r.top,born:performance.now()});
+  if(Snd.on)Snd.plop();
+});
+pc.addEventListener("pointermove",function(e){
+  var r=pc.getBoundingClientRect();
+  var mx=e.clientX-r.left,my=e.clientY-r.top;
+  var lay=padLayout(),found=-1;
+  lay.pads.forEach(function(p,idx){
+    if(!p)return;
+    var dx=mx-p.x,dy=(my-p.y)/0.86;
+    if(Math.hypot(dx,dy)<p.r+6)found=idx;
+  });
+  if(found!==hovIdx){
+    hovIdx=found;
+    rows.forEach(function(rw,j){rw.row.style.background=j===hovIdx?"rgba(95,125,110,.07)":"";});
+    if(hovIdx>=0){
+      var s=SEGS[hovIdx];
+      var tot=targetTotal();
+      document.getElementById("hoverline").innerHTML=
+        "<b>"+s.en+" "+s.cn+"</b> — "+fmt(s.val)+" TOK · "+(tot?(s.val/tot*100).toFixed(1):"0.0")+"%";
+    }else{
+      document.getElementById("hoverline").textContent="移入一行，看它在池里的位置";
+    }
+  }
+});
+pc.addEventListener("pointerleave",function(){hovIdx=-1;
+  rows.forEach(function(rw){rw.row.style.background="";});
+  document.getElementById("hoverline").textContent="移入一行，看它在池里的位置";
+});
+
+/* ================= control rows ================= */
+var segsEl=document.getElementById("segs");
+var rows=SEGS.map(function(s,i){
+  var r=document.createElement("div");
+  r.className="srow";
+  r.style.setProperty("--c",padColor(s));
+  r.innerHTML=
+    '<div class="nm"><i></i><div>'+s.en+"<small>"+s.cn+"</small></div></div>"+
+    '<input type="range" min="0" max="'+s.max+'" step="100" value="'+s.val+'">'+
+    '<div class="val">0</div><div class="pct">0%</div>';
+  var input=r.querySelector("input");
+  input.addEventListener("input",function(){
+    if(s.id==="hist"&&compressed)setCompressed(false);
+    s.val=+input.value;
+    markCustom();
+  });
+  r.addEventListener("mouseenter",function(){hovIdx=i;});
+  r.addEventListener("mouseleave",function(){hovIdx=-1;});
+  segsEl.appendChild(r);
+  return {row:r,input:input,val:r.querySelector(".val"),pct:r.querySelector(".pct")};
+});
+
+document.getElementById("presets").addEventListener("click",function(e){
+  var b=e.target.closest(".preset");
+  if(!b)return;
+  document.querySelectorAll(".preset").forEach(function(p){p.classList.toggle("on",p===b);});
+  var vals=PRESETS[b.dataset.p];
+  setCompressed(false);
+  SEGS.forEach(function(s,i){s.val=vals[i];rows[i].input.value=vals[i];});
+});
+function markCustom(){
+  document.querySelectorAll(".preset").forEach(function(p){p.classList.remove("on");});
+}
+document.getElementById("ratios").addEventListener("click",function(e){
+  var b=e.target.closest(".ratio");
+  if(!b)return;
+  document.querySelectorAll(".ratio").forEach(function(p){p.classList.toggle("on",p===b);});
+  ratio=+b.dataset.r;
+  if(compressed){
+    var hist=SEGS[3];
+    var newVal=Math.max(400,Math.round(histBefore/ratio/100)*100);
+    freedTarget=histBefore-newVal;summaryTarget=newVal;
+    hist.val=newVal;rows[3].input.value=newVal;
+  }
+});
+function setCompressed(on){
+  compressed=on;
+  document.getElementById("compress").textContent=on?"把历史捞回来 · RESTORE":"让历史散开 · COMPRESS";
+  document.getElementById("compress").classList.toggle("restore",on);
+  rows[3].row.classList.toggle("locked",on);
+  if(!on){freedTarget=0;summaryTarget=0;}
+}
+document.getElementById("compress").addEventListener("click",function(){
+  var hist=SEGS[3];
+  if(!compressed){
+    histBefore=hist.val;
+    var newVal=Math.max(400,Math.round(histBefore/ratio/100)*100);
+    freedTarget=histBefore-newVal;summaryTarget=newVal;
+    /* wow: 叶子散成点彩 */
+    var lay=padLayout(),p=lay.pads[3];
+    if(p){
+      var dots=[],base=padColor(hist);
+      for(var i=0;i<180;i++){
+        var a=R(0,6.28),rr=Math.sqrt(Math.random());
+        var hsl=hexHsl(base);
+        dots.push({a:a,r:rr*p.r,jx:R(-30,30),jy:R(-18,18),sz:R(1,3),
+          col:hslHex(hsl[0]+R(-9,9),hsl[1],hsl[2]+R(-8,8))});
+      }
+      dissolving={t0:performance.now(),x:p.x,y:p.y,dots:dots};
+    }
+    hist.val=newVal;rows[3].input.value=newVal;
+    setCompressed(true);
+    if(Snd.on)Snd.swell();
+  }else{
+    hist.val=histBefore;rows[3].input.value=histBefore;
     setCompressed(false);
-    SEGS.forEach(function(s, i){
-      s.val = vals[i];
-      rows[i].input.value = vals[i];
-    });
-  });
-  function markCustom(){
-    document.querySelectorAll(".preset").forEach(function(p){ p.classList.remove("on"); });
   }
+});
+function targetTotal(){return SEGS.reduce(function(a,s){return a+s.val;},0);}
 
-  /* compression */
-  document.getElementById("ratios").addEventListener("click", function(e){
-    var b = e.target.closest(".ratio");
-    if (!b) return;
-    document.querySelectorAll(".ratio").forEach(function(p){ p.classList.toggle("on", p === b); });
-    ratio = +b.dataset.r;
-    if (compressed){
-      var hist = SEGS[3];
-      var newVal = Math.max(400, Math.round(histBefore / ratio / 100) * 100);
-      freedTarget = histBefore - newVal;
-      summaryTarget = newVal;
-      hist.val = newVal;
-      rows[3].input.value = newVal;
-    }
-  });
+/* ================= readouts ================= */
+var totalEl=document.getElementById("total"),freeEl=document.getElementById("free"),
+    pctEl=document.getElementById("pct"),statusEl=document.getElementById("pond-status"),
+    freedEl=document.getElementById("freed"),summaryEl=document.getElementById("summary");
 
-  function setCompressed(on){
-    compressed = on;
-    compressBtn.textContent = on ? "还原历史 RESTORE" : "执行压缩 COMPRESS";
-    compressBtn.classList.toggle("restore", on);
-    rows[3].row.classList.toggle("locked", on);
-    if (!on){ freedTarget = 0; summaryTarget = 0; }
+/* ================= sound (default OFF) ================= */
+var Snd=(function(){
+  var ac=null,master=null,on=false,waterGain=null;
+  function build(){
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    master=ac.createGain();master.gain.value=0;master.connect(ac.destination);
+    var len=ac.sampleRate*3,buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0),last=0;
+    for(var i=0;i<len;i++){var w=Math.random()*2-1;last=(last+0.025*w)/1.025;d[i]=last*2.8;}
+    var src=ac.createBufferSource();src.buffer=buf;src.loop=true;
+    var lp=ac.createBiquadFilter();lp.type="lowpass";lp.frequency.value=320;lp.Q.value=0.5;
+    waterGain=ac.createGain();waterGain.gain.value=0.5;
+    src.connect(lp);lp.connect(waterGain);waterGain.connect(master);src.start();
+    var lfo=ac.createOscillator(),lg=ac.createGain();
+    lfo.frequency.value=0.07;lg.gain.value=0.2;
+    lfo.connect(lg);lg.connect(waterGain.gain);lfo.start();
+    (function bird(){
+      if(on&&heure>5&&heure<19.5&&Math.random()<0.5)chirp();
+      setTimeout(bird,3000+Math.random()*8000);
+    })();
   }
-
-  compressBtn.addEventListener("click", function(){
-    var hist = SEGS[3];
-    if (!compressed){
-      histBefore = hist.val;
-      var newVal = Math.max(400, Math.round(histBefore / ratio / 100) * 100);
-      freedTarget = histBefore - newVal;
-      summaryTarget = newVal;
-      hist.val = newVal;
-      rows[3].input.value = newVal;
-      setCompressed(true);
-    } else {
-      hist.val = histBefore;
-      rows[3].input.value = histBefore;
-      setCompressed(false);
-    }
-  });
-
-  function fmt(n){ return Math.round(n).toLocaleString("en-US"); }
-  function targetTotal(){ return SEGS.reduce(function(a, s){ return a + s.val; }, 0); }
-
-  function tick(){
-    var i, tot = 0;
-    for (i = 0; i < SEGS.length; i++){
-      shown[i] += (SEGS[i].val - shown[i]) * 0.14;
-      if (Math.abs(SEGS[i].val - shown[i]) < 0.5) shown[i] = SEGS[i].val;
-      tot += shown[i];
-    }
-    freedShown += (freedTarget - freedShown) * 0.12;
-    summaryShown += (summaryTarget - summaryShown) * 0.12;
-
-    var scale = Math.max(tot, BUDGET);
-    curScale = scale;
-    var w = 0;
-    for (i = 0; i < SEGS.length; i++){
-      var pctW = shown[i] / scale * 100;
-      segDivs[i].style.width = pctW + "%";
-      w += pctW;
-    }
-    var freeW = Math.max(0, (BUDGET - tot) / scale * 100);
-    freeDiv.style.width = freeW + "%";
-    freeDiv.style.display = freeW > 0.05 ? "block" : "none";
-
-    tickDivs.forEach(function(td){
-      td.el.style.left = (td.t / scale * 100) + "%";
-    });
-
-    var over = tot > BUDGET;
-    if (over){
-      var tTot = targetTotal();
-      var limPct = BUDGET / scale * 100;
-      blimit.style.display = "block";
-      blimit.style.left = limPct + "%";
-      overIn.style.display = "block";
-      overIn.style.left = limPct + "%";
-      overIn.style.width = (100 - limPct) + "%";
-      overTag.style.display = "block";
-      overTag.textContent = "OVERFLOW +" + fmt(tTot - BUDGET) + " TOK";
-    } else {
-      blimit.style.display = "none";
-      overIn.style.display = "none";
-      overTag.style.display = "none";
-    }
-
-    totalEl.textContent = fmt(tot);
-    freeEl.textContent = fmt(Math.max(0, BUDGET - tot));
-    freeEl.style.color = over ? "#E03A00" : "";
-    var ratioNow = tot / BUDGET;
-    pctEl.textContent = (ratioNow * 100).toFixed(1) + "%";
-
-    var st, cls;
-    if (ratioNow > 1){ st = "OVERFLOW 溢出"; cls = "over"; }
-    else if (ratioNow > 0.9){ st = "CRITICAL 临界"; cls = "tight"; }
-    else if (ratioNow > 0.72){ st = "TIGHT 紧张"; cls = "tight"; }
-    else { st = "WITHIN BUDGET 充裕"; cls = ""; }
-    if (statusEl.textContent !== st) statusEl.textContent = st;
-    statusEl.className = cls;
-
-    for (i = 0; i < SEGS.length; i++){
-      rows[i].val.textContent = fmt(shown[i]);
-      rows[i].pct.textContent = (shown[i] / BUDGET * 100).toFixed(1) + "%";
-    }
-    freedEl.textContent = fmt(Math.max(0, freedShown));
-    summaryEl.textContent = fmt(Math.max(0, summaryShown));
-
-    requestAnimationFrame(tick);
+  function chirp(){
+    var t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
+    o.frequency.setValueAtTime(2500+Math.random()*400,t);
+    o.frequency.exponentialRampToValueAtTime(3100,t+0.07);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(0.02,t+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+0.35);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+0.4);
   }
+  function plop(){
+    if(!ac)return;
+    var t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
+    o.type="sine";o.frequency.setValueAtTime(620+Math.random()*260,t);
+    o.frequency.exponentialRampToValueAtTime(160,t+0.1);
+    g.gain.setValueAtTime(0.05,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.24);
+    o.connect(g);g.connect(master);o.start(t);o.stop(t+0.26);
+  }
+  function swell(){
+    if(!ac||!waterGain)return;
+    var t=ac.currentTime;
+    waterGain.gain.cancelScheduledValues(t);
+    waterGain.gain.setValueAtTime(waterGain.gain.value,t);
+    waterGain.gain.linearRampToValueAtTime(1.3,t+0.5);
+    waterGain.gain.linearRampToValueAtTime(0.5,t+2.6);
+  }
+  function toggle(){
+    on=!on;
+    if(on&&!ac)build();
+    if(ac){
+      if(ac.state==="suspended")ac.resume();
+      var t=ac.currentTime;
+      master.gain.cancelScheduledValues(t);
+      master.gain.setValueAtTime(master.gain.value,t);
+      master.gain.linearRampToValueAtTime(on?1:0,t+1.5);
+    }
+    try{localStorage.setItem("mira-snd-074",on?"1":"0");}catch(e){}
+    return on;
+  }
+  return {toggle:toggle,plop:plop,swell:swell,get on(){return on;}};
+})();
+var sndBtn=document.getElementById("sndBtn");
+sndBtn.addEventListener("click",function(){sndBtn.classList.toggle("on",Snd.toggle());});
+try{if(localStorage.getItem("mira-snd-074")==="1"){
+  var arm=function(){sndBtn.classList.toggle("on",Snd.toggle());removeEventListener("pointerdown",arm);};
+  addEventListener("pointerdown",arm);
+}}catch(e){}
+
+/* ================= heure slider ================= */
+var heureInput=document.getElementById("heure"),heureLbl=document.getElementById("heureLbl");
+function syncHeure(){
+  heureInput.value=heure;
+  var hh=Math.floor(heure),mm=Math.floor((heure-hh)*60);
+  heureLbl.innerHTML=String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+" <i>· "+phaseName(heure)+"</i>";
+}
+heureInput.addEventListener("input",function(){
+  heure=+heureInput.value;syncHeure();
+  try{history.replaceState(null,"","#h="+heure);}catch(e){}
+});
+
+/* ================= panel toggle ================= */
+function togglePanels(){
+  var g=document.getElementById("grid"),f=document.getElementById("foot");
+  var hidden=g.style.display==="none";
+  g.style.display=hidden?"":"none";
+  f.style.display=hidden?"":"none";
+  document.getElementById("panelToggle").textContent=hidden?"H · 收起画具":"H · 取出画具";
+}
+document.getElementById("panelToggle").addEventListener("click",togglePanels);
+document.addEventListener("keydown",function(e){
+  if(e.target.tagName==="INPUT")return;
+  if(e.key.toLowerCase()==="h")togglePanels();
+});
+
+/* ================= main loop ================= */
+function tick(now){
+  var i,tot=0;
+  for(i=0;i<SEGS.length;i++){
+    shown[i]+=(SEGS[i].val-shown[i])*0.12;
+    if(Math.abs(SEGS[i].val-shown[i])<0.5)shown[i]=SEGS[i].val;
+    tot+=shown[i];
+  }
+  freedShown+=(freedTarget-freedShown)*0.12;
+  summaryShown+=(summaryTarget-summaryShown)*0.12;
+
+  drawPond(now);
+
+  totalEl.textContent=fmt(tot);
+  freeEl.textContent=fmt(Math.max(0,BUDGET-tot));
+  var ratioNow=tot/BUDGET;
+  pctEl.textContent=(ratioNow*100).toFixed(1)+"%";
+  var st,cls;
+  if(ratioNow>1){st="OVERFLOW · 漫过池岸";cls="over";}
+  else if(ratioNow>0.9){st="CRITICAL · 临界";cls="tight";}
+  else if(ratioNow>0.72){st="TIGHT · 趋紧";cls="tight";}
+  else{st="WITHIN BUDGET · 宽裕";cls="";}
+  if(statusEl.textContent!==st)statusEl.textContent=st;
+  statusEl.className=cls;
+  statusEl.id="pond-status";
+
+  for(i=0;i<SEGS.length;i++){
+    rows[i].val.textContent=fmt(shown[i]);
+    rows[i].pct.textContent=(shown[i]/BUDGET*100).toFixed(1)+"%";
+  }
+  freedEl.textContent=fmt(Math.max(0,freedShown));
+  summaryEl.textContent=fmt(Math.max(0,summaryShown));
   requestAnimationFrame(tick);
+}
+
+/* ================= boot ================= */
+presize();syncHeure();
+if(/go=1/.test(location.hash))setTimeout(function(){document.getElementById("compress").click();},600);
+requestAnimationFrame(tick);
 })();
 </script>
 </body>

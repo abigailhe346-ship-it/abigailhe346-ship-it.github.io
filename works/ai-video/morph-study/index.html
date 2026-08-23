@@ -3,208 +3,395 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MORPH STUDY — 形状渐变序列</title>
+<title>MORPH STUDY 四态 — 一颗形的晨昏 · Atelier MIRA N°025</title>
 <style>
+  /* 调色板家族：茜草与麦田 Garance et Blés —— 同一颗形的四次外光习作
+     纸 #E7DFCB · 墨 #33302A · 茜红 #A84632 · 远蓝 #4E6274 · 麦金 #C08A3E · 橄榄 #6E7A4E */
   :root{
-    --cream:#f7f1e5; --panel:#f0e8d8; --line:#ddd2ba;
-    --ink:#1b1720; --dim:#8f8672;
-    --coral:#ff5a45; --teal:#159a8c; --yellow:#f4b41a;
-    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --paper:#E7DFCB; --paper2:#EFE8D6; --panel:#E3D9C2; --line:#C9BC9E;
+    --ink:#33302A; --dim:#7E7666;
+    --madder:#A84632; --bleu:#4E6274; --ble:#C08A3E; --olive:#6E7A4E;
+    --sans:"Helvetica Neue",-apple-system,Helvetica,"PingFang SC",sans-serif;
     --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
-    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:var(--cream);color:var(--ink);font-family:var(--sans);
-    -webkit-font-smoothing:antialiased;overflow-x:hidden}
-  ::selection{background:var(--coral);color:#fff}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+    transition:background 1.2s var(--ease)}
+  ::selection{background:var(--madder);color:var(--paper2)}
 
-  header{display:flex;justify-content:space-between;align-items:baseline;
-    padding:22px 28px 0;gap:16px;flex-wrap:wrap}
-  .sig{display:flex;align-items:baseline;gap:14px}
-  .sig h1{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.04em}
-  .sig h1 em{font-style:italic;color:var(--coral)}
-  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.16em}
-  .sig .no b{color:var(--coral);font-weight:400}
-  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.05em}
-  .rule{margin:14px 28px 0;border-top:1px solid var(--ink);position:relative}
+  #grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90;
+    opacity:.06;image-rendering:pixelated}
+
+  /* ---- 印章信头 ---- */
+  header{display:flex;justify-content:space-between;align-items:center;gap:18px;
+    padding:20px 3vw 0;flex-wrap:wrap}
+  .sig{display:flex;align-items:center;gap:16px}
+  .seal{flex:0 0 auto}
+  .seal .ring{animation:sealspin 70s linear infinite;transform-origin:32px 32px}
+  @keyframes sealspin{to{transform:rotate(360deg)}}
+  .sig h1{font-family:var(--serif);font-size:clamp(19px,2.2vw,26px);font-weight:600;
+    letter-spacing:.03em;line-height:1.2}
+  .sig h1 em{font-style:italic;color:var(--madder)}
+  .sig .no{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim);
+    text-transform:uppercase;margin-top:4px}
+  .sig .no b{color:var(--madder);font-weight:400}
+  .hnote{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;line-height:2;
+    color:var(--dim);text-align:right;text-transform:uppercase}
+  .rule{margin:14px 3vw 0;border-top:1px solid var(--ink);position:relative}
   .rule::after{content:"";position:absolute;left:0;top:1px;width:100%;border-top:1px solid var(--line)}
 
-  main{display:grid;grid-template-columns:1fr 290px;gap:24px;
-    padding:24px 28px 44px;max-width:1420px;margin:0 auto}
-  @media (max-width:960px){main{grid-template-columns:1fr}}
+  main{display:grid;grid-template-columns:1fr 300px;gap:26px;max-width:1440px;
+    margin:0 auto;padding:22px 3vw 120px}
+  @media (max-width:980px){main{grid-template-columns:1fr}}
 
-  .stage{position:relative;background:var(--cream);border:1px solid var(--ink);
-    box-shadow:8px 8px 0 var(--yellow)}
-  .stage svg{display:block;width:100%;height:auto;touch-action:none}
-  .shapetabs{position:absolute;right:12px;top:12px;display:flex;gap:6px}
+  /* ---- 舞台 ---- */
+  .stage{position:relative;background:var(--paper2);border:1px solid var(--ink);
+    box-shadow:10px 10px 0 rgba(51,48,42,.10);overflow:hidden;aspect-ratio:10/7;min-height:340px}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+  .stamp{position:absolute;left:16px;top:14px;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.2em;color:var(--ink);pointer-events:none;text-transform:uppercase;line-height:2;
+    text-shadow:0 0 7px rgba(239,232,214,.75)}
+  .stamp b{color:var(--madder);font-weight:400}
+  .hint{position:absolute;left:16px;bottom:12px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.16em;color:var(--dim);pointer-events:none;text-transform:uppercase;
+    text-shadow:0 0 7px rgba(239,232,214,.7)}
+  .shapetabs{position:absolute;right:14px;top:12px;display:flex;gap:6px}
   .shapetabs button{appearance:none;width:34px;height:34px;border:1px solid var(--ink);
-    background:var(--cream);cursor:pointer;display:grid;place-items:center;
-    transition:all .22s var(--ease);padding:5px}
+    background:rgba(239,232,214,.82);cursor:pointer;display:grid;place-items:center;
+    transition:all .25s var(--ease);padding:6px;border-radius:2px}
   .shapetabs button svg{width:100%;height:100%;display:block}
-  .shapetabs button:hover{transform:translate(-1px,-1px);box-shadow:2px 2px 0 var(--ink)}
-  .shapetabs button.on{background:var(--ink);box-shadow:2px 2px 0 var(--coral)}
-  .stamp{position:absolute;left:14px;top:12px;font-family:var(--mono);font-size:10px;
-    letter-spacing:.22em;color:var(--ink);pointer-events:none;text-transform:uppercase}
-  .stamp b{color:var(--coral);font-weight:400}
-  .hint{position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:10px;
-    letter-spacing:.16em;color:var(--dim);pointer-events:none;text-transform:uppercase}
+  .shapetabs button:hover{transform:translate(-1px,-1px);box-shadow:2px 2px 0 rgba(51,48,42,.35)}
+  .shapetabs button.on{background:var(--ink);box-shadow:2px 2px 0 var(--madder)}
+  #tip{position:absolute;pointer-events:none;background:rgba(51,48,42,.92);color:var(--paper2);
+    font-family:var(--mono);font-size:9px;letter-spacing:.12em;padding:5px 8px;border-radius:2px;
+    transform:translate(10px,-24px);white-space:nowrap;display:none;z-index:5}
 
-  .seq{margin-top:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .seq{margin-top:14px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
   .seqseg{position:relative;height:26px;border:1px solid var(--ink);background:var(--panel);
-    overflow:hidden;cursor:pointer}
-  .seqseg i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--coral);opacity:.85}
+    overflow:hidden;cursor:pointer;transition:box-shadow .2s var(--ease)}
+  .seqseg i{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--madder);opacity:.8}
   .seqseg span{position:absolute;inset:0;display:grid;place-items:center;
-    font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--ink);
-    mix-blend-mode:normal;pointer-events:none}
-  .seqseg:hover{background:var(--cream)}
-  .seqseg.on{box-shadow:3px 3px 0 var(--ink)}
+    font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--ink);pointer-events:none}
+  .seqseg:hover{background:var(--paper2)}
+  .seqseg.on{box-shadow:3px 3px 0 rgba(51,48,42,.4)}
 
-  .dock{background:var(--panel);border:1px solid var(--ink);
-    padding:20px;display:flex;flex-direction:column;gap:18px;
-    align-self:start;position:sticky;top:20px}
-  @media (max-width:960px){.dock{position:static}}
-  .dock h2{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
-    letter-spacing:.24em;text-transform:uppercase;
-    border-bottom:1px solid var(--line);padding-bottom:12px}
-  .ctl{display:flex;flex-direction:column;gap:9px}
-  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);
-    font-size:10px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
-  .ctl label output{color:var(--coral)}
-
-  .btn{appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+  /* ---- 控制台 ---- */
+  .dock{background:var(--panel);border:1px solid var(--ink);padding:20px;
+    display:flex;flex-direction:column;gap:0;align-self:start;position:sticky;top:20px}
+  @media (max-width:980px){.dock{position:static}}
+  .dock h2{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);
+    letter-spacing:.26em;text-transform:uppercase;padding-bottom:12px;
+    border-bottom:2px solid var(--ink);margin-bottom:4px;display:flex;justify-content:space-between}
+  .dock h2 i{font-style:normal;color:var(--madder)}
+  .ctl{padding:12px 0;border-bottom:1px solid var(--line)}
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);
+    font-size:10px;letter-spacing:.16em;color:var(--ink);text-transform:uppercase;margin-bottom:9px}
+  .ctl label output{color:var(--madder)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;
+    background:linear-gradient(90deg,var(--ink) var(--fill,50%),var(--line) var(--fill,50%))}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;margin-top:-5.5px;
+    background:var(--paper2);border:1.5px solid var(--ink);border-radius:50%;transition:all .2s var(--ease)}
+  input[type=range]:hover::-webkit-slider-thumb{background:var(--madder);border-color:var(--madder)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+  input[type=range]::-moz-range-progress{height:2px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--paper2);
+    border:1.5px solid var(--ink);border-radius:50%}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;padding:13px 0;border-bottom:1px solid var(--line)}
+  .chips .clab{width:100%;font-family:var(--mono);font-size:9px;letter-spacing:.28em;
+    color:var(--dim);text-transform:uppercase;margin-bottom:2px}
+  .chip{font-family:var(--mono);font-size:10px;letter-spacing:.12em;padding:8px 12px;
+    border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;
+    transition:all .25s var(--ease);border-radius:999px}
+  .chip:hover{border-color:var(--madder);color:var(--madder)}
+  .chip.on{background:var(--ink);color:var(--paper2)}
+  .chip.on:hover{background:var(--madder);border-color:var(--madder);color:var(--paper2)}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:16px}
+  .btn{border:1px solid var(--ink);background:transparent;color:var(--ink);
     font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-    padding:11px 6px;cursor:pointer;transition:all .22s var(--ease)}
-  .btn:hover{background:var(--ink);color:var(--cream)}
-  .btn.prime{background:var(--coral);border-color:var(--coral);color:#fff}
-  .btn.prime:hover{background:#ff6f5d;border-color:#ff6f5d}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    padding:12px 6px;cursor:pointer;transition:all .22s var(--ease);border-radius:2px}
+  .btn:hover{background:var(--ink);color:var(--paper2)}
+  .btn.primary{background:var(--madder);border-color:var(--madder);color:#F6EFE0}
+  .btn.primary:hover{background:#8F3A28;border-color:#8F3A28}
+  .note{font-family:var(--mono);font-size:9px;line-height:2;letter-spacing:.08em;color:var(--dim);
+    text-transform:uppercase;border-top:1px dashed var(--line);margin-top:16px;padding-top:13px}
+  .note b{color:var(--madder);font-weight:400}
 
-  input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:2px;
-    background:var(--line);outline:none;cursor:pointer}
-  input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;
-    width:14px;height:14px;background:var(--coral);border:2px solid var(--cream);
-    border-radius:50%;box-shadow:0 0 0 1px var(--ink);transition:transform .2s var(--ease)}
-  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
-  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--coral);
-    border:2px solid var(--cream);border-radius:50%;box-shadow:0 0 0 1px var(--ink)}
+  /* ---- heure 时间轴 ---- */
+  #heureRail{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:70;
+    width:min(560px,72vw);background:rgba(239,232,214,.86);backdrop-filter:blur(6px);
+    border:1px solid rgba(51,48,42,.5);border-radius:999px;padding:10px 18px;
+    display:flex;align-items:center;gap:12px;box-shadow:0 8px 26px rgba(51,48,42,.22)}
+  #heureRail .hlab{font-family:var(--serif);font-style:italic;font-size:13px;color:var(--ink);flex:0 0 auto}
+  #htrack{position:relative;flex:1;height:22px;cursor:pointer;touch-action:none}
+  #htrack .hgrad{position:absolute;left:0;right:0;top:50%;height:3px;transform:translateY(-50%);border-radius:2px;
+    background:linear-gradient(90deg,#3A4356 0%,#8FA0B4 12%,#C9CDD6 26%,#EDE8D6 42%,#F2EDDD 52%,#EBD3A0 68%,#D9985A 82%,#5A6274 100%)}
+  #hknob{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:var(--paper2);
+    border:2px solid var(--ink);transform:translate(-50%,-50%);box-shadow:0 2px 6px rgba(51,48,42,.35);pointer-events:none}
+  #hread{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink);flex:0 0 auto;
+    min-width:104px;text-align:right}
+  #hread b{color:var(--madder);font-weight:400}
 
-  .note{font-size:11px;line-height:1.8;color:var(--dim);border-top:1px solid var(--line);padding-top:12px}
-  .note b{color:var(--ink);font-weight:400}
+  /* ---- colophon ---- */
+  #colophon{position:fixed;left:3vw;bottom:20px;z-index:70;display:flex;align-items:center;gap:9px;
+    opacity:.92;cursor:default;user-select:none;background:rgba(239,232,214,.72);backdrop-filter:blur(4px);
+    border:1px solid rgba(51,48,42,.3);border-radius:999px;padding:6px 12px 6px 8px}
+  #colophon .ctext{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--ink);line-height:1.7}
+  #hiddenNote{position:fixed;left:3vw;bottom:58px;z-index:71;max-width:310px;font-family:var(--serif);
+    font-style:italic;font-size:15px;line-height:1.8;color:var(--ink);background:rgba(239,232,214,.94);
+    border:1px solid rgba(51,48,42,.4);padding:14px 18px;border-radius:2px;
+    opacity:0;transform:translateY(8px);transition:all .8s var(--ease);pointer-events:none}
+  #hiddenNote.show{opacity:1;transform:none}
 
-  footer{padding:0 28px 26px;font-family:var(--mono);font-size:10px;color:#a89f88;
-    letter-spacing:.16em;text-transform:uppercase;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  @media (max-width:640px){
+    .hnote{display:none}
+    main{padding-bottom:150px}
+    #heureRail{bottom:60px;padding:8px 14px;width:min(560px,72vw)}
+    #hread{min-width:72px}
+    #colophon{position:static;margin:0 3vw 16px;display:inline-flex}
+    #hiddenNote{bottom:106px}
+    .stage{aspect-ratio:4/4.4}
+  }
 </style>
 </head>
 <body>
+<canvas id="grain"></canvas>
 
 <header>
   <div class="sig">
-    <h1>MORPH <em>Study</em></h1>
-    <span class="no">AI-VIDEO / <b>05</b> — 形状渐变序列</span>
+    <svg class="seal" viewBox="0 0 64 64" width="46" height="46" aria-hidden="true">
+      <circle cx="32" cy="32" r="30.5" fill="none" stroke="#A84632" stroke-width="1.4"/>
+      <g class="ring">
+        <defs><path id="sealArc" d="M32,6.5 A25.5,25.5 0 1,1 31.98,6.5"/></defs>
+        <text font-family="SF Mono,Menlo,monospace" font-size="6.4" letter-spacing="2.2" fill="#A84632">
+          <textPath href="#sealArc">ATELIER MIRA · PLEIN AIR ·</textPath>
+        </text>
+      </g>
+      <path d="M21.5,42.5 C22.5,33.5 23.5,25.5 24.8,21.5 C26.8,27 29.2,33.5 32,38 C34.8,33.5 37.2,27 39.2,21.5 C40.5,25.5 41.5,33.5 42.5,42.5"
+        fill="none" stroke="#A84632" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>MORPH <em>Study</em> · 四态</h1>
+      <div class="no">ÉTUDE <b>N°025/100</b> — 一颗形的晨昏 QUATRE ÉTATS</div>
+    </div>
   </div>
-  <p class="tag">十二个顶点，四种形状——拖一颗手柄，看圆溶解成星。</p>
+  <div class="hnote">DOUZE SOMMETS, UNE ÂME<br>十二个顶点，同一颗形</div>
 </header>
 <div class="rule"></div>
 
 <main>
   <section>
     <div class="stage" id="stage">
-      <svg id="svg" viewBox="0 0 800 560" aria-label="morph stage">
-        <g id="deco" opacity="0.9"></g>
-        <path id="shadowPath" fill="#1b1720" transform="translate(14,14)"></path>
-        <path id="mainPath" fill="#ff5a45" stroke="#1b1720" stroke-width="3.5" stroke-linejoin="round"></path>
-        <circle id="guide" cx="400" cy="280" r="170" fill="none" stroke="#1b1720" stroke-width="1" stroke-dasharray="2 7" opacity="0.35"></circle>
-        <g id="handles"></g>
-      </svg>
+      <canvas id="cv"></canvas>
+      <span class="stamp" id="stamp">ÉTUDE <b>N°025</b><br><span id="stampSeq">SEQ A→B · 00%</span></span>
+      <span class="hint">拖动顶点改写生形 · 双击即兴</span>
       <div class="shapetabs" id="shapetabs"></div>
-      <span class="stamp" id="stamp">SEQ <b>A→B</b></span>
-      <span class="hint">DRAG&nbsp;THE&nbsp;12&nbsp;KNOBS</span>
+      <div id="tip"></div>
     </div>
     <div class="seq" id="seq"></div>
   </section>
 
   <aside class="dock">
-    <h2>Morph&nbsp;Console</h2>
+    <h2>形态台 <i>CONSOLE</i></h2>
 
-    <div class="ctl">
-      <label>序列 SEQUENCE</label>
-      <button class="btn prime" id="bPlay">暂停序列</button>
+    <div class="chips">
+      <span class="clab">构成 COMPOSITION</span>
+      <button class="chip on" data-mode="seq">序列 CORTÈGE</button>
+      <button class="chip" data-mode="solo">独奏 SOLO</button>
+      <button class="chip" data-mode="duet">对位 DUET</button>
     </div>
 
     <div class="ctl">
-      <label>形变速度 SPEED <output id="oSpeed">1.00×</output></label>
-      <input type="range" id="rSpeed" min="0.25" max="2.5" step="0.05" value="1">
+      <label>形变速度 TEMPO <output id="oTempo">1.00×</output></label>
+      <input type="range" id="rTempo" min="0.25" max="2.5" step="0.05" value="1">
+    </div>
+    <div class="ctl">
+      <label>破碎笔触 HACHURES <output id="oHatch">70</output></label>
+      <input type="range" id="rHatch" min="0" max="160" step="5" value="70">
+    </div>
+    <div class="ctl">
+      <label>呼吸张力 TENSION <output id="oTension">10 PX</output></label>
+      <input type="range" id="rTension" min="0" max="24" step="1" value="10">
+    </div>
+    <div class="ctl">
+      <label>外光强度 LUMIÈRE <output id="oLight">60%</output></label>
+      <input type="range" id="rLight" min="0" max="100" step="1" value="60">
     </div>
 
-    <div class="grid2">
-      <button class="btn" id="bReset">重置形状</button>
-      <button class="btn" id="bRand">随机再生</button>
+    <div class="chips">
+      <span class="clab">光色习作 ÉTUDES DE LUMIÈRE</span>
+      <button class="chip" data-h="6.5">晨 MATIN</button>
+      <button class="chip on" data-h="12">午 MIDI</button>
+      <button class="chip" data-h="17.6">暮 SOIR</button>
+      <button class="chip" data-h="22.5">夜 NUIT</button>
     </div>
-    <button class="btn" id="bDL">下载当前形 SVG</button>
 
-    <p class="note">形状由 <b>12 个径向顶点</b>张成闭合样条；渐变即顶点半径的逐帧插值。拖动手柄会改写主导形状的顶点，并在下次经过时保留你的手笔。</p>
+    <div class="btns">
+      <button class="btn primary" id="bReseed">再生 RESEED ↻</button>
+      <button class="btn" id="bPlay">暂停 PAUSE</button>
+      <button class="btn" id="bPNG">下载 PNG ↓</button>
+      <button class="btn" id="bSVG">下载 SVG ↓</button>
+      <button class="btn" id="bCopy" style="grid-column:1/-1">复制分享链接 COPIER LE LIEN</button>
+    </div>
+
+    <p class="note">一颗由 <b>12 个径向顶点</b>张成的形，在圆·星·花·折四态间渐变。拖动手柄即改写主导形，笔触是它的呼吸。<br>
+    键：<b>空格</b> 播放 · <b>1–4</b> 选形 · <b>M</b> 构成 · <b>C</b> 复制 · <b>H</b> 隐台</p>
   </aside>
 </main>
 
-<footer>
-  <span>MORPH STUDY — RADIAL SPLINE SEQUENCER</span>
-  <span>MEMPHIS · PATH · EASE-IN-OUT</span>
-</footer>
+<div id="heureRail">
+  <span class="hlab">晨</span>
+  <div id="htrack"><div class="hgrad"></div><div id="hknob"></div></div>
+  <span class="hlab">夜</span>
+  <span id="hread">—</span>
+</div>
+
+<div id="colophon" title="连点三次，读一句手记">
+  <svg width="22" height="14" viewBox="0 0 64 40" fill="#33302A" aria-hidden="true">
+    <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+             C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+             C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+             C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+             C 35 17, 33 17, 32 20 Z"/>
+  </svg>
+  <span class="ctext">Atelier MIRA · N°025 · Canvas 2D · <b id="cophSeed">SEED —</b><br>Painted with code, plein air</span>
+</div>
+<div id="hiddenNote">形在无人观看时也在呼吸。圆是它的正午，星是它的深夜。—— M 手记</div>
 
 <script>
 (function(){
 "use strict";
-var svg=document.getElementById('svg'),mainPath=document.getElementById('mainPath'),
-    shadowPath=document.getElementById('shadowPath'),handlesG=document.getElementById('handles'),
-    deco=document.getElementById('deco'),stamp=document.getElementById('stamp'),
-    seqEl=document.getElementById('seq'),tabsEl=document.getElementById('shapetabs');
-var CX=400,CY=280,N=12,TAU=Math.PI*2;
-
-var S={playing:true,speed:1,seg:0,segT:0,drag:-1};
-var SEGDUR=3.2,NAMES=['圆 CIRCLE','星 STAR','花 BLOOM','方 SLAB'];
-var shapes=[],base=[];
-
+/* ================= 工具 ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function lerp(a,b,t){return a+(b-a)*t;}
 function easeInOut(p){return p<0.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;}
-function hash(n){var x=Math.sin(n*127.1+13.7)*43758.5453;return x-Math.floor(x);}
-
-/* ---------- shape generators: 12 radii ---------- */
-function genShapes(){
-  var out=[],i,th,r,arr,k;
-  arr=[];for(i=0;i<N;i++)arr.push(170);out.push(arr);                       /* circle */
-  arr=[];for(i=0;i<N;i++)arr.push(i%2?170:104);out.push(arr);               /* star */
-  arr=[];for(i=0;i<N;i++){th=i/N*TAU;arr.push(168+42*Math.sin(3*th)+24*Math.sin(5*th+1.3));}out.push(arr); /* bloom */
-  arr=[];for(i=0;i<N;i++){th=i/N*TAU;arr.push(158+46*Math.cos(4*th));}out.push(arr); /* slab */
-  return out;
+function hexToHsl(hex){
+  var r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
+  var mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,h=0,s=0;
+  if(mx!==mn){var d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);
+    if(mx===r)h=(g-b)/d+(g<b?6:0);else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h/=6;}
+  return [h*360,s,l];
 }
-function randomShapes(){
-  var out=[],s,i,th,arr;
-  for(s=0;s<4;s++){
-    arr=[];
-    var a2=(hash(s*7+1)-0.5)*76,a3=(hash(s*11+2)-0.5)*64,a4=(hash(s*13+3)-0.5)*52,a5=(hash(s*17+4)-0.5)*40;
-    var p2=hash(s*19+5)*TAU,p3=hash(s*23+6)*TAU,p4=hash(s*29+7)*TAU,p5=hash(s*31+8)*TAU;
-    for(i=0;i<N;i++){
-      th=i/N*TAU;
-      arr.push(clamp(160+a2*Math.sin(2*th+p2)+a3*Math.sin(3*th+p3)+a4*Math.sin(4*th+p4)+a5*Math.sin(5*th+p5),64,250));
-    }
-    out.push(arr);
-  }
-  return out;
+function hslToHex(h,s,l){
+  h=((h%360)+360)%360/360;
+  function f(n){var k=(n+h*12)%12;var a=s*Math.min(l,1-l);
+    return l-a*Math.max(-1,Math.min(k-3,9-k,1));}
+  function c(x){return Math.round(x*255).toString(16).padStart(2,"0");}
+  return "#"+c(f(0))+c(f(8))+c(f(4));
+}
+function lerpColorHsl(c1,c2,t){
+  var a=hexToHsl(c1),b=hexToHsl(c2),dh=b[0]-a[0];
+  if(dh>180)dh-=360;if(dh<-180)dh+=360;
+  return hslToHex(a[0]+dh*t,lerp(a[1],b[1],t),lerp(a[2],b[2],t));
+}
+function jitterC(hex,dh,dl,R){
+  var c=hexToHsl(hex);
+  return hslToHex(c[0]+(R()*2-1)*dh,clamp(c[1]+(R()*2-1)*.04,0,1),clamp(c[2]+(R()*2-1)*dl,0.04,0.96));
+}
+function rgba(hex,a){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return "rgba("+r+","+g+","+b+","+a+")";
 }
 
-/* ---------- path building: closed Catmull-Rom -> cubic bezier ---------- */
-function ptsOf(radii){
-  var pts=[];
-  for(var i=0;i<N;i++){
+/* ================= 家族色 ================= */
+var PAPER="#EFE8D6",INK="#33302A",DIMC="#7E7666",
+    MADDER="#A84632",BLEU="#4E6274",BLE="#C08A3E",OLIVE="#6E7A4E";
+var SHAPECOL=[MADDER,BLEU,BLE,OLIVE];
+var NAMES=['圆 ORB','星 ÉTOILE','花 FLEUR','折 PLI'];
+
+/* ================= 种子 ================= */
+var seedStr=/[#&]seed=([0-9a-fA-F]+)/.exec(location.hash||"");
+var seed=seedStr?parseInt(seedStr[1],16):((Math.random()*0xFFFFFF)|0);
+function seedHex(){return ("000000"+seed.toString(16)).slice(-6);}
+
+/* ================= heure 时间系统 ================= */
+var hashH=/[#&]h=([0-9.]+)/.exec(location.hash||"");
+var heure=hashH?clamp(parseFloat(hashH[1]),0,24):12;
+var heureTarget=heure;
+var SUNKEYS=[ /* h, 光色, 光强, 光带角度°, 环境压暗, 压暗色 */
+  {h:0,   col:"#3A4356", a:.10, ang:90,  amb:.52, dim:"#2E3240"},
+  {h:5,   col:"#8FA0B4", a:.14, ang:15,  amb:.36, dim:"#4A5262"},
+  {h:7,   col:"#C9CDD6", a:.22, ang:25,  amb:.15, dim:"#7C8798"},
+  {h:10,  col:"#EDE8D6", a:.13, ang:55,  amb:.03, dim:"#8A94A4"},
+  {h:13,  col:"#F2EDDD", a:.08, ang:85,  amb:0,   dim:"#8A94A4"},
+  {h:17,  col:"#EBD3A0", a:.24, ang:115, amb:.05, dim:"#6B6250"},
+  {h:19.5,col:"#D9985A", a:.32, ang:140, amb:.24, dim:"#4E463C"},
+  {h:21.5,col:"#5A6274", a:.12, ang:90,  amb:.52, dim:"#2E3240"},
+  {h:24,  col:"#3A4356", a:.10, ang:90,  amb:.52, dim:"#2E3240"}
+];
+function sunState(h){
+  h=clamp(h,0,24);
+  var i=0;while(i<SUNKEYS.length-2&&SUNKEYS[i+1].h<h)i++;
+  var A=SUNKEYS[i],B=SUNKEYS[i+1],t=clamp((h-A.h)/(B.h-A.h),0,1);
+  return {
+    col:lerpColorHsl(A.col,B.col,t), a:lerp(A.a,B.a,t), ang:lerp(A.ang,B.ang,t),
+    amb:lerp(A.amb,B.amb,t), dim:lerpColorHsl(A.dim,B.dim,t)
+  };
+}
+function heureName(h){
+  if(h<5.5)return "夜 NUIT";if(h<8)return "晨 MATIN";if(h<11.5)return "午前 MATINÉE";
+  if(h<14)return "正午 MIDI";if(h<17.5)return "午后 APRÈS-MIDI";if(h<20)return "暮 CRÉPUSCULE";return "夜 NUIT";
+}
+
+/* ================= 形引擎（沿用：12 径向顶点闭合样条） ================= */
+var N=12,TAU=Math.PI*2,SEGDUR=3.4;
+var S={mode:'seq',playing:true,tempo:1,hatch:70,tension:10,light:.6,seg:0,segT:0,drag:-1,solo:0};
+var shapes=[],breath=[];
+function genShapes(sd){
+  var R=mulberry32(sd),out=[],i,th,arr;
+  function h(amp,ph){return {a:(R()*2-1)*amp,p:R()*TAU};}
+  /* 圆 ORB：近圆带微起伏 */
+  arr=[];var o1=h(9),o2=h(6);
+  for(i=0;i<N;i++){th=i/N*TAU;arr.push(170+o1.a*Math.sin(2*th+o1.p)+o2.a*Math.sin(3*th+o2.p));}
+  out.push(arr);
+  /* 星 ÉTOILE：交替半径，随机锐度 */
+  arr=[];var depth=58+R()*36,s3=h(10);
+  for(i=0;i<N;i++){th=i/N*TAU;arr.push((i%2?170:170-depth)+s3.a*Math.sin(3*th+s3.p));}
+  out.push(arr);
+  /* 花 FLEUR：3–5 瓣和声 */
+  arr=[];var pet=3+((R()*3)|0),f1=h(34),f2=h(16);
+  for(i=0;i<N;i++){th=i/N*TAU;arr.push(166+(30+f1.a)*Math.sin(pet*th+f1.p)+f2.a*Math.sin((pet+2)*th+f2.p));}
+  out.push(arr);
+  /* 折 PLI：四折 */
+  arr=[];var p1=h(30),p2=h(14);
+  for(i=0;i<N;i++){th=i/N*TAU;arr.push(160+(34+p1.a)*Math.cos(4*th+p1.p)+p2.a*Math.sin(2*th+p2.p));}
+  out.push(arr);
+  breath=[];for(i=0;i<N;i++)breath.push(R()*TAU);
+  return out.map(function(a){return a.map(function(v){return clamp(v,64,250);});});
+}
+
+/* ---------- 样条采样 ---------- */
+function samplePts(radii,cx,cy,scale){
+  var i,j,p=[],pts=[];
+  for(i=0;i<N;i++){
     var th=-Math.PI/2+i/N*TAU;
-    pts.push([CX+Math.cos(th)*radii[i],CY+Math.sin(th)*radii[i]]);
+    p.push([cx+Math.cos(th)*radii[i]*scale,cy+Math.sin(th)*radii[i]*scale]);
+  }
+  for(i=0;i<N;i++){
+    var p0=p[(i-1+N)%N],p1=p[i],p2=p[(i+1)%N],p3=p[(i+2)%N];
+    for(j=0;j<8;j++){
+      var t=j/8,t2=t*t,t3=t2*t;
+      pts.push([
+        0.5*((2*p1[0])+(-p0[0]+p2[0])*t+(2*p0[0]-5*p1[0]+4*p2[0]-p3[0])*t2+(-p0[0]+3*p1[0]-3*p2[0]+p3[0])*t3),
+        0.5*((2*p1[1])+(-p0[1]+p2[1])*t+(2*p0[1]-5*p1[1]+4*p2[1]-p3[1])*t2+(-p0[1]+3*p1[1]-3*p2[1]+p3[1])*t3)
+      ]);
+    }
   }
   return pts;
 }
-function pathOf(radii){
-  var p=ptsOf(radii),d='M'+p[0][0].toFixed(1)+','+p[0][1].toFixed(1);
-  for(var i=0;i<N;i++){
+function pathOf(radii,cx,cy){
+  var p=[],i;
+  for(i=0;i<N;i++){
+    var th=-Math.PI/2+i/N*TAU;
+    p.push([cx+Math.cos(th)*radii[i],cy+Math.sin(th)*radii[i]]);
+  }
+  var d='M'+p[0][0].toFixed(1)+','+p[0][1].toFixed(1);
+  for(i=0;i<N;i++){
     var p0=p[(i-1+N)%N],p1=p[i],p2=p[(i+1)%N],p3=p[(i+2)%N];
     var c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6;
     var c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
@@ -213,178 +400,505 @@ function pathOf(radii){
   return d+'Z';
 }
 
-/* ---------- current display radii ---------- */
-function displayRadii(){
-  var a=S.seg%4,b=(S.seg+1)%4;
-  var m=easeInOut(clamp((S.segT-0.35)/0.65,0,1)); /* hold 35% head, morph 65% */
-  var out=[];
-  for(var i=0;i<N;i++)out.push(shapes[a][i]+(shapes[b][i]-shapes[a][i])*m);
+/* ---------- 当前显示半径 ---------- */
+function morphMix(){
+  if(S.mode==='solo')return {a:S.solo,b:S.solo,m:0};
+  var m=easeInOut(clamp((S.segT-0.35)/0.65,0,1));
+  return {a:S.seg%4,b:(S.seg+1)%4,m:m};
+}
+function displayRadii(time){
+  var mm=morphMix(),out=[],i;
+  for(i=0;i<N;i++){
+    var v=shapes[mm.a][i]+(shapes[mm.b][i]-shapes[mm.a][i])*mm.m;
+    v+=S.tension*Math.sin(time*.9+breath[i]);
+    v+=burstOff[i];
+    out.push(clamp(v,30,290));
+  }
   return out;
 }
 function dominantShape(){
+  if(S.mode==='solo')return S.solo;
   var m=clamp((S.segT-0.35)/0.65,0,1);
   return m>0.5?(S.seg+1)%4:S.seg%4;
 }
 
-/* ---------- handles ---------- */
-var handleEls=[];
-(function buildHandles(){
+/* ---------- 双击即兴（碎裂回弹） ---------- */
+var burstOff=[],burstVel=[];
+for(var bi=0;bi<N;bi++){burstOff.push(0);burstVel.push(0);}
+function burst(sd){
+  var R=mulberry32(sd^0x9e37);
+  for(var i=0;i<N;i++)burstVel[i]=(60+R()*160)*(R()<.5?-1:1);
+}
+function stepBurst(dt){
   for(var i=0;i<N;i++){
-    var c=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    c.setAttribute('r',i%3===0?10:8);
-    c.setAttribute('fill','#f7f1e5');c.setAttribute('stroke','#1b1720');c.setAttribute('stroke-width','2.5');
-    c.style.cursor='grab';c.dataset.i=i;
-    handlesG.appendChild(c);handleEls.push(c);
-  }
-})();
-function syncHandles(radii){
-  var p=ptsOf(radii);
-  for(var i=0;i<N;i++){
-    handleEls[i].setAttribute('cx',p[i][0]);handleEls[i].setAttribute('cy',p[i][1]);
-    handleEls[i].setAttribute('fill',i===S.drag?'#ff5a45':'#f7f1e5');
+    burstVel[i]+=-burstOff[i]*46*dt;
+    burstVel[i]*=Math.exp(-4.2*dt);
+    burstOff[i]+=burstVel[i]*dt;
+    if(Math.abs(burstOff[i])<.05&&Math.abs(burstVel[i])<.05){burstOff[i]=0;burstVel[i]=0;}
   }
 }
 
-/* ---------- memphis confetti ---------- */
-(function buildDeco(){
-  var ns='http://www.w3.org/2000/svg';
-  function el(name,attrs){var e=document.createElementNS(ns,name);for(var k in attrs)e.setAttribute(k,attrs[k]);deco.appendChild(e);return e;}
-  /* squiggle */
-  el('path',{d:'M60,470 q14,-22 28,0 t28,0 t28,0',fill:'none',stroke:'#159a8c','stroke-width':4,'stroke-linecap':'round'});
-  /* cross */
-  el('path',{d:'M712,440 v26 M699,453 h26',stroke:'#1b1720','stroke-width':5,'stroke-linecap':'round'});
-  /* ring */
-  el('circle',{cx:96,cy:96,r:16,fill:'none','stroke':'#f4b41a','stroke-width':6});
-  /* triangle */
-  el('path',{d:'M690,120 l26,42 l-52,0 Z',fill:'#159a8c'});
-  /* dots grid */
-  for(var r=0;r<3;r++)for(var c=0;c<4;c++)el('circle',{cx:640+c*16,cy:500+r*16,r:3.2,fill:'#1b1720'});
-  /* half moon */
-  el('path',{d:'M120,540 a26,26 0 0 1 52,0 Z',fill:'#ff5a45',stroke:'#1b1720','stroke-width':3});
+/* ================= 画布 ================= */
+var stage=document.getElementById('stage'),cv=document.getElementById('cv'),
+    ctx=cv.getContext('2d'),tip=document.getElementById('tip');
+var W=0,H=0,DPR=1;
+var grainT=document.createElement('canvas');
+(function makeGrain(){
+  grainT.width=grainT.height=140;
+  var g=grainT.getContext('2d'),R=mulberry32(777),i;
+  for(i=0;i<2600;i++){
+    g.fillStyle="rgba(40,34,24,"+(0.03+R()*0.08)+")";
+    g.fillRect(R()*140,R()*140,1,1);
+  }
+  for(i=0;i<1300;i++){
+    g.fillStyle="rgba(255,252,240,"+(0.03+R()*0.06)+")";
+    g.fillRect(R()*140,R()*140,1,1);
+  }
 })();
+var paperC=document.createElement('canvas'),pctx=paperC.getContext('2d');
+function makePaper(sd){
+  pctx.setTransform(DPR,0,0,DPR,0,0);
+  var R=mulberry32(sd^0x51f3),i;
+  pctx.fillStyle=PAPER;pctx.fillRect(0,0,W,H);
+  for(i=0;i<120;i++){
+    pctx.fillStyle=rgba(jitterC("#B9A87E",6,.05,R),.05+R()*.05);
+    pctx.beginPath();pctx.arc(R()*W,R()*H,6+R()*54,0,7);pctx.fill();
+  }
+  pctx.strokeStyle="rgba(120,108,84,.06)";
+  for(i=0;i<80;i++){
+    pctx.lineWidth=.6;pctx.beginPath();
+    var x=R()*W,y=R()*H,a=R()*Math.PI,l=14+R()*40;
+    pctx.moveTo(x,y);pctx.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);pctx.stroke();
+  }
+}
+function resize(){
+  var r=stage.getBoundingClientRect();
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=Math.max(300,r.width);H=Math.max(300,r.height);
+  cv.width=W*DPR;cv.height=H*DPR;
+  paperC.width=W*DPR;paperC.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  makePaper(seed);
+}
 
-/* ---------- sequence UI ---------- */
-var segEls=[];
+/* ---------- 画家式绘制：破碎色层 + 笔触 + 断续轮廓 ---------- */
+function tracePath(pts){
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0],pts[0][1]);
+  for(var i=1;i<pts.length;i++)ctx.lineTo(pts[i][0],pts[i][1]);
+  ctx.closePath();
+}
+function paintShape(radii,cx,cy,scale,col,time,ghost){
+  var sun=sunState(heure),R=mulberry32((seed^0x77aa)+((time*2)|0));
+  var tinted=lerpColorHsl(col,sun.dim,sun.amb*.78);
+  var pts=samplePts(radii,cx,cy,scale);
+  var pass,i;
+  /* 地面影：随太阳角度偏移 */
+  var shA=sun.ang*Math.PI/180,shd=(10+20*(1-sun.amb))*(ghost?.5:1);
+  var sx=cx+Math.cos(shA+Math.PI/2)*shd,sy=cy+Math.sin(shA+Math.PI/2)*shd*.5+shd*.8;
+  var spts=samplePts(radii,sx,sy,scale*1.02);
+  for(pass=0;pass<3;pass++){
+    tracePath(spts.map(function(p,k){
+      return [p[0]+Math.sin(k*.7+pass*2+time*.4)*2.4,p[1]+Math.cos(k*.9+pass)*2.4];
+    }));
+    ctx.fillStyle=rgba(lerpColorHsl(INK,sun.dim,.5),.045*(ghost?.6:1));
+    ctx.fill();
+  }
+  /* 三层破碎色：固有色 / 冷影 / 受光——分割主义的色温振动 */
+  var shadeC=lerpColorHsl(tinted,"#3E4658",.34),
+      lightC=lerpColorHsl(tinted,sun.col,.5);
+  var cols=[tinted,shadeC,lightC];
+  var la0=sun.ang*Math.PI/180;
+  for(pass=0;pass<3;pass++){
+    var jp=pts.map(function(p,k){
+      var w=Math.sin(k*1.3+pass*2.4+time*.6)*3.2+Math.sin(k*.53+pass*5)*2.2;
+      var dx=p[0]-cx,dy=p[1]-cy,l=Math.sqrt(dx*dx+dy*dy)||1;
+      /* 冷影层偏向背光侧，受光层偏向向阳侧 */
+      var bias=pass===0?0:(pass===1?-1:1)*3.4;
+      return [p[0]+dx/l*w+Math.cos(la0)*bias,p[1]+dy/l*w+Math.sin(la0)*bias];
+    });
+    tracePath(jp);
+    ctx.fillStyle=rgba(cols[pass],(pass===0?.34:.26)*(ghost?.55:1));
+    ctx.fill();
+  }
+  /* 分割主义笔触：沿光向的短画痕 */
+  var nh=S.hatch*(ghost?.5:1);
+  if(nh>0){
+    ctx.save();tracePath(pts);ctx.clip();
+    var ha=(sun.ang+90)*Math.PI/180,hdx=Math.cos(ha),hdy=Math.sin(ha);
+    var maxR=0;
+    for(i=0;i<N;i++)maxR=Math.max(maxR,radii[i]);
+    maxR*=scale;
+    for(i=0;i<nh;i++){
+      var a=R()*TAU,rr=Math.sqrt(R())*maxR*.96;
+      var x=cx+Math.cos(a)*rr,y=cy+Math.sin(a)*rr;
+      var len=7+R()*16,wob=(R()-.5)*.7;
+      var cc=jitterC(R()<.5?tinted:(R()<.5?shadeC:lightC),10,.10,R);
+      ctx.strokeStyle=rgba(cc,.22+R()*.24);
+      ctx.lineWidth=1.6+R()*2.6;ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(x-hdx*len*.5,y-hdy*len*.5);
+      ctx.quadraticCurveTo(x+hdy*wob*4,y-hdx*wob*4,x+hdx*len*.5,y+hdy*len*.5);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  /* 断续轮廓：看得见的手 */
+  for(pass=0;pass<2;pass++){
+    ctx.strokeStyle=rgba(INK,pass===0?.62:.30);
+    ctx.lineWidth=pass===0?1.6:3.2;ctx.lineCap='round';
+    var seg=pts.length;
+    for(i=0;i<seg;i+=2){
+      if(((i*7+pass*13)%17)<6)continue; /* 断笔 */
+      var p0=pts[i],p1=pts[(i+2)%seg];
+      var j=Math.sin(i*.8+pass*3+time*.3)*1.4;
+      ctx.beginPath();ctx.moveTo(p0[0]+j,p0[1]-j);ctx.lineTo(p1[0]+j,p1[1]-j);ctx.stroke();
+    }
+  }
+  /* 受光缘 */
+  ctx.strokeStyle=rgba(sun.col,.55*S.light*(ghost?.5:1));
+  ctx.lineWidth=2.4;ctx.lineCap='round';
+  var la=sun.ang*Math.PI/180;
+  for(i=0;i<pts.length;i++){
+    var mx=(pts[i][0]+pts[(i+1)%pts.length][0])/2-cx,
+        my=(pts[i][1]+pts[(i+1)%pts.length][1])/2-cy,
+        ml=Math.sqrt(mx*mx+my*my)||1,
+        dot=(mx/ml)*Math.cos(la)+(my/ml)*Math.sin(la);
+    if(dot>.82){
+      ctx.beginPath();ctx.moveTo(pts[i][0],pts[i][1]);ctx.lineTo(pts[(i+1)%pts.length][0],pts[(i+1)%pts.length][1]);ctx.stroke();
+    }
+  }
+}
+
+/* ---------- 手柄 ---------- */
+function drawHandles(radii,cx,cy,t){
+  for(var i=0;i<N;i++){
+    var th=-Math.PI/2+i/N*TAU;
+    var x=cx+Math.cos(th)*radii[i],y=cy+Math.sin(th)*radii[i];
+    var on=i===S.drag||i===hoverKnob;
+    ctx.beginPath();ctx.arc(x,y,on?7.5:5.5,0,7);
+    ctx.fillStyle=on?MADDER:PAPER;ctx.fill();
+    ctx.lineWidth=on?2:1.5;ctx.strokeStyle=INK;ctx.stroke();
+    if(on){
+      ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(x,y);
+      ctx.strokeStyle=rgba(INK,.25);ctx.lineWidth=1;ctx.setLineDash([2,4]);ctx.stroke();ctx.setLineDash([]);
+    }
+  }
+}
+
+/* ---------- 主渲染 ---------- */
+function render(time){
+  var sun=sunState(heure);
+  /* 纸面随时刻染色 */
+  var pap=lerpColorHsl(PAPER,sun.dim,clamp(sun.amb*.92,0,1));
+  ctx.fillStyle=pap;ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=1;ctx.drawImage(paperC,0,0,W,H);
+  ctx.fillStyle=rgba(pap,.34);ctx.fillRect(0,0,W,H);
+  /* 斜射光带 */
+  if(S.light>0&&sun.a>0){
+    var g=ctx.createLinearGradient(0,0,W,H);
+    var la=sun.ang/140;
+    g.addColorStop(clamp(la-.22,0,1),rgba(sun.col,0));
+    g.addColorStop(clamp(la,0,1),rgba(sun.col,sun.a*S.light*2.2));
+    g.addColorStop(clamp(la+.22,0,1),rgba(sun.col,0));
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  var cx=W*.5,cy=H*.52,scale=Math.min(W,H)/620;
+  /* 导引虚线圆 */
+  ctx.strokeStyle=rgba(INK,.30);ctx.lineWidth=1;ctx.setLineDash([2,7]);
+  ctx.beginPath();ctx.arc(cx,cy,170*scale,0,7);ctx.stroke();ctx.setLineDash([]);
+  var radii=displayRadii(time);
+  if(S.mode==='duet'){
+    paintShape(radii,cx,cy,scale,SHAPECOL[dominantShape()],time,true);
+    ctx.save();ctx.translate(cx,cy);ctx.rotate(Math.PI);ctx.translate(-cx,-cy);
+    paintShape(radii,cx,cy,scale*.86,lerpColorHsl(SHAPECOL[(dominantShape()+2)%4],sun.dim,sun.amb*.4),time+3,true);
+    ctx.restore();
+    paintShape(radii,cx,cy,scale,SHAPECOL[dominantShape()],time,false);
+  }else{
+    paintShape(radii,cx,cy,scale,SHAPECOL[dominantShape()],time,false);
+  }
+  drawHandles(radii.map(function(v){return v*scale;}),cx,cy,time);
+  /* 夜的静场 */
+  if(sun.amb>.22){
+    var vg=ctx.createRadialGradient(cx,cy,Math.min(W,H)*.28,cx,cy,Math.max(W,H)*.78);
+    vg.addColorStop(0,rgba(sun.dim,0));vg.addColorStop(1,rgba(sun.dim,(sun.amb-.22)*1.05));
+    ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+  }
+  /* 颗粒 */
+  ctx.globalAlpha=.05;ctx.globalCompositeOperation='multiply';
+  var pat=ctx.createPattern(grainT,'repeat');
+  ctx.fillStyle=pat;ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+}
+
+/* ================= 序列 UI ================= */
+var seqEl=document.getElementById('seq'),tabsEl=document.getElementById('shapetabs'),
+    stampSeq=document.getElementById('stampSeq'),segEls=[],tabEls=[];
 (function buildSeq(){
   for(var i=0;i<4;i++){
     var d=document.createElement('div');d.className='seqseg';d.dataset.i=i;
-    var f=document.createElement('i');var s=document.createElement('span');
+    var f=document.createElement('i'),s=document.createElement('span');
     s.textContent=NAMES[i];
     d.appendChild(f);d.appendChild(s);
-    d.addEventListener('click',function(){S.seg=+this.dataset.i;S.segT=0;syncTabs();});
+    d.addEventListener('click',function(){S.mode='seq';S.seg=+this.dataset.i;S.segT=0;syncModeChips();syncTabs();poke();});
     seqEl.appendChild(d);segEls.push({box:d,fill:f});
   }
 })();
-var tabEls=[];
 (function buildTabs(){
   for(var i=0;i<4;i++){
-    var b=document.createElement('button');b.dataset.i=i;
+    var b=document.createElement('button');b.dataset.i=i;b.title=NAMES[i];
     b.innerHTML=miniIcon(i);
-    b.title=NAMES[i];
-    b.addEventListener('click',function(){S.seg=+this.dataset.i;S.segT=0;syncTabs();});
+    b.addEventListener('click',function(){
+      var ii=+this.dataset.i;
+      if(S.mode==='solo')S.solo=ii;else{S.seg=ii;S.segT=0;}
+      syncTabs();poke();
+    });
     tabsEl.appendChild(b);tabEls.push(b);
   }
 })();
 function miniIcon(i){
-  var cols=['#ff5a45','#159a8c','#f4b41a','#1b1720'];
-  var sh=['<circle cx="12" cy="12" r="9"/>',
-          '<path d="M12 2 L14.5 9.5 L22 12 L14.5 14.5 L12 22 L9.5 14.5 L2 12 L9.5 9.5 Z"/>',
+  var cols=[MADDER,BLEU,BLE,OLIVE];
+  var sh=['<circle cx="12" cy="12" r="8.5"/>',
+          '<path d="M12 2.5 L14.5 9.5 L21.5 12 L14.5 14.5 L12 21.5 L9.5 14.5 L2.5 12 L9.5 9.5 Z"/>',
           '<path d="M12 3 C15 7 19 9 19 14 A7 7 0 1 1 5 14 C5 9 9 7 12 3 Z"/>',
-          '<rect x="4" y="4" width="16" height="16" rx="5"/>'][i];
-  return '<svg viewBox="0 0 24 24"><g fill="'+cols[i]+'" stroke="none">'+sh+'</g></svg>';
+          '<rect x="4.5" y="4.5" width="15" height="15" rx="4.5"/>'][i];
+  return '<svg viewBox="0 0 24 24"><g fill="'+cols[i]+'">'+sh+'</g></svg>';
 }
 function syncTabs(){
   var d=dominantShape();
   tabEls.forEach(function(b,i){b.classList.toggle('on',i===d);});
-  segEls.forEach(function(s,i){s.box.classList.toggle('on',i===S.seg%4);});
-  stamp.innerHTML='SEQ <b>'+'ABCD'[S.seg%4]+'→'+'ABCD'[(S.seg+1)%4]+'</b> · '+NAMES[d].toUpperCase();
+  segEls.forEach(function(s,i){s.box.classList.toggle('on',i===S.seg%4&&S.mode!=='solo');});
+  var mm=morphMix();
+  var pct=S.mode==='solo'?'SOLO':('A→B'.replace('A','ABCD'[mm.a]).replace('B','ABCD'[mm.b])+' · '+String(Math.round(mm.m*100)).padStart(2,'0')+'%');
+  stampSeq.textContent=(S.mode==='duet'?'DUET · ':'')+(S.mode==='solo'?NAMES[S.solo].toUpperCase():'SEQ '+pct);
 }
 
-/* ---------- render ---------- */
-function render(){
-  var radii=displayRadii();
-  var d=pathOf(radii);
-  mainPath.setAttribute('d',d);
-  shadowPath.setAttribute('d',d);
-  syncHandles(radii);
-  for(var i=0;i<4;i++){
-    var f=0;
-    if(i===S.seg%4)f=clamp(S.segT,0,1);
-    else if(i<(S.seg%4))f=0;
-    segEls[i].fill.style.width=(f*100)+'%';
+/* ================= 指针：拖顶点 / 悬停读数 / 双击即兴 ================= */
+var hoverKnob=-1;
+function toLocal(e){
+  var r=cv.getBoundingClientRect();
+  return {x:e.clientX-r.left,y:e.clientY-r.top};
+}
+function knobAt(p){
+  var cx=W*.5,cy=H*.52,scale=Math.min(W,H)/620;
+  var radii=displayRadii(perfNow()/1000);
+  var best=-1,bd=16;
+  for(var i=0;i<N;i++){
+    var th=-Math.PI/2+i/N*TAU;
+    var x=cx+Math.cos(th)*radii[i]*scale,y=cy+Math.sin(th)*radii[i]*scale;
+    var d=Math.hypot(p.x-x,p.y-y);
+    if(d<bd){bd=d;best=i;}
   }
+  return best;
+}
+function perfNow(){return performance.now();}
+cv.addEventListener('pointerdown',function(e){
+  var p=toLocal(e),k=knobAt(p);
+  if(k>=0){S.drag=k;cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing';}
+  poke();
+});
+cv.addEventListener('pointermove',function(e){
+  var p=toLocal(e);
+  if(S.drag>=0){
+    var cx=W*.5,cy=H*.52,scale=Math.min(W,H)/620;
+    var r=Math.hypot(p.x-cx,p.y-cy)/scale;
+    shapes[dominantShape()][S.drag]=clamp(r,56,252);
+    tip.style.display='block';tip.style.left=p.x+'px';tip.style.top=p.y+'px';
+    tip.textContent='V'+String(S.drag).padStart(2,'0')+' · r='+Math.round(r)+'px · '+NAMES[dominantShape()];
+  }else{
+    hoverKnob=knobAt(p);
+    if(hoverKnob>=0){
+      var th=-Math.PI/2+hoverKnob/N*TAU,cx2=W*.5,cy2=H*.52,sc=Math.min(W,H)/620;
+      var rr=displayRadii(perfNow()/1000)[hoverKnob]*sc;
+      tip.style.display='block';tip.style.left=p.x+'px';tip.style.top=p.y+'px';
+      tip.textContent='V'+String(hoverKnob).padStart(2,'0')+' · r='+Math.round(rr/sc)+'px';
+      cv.style.cursor='grab';
+    }else{
+      tip.style.display='none';cv.style.cursor='crosshair';
+    }
+  }
+  poke();
+});
+cv.addEventListener('pointerup',function(){
+  S.drag=-1;tip.style.display='none';cv.style.cursor='crosshair';poke();
+});
+cv.addEventListener('pointerleave',function(){if(S.drag<0){hoverKnob=-1;tip.style.display='none';}});
+cv.addEventListener('dblclick',function(){burst(seed+(Date.now()&0xFFFF));poke();});
+
+/* ================= 控件 ================= */
+function bindRange(id,out,fmt,fn){
+  var el=document.getElementById(id),o=document.getElementById(out);
+  function apply(){
+    var v=+el.value;
+    el.style.setProperty('--fill',((v-el.min)/(el.max-el.min)*100)+'%');
+    o.textContent=fmt(v);fn(v);
+  }
+  el.addEventListener('input',function(){apply();poke();});apply();
+}
+bindRange('rTempo','oTempo',function(v){return v.toFixed(2)+'×';},function(v){S.tempo=v;});
+bindRange('rHatch','oHatch',function(v){return v;},function(v){S.hatch=v;});
+bindRange('rTension','oTension',function(v){return v+' PX';},function(v){S.tension=v;});
+bindRange('rLight','oLight',function(v){return v+'%';},function(v){S.light=v/100;});
+
+var modeChips=document.querySelectorAll('[data-mode]');
+function syncModeChips(){
+  modeChips.forEach(function(c){c.classList.toggle('on',c.dataset.mode===S.mode);});
+}
+modeChips.forEach(function(c){
+  c.addEventListener('click',function(){
+    S.mode=c.dataset.mode;
+    if(S.mode==='solo')S.solo=dominantShape();
+    syncModeChips();syncTabs();poke();
+  });
+});
+var etudeChips=document.querySelectorAll('[data-h]');
+etudeChips.forEach(function(c){
+  c.addEventListener('click',function(){
+    heureTarget=parseFloat(c.dataset.h);
+    etudeChips.forEach(function(x){x.classList.toggle('on',x===c);});
+    poke();
+  });
+});
+
+document.getElementById('bReseed').addEventListener('click',function(){
+  seed=(Math.random()*0xFFFFFF)|0;
+  shapes=genShapes(seed);makePaper(seed);burst(seed);
+  writeHash();syncColophon();poke();
+});
+var bPlay=document.getElementById('bPlay');
+bPlay.addEventListener('click',function(){
+  S.playing=!S.playing;this.textContent=S.playing?'暂停 PAUSE':'播放 JOUER';poke();
+});
+document.getElementById('bPNG').addEventListener('click',function(){
+  var a=document.createElement('a');
+  a.download='morph-study_N025_'+seedHex()+'.png';
+  a.href=cv.toDataURL('image/png');a.click();
+});
+document.getElementById('bSVG').addEventListener('click',function(){
+  var radii=displayRadii(perfNow()/1000),cx=400,cy=280;
+  var d=pathOf(radii,cx,cy),col=SHAPECOL[dominantShape()];
+  var doc='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" width="800" height="560">'
+    +'<rect width="800" height="560" fill="'+PAPER+'"/>'
+    +'<path d="'+d+'" fill="'+rgba(col,.28)+'"/>'
+    +'<path d="'+d+'" fill="'+col+'" opacity=".55" transform="translate(3,2)"/>'
+    +'<path d="'+d+'" fill="none" stroke="'+INK+'" stroke-width="2" stroke-linejoin="round" stroke-dasharray="14 5 3 5"/>'
+    +'<text x="24" y="536" font-family="monospace" font-size="11" letter-spacing="3" fill="'+INK+'">ATELIER MIRA · ÉTUDE N°025 · SEED '+seedHex()+'</text>'
+    +'</svg>';
+  var blob=new Blob([doc],{type:'image/svg+xml'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='morph-study_N025_'+seedHex()+'.svg';a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+});
+document.getElementById('bCopy').addEventListener('click',function(){
+  var url=location.href.split('#')[0]+'#seed='+seedHex()+'&h='+heure.toFixed(1);
+  function done(){bCopyTmp('已复制 COPIÉ');}
+  function bCopyTmp(t){var b=document.getElementById('bCopy');var o=b.textContent;b.textContent=t;setTimeout(function(){b.textContent=o;},1400);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done,function(){prompt('复制此链接',url);});
+  }else prompt('复制此链接',url);
+});
+function writeHash(){
+  var h='#seed='+seedHex()+'&h='+heure.toFixed(1);
+  if(history.replaceState)history.replaceState(null,'',h);else location.hash=h;
+}
+function syncColophon(){
+  document.getElementById('cophSeed').textContent='SEED '+seedHex()+' · '+heureName(heure);
 }
 
-/* ---------- loop ---------- */
-var last=performance.now();
+/* ================= heure 时间轴 ================= */
+var htrack=document.getElementById('htrack'),hknob=document.getElementById('hknob'),
+    hread=document.getElementById('hread'),hDrag=false;
+function hSetFromEvent(e){
+  var r=htrack.getBoundingClientRect();
+  heureTarget=clamp((e.clientX-r.left)/r.width,0,1)*24;
+  etudeChips.forEach(function(x){x.classList.remove('on');});
+  poke();
+}
+htrack.addEventListener('pointerdown',function(e){hDrag=true;htrack.setPointerCapture(e.pointerId);hSetFromEvent(e);});
+htrack.addEventListener('pointermove',function(e){if(hDrag)hSetFromEvent(e);});
+htrack.addEventListener('pointerup',function(){hDrag=false;});
+
+/* ================= 彩蛋：闲置手记 ================= */
+var lastPoke=performance.now(),noteShown=false;
+function poke(){
+  lastPoke=performance.now();
+  document.getElementById('hiddenNote').classList.remove('show');noteShown=false;
+}
+document.getElementById('colophon').addEventListener('click',(function(){
+  var n=0;return function(){
+    n++;if(n>=3){document.getElementById('hiddenNote').classList.add('show');noteShown=true;n=0;}
+  };
+})());
+
+/* ================= 键盘 ================= */
+document.addEventListener('keydown',function(e){
+  var tag=document.activeElement&&document.activeElement.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  var k=e.key;
+  if(k===' '){e.preventDefault();bPlay.click();}
+  else if(k>='1'&&k<='4'){tabEls[+k-1].click();}
+  else if(k==='m'||k==='M'){
+    var order=['seq','solo','duet'];
+    S.mode=order[(order.indexOf(S.mode)+1)%3];
+    if(S.mode==='solo')S.solo=dominantShape();
+    syncModeChips();syncTabs();
+  }
+  else if(k==='c'||k==='C'){document.getElementById('bCopy').click();}
+  else if(k==='h'||k==='H'){document.querySelector('.dock').classList.toggle('hidden');}
+  poke();
+});
+var dockStyle=document.createElement('style');
+dockStyle.textContent='.dock.hidden>*:not(h2){display:none}.dock.hidden{opacity:.55}';
+document.head.appendChild(dockStyle);
+
+/* ================= 颗粒 overlay ================= */
+(function pageGrain(){
+  var g=document.getElementById('grain'),gc=g.getContext('2d');
+  function fit(){
+    g.width=Math.ceil(innerWidth/2);g.height=Math.ceil(innerHeight/2);
+    var pat=gc.createPattern(grainT,'repeat');
+    gc.fillStyle=pat;gc.fillRect(0,0,g.width,g.height);
+  }
+  fit();window.addEventListener('resize',fit);
+})();
+
+/* ================= 主循环 ================= */
+var last=performance.now(),lastHud=0;
 function tick(now){
-  var dt=Math.min((now-last)/1000,0.05);last=now;
-  if(S.playing&&S.drag<0){
-    S.segT+=dt*S.speed/SEGDUR;
+  var dt=Math.min((now-last)/1000,.05);last=now;
+  var t=now/1000;
+  if(S.playing&&S.drag<0&&S.mode==='seq'){
+    S.segT+=dt*S.tempo/SEGDUR;
     if(S.segT>=1){S.segT=0;S.seg=(S.seg+1)%4;}
   }
+  heure+=(heureTarget-heure)*Math.min(1,dt*3);
+  hknob.style.left=(heure/24*100)+'%';
+  if(now-lastHud>500){
+    lastHud=now;
+    var sn=sunState(heure);
+    hread.innerHTML=heureName(heure).split(' ')[0]+' <b>'+('0'+Math.floor(heure)).slice(-2)+':'+('0'+Math.floor(heure%1*60)).slice(-2)+'</b>';
+    document.body.style.background=lerpColorHsl("#E7DFCB",sn.dim,sn.amb*.5);
+    syncColophon();
+  }
+  stepBurst(dt);
+  for(var i=0;i<4;i++){
+    var f=0;
+    if(i===S.seg%4&&S.mode!=='solo')f=clamp(S.segT,0,1);
+    segEls[i].fill.style.width=(f*100)+'%';
+  }
   syncTabs();
-  render();
+  render(t);
+  if(!noteShown&&now-lastPoke>45000){
+    document.getElementById('hiddenNote').classList.add('show');noteShown=true;
+  }
   requestAnimationFrame(tick);
 }
 
-/* ---------- drag handles ---------- */
-function svgPoint(e){
-  var pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
-  return pt.matrixTransform(svg.getScreenCTM().inverse());
-}
-svg.addEventListener('pointerdown',function(e){
-  var t=e.target;
-  if(t.dataset&&t.dataset.i!==undefined){
-    S.drag=+t.dataset.i;
-    svg.setPointerCapture(e.pointerId);
-    t.style.cursor='grabbing';
-  }
-});
-svg.addEventListener('pointermove',function(e){
-  if(S.drag<0)return;
-  var p=svgPoint(e);
-  var r=Math.sqrt((p.x-CX)*(p.x-CX)+(p.y-CY)*(p.y-CY));
-  shapes[dominantShape()][S.drag]=clamp(r,56,252);
-});
-svg.addEventListener('pointerup',function(){
-  if(S.drag>=0)handleEls[S.drag].style.cursor='grab';
-  S.drag=-1;
-});
-
-/* ---------- controls ---------- */
-var bPlay=document.getElementById('bPlay');
-bPlay.addEventListener('click',function(){
-  S.playing=!S.playing;
-  this.textContent=S.playing?'暂停序列':'播放序列';
-});
-var rSpeed=document.getElementById('rSpeed'),oSpeed=document.getElementById('oSpeed');
-rSpeed.addEventListener('input',function(){S.speed=+this.value;oSpeed.textContent=S.speed.toFixed(2)+'×';});
-
-document.getElementById('bReset').addEventListener('click',function(){
-  shapes=genShapes().map(function(a){return a.slice();});
-});
-document.getElementById('bRand').addEventListener('click',function(){
-  shapes=randomShapes();
-});
-document.getElementById('bDL').addEventListener('click',function(){
-  var d=pathOf(displayRadii());
-  var doc='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 560" width="800" height="560">'
-    +'<rect width="800" height="560" fill="#f7f1e5"/>'
-    +'<path d="'+d+'" fill="#1b1720" transform="translate(14,14)"/>'
-    +'<path d="'+d+'" fill="#ff5a45" stroke="#1b1720" stroke-width="3.5" stroke-linejoin="round"/>'
-    +'</svg>';
-  var blob=new Blob([doc],{type:'image/svg+xml'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='morph-study-'+'ABCD'[dominantShape()]+'.svg';
-  a.click();
-  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
-});
-
-base=genShapes();shapes=base.map(function(a){return a.slice();});
-syncTabs();requestAnimationFrame(tick);
+/* ================= boot ================= */
+shapes=genShapes(seed);
+resize();syncColophon();syncModeChips();syncTabs();writeHash();
+window.addEventListener('resize',resize);
+requestAnimationFrame(tick);
 })();
 </script>
-</body>
-</html>
+</body></html>

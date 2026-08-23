@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INK FLOW 墨流 — 生成式水墨山水</title>
+<title>INK FLOW 墨流 — Étude N°06 · 墨流山水</title>
 <style>
   :root{
     --paper:#f4efe3; --paper-deep:#e9e2d0; --line:#cfc6ae;
@@ -19,30 +19,41 @@
   body{
     background:var(--paper);color:var(--ink);font-family:var(--sans);
     -webkit-font-smoothing:antialiased;overflow-x:hidden;
+    transition:background 1.4s var(--ease);
   }
   ::selection{background:var(--seal);color:#fff}
 
+  /* ---------- paper grain over the whole page (material layer) ---------- */
+  .pagegrain{
+    position:fixed;inset:0;z-index:60;pointer-events:none;
+    mix-blend-mode:multiply;opacity:.55;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.30'/%3E%3C/svg%3E");
+  }
+
   header{
-    display:flex;justify-content:space-between;align-items:flex-end;
+    display:flex;justify-content:space-between;align-items:center;
     padding:26px 30px 0;gap:20px;flex-wrap:wrap;
   }
-  .sig{display:flex;align-items:flex-end;gap:18px}
-  .sig h1{
-    font-family:var(--serif);font-size:26px;font-weight:700;letter-spacing:.06em;
-    line-height:1;
+  .sig{display:flex;align-items:center;gap:16px}
+  .seal{width:54px;height:54px;flex:none;color:var(--seal)}
+  .seal .ring{animation:sealspin 70s linear infinite;transform-origin:32px 32px}
+  @keyframes sealspin{to{transform:rotate(360deg)}}
+  .sig .tt h1{
+    font-family:var(--serif);font-size:26px;font-weight:700;letter-spacing:.06em;line-height:1;
   }
-  .sig h1 em{font-style:italic;color:var(--seal)}
-  .sig .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em;padding-bottom:3px}
-  .sig .no b{color:var(--seal);font-weight:400}
+  .sig .tt h1 em{font-style:italic;color:var(--seal)}
+  .sig .tt .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em;margin-top:6px}
+  .sig .tt .no b{color:var(--seal);font-weight:400}
   header p.tag{
     font-size:11px;color:var(--dim);letter-spacing:.14em;text-align:right;
     font-family:var(--mono);text-transform:uppercase;line-height:1.9;
   }
+  header p.tag b{color:var(--ink);font-weight:400}
   .rule{margin:16px 30px 0;border-top:1px solid var(--ink);position:relative}
   .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
 
   main{
-    display:grid;grid-template-columns:1fr 290px;gap:26px;
+    display:grid;grid-template-columns:1fr 296px;gap:26px;
     padding:24px 30px 48px;max-width:1460px;margin:0 auto;
   }
   @media (max-width:960px){main{grid-template-columns:1fr}}
@@ -50,10 +61,12 @@
   .stage{
     position:relative;background:#f8f5ec;border:1px solid var(--ink);
     box-shadow:7px 7px 0 rgba(35,36,32,.10);
-    overflow:hidden;
+    overflow:hidden;transition:background 1.4s var(--ease);
   }
-  .stage::before{content:"";display:block;padding-top:66.66%}
-  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+  .stage::before{content:"";display:block;padding-top:66.66%;transition:padding-top .5s var(--ease)}
+  .stage.m-vertical::before{padding-top:145%}
+  .stage.m-album::before{padding-top:100%}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
   .stamp{
     position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;
     letter-spacing:.2em;color:var(--ink);border:1px solid var(--ink);
@@ -64,10 +77,15 @@
     position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;
     letter-spacing:.16em;color:rgba(35,36,32,.55);pointer-events:none;text-transform:uppercase;
   }
+  .wx{
+    position:absolute;left:12px;top:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.2em;color:rgba(35,36,32,.6);pointer-events:none;text-transform:uppercase;
+  }
+  .wx b{color:var(--seal);font-weight:400}
 
   .dock{
     border:1px solid var(--ink);background:var(--paper-deep);
-    padding:22px 20px;display:flex;flex-direction:column;gap:20px;
+    padding:22px 20px;display:flex;flex-direction:column;gap:18px;
     align-self:start;position:sticky;top:20px;
   }
   @media (max-width:960px){.dock{position:static}}
@@ -77,6 +95,8 @@
     display:flex;justify-content:space-between;align-items:baseline;
   }
   .dock h2 span{font-family:var(--mono);font-size:9px;font-weight:400;color:var(--dim);letter-spacing:.2em}
+  .grp{display:flex;flex-direction:column;gap:8px}
+  .grp>.gt{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase}
   .ctl{display:flex;flex-direction:column;gap:9px}
   .ctl label{
     display:flex;justify-content:space-between;align-items:baseline;
@@ -95,16 +115,36 @@
   input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
   input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--seal);border:1px solid var(--ink);border-radius:0}
 
+  .seg{display:flex;border:1px solid var(--ink)}
+  .seg button{
+    flex:1;background:transparent;border:0;color:var(--ink-soft);
+    font-family:var(--serif);font-size:13px;letter-spacing:.1em;
+    padding:8px 0;cursor:pointer;transition:all .25s var(--ease);
+  }
+  .seg button + button{border-left:1px solid var(--ink)}
+  .seg button.on{background:var(--ink);color:var(--paper)}
+  .seg button:not(.on):hover{background:rgba(35,36,32,.08)}
+  .seg.mode button{font-family:var(--mono);font-size:10px;letter-spacing:.12em}
+
   .btns{display:flex;flex-direction:column;gap:10px;margin-top:2px}
-  button{
+  .btns button{
     font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-transform:uppercase;
     padding:12px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);
     cursor:pointer;transition:all .25s var(--ease);text-align:center;
   }
-  button:hover{background:var(--ink);color:var(--paper)}
-  button.primary{background:var(--ink);color:var(--paper)}
-  button.primary:hover{background:var(--seal);border-color:var(--seal);color:#fff}
-  button:active{transform:translateY(1px)}
+  .btns button:hover{background:var(--ink);color:var(--paper)}
+  .btns button.primary{background:var(--ink);color:var(--paper)}
+  .btns button.primary:hover{background:var(--seal);border-color:var(--seal);color:#fff}
+  .btns button:active{transform:translateY(1px)}
+
+  .keys{
+    border-top:1px solid var(--line);padding-top:12px;
+    font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em;line-height:2.1;
+  }
+  .keys b{
+    display:inline-block;min-width:16px;text-align:center;color:var(--ink);
+    border:1px solid var(--line);padding:1px 4px;margin-right:4px;font-weight:400;
+  }
 
   .note{
     font-size:11px;line-height:2;color:var(--ink-soft);border-top:1px solid var(--line);
@@ -116,51 +156,108 @@
     padding:0 30px 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
     font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;
   }
+  footer b{color:var(--seal);font-weight:400}
 </style>
-</head>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
 <body>
+
+<div class="pagegrain" aria-hidden="true"></div>
 
 <header>
   <div class="sig">
-    <h1>INK FLOW <em>墨流</em></h1>
-    <span class="no">N°<b>05</b> — GEN-ART / 生成式水墨山水</span>
+    <svg class="seal" viewBox="0 0 64 64" aria-hidden="true">
+      <defs><path id="sealRing" d="M32,32 m-23.5,0 a23.5,23.5 0 1,1 47,0 a23.5,23.5 0 1,1 -47,0"/></defs>
+      <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <circle cx="32" cy="32" r="16.5" fill="none" stroke="currentColor" stroke-width=".9"/>
+      <g class="ring"><text font-family="SF Mono,Menlo,monospace" font-size="6.4" letter-spacing="2.4" fill="currentColor"><textPath href="#sealRing">ATELIER MIRA · ATELIER MIRA ·</textPath></text></g>
+      <path d="M23.5 42.2 C24.2 36.4 25.1 29.2 26.3 23.4 L31.7 33.9 C33.5 30.1 35.4 26.6 37.9 23.2 C38.7 29.6 39.6 36.2 40.3 41.6"
+            fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="tt">
+      <h1>INK FLOW <em>墨流</em></h1>
+      <div class="no">ÉTUDE <b>N°06/100</b> · INK FLOW · 墨流山水</div>
+    </div>
   </div>
-  <p class="tag">Fractal ridge · ink bleed · negative space<br>分形山脊 × 墨色晕染 × 留白印章</p>
+  <p class="tag">Fractal ridge · ink bleed · four weathers<br><b>分形山脊 × 墨色晕染 × 四时天气</b></p>
 </header>
 <div class="rule"></div>
 
 <main>
-  <div class="stage">
+  <div class="stage m-hand" id="stage">
     <canvas id="c"></canvas>
     <div class="stamp">墨流 · Ink Flow</div>
-    <div class="hint">Click to drop ink · 点击落墨</div>
+    <div class="wx" id="wxTag">CLEAR <b>晴</b></div>
+    <div class="hint">Click 落墨 · Drag 拖笔 · Double-click 泼墨</div>
   </div>
 
   <aside class="dock">
-    <h2>画 论<span>COLOPHON</span></h2>
+    <h2>画 论<span>SEED <i id="dockSeed" style="font-style:normal">—</i></span></h2>
+
+    <div class="grp">
+      <div class="gt">天气 WEATHER · 1-4</div>
+      <div class="seg" id="segWx">
+        <button data-v="clear" class="on">晴</button>
+        <button data-v="fog">雾</button>
+        <button data-v="rain">雨</button>
+        <button data-v="snow">雪</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="gt">装裱 FORMAT · C</div>
+      <div class="seg mode" id="segMode">
+        <button data-v="hand" class="on">手卷</button>
+        <button data-v="vertical">立轴</button>
+        <button data-v="album">册页</button>
+      </div>
+    </div>
+
     <div class="ctl">
-      <label>山势 <output id="oRidge">64</output></label>
+      <label>山势 <output id="oRidge">64 成</output></label>
       <input type="range" id="rRidge" min="20" max="100" value="64">
     </div>
     <div class="ctl">
-      <label>云雾 <output id="oMist">55</output></label>
+      <label>云雾 <output id="oMist">55 成</output></label>
       <input type="range" id="rMist" min="0" max="100" value="55">
     </div>
     <div class="ctl">
-      <label>晕染 <output id="oBleed">60</output></label>
+      <label>晕染 <output id="oBleed">60 成</output></label>
       <input type="range" id="rBleed" min="0" max="100" value="60">
     </div>
+    <div class="ctl">
+      <label>风 <output id="oWind">3 级</output></label>
+      <input type="range" id="rWind" min="0" max="10" value="3">
+    </div>
+
     <div class="btns">
       <button class="primary" id="bRegen">随机再生 · Regenerate</button>
+      <button id="bShare">复制分享链接 · Share</button>
       <button id="bSave">下载 PNG · Download</button>
     </div>
-    <p class="note">远山以<b>分形中点位移</b>起笔，墨色沿山脊向下渐淡为留白；近景皴擦点苔，朱砂一方收束全卷。移指针可观层山错位，点击画面可落墨成晕。</p>
+
+    <div class="keys">
+      <b>N</b>再生 <b>1-4</b>天气 <b>C</b>装裱 <b>D</b>下载 <b>V</b>骨法<br>
+      <b>SPACE</b>止风 · 闲置 30s 入定自运
+    </div>
+
+    <p class="note">远山以<b>分形中点位移</b>起笔，墨色沿山脊渐淡为留白；近景皴擦点苔，朱砂一方收束全卷。同一卷山水，在<b>晴雾雨雪</b>里各是一幅习作——移指针观层山错位，拖笔可留墨，墨会自己晕开。</p>
   </aside>
 </main>
 
 <footer>
-  <span>Ink Flow — Generative Shan Shui</span>
-  <span>Canvas 2D · Seeded · No external assets</span>
+  <span>Ink Flow — Canvas 2D · SEED <b id="fSeed">—</b> · Painted with code, plein air</span>
+  <span>Generative Shan Shui · Seeded · No external assets</span>
 </footer>
 
 <script>
@@ -170,22 +267,47 @@
 /* ---------- seeded rng ---------- */
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
-/* ---------- constants ---------- */
-var RW=1680, RH=1120;               // render resolution (3:2 handscroll)
-var INK="#232420", PAPER="#f4efe3", SEAL="#b03a2e";
+/* ---------- constants & state ---------- */
+var INK="35,36,32", SEAL="#b03a2e";
 var canvas=document.getElementById("c"), ctx=canvas.getContext("2d");
+var stage=document.getElementById("stage");
 var W=0,H=0,dpr=1;
 
-var seed=Math.floor(Math.random()*1e9);
-var P={ridge:64,mist:55,bleed:60};
-var layers=null;        // built offscreen layers
-var mists=[];           // animated mist strips
-var blots=[];           // click ink blots
+/* format modes: hand scroll 3:2 · vertical 2:2.9 · album 1:1 */
+var FORMATS={hand:{rw:1680,rh:1120,cls:"m-hand"},vertical:{rw:1240,rh:1800,cls:"m-vertical"},album:{rw:1400,rh:1400,cls:"m-album"}};
+var RW=1680, RH=1120;
+
+var seed=0;
+var P={ridge:64,mist:55,bleed:60,wind:3};
+var wx="clear", mode="hand";
+var layers=null, ridgeMeta=[];
+var mists=[], blots=[], strokes=[];
+var rain=[], snow=[];
 var mx=.5,my=.5,tmx=.5,tmy=.5;
 var t0=performance.now();
-var needBuild=true;
+var needBuild=true, windOn=true, inspect=false, zen=false;
+var lastInteract=performance.now();
+
+/* ---------- weather: same scroll, four lights ---------- */
+var WEATHERS={
+  clear:{tag:'CLEAR <b>晴</b>', paper:'#f7f3e8', pageP:'#f4efe3', mistMul:1,   alphaMul:1,   sunA:.34, veil:null,                  parts:null},
+  fog:  {tag:'FOG <b>雾</b>',   paper:'#f2f1e9', pageP:'#edecdf', mistMul:2.3, alphaMul:.72, sunA:.10, veil:'rgba(238,238,230,.16)', parts:null},
+  rain: {tag:'RAIN <b>雨</b>',  paper:'#ebeade', pageP:'#e5e3d3', mistMul:1.4, alphaMul:.92, sunA:.06, veil:'rgba(96,104,112,.13)',  parts:'rain'},
+  snow: {tag:'SNOW <b>雪</b>',  paper:'#f6f7f1', pageP:'#eff0e6', mistMul:1.25,alphaMul:.8,  sunA:.2,  veil:'rgba(246,248,244,.18)', parts:'snow'}
+};
+function WX(){return WEATHERS[wx]}
 
 function mkCanvas(w,h){var c=document.createElement("canvas");c.width=w;c.height=h;return c}
+
+/* ---------- seed <-> hash ---------- */
+function seedFromHash(){var m=/[#&]seed=(\d+)/.exec(location.hash||"");return m?(parseInt(m[1],10)>>>0):0}
+function setSeed(n,rebuild){
+  seed=n>>>0;
+  try{history.replaceState(null,"","#seed="+seed)}catch(e){}
+  document.getElementById("fSeed").textContent=String(seed).padStart(10,"0");
+  document.getElementById("dockSeed").textContent=String(seed%100000).padStart(5,"0");
+  if(rebuild)build();
+}
 
 /* ---------- fractal ridge: midpoint displacement ---------- */
 function ridgePoints(rand,n,amp,rough){
@@ -200,42 +322,37 @@ function ridgePoints(rand,n,amp,rough){
   return pts;
 }
 
-/* ---------- one mountain layer ---------- */
+/* ---------- one mountain layer (Hobbs: wash + bleed + edge accent) ---------- */
 function paintMountain(rand,w,h,baseY,amp,alpha,rough,bleed,detail){
   var c=mkCanvas(w,h),g=c.getContext("2d"),n=256,i,x,y;
   var pts=ridgePoints(rand,n,amp,rough);
   var path=function(g2){
     g2.beginPath();
     g2.moveTo(-4,h+4);
-    for(i=0;i<=n;i++){
-      x=i/n*w; y=baseY+pts[i];
-      g2.lineTo(x,y);
-    }
+    for(i=0;i<=n;i++){x=i/n*w;y=baseY+pts[i];g2.lineTo(x,y)}
     g2.lineTo(w+4,h+4); g2.closePath();
   };
-  // soft bleed pass (under)
   if(bleed>0.01){
     var tmp=mkCanvas(w,h),tg=tmp.getContext("2d");
     path(tg);
     var gr=tg.createLinearGradient(0,baseY-amp,0,baseY+amp*1.9);
-    gr.addColorStop(0,"rgba(35,36,32,"+(alpha*.9*bleed)+")");
-    gr.addColorStop(1,"rgba(35,36,32,0)");
+    gr.addColorStop(0,"rgba("+INK+","+(alpha*.9*bleed)+")");
+    gr.addColorStop(1,"rgba("+INK+",0)");
     tg.fillStyle=gr; tg.fill();
     g.save(); g.filter="blur("+(6+bleed*10)+"px)"; g.drawImage(tmp,0,0); g.restore();
   }
-  // crisp wash fill
   path(g);
   var grd=g.createLinearGradient(0,baseY-amp,0,baseY+amp*1.75);
-  grd.addColorStop(0,"rgba(35,36,32,"+alpha+")");
-  grd.addColorStop(.42,"rgba(35,36,32,"+(alpha*.42)+")");
-  grd.addColorStop(1,"rgba(35,36,32,0)");
+  grd.addColorStop(0,"rgba("+INK+","+alpha+")");
+  grd.addColorStop(.42,"rgba("+INK+","+(alpha*.42)+")");
+  grd.addColorStop(1,"rgba("+INK+",0)");
   g.fillStyle=grd; g.fill();
-  // ridge line accent
+  // edge darkening along the ridge
   g.beginPath();
   for(i=0;i<=n;i++){x=i/n*w;y=baseY+pts[i]; i===0?g.moveTo(x,y):g.lineTo(x,y)}
-  g.strokeStyle="rgba(35,36,32,"+Math.min(1,alpha*1.05)+")";
+  g.strokeStyle="rgba("+INK+","+Math.min(1,alpha*1.05)+")";
   g.lineWidth=detail>0.6?2.2:1.3; g.stroke();
-  // texture strokes (cun) + moss dots on nearer layers
+  // cun texture strokes + moss dots
   var k=Math.floor(90+detail*320),j,px,py,len,ang;
   g.lineWidth=1;
   for(j=0;j<k;j++){
@@ -244,7 +361,7 @@ function paintMountain(rand,w,h,baseY,amp,alpha,rough,bleed,detail){
     var sl=(pts[Math.min(n,i+1)]-pts[Math.max(0,i-1)])/(w/n*2);
     len=(6+rand()*34)*(.4+detail);
     ang=Math.PI/2+sl*1.2+(rand()-.5)*.5;
-    g.strokeStyle="rgba(35,36,32,"+((0.04+rand()*.10)*detail+0.02)+")";
+    g.strokeStyle="rgba("+INK+","+((0.04+rand()*.10)*detail+0.02)+")";
     g.beginPath(); g.moveTo(px,py+1);
     g.lineTo(px+Math.cos(ang)*len,py+Math.sin(ang)*len); g.stroke();
   }
@@ -252,28 +369,29 @@ function paintMountain(rand,w,h,baseY,amp,alpha,rough,bleed,detail){
     for(j=0;j<140*detail;j++){
       i=2+Math.floor(rand()*(n-4));
       px=i/n*w; py=baseY+pts[i]+rand()*10;
-      g.fillStyle="rgba(35,36,32,"+(0.10+rand()*.22)+")";
+      g.fillStyle="rgba("+INK+","+(0.10+rand()*.22)+")";
       g.beginPath(); g.arc(px,py,0.8+rand()*1.8,0,7); g.fill();
     }
   }
-  return c;
+  return {c:c,pts:pts,baseY:baseY,amp:amp,alpha:alpha,n:n};
 }
 
 /* ---------- scene build ---------- */
 function build(){
   var rand=mulberry32(seed);
   var PAD=90, w=RW+PAD*2;
-  layers={far:[],near:null,fore:null,paper:null,seal:null,sun:null,water:null};
-  mists=[];
+  layers={far:[],paper:null,seal:null,sun:null,water:null,fore:null};
+  ridgeMeta=[]; mists=[]; strokes=[]; blots=[];
+  var cur=WX(), i;
 
   /* paper fibre */
-  var pc=mkCanvas(RW,RH),pg=pc.getContext("2d"),i;
-  pg.fillStyle="#f7f3e8"; pg.fillRect(0,0,RW,RH);
+  var pc=mkCanvas(RW,RH),pg=pc.getContext("2d");
+  pg.fillStyle=cur.paper; pg.fillRect(0,0,RW,RH);
   for(i=0;i<5200;i++){
     pg.fillStyle="rgba(120,110,86,"+(rand()*.05)+")";
     pg.fillRect(rand()*RW,rand()*RH,1+rand()*1.6,1+rand()*1.2);
   }
-  for(i=0;i<60;i++){ // fibres
+  for(i=0;i<60;i++){
     pg.strokeStyle="rgba(120,110,86,"+(0.02+rand()*.03)+")";
     pg.lineWidth=.6;
     var fx=rand()*RW,fy=rand()*RH,fa=rand()*Math.PI;
@@ -285,10 +403,10 @@ function build(){
 
   /* pale sun */
   var sc=mkCanvas(RW,RH),sg=sc.getContext("2d");
-  var sunX=RW*(.18+rand()*.64), sunY=RH*(.14+rand()*.13), sunR=26+rand()*20;
-  sg.fillStyle="rgba(176,58,46,.34)";
+  var sunX=RW*(.18+rand()*.64), sunY=RH*(.14+rand()*.13), sunR=(26+rand()*20)*(RW/1680);
+  sg.fillStyle="rgba(176,58,46,"+cur.sunA+")";
   sg.beginPath(); sg.arc(sunX,sunY,sunR,0,7); sg.fill();
-  sg.fillStyle="rgba(176,58,46,.16)";
+  sg.fillStyle="rgba(176,58,46,"+(cur.sunA*.5)+")";
   sg.beginPath(); sg.arc(sunX,sunY,sunR*1.35,0,7); sg.fill();
   layers.sun=sc;
 
@@ -305,39 +423,40 @@ function build(){
     var amp=RH*dfn.amp*(0.55+rugged*0.9);
     var rough=0.42+rugged*0.24;
     var bleed=P.bleed/100*(idx<2?1.15:0.8);
-    layers.far.push(paintMountain(rand,w,RH,RH*dfn.y,amp,dfn.a,rough,bleed,dfn.d));
+    var m=paintMountain(rand,w,RH,RH*dfn.y,amp,dfn.a*cur.alphaMul,rough,bleed,dfn.d);
+    layers.far.push(m);
+    ridgeMeta.push({pts:m.pts,baseY:m.baseY,n:m.n,alpha:dfn.a,idx:idx});
   });
 
-  /* water: horizontal broken strokes */
+  /* water: horizontal broken strokes + boat */
   var wc=mkCanvas(w,RH),wg=wc.getContext("2d");
   var wy0=RH*.80,j,x,len,y;
   for(j=0;j<70;j++){
     y=wy0+Math.pow(rand(),1.4)*(RH-wy0-24);
     x=rand()*w;
     len=30+rand()*190;
-    wg.strokeStyle="rgba(35,36,32,"+(0.05+rand()*.10)+")";
+    wg.strokeStyle="rgba("+INK+","+(0.05+rand()*.10)+")";
     wg.lineWidth=.8+rand()*1;
     wg.beginPath(); wg.moveTo(x,y); wg.lineTo(x+len,y+(rand()-.5)*2); wg.stroke();
   }
-  // small boat
   var bx=w*(.24+rand()*.5), by=wy0+rand()*(RH-wy0)*.45+10;
-  wg.strokeStyle="rgba(35,36,32,.75)"; wg.lineWidth=2.4;
+  wg.strokeStyle="rgba("+INK+",.75)"; wg.lineWidth=2.4;
   wg.beginPath(); wg.moveTo(bx-26,by); wg.quadraticCurveTo(bx,by+12,bx+26,by); wg.stroke();
   wg.beginPath(); wg.moveTo(bx,by); wg.lineTo(bx,by-30); wg.stroke();
-  wg.fillStyle="rgba(35,36,32,.55)";
+  wg.fillStyle="rgba("+INK+",.55)";
   wg.beginPath(); wg.moveTo(bx+2,by-28); wg.lineTo(bx+18,by-4); wg.lineTo(bx+2,by-4); wg.closePath(); wg.fill();
   layers.water=wc;
 
-  /* foreground: pines on nearest ridge + rocks */
+  /* foreground: pines + rocks + birds */
   var fc=mkCanvas(w,RH),fg=fc.getContext("2d");
   function pine(px,py,s){
     var r=mulberry32(seed+px*7+py*13);
-    fg.strokeStyle="rgba(35,36,32,.9)"; fg.lineWidth=2.6*s;
+    fg.strokeStyle="rgba("+INK+",.9)"; fg.lineWidth=2.6*s;
     fg.beginPath(); fg.moveTo(px,py); fg.lineTo(px+(r()-.5)*6*s,py-34*s); fg.stroke();
     var tiers=3+Math.floor(r()*3),t;
     for(t=0;t<tiers;t++){
       var ty=py-14*s-t*11*s, tw=(tiers-t)*11*s;
-      fg.strokeStyle="rgba(35,36,32,"+(.5+r()*.3)+")";
+      fg.strokeStyle="rgba("+INK+","+(.5+r()*.3)+")";
       fg.lineWidth=1.4*s;
       for(var b=-2;b<=2;b++){
         fg.beginPath(); fg.moveTo(px,ty);
@@ -346,34 +465,31 @@ function build(){
     }
   }
   var trees=3+Math.floor(rand()*4);
-  for(i=0;i<trees;i++){
-    pine(w*(.06+rand()*.88), RH*(.72+rand()*.05)+(rand()-.5)*20, .8+rand()*1.1);
-  }
-  for(i=0;i<3;i++){ // rocks
+  for(i=0;i<trees;i++)pine(w*(.06+rand()*.88), RH*(.72+rand()*.05)+(rand()-.5)*20, .8+rand()*1.1);
+  for(i=0;i<3;i++){
     var rx=w*(.1+rand()*.8), ry=RH*.90+rand()*30, rr=18+rand()*30;
     fg.save(); fg.filter="blur(3px)";
-    fg.fillStyle="rgba(35,36,32,.55)";
+    fg.fillStyle="rgba("+INK+",.55)";
     fg.beginPath(); fg.ellipse(rx,ry,rr,rr*.5,0,0,7); fg.fill(); fg.restore();
-    fg.fillStyle="rgba(35,36,32,.35)";
+    fg.fillStyle="rgba("+INK+",.35)";
     fg.beginPath(); fg.ellipse(rx,ry-rr*.18,rr*.8,rr*.3,0,0,7); fg.fill();
   }
-  // birds
   for(i=0;i<4+Math.floor(rand()*4);i++){
     var bX=w*(.15+rand()*.7), bY=RH*(.16+rand()*.2), bS=5+rand()*7;
-    fg.strokeStyle="rgba(35,36,32,.6)"; fg.lineWidth=1.6;
+    fg.strokeStyle="rgba("+INK+",.6)"; fg.lineWidth=1.6;
     fg.beginPath(); fg.moveTo(bX-bS,bY); fg.quadraticCurveTo(bX-bS*.4,bY-bS*.8,bX,bY);
     fg.quadraticCurveTo(bX+bS*.4,bY-bS*.8,bX+bS,bY); fg.stroke();
   }
   layers.fore=fc;
 
   /* mist strips (animated) */
-  var mistAmt=P.mist/100;
+  var mistAmt=(P.mist/100)*cur.mistMul;
   [{y:.34,k:1.15},{y:.47,k:.95},{y:.585,k:.8},{y:.68,k:.6}].forEach(function(m){
     var mc=mkCanvas(w+260,140),mg=mc.getContext("2d");
     var grd=mg.createLinearGradient(0,0,0,140);
-    grd.addColorStop(0,"rgba(247,243,232,0)");
-    grd.addColorStop(.5,"rgba(247,243,232,"+(.85*mistAmt*m.k)+")");
-    grd.addColorStop(1,"rgba(247,243,232,0)");
+    grd.addColorStop(0,"rgba("+hex2rgb(cur.paper)+",0)");
+    grd.addColorStop(.5,"rgba("+hex2rgb(cur.paper)+","+Math.min(1,.85*mistAmt*m.k)+")");
+    grd.addColorStop(1,"rgba("+hex2rgb(cur.paper)+",0)");
     mg.fillStyle=grd; mg.fillRect(0,0,w+260,140);
     mists.push({c:mc,y:RH*m.y-70,ph:rand()*6.28,sp:.12+rand()*.2});
   });
@@ -381,84 +497,167 @@ function build(){
   /* inscription + seal */
   var ic=mkCanvas(RW,RH),ig=ic.getContext("2d");
   var phrase=["墨分五色","远山含黛","云水无涯","空山新雨"][Math.floor(rand()*4)];
-  ig.fillStyle="rgba(35,36,32,.82)";
+  ig.fillStyle="rgba("+INK+",.82)";
   ig.font="600 34px 'Songti SC','STSong',serif";
   ig.textAlign="center";
   var tx=RW-92, ty=64;
-  for(i=0;i<phrase.length;i++){ ig.fillText(phrase[i],tx,ty+i*44); }
+  for(i=0;i<phrase.length;i++)ig.fillText(phrase[i],tx,ty+i*44);
   ig.font="400 15px 'Songti SC','STSong',serif";
-  ig.fillStyle="rgba(35,36,32,.55)";
+  ig.fillStyle="rgba("+INK+",.55)";
   var sub="丙午墨戏";
-  for(i=0;i<sub.length;i++){ ig.fillText(sub[i],tx-34,ty+18+i*22); }
-  // seal
+  for(i=0;i<sub.length;i++)ig.fillText(sub[i],tx-34,ty+18+i*22);
   var sSize=64, sx=tx-sSize/2, sy=ty+phrase.length*44+16;
   ig.save();
   ig.translate(sx+sSize/2,sy+sSize/2); ig.rotate((rand()-.5)*.08); ig.translate(-sSize/2,-sSize/2);
   ig.fillStyle=SEAL;
   ig.fillRect(0,0,sSize,sSize);
   ig.globalCompositeOperation="destination-out";
-  for(i=0;i<130;i++){ // distress
+  for(i=0;i<130;i++){
     ig.fillStyle="rgba(0,0,0,"+(rand()*.5)+")";
     var ex=rand()<.5?rand()*sSize:(rand()<.5?rand()*6:sSize-rand()*6);
     var ey=rand()<.5?(rand()<.5?rand()*6:sSize-rand()*6):rand()*sSize;
     ig.fillRect(ex,ey,1+rand()*2.4,1+rand()*2.4);
   }
   ig.globalCompositeOperation="source-over";
-  ig.fillStyle="#f7f3e8";
+  ig.fillStyle=cur.paper;
   ig.font="700 26px 'Songti SC','STSong',serif";
   ig.fillText("墨",sSize/2,sSize/2-4);
   ig.fillText("流",sSize/2,sSize/2+26);
   ig.restore();
   layers.seal=ic;
 
-  blots=[];
+  /* weather particles */
+  rain=[]; snow=[];
+  if(cur.parts==="rain"){
+    for(i=0;i<150;i++)rain.push({x:rand()*RW,y:rand()*RH,len:14+rand()*22,v:9+rand()*8});
+  }else if(cur.parts==="snow"){
+    for(i=0;i<190;i++)snow.push({x:rand()*RW,y:rand()*RH,r:.8+rand()*1.8,v:.5+rand()*1.1,sw:rand()*6.28});
+  }
+
   needBuild=false;
 }
 
+function hex2rgb(hx){
+  var n=parseInt(hx.slice(1),16);
+  return ((n>>16)&255)+","+((n>>8)&255)+","+(n&255);
+}
+
+/* ---------- user ink strokes (drag brush) ---------- */
+function drawStrokes(g,now){
+  for(var s=0;s<strokes.length;s++){
+    var st=strokes[s], pts=st.pts;
+    if(pts.length<2)continue;
+    var age=Math.min(1,(now-st.born)/9000);
+    var spread=1+age*.5;                 // ink keeps bleeding slowly
+    for(var pass=0;pass<2;pass++){
+      for(var i=1;i<pts.length;i++){
+        var w0=pts[i-1].p*22*spread*(pass===0?2.4:1)+.6;
+        g.strokeStyle="rgba("+INK+","+(pass===0?.045:.16)+")";
+        g.lineWidth=w0;
+        g.lineCap="round";
+        g.beginPath(); g.moveTo(pts[i-1].x,pts[i-1].y); g.lineTo(pts[i].x,pts[i].y); g.stroke();
+      }
+    }
+  }
+}
+
 /* ---------- composite ---------- */
-function drawScene(g,w,h,parallax,time){
+function drawScene(g,w,h,parallax,time,withParts){
   var sx=w/RW, sy=h/RH;
   g.save(); g.scale(sx,sy);
   g.drawImage(layers.paper,0,0);
   g.drawImage(layers.sun,0,0);
-  var PAD=90;
-  var i,off;
+  var PAD=90, i, off;
   for(i=0;i<layers.far.length;i++){
     var depth=(i+1)/layers.far.length;
-    off=parallax? (mx-.5)*44*depth : 0;
-    var offY=parallax? (my-.5)*10*depth : 0;
-    g.drawImage(layers.far[i],-PAD+off,offY);
+    off=parallax?(mx-.5)*44*depth:0;
+    g.drawImage(layers.far[i].c,-PAD+off,parallax?(my-.5)*10*depth:0);
   }
-  // animated mist
   mists.forEach(function(m,idx){
     var depth=(idx+1.5)/(mists.length+1);
-    var drift=Math.sin(time*m.sp+m.ph)*26;
-    var px=parallax? (mx-.5)*40*depth : 0;
+    var drift=windOn?Math.sin(time*m.sp*(.3+P.wind*.35)+m.ph)*(20+P.wind*6):0;
+    var px=parallax?(mx-.5)*40*depth:0;
     g.drawImage(m.c,-PAD-130+drift+px,m.y);
   });
-  off=parallax? (mx-.5)*52 : 0;
+  off=parallax?(mx-.5)*52:0;
   g.drawImage(layers.water,-PAD+off,parallax?(my-.5)*12:0);
   g.drawImage(layers.fore,-PAD+off*1.15,parallax?(my-.5)*14:0);
-  // click ink blots
+
+  /* click blots */
   blots.forEach(function(b){
-    var r=b.r;
-    var grd=g.createRadialGradient(b.x,b.y,0,b.x,b.y,r);
-    grd.addColorStop(0,"rgba(35,36,32,"+b.a+")");
-    grd.addColorStop(.7,"rgba(35,36,32,"+(b.a*.5)+")");
-    grd.addColorStop(1,"rgba(35,36,32,0)");
+    var grd=g.createRadialGradient(b.x,b.y,0,b.x,b.y,b.r);
+    grd.addColorStop(0,"rgba("+INK+","+b.a+")");
+    grd.addColorStop(.7,"rgba("+INK+","+(b.a*.5)+")");
+    grd.addColorStop(1,"rgba("+INK+",0)");
     g.fillStyle=grd;
-    g.beginPath(); g.arc(b.x,b.y,r,0,7); g.fill();
+    g.beginPath(); g.arc(b.x,b.y,b.r,0,7); g.fill();
   });
+
+  drawStrokes(g,(performance.now()-t0)*1000/1000);
   g.drawImage(layers.seal,0,0);
+
+  /* weather veil + particles */
+  var cur=WX();
+  if(cur.veil){g.fillStyle=cur.veil; g.fillRect(0,0,RW,RH);}
+  if(withParts&&cur.parts==="rain"){
+    var slant=2+P.wind*1.4;
+    g.strokeStyle="rgba(88,96,104,.30)"; g.lineWidth=1;
+    for(i=0;i<rain.length;i++){
+      var d=rain[i];
+      g.beginPath(); g.moveTo(d.x,d.y); g.lineTo(d.x+slant,d.y+d.len); g.stroke();
+    }
+  }else if(withParts&&cur.parts==="snow"){
+    for(i=0;i<snow.length;i++){
+      var f=snow[i];
+      g.fillStyle="rgba(252,253,250,"+(.5+((i%5)/5)*.4)+")";
+      g.beginPath(); g.arc(f.x,f.y,f.r,0,7); g.fill();
+    }
+  }
+
+  /* 骨法 inspect overlay */
+  if(inspect){
+    g.strokeStyle="rgba(176,58,46,.7)"; g.lineWidth=1;
+    ridgeMeta.forEach(function(m){
+      g.beginPath();
+      for(i=0;i<=m.n;i+=4){
+        var x2=i/m.n*(RW+180)-90, y2=m.baseY+m.pts[i];
+        i===0?g.moveTo(x2,y2):g.lineTo(x2,y2);
+      }
+      g.stroke();
+      for(i=0;i<=m.n;i+=16){
+        g.fillStyle="rgba(176,58,46,.8)";
+        g.beginPath(); g.arc(i/m.n*(RW+180)-90,m.baseY+m.pts[i],2.2,0,7); g.fill();
+      }
+      g.fillStyle="rgba(176,58,46,.85)";
+      g.font="400 13px 'SF Mono',Menlo,monospace";
+      g.textAlign="left";
+      g.fillText("L"+(m.idx+1)+" α"+m.alpha.toFixed(2)+" · mid-disp n=256",14,m.baseY-8);
+    });
+  }
   g.restore();
 }
 
 /* ---------- main loop ---------- */
+var lastAutoBlot=0;
 function frame(now){
   var time=(now-t0)/1000;
   mx+=(tmx-mx)*.06; my+=(tmy-my)*.06;
-  blots.forEach(function(b){ if(b.r<b.max){b.r+=(b.max-b.r)*.05;} });
-  drawScene(ctx,W,H,true,time);
+  blots.forEach(function(b){if(b.r<b.max)b.r+=(b.max-b.r)*.05});
+  // zen mode: the studio keeps working when you idle
+  zen=(now-lastInteract>30000);
+  if(zen&&now-lastAutoBlot>6000){
+    lastAutoBlot=now;
+    blots.push({x:RW*(.2+Math.random()*.6),y:RH*(.2+Math.random()*.5),r:2,max:20+Math.random()*40,a:.1+Math.random()*.12});
+  }
+  // weather particles drift
+  var cur=WX(), i;
+  if(cur.parts==="rain"){
+    var slant=2+P.wind*1.4;
+    for(i=0;i<rain.length;i++){var d=rain[i];d.x+=slant*.12*(windOn?1:0);d.y+=d.v*(windOn?1:.2);if(d.y>RH){d.y=-20;d.x=Math.random()*RW}}
+  }else if(cur.parts==="snow"){
+    for(i=0;i<snow.length;i++){var f=snow[i];f.sw+=.01;f.x+=Math.sin(f.sw)*(.3+P.wind*.12);f.y+=f.v*(windOn?1:.25);if(f.y>RH+4){f.y=-4;f.x=Math.random()*RW}}
+  }
+  drawScene(ctx,W,H,true,time,true);
   requestAnimationFrame(frame);
 }
 
@@ -472,49 +671,147 @@ function resize(){
 window.addEventListener("resize",resize);
 
 /* ---------- events ---------- */
-var stage=canvas.parentElement;
+function poke(){lastInteract=performance.now()}
+function toScene(e){
+  var r=stage.getBoundingClientRect();
+  return {x:(e.clientX-r.left)/r.width*RW, y:(e.clientY-r.top)/r.height*RH};
+}
+var drawing=null, lastPt=null;
 stage.addEventListener("pointermove",function(e){
   var r=stage.getBoundingClientRect();
   tmx=(e.clientX-r.left)/r.width; tmy=(e.clientY-r.top)/r.height;
+  poke();
+  if(drawing){
+    var p=toScene(e);
+    var v=lastPt?Math.hypot(p.x-lastPt.x,p.y-lastPt.y):10;
+    var pr=Math.max(.12,Math.min(1,1-v/90));         // slow brush = heavy ink
+    drawing.pts.push({x:p.x,y:p.y,p:pr});
+    if(drawing.pts.length>220)drawing.pts.shift();
+    lastPt=p;
+  }
 });
-stage.addEventListener("pointerleave",function(){tmx=.5;tmy=.5});
+stage.addEventListener("pointerleave",function(){tmx=.5;tmy=.5;drawing=null});
 stage.addEventListener("pointerdown",function(e){
-  var r=stage.getBoundingClientRect();
-  var x=(e.clientX-r.left)/r.width*RW, y=(e.clientY-r.top)/r.height*RH;
+  poke();
+  var p=toScene(e);
   if(blots.length>24)blots.shift();
-  blots.push({x:x,y:y,r:2,max:26+Math.random()*70,a:.14+Math.random()*.2});
+  blots.push({x:p.x,y:p.y,r:2,max:26+Math.random()*70,a:.14+Math.random()*.2});
+  drawing={pts:[{x:p.x,y:p.y,p:.7}],born:performance.now()};
+  strokes.push(drawing);
+  if(strokes.length>36)strokes.shift();
+  lastPt=p;
+});
+stage.addEventListener("pointerup",function(){drawing=null});
+stage.addEventListener("dblclick",function(e){
+  poke();
+  var p=toScene(e);
+  blots.push({x:p.x,y:p.y,r:4,max:120+Math.random()*60,a:.24});        // 泼墨 splash
+  for(var i=0;i<12;i++){
+    var a=Math.random()*6.28, d=30+Math.random()*130;
+    blots.push({x:p.x+Math.cos(a)*d,y:p.y+Math.sin(a)*d,r:1,max:6+Math.random()*22,a:.2+Math.random()*.2});
+  }
 });
 
-function bindRange(id,out,key){
+function bindRange(id,out,key,unit){
   var el=document.getElementById(id),o=document.getElementById(out);
   el.addEventListener("input",function(){
-    P[key]=+el.value; o.textContent=el.value;
-    if(!needBuild){needBuild=true;
-      requestAnimationFrame(function(){build()});
-    }
+    P[key]=+el.value; o.textContent=el.value+" "+unit; poke();
+    if(key!=="wind"&&!needBuild){needBuild=true;requestAnimationFrame(function(){build()})}
   });
 }
-bindRange("rRidge","oRidge","ridge");
-bindRange("rMist","oMist","mist");
-bindRange("rBleed","oBleed","bleed");
+bindRange("rRidge","oRidge","ridge","成");
+bindRange("rMist","oMist","mist","成");
+bindRange("rBleed","oBleed","bleed","成");
+bindRange("rWind","oWind","wind","级");
+
+/* weather + format */
+function setWx(k,skipBuild){
+  wx=k;
+  var seg=document.getElementById("segWx");
+  for(var i=0;i<seg.children.length;i++)seg.children[i].classList.toggle("on",seg.children[i].dataset.v===k);
+  document.getElementById("wxTag").innerHTML=WEATHERS[k].tag;
+  document.documentElement.style.setProperty("--paper",WEATHERS[k].pageP);
+  if(!skipBuild)build();
+}
+document.getElementById("segWx").addEventListener("click",function(e){
+  var b=e.target.closest("button"); if(!b)return;
+  setWx(b.dataset.v); poke();
+});
+var MODEKEYS=["hand","vertical","album"];
+function setMode(k){
+  mode=k;
+  var seg=document.getElementById("segMode");
+  for(var i=0;i<seg.children.length;i++)seg.children[i].classList.toggle("on",seg.children[i].dataset.v===k);
+  stage.classList.remove("m-hand","m-vertical","m-album");
+  stage.classList.add(FORMATS[k].cls);
+  RW=FORMATS[k].rw; RH=FORMATS[k].rh;
+  requestAnimationFrame(function(){resize();build()});
+}
+document.getElementById("segMode").addEventListener("click",function(e){
+  var b=e.target.closest("button"); if(!b)return;
+  setMode(b.dataset.v); poke();
+});
 
 document.getElementById("bRegen").addEventListener("click",function(){
-  seed=Math.floor(Math.random()*1e9);
-  build();
+  setSeed((Math.random()*1e9)>>>0,true); poke();
+});
+document.getElementById("bShare").addEventListener("click",async function(e){
+  poke();
+  var btn=e.currentTarget, url=location.href, ok=false;
+  try{await navigator.clipboard.writeText(url);ok=true}catch(err){prompt("复制此链接 / Copy link",url)}
+  if(ok){var old=btn.textContent;btn.textContent="已复制 · Copied";setTimeout(function(){btn.textContent=old},1400)}
 });
 document.getElementById("bSave").addEventListener("click",function(){
+  poke();
   var ex=mkCanvas(RW,RH),eg=ex.getContext("2d");
-  drawScene(eg,RW,RH,false,1.2);
+  drawScene(eg,RW,RH,false,1.2,true);
   var a=document.createElement("a");
   a.download="ink-flow-"+seed+".png";
   a.href=ex.toDataURL("image/png");
   a.click();
 });
 
+/* keyboard: N regen · 1-4 weather · C format · D download · V skeleton · Space wind */
+window.addEventListener("keydown",function(e){
+  var tag=document.activeElement&&document.activeElement.tagName;
+  if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT")return;
+  if(e.code==="Space"&&e.target===document.body){e.preventDefault();windOn=!windOn}
+  else if(e.key==="n"||e.key==="N")setSeed((Math.random()*1e9)>>>0,true);
+  else if(e.key>="1"&&e.key<="4")setWx(["clear","fog","rain","snow"][+e.key-1]);
+  else if(e.key==="c"||e.key==="C")setMode(MODEKEYS[(MODEKEYS.indexOf(mode)+1)%MODEKEYS.length]);
+  else if(e.key==="d"||e.key==="D")document.getElementById("bSave").click();
+  else if(e.key==="v"||e.key==="V")inspect=!inspect;
+  poke();
+});
+
 /* ---------- go ---------- */
+setSeed(seedFromHash()||((Math.random()*1e9)>>>0),false);
+setWx("clear",true);
 build(); resize();
 requestAnimationFrame(frame);
 })();
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="ink-flow" data-num="06" style="--lab-a:#232420;--lab-b:#b03a2e"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 06 · GEN-ART</small><strong>Ink Flow</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

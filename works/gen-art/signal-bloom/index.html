@@ -3,439 +3,652 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIGNAL BLOOM — 波形花生成器</title>
+<title>Signal Bloom — 薰衣草田的波形花 · Atelier MIRA</title>
 <style>
   :root{
-    --ink-bg:#0f1417; --panel:#131a1e; --line:#2c383e; --hair:#3a4a52;
-    --gold:#d3a94f; --gold-dim:#8a7440;
-    --ivory:#f0e7d3; --dim:#7d7462;
+    /* 家族⑤ 薰衣草 Lavande —— 黄昏前一小时，灰调紫，禁止荧光 */
+    --wall:#E8E0D0; --far:#D9C7E0; --field:#B9A8C9; --mid:#8E7BA8; --deep:#6B5B85; --dusk:#4E4A6B;
+    --paper:#E6DFD2; --panel:#ECE7DB; --line:#CFC6BB;
+    --ink:#453F56; --dim:#948C9E;
     --mono:"SF Mono",Menlo,Consolas,monospace;
     --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
     --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    background:var(--ink-bg);color:var(--ivory);font-family:var(--sans);
-    -webkit-font-smoothing:antialiased;overflow-x:hidden;
-  }
-  ::selection{background:var(--gold);color:#0f1417}
+  html,body{background:var(--paper)}
+  body{color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--mid);color:var(--wall)}
 
   header{
-    text-align:center;padding:38px 24px 0;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;
+    padding:20px clamp(18px,4vw,44px) 14px;
   }
-  .mast{
-    display:flex;align-items:center;justify-content:center;gap:18px;
-  }
-  .mast .rl{flex:0 1 120px;border-top:1px solid var(--gold-dim);position:relative;height:0}
-  .mast .rl::after{content:"";position:absolute;top:2px;left:0;width:100%;border-top:1px solid var(--line)}
-  .mast h1{
-    font-family:var(--serif);font-weight:700;
-    font-size:clamp(24px,4vw,40px);letter-spacing:.28em;text-indent:.28em;
-    color:var(--gold);white-space:nowrap;
-  }
-  .mast h1 em{font-style:italic;color:var(--ivory)}
-  .sub{
-    margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--dim);
-    letter-spacing:.3em;text-transform:uppercase;
-  }
-  .sub b{color:var(--gold);font-weight:400}
-  .diamond{
-    width:7px;height:7px;background:var(--gold);transform:rotate(45deg);
-    margin:16px auto 0;
-  }
+  .brand{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .back{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:color .4s var(--ease)}
+  .back:hover{color:var(--ink)}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.4vw,40px);letter-spacing:-.01em;line-height:1}
+  h1 em{font-style:italic;color:var(--deep)}
+  .epig{font-family:var(--serif);font-style:italic;font-size:14.5px;color:#7D7488;max-width:340px;line-height:1.5}
+  .idx{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
 
-  main{
-    display:flex;flex-direction:column;align-items:center;
-    padding:26px 24px 44px;
+  .stage-wrap{padding:0 clamp(18px,4vw,44px) 26px}
+  .stage{
+    position:relative;height:min(76vh,720px);min-height:430px;border-radius:3px;overflow:hidden;
+    background:var(--field);box-shadow:0 1px 0 var(--line),0 18px 50px -30px rgba(78,74,107,.55);
+    cursor:crosshair;
   }
+  canvas{display:block;width:100%;height:100%}
 
-  .frame{
-    position:relative;width:min(640px,100%);
-    border:1px solid var(--gold-dim);padding:10px;background:#0b1013;
+  .etudes{position:absolute;top:14px;left:14px;right:64px;display:flex;gap:8px;flex-wrap:wrap;z-index:4;transition:opacity .5s var(--ease)}
+  .etudes button{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink);
+    background:rgba(232,224,208,.72);border:1px solid rgba(69,63,86,.28);border-radius:2px;
+    padding:7px 12px;cursor:pointer;backdrop-filter:blur(3px);
+    transition:all .45s var(--ease);display:flex;align-items:center;gap:6px;
   }
-  .frame::before{
-    content:"";position:absolute;inset:4px;border:1px solid var(--line);pointer-events:none;
-  }
-  .corner{position:absolute;width:22px;height:22px;pointer-events:none}
-  .corner::before,.corner::after{content:"";position:absolute;background:var(--gold)}
-  .corner::before{width:100%;height:1px}
-  .corner::after{width:1px;height:100%}
-  .corner.tl{left:-5px;top:-5px}.corner.tr{right:-5px;top:-5px;transform:scaleX(-1)}
-  .corner.bl{left:-5px;bottom:-5px;transform:scaleY(-1)}.corner.br{right:-5px;bottom:-5px;transform:scale(-1)}
-  .frame canvas{display:block;width:100%;height:auto;cursor:crosshair}
-  .frame .cap{
-    position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);
-    background:var(--ink-bg);padding:2px 14px;
-    font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--gold);
-    text-transform:uppercase;white-space:nowrap;
-  }
+  .etudes button:hover{background:rgba(232,224,208,.95);transform:translateY(-1px)}
+  .etudes button.on{background:var(--dusk);color:var(--wall);border-color:var(--dusk)}
+  .etudes button.on svg{stroke:var(--wall)}
+  .etudes svg{width:22px;height:11px;stroke:var(--ink);fill:none;stroke-width:1.4}
 
-  .panel{
-    width:min(760px,100%);margin-top:38px;
-    border-top:1px solid var(--gold-dim);border-bottom:1px solid var(--gold-dim);
-    position:relative;padding:22px 10px;
+  .sndbtn{
+    position:absolute;top:14px;right:14px;z-index:4;width:34px;height:34px;border-radius:2px;
+    border:1px solid rgba(69,63,86,.28);background:rgba(232,224,208,.72);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .45s var(--ease);
   }
-  .panel::before,.panel::after{
-    content:"";position:absolute;left:0;width:100%;height:0;
-  }
-  .panel::before{top:3px;border-top:1px solid var(--line)}
-  .panel::after{bottom:3px;border-top:1px solid var(--line)}
-  .panel .grid{
-    display:grid;grid-template-columns:1fr 1fr;gap:26px 40px;align-items:start;
-  }
-  @media (max-width:680px){.panel .grid{grid-template-columns:1fr}}
+  .sndbtn:hover{background:rgba(232,224,208,.95)}
+  .sndbtn svg{width:17px;height:17px;stroke:var(--ink);fill:none;stroke-width:1.5;stroke-linecap:round}
+  .sndbtn .waves{opacity:0;transition:opacity .4s}
+  .sndbtn.on .waves{opacity:1}
+  .sndbtn.on .slash{opacity:0}
+  .sndbtn .slash{transition:opacity .4s}
 
-  .grp{display:flex;flex-direction:column;gap:10px}
-  .grp .t{
-    font-family:var(--mono);font-size:9px;color:var(--dim);
-    letter-spacing:.3em;text-transform:uppercase;text-align:center;
+  .sig{
+    position:absolute;left:14px;bottom:52px;z-index:4;display:flex;align-items:center;gap:9px;
+    opacity:.68;cursor:default;user-select:none;
   }
-  .waves{display:flex;border:1px solid var(--hair)}
-  .waves button{
-    flex:1;background:transparent;border:0;padding:10px 2px 8px;cursor:pointer;
-    display:flex;flex-direction:column;align-items:center;gap:5px;
-    color:var(--dim);transition:all .2s var(--ease);
-  }
-  .waves button + button{border-left:1px solid var(--hair)}
-  .waves svg{width:34px;height:16px;stroke:currentColor;fill:none;stroke-width:1.4}
-  .waves span{font-family:var(--mono);font-size:8px;letter-spacing:.14em}
-  .waves button.on{background:var(--gold);color:#0f1417}
-  .waves button:not(.on):hover{color:var(--ivory);background:rgba(211,169,79,.08)}
+  .sig svg{width:20px;height:13px}
+  .sig span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink)}
 
-  .sliders{display:flex;flex-direction:column;gap:14px}
-  .ctl{display:flex;flex-direction:column;gap:6px}
-  .ctl .lab{
-    display:flex;justify-content:space-between;font-family:var(--mono);
-    font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ivory);
+  .note{
+    position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(8px);z-index:5;
+    font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink);
+    background:rgba(236,231,219,.92);border:1px solid var(--line);border-radius:2px;
+    padding:12px 20px;opacity:0;pointer-events:none;transition:all .8s var(--ease);
+    max-width:82%;text-align:center;
   }
-  .ctl .lab output{color:var(--gold)}
-  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
-  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--hair)}
-  input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-6px;
-    background:var(--gold);border:1px solid #0f1417;border-radius:0;
-    transform:rotate(45deg);transition:box-shadow .2s var(--ease);
-  }
-  input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 10px rgba(211,169,79,.7)}
-  input[type=range]::-moz-range-track{height:1px;background:var(--hair)}
-  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--gold);border:1px solid #0f1417;border-radius:0}
+  .note.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  .btns{display:flex;gap:12px;grid-column:1/-1;justify-content:center}
-  .btn{
-    font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;
-    padding:13px 30px;cursor:pointer;background:transparent;color:var(--ivory);
-    border:1px solid var(--gold-dim);border-radius:0;transition:all .25s var(--ease);
+  .lume{
+    position:absolute;left:0;right:0;bottom:0;z-index:4;height:40px;
+    display:flex;align-items:center;gap:12px;padding:0 16px;
+    background:linear-gradient(to top,rgba(232,224,208,.9),rgba(232,224,208,0));
+    transition:opacity .5s var(--ease);
   }
-  .btn:hover{border-color:var(--gold);color:var(--gold);box-shadow:0 0 14px rgba(211,169,79,.25)}
-  .btn:active{transform:translateY(2px)}
-  .btn.pri{background:var(--gold);border-color:var(--gold);color:#0f1417;font-weight:700}
-  .btn.pri:hover{color:#0f1417;box-shadow:0 0 20px rgba(211,169,79,.5)}
+  .lume .lab{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);white-space:nowrap}
+  .lume .track{position:relative;flex:1;height:22px;cursor:ew-resize;touch-action:none}
+  .lume .track::before{
+    content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
+    background:linear-gradient(90deg,#9AA7B8,#C9CDD6,#E8E6DF,#F4E3C2,#E8B96F,#8E7BA8,#4E4A6B);
+    border-radius:1px;opacity:.65;
+  }
+  .lume .thumb{
+    position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#F4E3C2,#D98E4A);
+    border:1.5px solid rgba(69,63,86,.5);transform:translate(-50%,-50%);
+    box-shadow:0 2px 8px rgba(69,63,86,.3);pointer-events:none;
+    transition:box-shadow .4s;
+  }
+  .lume .heure{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink);min-width:52px;text-align:right}
+  .hideme .etudes,.hideme .lume,.hideme .sig{opacity:0;pointer-events:none}
 
-  footer{
-    padding:0 24px 30px;text-align:center;
-    font-family:var(--mono);font-size:9px;color:var(--dim);
-    letter-spacing:.3em;text-transform:uppercase;
+  /* N°20 标准印章 + 参数台（补强） */
+  .seal{width:44px;height:44px;flex:none;align-self:center}
+  .seal .ring{fill:none;stroke:var(--deep);stroke-width:1.2}
+  .seal .m{fill:none;stroke:var(--deep);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .seal text{fill:var(--deep);font-family:var(--mono);font-size:6.4px;letter-spacing:1.6px}
+  .etitle{display:flex;gap:12px;align-items:center}
+  .idx b{color:var(--deep);font-weight:400}
+  .params{position:absolute;top:56px;left:14px;z-index:4;display:flex;gap:8px;flex-wrap:wrap;transition:opacity .5s var(--ease)}
+  .hideme .params{opacity:0;pointer-events:none}
+  .param{
+    display:flex;align-items:center;gap:8px;padding:6px 10px;
+    background:rgba(232,224,208,.72);border:1px solid rgba(69,63,86,.28);border-radius:2px;
+    backdrop-filter:blur(3px);
+  }
+  .param label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--ink);white-space:nowrap}
+  .param output{font-family:var(--mono);font-size:9px;color:var(--deep);min-width:26px;text-align:right}
+  .param input[type=range]{-webkit-appearance:none;appearance:none;width:74px;height:14px;background:transparent;cursor:pointer}
+  .param input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  .param input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:10px;height:10px;margin-top:-4.5px;border-radius:50%;
+    background:var(--deep);border:1px solid rgba(69,63,86,.5);
+  }
+  .param input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  .param input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:var(--deep);border:1px solid rgba(69,63,86,.5)}
+
+  footer{padding:0 clamp(18px,4vw,44px) 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer p{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  @media (max-width:640px){
+    .stage{height:66vh;min-height:400px}
+    .epig{max-width:100%}
+    .sig{bottom:56px}
   }
 </style>
-</head>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
 <body>
+
 <header>
-  <div class="mast">
-    <span class="rl"></span>
-    <h1>SIGNAL <em>BLOOM</em></h1>
-    <span class="rl"></span>
+  <div class="brand">
+    <a class="back" href="../../../index.html#work">← Archive</a>
+    <div class="etitle">
+      <svg class="seal" viewBox="0 0 58 58" aria-hidden="true">
+        <circle class="ring" cx="29" cy="29" r="27"/>
+        <circle class="ring" cx="29" cy="29" r="21.5" opacity=".45"/>
+        <path id="sealArc" fill="none" d="M29,29 m-24.2,0 a24.2,24.2 0 1,1 48.4,0 a24.2,24.2 0 1,1 -48.4,0"/>
+        <text><textPath href="#sealArc">ATELIER MIRA · ATELIER MIRA ·</textPath></text>
+        <path class="m" d="M21.5 37.5 L23.2 20.8 L29 31.5 L34.8 20.8 L36.5 37.5"/>
+      </svg>
+      <h1>Signal <em>Bloom</em></h1>
+    </div>
   </div>
-  <div class="sub">N°<b>14</b> — GEN-ART / 波形花生成器 · WAVEFORM FLORA</div>
-  <div class="diamond"></div>
+  <p class="epig">「把一段波折叠成花。黄昏前一小时，它会自己打开。」</p>
+  <span class="idx">Étude <b>N°20</b>/100 · Gen-Art</span>
 </header>
 
-<main>
-  <section class="frame">
-    <span class="corner tl"></span><span class="corner tr"></span>
-    <span class="corner bl"></span><span class="corner br"></span>
+<div class="stage-wrap">
+  <div class="stage" id="stage">
     <canvas id="cv"></canvas>
-    <span class="cap" id="cap">SINE · 8 FOLDS</span>
-  </section>
 
-  <section class="panel">
-    <div class="grid">
-      <div class="grp">
-        <div class="t">波形源 WAVE SOURCE</div>
-        <div class="waves" id="segWave">
-          <button data-w="sine" class="on">
-            <svg viewBox="0 0 34 16"><path d="M1 8 Q5.5 1 9 8 T17 8 T25 8 T33 8"/></svg>
-            <span>SINE</span>
-          </button>
-          <button data-w="square">
-            <svg viewBox="0 0 34 16"><path d="M1 12 V4 H9 V12 H17 V4 H25 V12 H33"/></svg>
-            <span>SQUARE</span>
-          </button>
-          <button data-w="saw">
-            <svg viewBox="0 0 34 16"><path d="M1 12 L9 4 V12 L17 4 V12 L25 4 V12 L33 4"/></svg>
-            <span>SAW</span>
-          </button>
-          <button data-w="tri">
-            <svg viewBox="0 0 34 16"><path d="M1 12 L5 4 L9 12 L13 4 L17 12 L21 4 L25 12 L29 4 L33 12"/></svg>
-            <span>TRI</span>
-          </button>
-          <button data-w="noise">
-            <svg viewBox="0 0 34 16"><path d="M1 9 L5 5 L8 11 L12 3 L15 10 L19 6 L22 12 L26 4 L30 9 L33 7"/></svg>
-            <span>NOISE</span>
-          </button>
-        </div>
-      </div>
-
-      <div class="grp sliders">
-        <div class="ctl">
-          <div class="lab"><span>瓣数 PETALS</span><output id="oPet">8</output></div>
-          <input type="range" id="rPet" min="3" max="24" value="8" step="1">
-        </div>
-        <div class="ctl">
-          <div class="lab"><span>振幅 AMPLITUDE</span><output id="oAmp">0.55</output></div>
-          <input type="range" id="rAmp" min="10" max="100" value="55" step="1">
-        </div>
-        <div class="ctl">
-          <div class="lab"><span>层数 LAYERS</span><output id="oLay">22</output></div>
-          <input type="range" id="rLay" min="6" max="40" value="22" step="1">
-        </div>
-      </div>
-
-      <div class="btns">
-        <button class="btn pri" id="bRegen">随机再生 ↻</button>
-        <button class="btn" id="bSave">下载 PNG</button>
-      </div>
+    <div class="etudes" id="etudes">
+      <button data-m="sine" class="on"><svg viewBox="0 0 34 16"><path d="M1 8 Q5.5 1 9 8 T17 8 T25 8 T33 8"/></svg>正弦</button>
+      <button data-m="square"><svg viewBox="0 0 34 16"><path d="M1 12 V4 H9 V12 H17 V4 H25 V12 H33"/></svg>方波</button>
+      <button data-m="saw"><svg viewBox="0 0 34 16"><path d="M1 12 L9 4 V12 L17 4 V12 L25 4 V12 L33 4"/></svg>锯齿</button>
+      <button data-m="tri"><svg viewBox="0 0 34 16"><path d="M1 12 L5 4 L9 12 L13 4 L17 12 L21 4 L25 12 L29 4 L33 12"/></svg>三角</button>
+      <button data-m="noise"><svg viewBox="0 0 34 16"><path d="M1 9 L5 5 L8 11 L12 3 L15 10 L19 6 L22 12 L26 4 L30 9 L33 7"/></svg>噪声</button>
+      <button data-m="__regen">再生 ↻</button>
+      <button data-m="__save">PNG ↓</button>
+      <button data-m="__share">链接 ⤴</button>
     </div>
-  </section>
-</main>
+
+    <div class="params" id="params">
+      <div class="param"><label>瓣 PETALS</label><input type="range" id="pPet" min="3" max="24" value="8" step="1"><output id="pPetO">8</output></div>
+      <div class="param"><label>幅 AMP</label><input type="range" id="pAmp" min="10" max="100" value="55" step="1"><output id="pAmpO">0.55</output></div>
+      <div class="param"><label>层 LAYERS</label><input type="range" id="pLay" min="6" max="40" value="22" step="1"><output id="pLayO">22</output></div>
+
+    <button class="sndbtn" id="snd" aria-label="声景开关" title="声景（默认关闭）">
+      <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="waves" d="M16.5 8.5c1.6 1.8 1.6 5.2 0 7M19 6.5c2.6 3 2.6 8 0 11"/><path class="slash" d="M17 9l5 6M22 9l-5 6"/></svg>
+    </button>
+
+    <div class="sig" id="sig">
+      <svg viewBox="0 0 64 40" fill="#453F56" aria-hidden="true">
+        <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+                 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+                 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+                 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+                 C 35 17, 33 17, 32 20 Z"/>
+      </svg>
+      <span>Atelier MIRA · N°020 · Lavande</span>
+    </div>
+
+    <div class="note" id="note">六月末，瓦朗索勒。七点整，整片田的紫色往下沉了一度，像有人把声音的振幅调大了一格。</div>
+
+    <div class="lume">
+      <span class="lab">光 · HEURE</span>
+      <div class="track" id="lume"><div class="thumb" id="thumb"></div></div>
+      <span class="heure" id="heureOut">—</span>
+    </div>
+  </div>
+</div>
 
 <footer>
-  SIGNAL BLOOM — A WAVEFORM, FOLDED INTO A FLOWER · 移动光标拨动相位
+  <p>波形折成花 · 移动光标拨动相位，点击听一声音簇</p>
+  <p id="stats">Canvas 2D · folded waveform · ——</p>
 </footer>
 
 <script>
+(function(){
 "use strict";
-/* ============ SIGNAL BLOOM — waveform folded into a flower ============ */
-const cv = document.getElementById("cv");
-const ctx = cv.getContext("2d");
-
-const GOLD = "#d3a94f", IVORY = "#f0e7d3";
-
-const state = {
-  wave: "sine",
-  petals: 8,
-  amp: 0.55,
-  layers: 22,
-  phase: 0,
-  phaseBias: 0,          // cursor-driven extra phase
-  twist: 0.35,
-  seed: Math.floor(Math.random() * 1e6),
-  noiseTable: []
+/* ---------- palette: Lavande 薰衣草（黄昏前一小时，灰调紫） ---------- */
+const PAL={
+  wall:[232,224,208], far:[217,199,224], field:[185,168,201],
+  mid:[142,123,168], deep:[107,91,133], dusk:[78,74,107]
 };
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const stage=document.getElementById('stage');
+let W=0,H=0,DPR=1;
 
-function mulberry32(a){
-  return function(){
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ---------- heure 时间系统（签名） ---------- */
+let heure=new Date().getHours()+new Date().getMinutes()/60;
+const hash=location.hash.match(/h=([\d.]+)/);if(hash)heure=parseFloat(hash[1])%24;
+const KEYS=[
+  [0,  [78,74,107],.38,[142,123,168],.06,.16],
+  [5,  [154,167,184],.26,[217,199,224],.10,.40],
+  [8,  [201,205,214],.10,[232,224,208],.06,.72],
+  [12, [232,224,208],.04,[244,240,228],.05,1.0],
+  [16, [217,199,224],.10,[244,227,194],.10,.86],
+  [18.5,[217,142,74],.18,[232,185,111],.22,.62],
+  [20.5,[107,91,133],.30,[185,168,201],.10,.32],
+  [24, [78,74,107],.38,[142,123,168],.06,.16]
+];
+function lightAt(h){
+  h=((h%24)+24)%24;
+  let i=0;while(i<KEYS.length-2&&KEYS[i+1][0]<h)i++;
+  const a=KEYS[i],b=KEYS[i+1],t=Math.min(1,Math.max(0,(h-a[0])/(b[0]-a[0]||1)));
+  const L=(x,y)=>x+(y-x)*t, mix3=(u,v)=>[L(u[0],v[0]),L(u[1],v[1]),L(u[2],v[2])];
+  return {tint:mix3(a[1],b[1]),tintA:L(a[2],b[2]),warm:mix3(a[3],b[3]),warmA:L(a[4],b[4]),light:L(a[5],b[5])};
 }
+/* 黄昏前一小时：花开因子 */
+function duskFactor(h){
+  h=((h%24)+24)%24;
+  if(h<17||h>20.5)return 0;
+  if(h<18.5)return (h-17)/1.5;
+  if(h<19.5)return 1;
+  return 1-(h-19.5);
+}
+
+/* ---------- 波形引擎（沿用原作） ---------- */
+function seedFromHash(){
+  const m=location.hash.match(/seed=([0-9a-fA-F]{1,4})/);
+  return m?parseInt(m[1],16):Math.floor(Math.random()*65536);
+}
+function seedHex(){return (state.seed%65536).toString(16).toUpperCase().padStart(4,"0")}
+function writeHash(){
+  const hh=(typeof heure==="number")?heure.toFixed(1):"12.0";
+  history.replaceState(null,"","#h="+hh+"&seed="+seedHex());
+}
+const state={
+  wave:"sine", petals:8, amp:.55, layers:22,
+  phase:0, phaseBias:0, twist:.35,
+  seed:seedFromHash(), noiseTable:[]
+};
 function buildNoise(){
-  const rng = mulberry32(state.seed);
-  state.noiseTable = [];
-  for (let i = 0; i < 64; i++) state.noiseTable.push(rng() * 2 - 1);
+  const rng=mulberry32(state.seed);
+  state.noiseTable=[];
+  for(let i=0;i<64;i++)state.noiseTable.push(rng()*2-1);
 }
 function waveFn(x){
-  const T = Math.PI * 2;
-  switch (state.wave){
-    case "sine": return Math.sin(x);
-    case "square": return Math.tanh(Math.sin(x) * 3.2);
-    case "saw": {
-      const t = ((x / T) % 1 + 1) % 1;
-      return t * 2 - 1;
-    }
-    case "tri": return (2 / Math.PI) * Math.asin(Math.sin(x));
-    case "noise": {
-      const t = ((x / T) % 1 + 1) % 1 * 64;
-      const i = Math.floor(t) % 64, f = t - Math.floor(t);
-      const a = state.noiseTable[i], b = state.noiseTable[(i + 1) % 64];
-      return a + (b - a) * f;
+  const T=Math.PI*2;
+  switch(state.wave){
+    case "sine":return Math.sin(x);
+    case "square":return Math.tanh(Math.sin(x)*3.2);
+    case "saw":{const t=((x/T)%1+1)%1;return t*2-1}
+    case "tri":return (2/Math.PI)*Math.asin(Math.sin(x));
+    case "noise":{
+      const t=((x/T)%1+1)%1*64;
+      const i=Math.floor(t)%64,f=t-Math.floor(t);
+      const a=state.noiseTable[i],b=state.noiseTable[(i+1)%64];
+      return a+(b-a)*f;
     }
   }
   return 0;
 }
 
-/* ---------- sizing ---------- */
-let dpr = 1, size = 0;
-function resize(){
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
-  size = cv.parentElement.clientWidth - 20;
-  cv.width = Math.round(size * dpr);
-  cv.height = Math.round(size * dpr);
-}
-
-/* ---------- color lerp ---------- */
-function lerpC(c0, c1, t){
-  const a = parseInt(c0.slice(1), 16), b = parseInt(c1.slice(1), 16);
-  const r = Math.round(((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * t);
-  const g = Math.round(((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * t);
-  const bl = Math.round((a & 255) + ((b & 255) - (a & 255)) * t);
-  return "rgb(" + r + "," + g + "," + bl + ")";
-}
-
-/* ---------- render ---------- */
-let burstRot = 0;
-function render(){
-  const s = size, c = s / 2;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = "#0b1013";
-  ctx.fillRect(0, 0, s, s);
-
-  ctx.save();
-  ctx.translate(c, c);
-  const R = s * 0.42;
-
-  /* sunburst backdrop, slow rotation */
-  ctx.save();
-  ctx.rotate(burstRot);
-  ctx.strokeStyle = "rgba(211,169,79,.05)";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  for (let i = 0; i < 72; i++){
-    const a = (i / 72) * Math.PI * 2;
-    ctx.moveTo(Math.cos(a) * R * 0.2, Math.sin(a) * R * 0.2);
-    ctx.lineTo(Math.cos(a) * R * 1.16, Math.sin(a) * R * 1.16);
+/* ---------- 薰衣草田背景（碎色笔触，离屏一次） ---------- */
+let bgC=null,horizon=0;
+function mix3(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}
+function jit(c,amt,r){const j=(r()-.5)*2*amt;return [c[0]+j*.9,c[1]+j,c[2]+j*1.2]}
+function buildBG(){
+  const r=mulberry32(state.seed^0x1A7);
+  bgC=document.createElement('canvas');bgC.width=W*DPR;bgC.height=H*DPR;
+  const g=bgC.getContext('2d');g.scale(DPR,DPR);
+  horizon=H*.46;
+  g.fillStyle=`rgb(${PAL.wall})`;g.fillRect(0,0,W,H);
+  g.lineCap='round';
+  /* 天空：石灰墙 → 远紫，地平线处紫意更浓 */
+  for(let i=0;i<900;i++){
+    const x=r()*W,y=r()*horizon;
+    const t=y/horizon;
+    const c=jit(mix3(mix3(PAL.wall,PAL.far,.25+t*.3),PAL.far,Math.pow(1-t,1.6)*.6),7,r);
+    g.strokeStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${(.35+r()*.3).toFixed(2)})`;
+    g.lineWidth=1.5+r()*2.5;
+    const len=6+r()*16;
+    g.beginPath();g.moveTo(x,y);g.lineTo(x+len,y+(r()-.5)*3);g.stroke();
   }
-  ctx.stroke();
-  ctx.restore();
-
-  /* deco guide rings */
-  ctx.strokeStyle = "rgba(211,169,79,.22)";
-  ctx.lineWidth = 0.8;
-  ctx.beginPath(); ctx.arc(0, 0, R * 1.08, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeStyle = "rgba(211,169,79,.12)";
-  ctx.beginPath(); ctx.arc(0, 0, R * 1.12, 0, Math.PI * 2); ctx.stroke();
-
-  /* folded waveform layers */
-  const STEPS = 720;
-  const ph = state.phase + state.phaseBias;
-  for (let li = 0; li < state.layers; li++){
-    const t = (li + 1) / state.layers;          // 0..1 inner→outer
-    const base = R * t;
-    const lw = 0.5 + t * 0.9;
-    ctx.strokeStyle = lerpC(IVORY, GOLD, t);
-    ctx.globalAlpha = 0.18 + t * 0.72;
-    ctx.lineWidth = lw;
-    ctx.beginPath();
-    for (let k = 0; k <= STEPS; k++){
-      const th = (k / STEPS) * Math.PI * 2;
-      const w = waveFn(th * state.petals + ph + t * state.twist * Math.PI * 2);
-      const r = base * (0.68 + 0.32 * state.amp * w) + base * 0.30;
-      const x = Math.cos(th) * r, y = Math.sin(th) * r;
-      if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  /* 田：一行行薰衣草，向地平线收拢（行结构要看得见） */
+  const rows=22;
+  for(let ri=0;ri<rows;ri++){
+    const t=ri/(rows-1);
+    const y=horizon+Math.pow(t,1.5)*(H-horizon)*.99;
+    const rowH=(5+Math.pow(t,1.7)*30);
+    // 行的颜色：远→近，远紫→花田；隔行加深制造垄沟节奏
+    let base=t<.5?mix3(PAL.far,PAL.field,t*2):mix3(PAL.field,PAL.mid,(t-.5)*1.5);
+    if(ri%2===1)base=mix3(base,PAL.deep,.28);
+    const n=Math.round(110+t*200);
+    for(let k=0;k<n;k++){
+      const x=r()*W;
+      const wob=Math.sin(x*.003+ri*1.7)*(3+t*10);
+      const c=jit(base,10,r);
+      g.strokeStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${(.55+r()*.35).toFixed(2)})`;
+      g.lineWidth=1.2+r()*1.6+t*1.6;
+      const len=4+r()*(5+t*9);
+      g.beginPath();
+      g.moveTo(x,y+wob+(r()-.5)*rowH*.5);
+      g.lineTo(x+len,y+wob+(r()-.5)*rowH*.5-rowH*.55);
+      g.stroke();
     }
-    ctx.closePath();
-    ctx.stroke();
+    // 行间土线（石灰墙的缝隙）
+    for(let k=0;k<90;k++){
+      const x=r()*W;
+      const wob=Math.sin(x*.003+ri*1.7)*(3+t*10);
+      const c=jit(PAL.wall,6,r);
+      g.strokeStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${(.3+r()*.25).toFixed(2)})`;
+      g.lineWidth=1+t*1.2;
+      g.beginPath();g.moveTo(x,y+wob+rowH*.75);g.lineTo(x+7+r()*12,y+wob+rowH*.75);g.stroke();
+    }
   }
-  ctx.globalAlpha = 1;
-
-  /* pistil */
-  ctx.fillStyle = GOLD;
-  ctx.beginPath(); ctx.arc(0, 0, 3.2, 0, Math.PI * 2); ctx.fill();
-  ctx.strokeStyle = "rgba(211,169,79,.6)";
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.stroke();
-
-  ctx.restore();
 }
 
-/* ---------- animation loop ---------- */
-function loop(){
-  state.phase += 0.006;
-  burstRot += 0.0009;
-  render();
-  requestAnimationFrame(loop);
+/* ---------- 纸纹 + 颗粒 ---------- */
+let paperC=null;
+function makePaper(){
+  paperC=document.createElement('canvas');paperC.width=Math.max(2,W*DPR/2);paperC.height=Math.max(2,H*DPR/2);
+  const p=paperC.getContext('2d');p.scale(DPR/2,DPR/2);
+  const r=mulberry32(79);
+  for(let i=0;i<4200;i++){
+    p.fillStyle=`rgba(${r()<.5?'69,63,86':'255,252,246'},${(.02+r()*.04).toFixed(3)})`;
+    p.fillRect(r()*W,r()*H,1+r()*1.6,1+r()*1.2);
+  }
+}
+const grainC=document.createElement('canvas');grainC.width=grainC.height=128;
+function makeGrain(){
+  const g=grainC.getContext('2d');const im=g.createImageData(128,128);
+  for(let i=0;i<im.data.length;i+=4){const v=110+Math.random()*40;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=14}
+  g.putImageData(im,0,0);
+}
+makeGrain();setInterval(makeGrain,83);
+
+/* ---------- 花开脉冲（wow：黄昏前一小时，花自己打开） ---------- */
+let bloom=0,bloomV=0,clickPulse=0,chimed=false;
+
+/* ---------- 指针 ---------- */
+let targetBias=0;
+cv.addEventListener('pointermove',e=>{
+  const r=cv.getBoundingClientRect();
+  targetBias=((e.clientX-r.left)/r.width-.5)*Math.PI;
+});
+cv.addEventListener('pointerleave',()=>{targetBias=0});
+stage.addEventListener('pointerdown',()=>{
+  clickPulse=1;
+  if(sound.on)sound.pluck();
+});
+
+/* ---------- 声景（L5，默认 OFF）：风 + 五声音簇 ---------- */
+const sound={on:false,ctx:null,master:null,
+  init(){ if(this.ctx)return;
+    const C=this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const M=this.master=C.createGain();M.gain.value=0;M.connect(C.destination);
+    const len=2*C.sampleRate,buf=C.createBuffer(1,len,C.sampleRate),d=buf.getChannelData(0);
+    let l=0;for(let i=0;i<len;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.2}
+    const src=C.createBufferSource();src.buffer=buf;src.loop=true;
+    const bp=C.createBiquadFilter();bp.type='bandpass';bp.frequency.value=480;bp.Q.value=1;
+    const wg=C.createGain();wg.gain.value=.12;src.connect(bp);bp.connect(wg);wg.connect(M);src.start();
+  },
+  note(f,t,dur,vol){
+    const C=this.ctx;
+    const o=C.createOscillator(),o2=C.createOscillator(),g=C.createGain();
+    o.frequency.value=f;o2.frequency.value=f*1.004;
+    g.gain.setValueAtTime(0,t);
+    g.gain.linearRampToValueAtTime(vol,t+.03);
+    g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g);o2.connect(g);g.connect(this.master);
+    o.start(t);o2.start(t);o.stop(t+dur+.1);o2.stop(t+dur+.1);
+  },
+  cluster(){ // 宫调五声：C D E G A
+    if(!this.ctx)return;const t=this.ctx.currentTime;
+    const scale=[523.25,587.33,659.25,783.99,880.00];
+    const n=2+Math.floor(Math.random()*2);
+    const pick=scale.slice().sort(()=>Math.random()-.5).slice(0,n);
+    pick.forEach((f,i)=>this.note(f,t+i*.14,4.5,.035));
+  },
+  pluck(){
+    if(!this.ctx)return;const t=this.ctx.currentTime;
+    const scale=[523.25,587.33,659.25,783.99,880.00];
+    this.note(scale[(Math.random()*scale.length)|0],t,3,.04);
+  },
+  toggle(){ this.on=!this.on;
+    if(this.on){this.init();this.ctx.resume();const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.setValueAtTime(0,t);
+      this.master.gain.linearRampToValueAtTime(1,t+1.5);}
+    else if(this.ctx){const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.linearRampToValueAtTime(0,t+.6);}
+    localStorage.setItem('mira-sound',this.on?'1':'0');
+    document.getElementById('snd').classList.toggle('on',this.on);
+  }
+};
+document.getElementById('snd').addEventListener('click',e=>{e.stopPropagation();sound.toggle()});
+if(localStorage.getItem('mira-sound')==='1'){
+  const arm=()=>{sound.toggle();removeEventListener('pointerdown',arm)};addEventListener('pointerdown',arm);}
+
+/* ---------- lume 时间轴 ---------- */
+const lume=document.getElementById('lume'),thumb=document.getElementById('thumb'),heureOut=document.getElementById('heureOut');
+let lumeDrag=false;
+function lumeSet(e){const r=lume.getBoundingClientRect();
+  heure=Math.min(24,Math.max(0,(e.clientX-r.left)/r.width*24));
+  history.replaceState(null,'',`#h=${heure.toFixed(1)}`);}
+lume.addEventListener('pointerdown',e=>{lumeDrag=true;lume.setPointerCapture(e.pointerId);lumeSet(e);e.stopPropagation()});
+lume.addEventListener('pointermove',e=>{if(lumeDrag)lumeSet(e)});
+lume.addEventListener('pointerup',()=>lumeDrag=false);
+
+/* ---------- études ---------- */
+document.getElementById('etudes').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const m=b.dataset.m;
+  if(m==='__regen'){regen();return}
+  if(m==='__save'){download();return}
+  state.wave=m;
+  document.querySelectorAll('.etudes button[data-m]').forEach(x=>{
+    if(!x.dataset.m.startsWith('__'))x.classList.toggle('on',x.dataset.m===m)});
+  stats();
+});
+function regen(){
+  const waves=["sine","square","saw","tri","noise"];
+  state.seed=Math.floor(Math.random()*1e6);
+  buildNoise();buildBG();
+  state.wave=waves[(Math.random()*waves.length)|0];
+  state.petals=3+((Math.random()*18)|0);
+  state.amp=.25+Math.random()*.7;
+  state.layers=14+((Math.random()*22)|0);
+  state.twist=Math.random()*.9;
+  document.querySelectorAll('.etudes button[data-m]').forEach(x=>{
+    if(!x.dataset.m.startsWith('__'))x.classList.toggle('on',x.dataset.m===state.wave)});
+  stats();
+}
+function download(){
+  const a=document.createElement('a');
+  a.download="signal-bloom-"+state.seed+".png";
+  a.href=cv.toDataURL("image/png");a.click();
+}
+function stats(){
+  document.getElementById('stats').textContent=
+    "Canvas 2D · "+state.wave.toUpperCase()+" · "+state.petals+" folds · №"+
+    (state.seed%4096).toString(16).toUpperCase().padStart(3,"0");
 }
 
-/* ---------- caption ---------- */
-function updateCap(){
-  document.getElementById("cap").textContent =
-    state.wave.toUpperCase() + " · " + state.petals + " FOLDS · №" +
-    (state.seed % 4096).toString(16).toUpperCase().padStart(3, "0");
+/* ---------- 隐藏题记（落款连点 3 次） ---------- */
+let sigClicks=0,sigTimer=null;
+document.getElementById('sig').addEventListener('click',()=>{
+  sigClicks++;clearTimeout(sigTimer);sigTimer=setTimeout(()=>sigClicks=0,900);
+  if(sigClicks>=3){sigClicks=0;const n=document.getElementById('note');
+    n.classList.add('show');setTimeout(()=>n.classList.remove('show'),5200);}
+});
+
+/* ---------- H 键收起 / R 再生 / 1-5 波形 ---------- */
+addEventListener('keydown',e=>{
+  if(e.key==='h'||e.key==='H')stage.classList.toggle('hideme');
+  if(e.key==='r'||e.key==='R')regen();
+  const waves=["sine","square","saw","tri","noise"];
+  const k=parseInt(e.key);
+  if(k>=1&&k<=5){
+    state.wave=waves[k-1];
+    document.querySelectorAll('.etudes button[data-m]').forEach(x=>{
+      if(!x.dataset.m.startsWith('__'))x.classList.toggle('on',x.dataset.m===state.wave)});
+    stats();
+  }
+});
+
+/* ---------- resize ---------- */
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  W=stage.clientWidth;H=stage.clientHeight;
+  cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  makePaper();buildBG();
 }
+addEventListener('resize',resize);
 
-/* ---------- interactions ---------- */
-const seg = document.getElementById("segWave");
-seg.addEventListener("click", (e) => {
-  const b = e.target.closest("button");
-  if (!b) return;
-  seg.querySelectorAll("button").forEach((x) => x.classList.remove("on"));
-  b.classList.add("on");
-  state.wave = b.dataset.w;
-  updateCap();
-});
+/* ---------- 主循环 ---------- */
+let t=0;
+function frame(){
+  t+=.016;
+  state.phase+=.006;
+  state.phaseBias+=(targetBias-state.phaseBias)*.06; // 阻尼（L1.1）
+  clickPulse*=.93;
 
-const rPet = document.getElementById("rPet");
-const rAmp = document.getElementById("rAmp");
-const rLay = document.getElementById("rLay");
-rPet.addEventListener("input", () => {
-  state.petals = +rPet.value;
-  document.getElementById("oPet").textContent = state.petals;
-  updateCap();
-});
-rAmp.addEventListener("input", () => {
-  state.amp = +rAmp.value / 100;
-  document.getElementById("oAmp").textContent = state.amp.toFixed(2);
-});
-rLay.addEventListener("input", () => {
-  state.layers = +rLay.value;
-  document.getElementById("oLay").textContent = state.layers;
-});
+  const L=lightAt(heure);
+  // 花开：黄昏因子 + 弹簧
+  const target=duskFactor(heure);
+  bloomV+=(target-bloom)*.03;bloomV*=.94;bloom+=bloomV;
+  if(target>.5&&!chimed){chimed=true;if(sound.on)sound.cluster()}
+  if(target<.3)chimed=false;
+  const open=bloom+clickPulse*.6;
 
-/* cursor bends the phase */
-let targetBias = 0;
-cv.addEventListener("mousemove", (e) => {
-  const r = cv.getBoundingClientRect();
-  targetBias = ((e.clientX - r.left) / r.width - 0.5) * Math.PI;
-});
-cv.addEventListener("mouseleave", () => { targetBias = 0; });
-(function biasLoop(){
-  state.phaseBias += (targetBias - state.phaseBias) * 0.06;
-  requestAnimationFrame(biasLoop);
+  ctx.drawImage(bgC,0,0,W,H);
+
+  // 花：偏左，浮在田上（点彩笔触的层叠环）
+  const cx0=W*.38, cy0=H*.56;
+  const R=Math.min(W,H)*.32*(1+open*.15);
+  const ph=state.phase+state.phaseBias;
+  // 衬底色团：先在花下铺一团深紫碎笔，亮瓣才读得出来（大气色罩）
+  for(let k=0;k<420;k++){
+    const a=Math.random()*Math.PI*2, rr=Math.pow(Math.random(),.6)*R*1.28;
+    const x=cx0+Math.cos(a)*rr, y=cy0+Math.sin(a)*rr*.92;
+    const depthK=rr/(R*1.28);
+    const base=depthK<.5?mix3(PAL.deep,PAL.mid,depthK*2):mix3(PAL.mid,PAL.field,(depthK-.5)*2);
+    const c=jit(base,9,Math.random);
+    ctx.fillStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${(.10+Math.random()*.10).toFixed(2)})`;
+    ctx.beginPath();
+    ctx.ellipse(x,y,3+Math.random()*5,1.6+Math.random()*2.6,a,0,7);
+    ctx.fill();
+  }
+  const STEPS=96;
+  for(let li=0;li<state.layers;li++){
+    const lt=(li+1)/state.layers;
+    const base=R*lt;
+    // 层色：内 石灰墙高光 → 远紫 → 中紫 → 外 深紫描边
+    const lc=lt<.3?mix3(PAL.wall,PAL.far,lt/.3)
+            :lt<.7?mix3(PAL.far,PAL.mid,(lt-.3)/.4)
+            :mix3(PAL.mid,PAL.deep,(lt-.7)/.3);
+    for(let k=0;k<STEPS;k++){
+      const th=(k/STEPS)*Math.PI*2;
+      const w=waveFn(th*state.petals+ph+lt*state.twist*Math.PI*2);
+      const r=base*(.68+.32*state.amp*w)+base*.30;
+      const x=cx0+Math.cos(th)*r, y=cy0+Math.sin(th)*r*.96;
+      const c=jit(lc,9,Math.random);
+      const a=.45+lt*.5+open*.1;
+      const sz=1.2+lt*2.6+open*.6;
+      ctx.fillStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${Math.min(.92,a).toFixed(2)})`;
+      ctx.beginPath();
+      ctx.ellipse(x,y,sz,sz*.55,th+Math.PI/2,0,7);
+      ctx.fill();
+    }
+  }
+  // 花心：暮影点彩
+  for(let k=0;k<44;k++){
+    const a=Math.random()*Math.PI*2, rr=Math.random()*R*.1;
+    const c=jit(k%3?PAL.dusk:PAL.deep,8,Math.random);
+    ctx.fillStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},.85)`;
+    ctx.beginPath();ctx.arc(cx0+Math.cos(a)*rr,cy0+Math.sin(a)*rr,1+Math.random()*1.6,0,7);ctx.fill();
+  }
+  // 花开时的逸散花粉（黄昏光点，灰调不荧光）
+  if(open>.15){
+    const n=Math.round(open*40);
+    for(let k=0;k<n;k++){
+      const a=Math.random()*Math.PI*2;
+      const rr=R*(1.02+Math.random()*.25*open);
+      const x=cx0+Math.cos(a)*rr,y=cy0+Math.sin(a)*rr*.96-Math.sin(t+k)*2;
+      ctx.fillStyle=`rgba(232,224,208,${(.3+Math.random()*.4).toFixed(2)})`;
+      ctx.beginPath();ctx.arc(x,y,.8+Math.random()*1.2,0,7);ctx.fill();
+    }
+  }
+  // 夜的星（夜不是黑，是紫的深处有光）
+  if(L.light<.35){
+    const r=mulberry32(7);
+    for(let k=0;k<50;k++){
+      const x=r()*W,y=r()*horizon*.9;
+      const tw=.3+.7*Math.abs(Math.sin(t*1.3+k));
+      ctx.fillStyle=`rgba(232,224,208,${(tw*.5*(1-L.light/.35)).toFixed(2)})`;
+      ctx.fillRect(x,y,1.2,1.2);
+    }
+  }
+
+  // 光：全局色温 + 暮光暖带
+  ctx.globalCompositeOperation='multiply';
+  ctx.fillStyle=`rgba(${L.tint[0]|0},${L.tint[1]|0},${L.tint[2]|0},${(L.tintA*.7).toFixed(3)})`;
+  ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='overlay';
+  if(L.warmA>.03){
+    const sunX=W*(heure<12?.24:.8),sunY=horizon*.8;
+    const g=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,Math.max(W,H)*.7);
+    g.addColorStop(0,`rgba(${L.warm[0]|0},${L.warm[1]|0},${L.warm[2]|0},${(L.warmA*1.5).toFixed(3)})`);
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  ctx.globalCompositeOperation='source-over';
+  const dark=(1-L.light)*.30;
+  if(dark>.02){ctx.fillStyle=`rgba(78,74,107,${dark.toFixed(3)})`;ctx.fillRect(0,0,W,H)}
+
+  // 纸纹 + 颗粒
+  ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.85;
+  ctx.drawImage(paperC,0,0,W,H);
+  ctx.globalCompositeOperation='overlay';ctx.globalAlpha=.05;
+  ctx.drawImage(grainC,0,0,W,H);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+
+  thumb.style.left=(heure/24*100)+'%';
+  const hh=Math.floor(heure),mm=Math.floor((heure-hh)*60);
+  heureOut.textContent=`H ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+
+  requestAnimationFrame(frame);
+}
+buildNoise();resize();stats();
+requestAnimationFrame(frame);
 })();
-
-document.getElementById("bRegen").addEventListener("click", () => {
-  const waves = ["sine", "square", "saw", "tri", "noise"];
-  state.seed = Math.floor(Math.random() * 1e6);
-  buildNoise();
-  state.wave = waves[Math.floor(Math.random() * waves.length)];
-  state.petals = 3 + Math.floor(Math.random() * 18);
-  state.amp = 0.25 + Math.random() * 0.7;
-  state.layers = 10 + Math.floor(Math.random() * 26);
-  state.twist = Math.random() * 0.9;
-  rPet.value = state.petals;
-  rAmp.value = Math.round(state.amp * 100);
-  rLay.value = state.layers;
-  document.getElementById("oPet").textContent = state.petals;
-  document.getElementById("oAmp").textContent = state.amp.toFixed(2);
-  document.getElementById("oLay").textContent = state.layers;
-  seg.querySelectorAll("button").forEach((x) =>
-    x.classList.toggle("on", x.dataset.w === state.wave));
-  updateCap();
-});
-document.getElementById("bSave").addEventListener("click", () => {
-  const a = document.createElement("a");
-  a.download = "signal-bloom-" + state.seed + ".png";
-  a.href = cv.toDataURL("image/png");
-  a.click();
-});
-
-window.addEventListener("resize", resize);
-buildNoise();
-resize();
-updateCap();
-loop();
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="signal-bloom" data-num="20" style="--lab-a:#d3a94f;--lab-b:#f0e7d3"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 20 · GEN-ART</small><strong>Signal Bloom</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

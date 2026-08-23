@@ -3,462 +3,753 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>INK DIFFUSION 墨滴扩散 — 水中墨的伪流体短片</title>
+<title>INK DIFFUSION 墨滴 — 四时之水 · Atelier MIRA N°028</title>
 <style>
+  /* 调色板家族：四时之水 Encre et Saisons —— 同一池水的四次研磨
+     纸 #F2EEE0 · 墨 #1E242E · 朱砂 #A83A2E · 苔绿 #7A8A6E · 黛蓝 #3E4E5E */
   :root{
-    --paper:#f6f1e6; --panel:#efe9db; --line:#ddd4c0;
-    --ink:#17130e; --dim:#8f887b;
-    --seal:#b23a2c;
-    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --paper:#F2EEE0; --paper2:#F8F4E8; --panel:#EAE4D0; --line:#CFC6AC;
+    --ink:#1E242E; --dim:#80796A;
+    --cinnabar:#A83A2E; --moss:#7A8A6E;
+    --sans:"Helvetica Neue",-apple-system,Helvetica,"PingFang SC",sans-serif;
     --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
-    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    background:var(--paper);color:var(--ink);font-family:var(--sans);
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
     -webkit-font-smoothing:antialiased;overflow-x:hidden;
-  }
-  ::selection{background:var(--seal);color:#fff}
+    transition:background 1.2s var(--ease)}
+  ::selection{background:var(--cinnabar);color:var(--paper2)}
 
-  header{
-    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;
-    padding:26px 32px 0;flex-wrap:wrap;
-  }
-  .sig{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
-  .sig h1{
-    font-family:var(--serif);font-size:clamp(20px,2.6vw,28px);font-weight:700;letter-spacing:.06em;
-  }
-  .sig h1 em{font-style:italic;color:var(--seal)}
-  .no{
-    font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink);
-    border:1px solid var(--ink);padding:5px 9px;text-transform:uppercase;white-space:nowrap;
-  }
-  .no b{color:var(--seal);font-weight:400}
-  .meta{
-    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);
-    text-transform:uppercase;display:flex;gap:18px;flex-wrap:wrap;
-  }
-  .meta b{color:var(--ink);font-weight:400}
-  .rule{margin:16px 32px 0;border-top:1px solid var(--ink);position:relative}
-  .rule::after{content:"";position:absolute;left:0;top:-1px;width:44px;height:5px;background:var(--seal)}
+  #grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90;
+    opacity:.05;image-rendering:pixelated}
 
-  main{
-    display:grid;grid-template-columns:44px 1fr 292px;gap:22px;
-    padding:22px 32px 44px;max-width:1500px;margin:0 auto;
-  }
-  @media (max-width:980px){main{grid-template-columns:1fr}.side-verse{display:none}}
+  header{display:flex;justify-content:space-between;align-items:center;gap:18px;
+    padding:20px 3vw 0;flex-wrap:wrap}
+  .sig{display:flex;align-items:center;gap:16px}
+  .seal{flex:0 0 auto}
+  .seal .ring{animation:sealspin 70s linear infinite;transform-origin:32px 32px}
+  @keyframes sealspin{to{transform:rotate(360deg)}}
+  .sig h1{font-family:var(--serif);font-size:clamp(19px,2.2vw,26px);font-weight:600;
+    letter-spacing:.03em;line-height:1.2}
+  .sig h1 em{font-style:italic;color:var(--cinnabar)}
+  .sig .no{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim);
+    text-transform:uppercase;margin-top:4px}
+  .sig .no b{color:var(--cinnabar);font-weight:400}
+  .hnote{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;line-height:2;
+    color:var(--dim);text-align:right;text-transform:uppercase}
+  .rule{margin:14px 3vw 0;border-top:1px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:1px;width:100%;border-top:1px solid var(--line)}
 
-  /* vertical verse strip */
-  .side-verse{
-    display:flex;flex-direction:column;align-items:center;gap:18px;padding-top:8px;
+  main{display:grid;grid-template-columns:44px 1fr 300px;gap:26px;max-width:1440px;
+    margin:0 auto;padding:22px 3vw 120px}
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+
+  .side-verse{display:flex;flex-direction:column;align-items:center;gap:18px;padding-top:8px;
     writing-mode:vertical-rl;font-family:var(--serif);font-size:15px;letter-spacing:.42em;
-    color:var(--dim);user-select:none;
-  }
-  .side-verse .seal-mini{
-    writing-mode:horizontal-tb;width:26px;height:26px;background:var(--seal);color:#fff;
-    display:grid;place-items:center;font-size:13px;letter-spacing:0;border-radius:2px;
-    transform:rotate(-3deg);box-shadow:1px 1px 0 rgba(23,19,14,.2);
-  }
+    color:var(--dim);user-select:none}
+  .side-verse .seal-mini{writing-mode:horizontal-tb;width:26px;height:26px;background:var(--cinnabar);
+    color:#F8F4E8;display:grid;place-items:center;font-size:13px;letter-spacing:0;border-radius:2px;
+    transform:rotate(-3deg);box-shadow:1px 1px 0 rgba(30,36,46,.2);font-family:var(--serif)}
 
-  /* ——— stage ——— */
-  .stage{
-    position:relative;background:#fbf7ee;border:1px solid var(--ink);
-    box-shadow:10px 10px 0 rgba(23,19,14,.08);overflow:hidden;aspect-ratio:4/3;min-height:320px;
-  }
+  .stage{position:relative;background:#FBF7EE;border:1px solid var(--ink);
+    box-shadow:10px 10px 0 rgba(30,36,46,.08);overflow:hidden;aspect-ratio:4/3;min-height:340px}
   .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:cell;touch-action:none}
-  .plate{
-    position:absolute;left:14px;top:12px;font-family:var(--mono);font-size:9px;
-    letter-spacing:.18em;color:rgba(23,19,14,.5);pointer-events:none;text-transform:uppercase;line-height:2;
-  }
-  .plate b{color:var(--seal);font-weight:400}
-  .hint{
-    position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:9px;
-    letter-spacing:.16em;color:rgba(23,19,14,.45);pointer-events:none;text-transform:uppercase;
-  }
+  .stamp{position:absolute;left:16px;top:14px;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.2em;color:rgba(30,36,46,.6);pointer-events:none;text-transform:uppercase;line-height:2}
+  .stamp b{color:var(--cinnabar);font-weight:400}
+  .hud2{position:absolute;right:16px;top:14px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.16em;color:rgba(30,36,46,.5);pointer-events:none;text-transform:uppercase;
+    text-align:right;line-height:1.9}
+  .hud2 b{color:var(--cinnabar);font-weight:400}
+  .hint{position:absolute;left:16px;bottom:12px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.16em;color:rgba(30,36,46,.45);pointer-events:none;text-transform:uppercase}
+  #tip{position:absolute;pointer-events:none;background:rgba(30,36,46,.92);color:#F8F4E8;
+    font-family:var(--mono);font-size:9px;letter-spacing:.12em;padding:5px 8px;border-radius:2px;
+    transform:translate(12px,14px);white-space:nowrap;display:none;z-index:5}
 
-  /* ——— panel ——— */
-  .panel{
-    border:1px solid var(--ink);background:var(--panel);
-    padding:20px;display:flex;flex-direction:column;gap:0;
-  }
-  .p-title{
-    font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;
-    padding-bottom:12px;border-bottom:1px solid var(--ink);margin-bottom:4px;
-    display:flex;justify-content:space-between;
-  }
-  .p-title i{font-style:normal;color:var(--seal)}
-  .ctl{padding:13px 0;border-bottom:1px solid var(--line)}
-  .ctl label{
-    display:flex;justify-content:space-between;align-items:baseline;
-    font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:9px;
-  }
-  .ctl label .idx{color:var(--seal);margin-right:8px}
-  .ctl label output{color:var(--dim)}
+  .dock{background:var(--panel);border:1px solid var(--ink);padding:20px;
+    display:flex;flex-direction:column;gap:0;align-self:start;position:sticky;top:20px}
+  @media (max-width:980px){.dock{position:static}}
+  .dock h2{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);
+    letter-spacing:.26em;text-transform:uppercase;padding-bottom:12px;
+    border-bottom:2px solid var(--ink);margin-bottom:4px;display:flex;justify-content:space-between}
+  .dock h2 i{font-style:normal;color:var(--cinnabar)}
+  .ctl{padding:12px 0;border-bottom:1px solid var(--line)}
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--mono);
+    font-size:10px;letter-spacing:.16em;color:var(--ink);text-transform:uppercase;margin-bottom:9px}
+  .ctl label output{color:var(--cinnabar)}
   input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
-  input[type=range]::-webkit-slider-runnable-track{
-    height:2px;background:linear-gradient(90deg,var(--ink) var(--fill,50%),var(--line) var(--fill,50%));
-  }
-  input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;width:13px;height:13px;margin-top:-5.5px;background:var(--paper);
-    border:1px solid var(--ink);border-radius:50%;transition:background .2s var(--ease);
-  }
-  input[type=range]::-webkit-slider-thumb:hover{background:var(--seal);border-color:var(--seal)}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;
+    background:linear-gradient(90deg,var(--ink) var(--fill,50%),var(--line) var(--fill,50%))}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;margin-top:-5.5px;
+    background:var(--paper2);border:1.5px solid var(--ink);border-radius:50%;transition:all .2s var(--ease)}
+  input[type=range]:hover::-webkit-slider-thumb{background:var(--cinnabar);border-color:var(--cinnabar)}
   input[type=range]::-moz-range-track{height:2px;background:var(--line)}
   input[type=range]::-moz-range-progress{height:2px;background:var(--ink)}
-  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:var(--paper);border:1px solid var(--ink)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--paper2);
+    border:1.5px solid var(--ink);border-radius:50%}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;padding:13px 0;border-bottom:1px solid var(--line)}
+  .chips .clab{width:100%;font-family:var(--mono);font-size:9px;letter-spacing:.28em;
+    color:var(--dim);text-transform:uppercase;margin-bottom:2px}
+  .chip{font-family:var(--mono);font-size:10px;letter-spacing:.12em;padding:8px 12px;
+    border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;
+    transition:all .25s var(--ease);border-radius:999px}
+  .chip:hover{border-color:var(--cinnabar);color:var(--cinnabar)}
+  .chip.on{background:var(--ink);color:var(--paper2)}
+  .chip.on:hover{background:var(--cinnabar);border-color:var(--cinnabar);color:var(--paper2)}
   .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:16px}
-  .btn{
-    border:1px solid var(--ink);background:transparent;color:var(--ink);
+  .btn{border:1px solid var(--ink);background:transparent;color:var(--ink);
     font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
-    padding:12px 6px;cursor:pointer;transition:all .22s var(--ease);
-  }
-  .btn:hover{background:var(--ink);color:var(--paper)}
-  .btn.primary{background:var(--seal);border-color:var(--seal);color:#fff}
-  .btn.primary:hover{background:#96301f}
-  .btn.wide{grid-column:1/-1}
-  .note{
-    font-family:var(--mono);font-size:9px;line-height:2;letter-spacing:.08em;color:var(--dim);
-    text-transform:uppercase;border-top:1px dashed var(--line);margin-top:16px;padding-top:13px;
-  }
-  .note b{color:var(--seal);font-weight:400}
+    padding:12px 6px;cursor:pointer;transition:all .22s var(--ease);border-radius:2px}
+  .btn:hover{background:var(--ink);color:var(--paper2)}
+  .btn.primary{background:var(--cinnabar);border-color:var(--cinnabar);color:#F8F4E8}
+  .btn.primary:hover{background:#872E24;border-color:#872E24}
+  .note{font-family:var(--mono);font-size:9px;line-height:2;letter-spacing:.08em;color:var(--dim);
+    text-transform:uppercase;border-top:1px dashed var(--line);margin-top:16px;padding-top:13px}
+  .note b{color:var(--cinnabar);font-weight:400}
 
-  footer{
-    padding:0 32px 34px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
-    font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
-  }
+  #colophon{position:fixed;left:3vw;bottom:20px;z-index:70;display:flex;align-items:center;gap:9px;
+    opacity:.92;cursor:default;user-select:none;background:rgba(248,244,232,.72);backdrop-filter:blur(4px);
+    border:1px solid rgba(30,36,46,.3);border-radius:999px;padding:6px 12px 6px 8px}
+  #colophon .ctext{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--ink);line-height:1.7}
+  #hiddenNote{position:fixed;left:3vw;bottom:64px;z-index:71;max-width:310px;font-family:var(--serif);
+    font-style:italic;font-size:15px;line-height:1.8;color:var(--ink);background:rgba(248,244,232,.94);
+    border:1px solid rgba(30,36,46,.4);padding:14px 18px;border-radius:2px;
+    opacity:0;transform:translateY(8px);transition:all .8s var(--ease);pointer-events:none}
+  #hiddenNote.show{opacity:1;transform:none}
+
   @media (max-width:640px){
-    header{padding:20px 18px 0}.rule{margin:14px 18px 0}
-    main{padding:16px 18px 30px;gap:16px}
-    .stage{aspect-ratio:3/3.8;min-height:360px}
-    footer{padding:0 18px 26px}
+    .hnote{display:none}
+    main{padding-bottom:60px}
+    #colophon{position:static;margin:0 3vw 16px;display:inline-flex}
+    .stage{aspect-ratio:3/3.8}
   }
+  @media (max-width:980px){.side-verse{display:none}}
 </style>
 </head>
 <body>
+<canvas id="grain"></canvas>
 
 <header>
   <div class="sig">
-    <span class="no">N°<b>03</b> — AI-VIDEO</span>
-    <h1>INK DIFFUSION <em>墨滴扩散</em></h1>
+    <svg class="seal" viewBox="0 0 64 64" width="46" height="46" aria-hidden="true">
+      <circle cx="32" cy="32" r="30.5" fill="none" stroke="#A83A2E" stroke-width="1.4"/>
+      <g class="ring">
+        <defs><path id="sealArc" d="M32,6.5 A25.5,25.5 0 1,1 31.98,6.5"/></defs>
+        <text font-family="SF Mono,Menlo,monospace" font-size="6.4" letter-spacing="2.2" fill="#A83A2E">
+          <textPath href="#sealArc">ATELIER MIRA · PLEIN AIR ·</textPath>
+        </text>
+      </g>
+      <path d="M21.5,42.5 C22.5,33.5 23.5,25.5 24.8,21.5 C26.8,27 29.2,33.5 32,38 C34.8,33.5 37.2,27 39.2,21.5 C40.5,25.5 41.5,33.5 42.5,42.5"
+        fill="none" stroke="#A83A2E" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>INK <em>Diffusion</em> · 墨滴</h1>
+      <div class="no">ÉTUDE <b>N°028/100</b> — 四时之水 QUATRE SAISONS</div>
+    </div>
   </div>
-  <div class="meta">
-    <span>MEDIUM <b>INK ON WATER</b></span>
-    <span>SOLVER <b>SEMI-LAGRANGIAN</b></span>
-    <span>PAPER <b>宣纸 XUAN</b></span>
-  </div>
+  <div class="hnote">墨分五色，水有四时<br>L'ENCRE A CINQ TONS</div>
 </header>
 <div class="rule"></div>
 
 <main>
   <div class="side-verse"><span class="seal-mini">墨</span>墨分五色，水走无声</div>
 
-  <section class="stage" aria-label="墨滴扩散画面">
-    <canvas id="pond"></canvas>
-    <div class="plate">REEL <b id="reelNo">INK-01</b><br><span id="dropRead">DROPS 00</span></div>
-    <div class="hint">点击滴墨 · 拖动画笔 · 水流慢慢推它</div>
+  <section>
+    <div class="stage" id="stage">
+      <canvas id="pond"></canvas>
+      <span class="stamp" id="stamp">ROULEAU <b id="reelNo">INK-01</b><br><span id="dropRead">DROPS 00</span></span>
+      <span class="hud2"><span id="etudeRead">秋 AUTOMNE</span><br><span id="inkRead">浓淡 —</span></span>
+      <span class="hint">点击滴墨 · 拖笔成风 · 按住养墨 · B 唤游鱼</span>
+      <div id="tip"></div>
+    </div>
   </section>
 
-  <aside class="panel">
-    <div class="p-title">WATER DESK <i>水案</i></div>
+  <aside class="dock">
+    <h2>水案 <i>À L'ENCRE</i></h2>
+
+    <div class="chips">
+      <span class="clab">构成 MÉDIUM</span>
+      <button class="chip on" data-mode="pond">水中墨 ÉTANG</button>
+      <button class="chip" data-mode="xuan">纸上洇 XUAN</button>
+    </div>
 
     <div class="ctl">
-      <label><span><span class="idx">01</span>水流 CURRENT</span><output id="oFlow">45%</output></label>
+      <label>水流 COURANT <output id="oFlow">45%</output></label>
       <input type="range" id="rFlow" min="0" max="100" value="45">
     </div>
     <div class="ctl">
-      <label><span><span class="idx">02</span>扩散 DIFFUSION</span><output id="oDiff">40%</output></label>
+      <label>扩散 DIFFUSION <output id="oDiff">40%</output></label>
       <input type="range" id="rDiff" min="0" max="100" value="40">
     </div>
     <div class="ctl">
-      <label><span><span class="idx">03</span>墨色 INK TONE</span><output id="oTone">70%</output></label>
+      <label>墨色 TON <output id="oTone">70%</output></label>
       <input type="range" id="rTone" min="20" max="100" value="70">
+    </div>
+    <div class="ctl">
+      <label>洇缘 FRANGE <output id="oFringe">50%</output></label>
+      <input type="range" id="rFringe" min="0" max="100" value="50">
+    </div>
+
+    <div class="chips">
+      <span class="clab">四时之水 SAISONS</span>
+      <button class="chip" data-h="0">春 PRINTEMPS</button>
+      <button class="chip" data-h="1">夏 ÉTÉ</button>
+      <button class="chip on" data-h="2">秋 AUTOMNE</button>
+      <button class="chip" data-h="3">冬 HIVER</button>
     </div>
 
     <div class="btns">
-      <button class="btn" id="bDrop">随机滴墨 ↻</button>
+      <button class="btn primary" id="bReseed">再生水纹 RESEED ↻</button>
       <button class="btn" id="bClear">换清水 CLEAR</button>
-      <button class="btn primary wide" id="bSave">下载画卷 PNG ↓</button>
+      <button class="btn" id="bPlay">暂停 PAUSE</button>
+      <button class="btn" id="bPNG">下载画卷 PNG ↓</button>
+      <button class="btn" id="bFish">唤游鱼 POISSON</button>
+      <button class="btn" id="bCopy">复制分享链接 COPIER</button>
     </div>
 
-    <div class="note">
-      一滴墨落入静水，被<b>卷曲水流</b>缓缓撕开——半拉格朗日平流 + 纸面扩散，每一帧不可复现。
-    </div>
+    <p class="note">一滴墨落进静水，被<b>卷曲水流</b>撕开；拖笔注入<b>动量</b>，快扫自成漩涡。纸上洇是毛细血管的另一番研究。<br>
+    键：<b>空格</b> 暂停 · <b>1–4</b> 四时 · <b>X</b> 水纸 · <b>B</b> 游鱼 · <b>C</b> 复制</p>
   </aside>
 </main>
 
-<footer>
-  <span>INK DIFFUSION — HYDRO STUDY</span>
-  <span>AI-VIDEO / PSEUDO-FLUID FILM · 2026</span>
-</footer>
+<div id="colophon" title="连点三次，读一句手记">
+  <svg width="22" height="14" viewBox="0 0 64 40" fill="#1E242E" aria-hidden="true">
+    <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+             C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+             C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+             C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+             C 35 17, 33 17, 32 20 Z"/>
+  </svg>
+  <span class="ctext">Atelier MIRA · N°028 · Canvas 2D · <b id="cophSeed">SEED —</b><br>Painted with code, plein air</span>
+</div>
+<div id="hiddenNote">墨不听话，水也不听话，画就是它们吵架的地方。—— M 手记</div>
 
 <script>
 (function(){
-  "use strict";
-  var stage = document.getElementById('pond');
-  var ctx = stage.getContext('2d');
-  var sim = document.createElement('canvas');      // grid-resolution ink buffer
-  var sctx = sim.getContext('2d');
-  var paper = document.createElement('canvas');    // static paper texture
-  var pctx = paper.getContext('2d');
+"use strict";
+/* ================= 工具 ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function lerp(a,b,t){return a+(b-a)*t;}
+function hexToHsl(hex){
+  var r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;
+  var mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2,h=0,s=0;
+  if(mx!==mn){var d=mx-mn;s=l>0.5?d/(2-mx-mn):d/(mx+mn);
+    if(mx===r)h=(g-b)/d+(g<b?6:0);else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h/=6;}
+  return [h*360,s,l];
+}
+function hslToHex(h,s,l){
+  h=((h%360)+360)%360/360;
+  function f(n){var k=(n+h*12)%12;var a=s*Math.min(l,1-l);
+    return l-a*Math.max(-1,Math.min(k-3,9-k,1));}
+  function c(x){return Math.round(x*255).toString(16).padStart(2,"0");}
+  return "#"+c(f(0))+c(f(8))+c(f(4));
+}
+function lerpColorHsl(c1,c2,t){
+  var a=hexToHsl(c1),b=hexToHsl(c2),dh=b[0]-a[0];
+  if(dh>180)dh-=360;if(dh<-180)dh+=360;
+  return hslToHex(a[0]+dh*t,lerp(a[1],b[1],t),lerp(a[2],b[2],t));
+}
+function rgba(hex,a){
+  var r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return "rgba("+r+","+g+","+b+","+a+")";
+}
 
-  var W=0, H=0, dpr=1, gw=0, gh=0;
-  var inkA, inkB, grain, img;
-  var fx1, fy1, fx2, fy2;                          // two curl fields, crossfaded over time
-  var P = { flow:.45, diff:.40, tone:.70 };
-  var reelNo = 1, dropCount = 0, simT = 0;
+/* ================= 家族色 ================= */
+var CINNABAR="#A83A2E";
 
-  function rnd(a,b){ return a + Math.random()*(b-a); }
-  function mulberry(seed){
-    return function(){
-      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
-      var t = Math.imul(seed ^ seed >>> 15, 1 | seed);
-      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
-    };
+/* ================= 种子 ================= */
+var seedStr=/[#&]seed=([0-9a-fA-F]+)/.exec(location.hash||"");
+var seed=seedStr?parseInt(seedStr[1],16):((Math.random()*0xFFFFFF)|0);
+function seedHex(){return ("000000"+seed.toString(16)).slice(-6);}
+
+/* ================= 四时之水（连续插值） ================= */
+var SEASONS=[
+ {name:'春 PRINTEMPS', paper:'#F0EDDA', dilute:'#8A9070', inkC:'#3A3226', flowK:1.15},
+ {name:'夏 ÉTÉ', paper:'#F6EFDC', dilute:'#A89A70', inkC:'#382A20', flowK:1.3},
+ {name:'秋 AUTOMNE', paper:'#F4EFE2', dilute:'#98968A', inkC:'#2E2A24', flowK:.9},
+ {name:'冬 HIVER', paper:'#EDEFEA', dilute:'#7E8A96', inkC:'#1E242E', flowK:.62}
+];
+var hashH=/[#&]h=([0-3])/.exec(location.hash||"");
+var look=hashH?+hashH[1]:2, lookTarget=look;
+function seasonAt(f){
+  f=clamp(f,0,3);
+  var i=Math.min(2,Math.floor(f)),t=f-i,A=SEASONS[i],B=SEASONS[i+1];
+  return {
+    name:t<.5?A.name:B.name,
+    paper:lerpColorHsl(A.paper,B.paper,t),
+    dilute:lerpColorHsl(A.dilute,B.dilute,t),
+    inkC:lerpColorHsl(A.inkC,B.inkC,t),
+    flowK:lerp(A.flowK,B.flowK,t)
+  };
+}
+
+/* ================= 状态 ================= */
+var S={mode:'pond',playing:true,flow:.45,diff:.40,tone:.70,fringe:.5};
+var W=0,H=0,dpr=1,gw=0,gh=0;
+var inkA,inkB,grainA,img,iu,iv;
+var fx1,fy1,fx2,fy2;
+var reelNo=1,dropCount=0,simT=0;
+var fish=null;
+
+/* ================= 画布 ================= */
+var stage=document.getElementById('stage'),cv=document.getElementById('pond'),
+    ctx=cv.getContext('2d'),tip=document.getElementById('tip');
+var sim=document.createElement('canvas'),sctx=sim.getContext('2d');
+var paper=document.createElement('canvas'),pctx=paper.getContext('2d');
+
+/* ================= 卷曲流场（种子，沿用） ================= */
+function makeField(sd,scale){
+  var rand=mulberry32(sd);
+  var perm=new Uint8Array(512),i,j,t;
+  for(i=0;i<256;i++)perm[i]=i;
+  for(i=255;i>0;i--){j=(rand()*(i+1))|0;t=perm[i];perm[i]=perm[j];perm[j]=t;}
+  for(i=0;i<256;i++)perm[256+i]=perm[i];
+  function val(x,y){return perm[(x+perm[y&255])&255]/255;}
+  function noise(x,y){
+    var xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+    var u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+    var a=val(xi,yi),b=val(xi+1,yi),c=val(xi,yi+1),d=val(xi+1,yi+1);
+    return (a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v)*2-1;
   }
+  var vx=new Float32Array(gw*gh),vy=new Float32Array(gw*gh);
+  for(var y=0;y<gh;y++)for(var x=0;x<gw;x++){
+    var ang=noise(x*scale,y*scale)*Math.PI*2.4;
+    var k=y*gw+x;
+    vx[k]=Math.cos(ang);vy[k]=Math.sin(ang);
+  }
+  return {x:vx,y:vy};
+}
+function buildFields(){
+  var f1=makeField(seed,.035),f2=makeField(seed^0x5f3a,.021);
+  fx1=f1.x;fy1=f1.y;fx2=f2.x;fy2=f2.y;
+}
 
-  /* value-noise based curl-ish flow field */
-  function makeField(seed, scale){
-    var rand = mulberry(seed);
-    var perm = new Uint8Array(512), i, j, t;
-    for (i=0;i<256;i++) perm[i]=i;
-    for (i=255;i>0;i--){ j=(rand()*(i+1))|0; t=perm[i]; perm[i]=perm[j]; perm[j]=t; }
-    for (i=0;i<256;i++) perm[256+i]=perm[i];
-    function val(x,y){ return perm[(x + perm[y & 255]) & 255] / 255; }
-    function noise(x,y){
-      var xi=Math.floor(x), yi=Math.floor(y), xf=x-xi, yf=y-yi;
-      var u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
-      var a=val(xi,yi), b=val(xi+1,yi), c=val(xi,yi+1), d=val(xi+1,yi+1);
-      return (a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v)*2-1;
+/* ================= 宣纸 ================= */
+function makePaper(){
+  var se=seasonAt(look);
+  pctx.setTransform(dpr,0,0,dpr,0,0);
+  pctx.fillStyle=se.paper;pctx.fillRect(0,0,W,H);
+  var R=mulberry32(seed^0x9a2c),i;
+  for(i=0;i<130;i++){
+    pctx.fillStyle=rgba(lerpColorHsl('#A89878',se.dilute,.4),.015+R()*.04);
+    pctx.beginPath();pctx.arc(R()*W,R()*H,6+R()*54,0,7);pctx.fill();
+  }
+  pctx.strokeStyle='rgba(140,126,100,.05)';
+  for(i=0;i<70;i++){
+    pctx.beginPath();
+    var x=R()*W,y=R()*H;
+    pctx.moveTo(x,y);pctx.lineTo(x+(R()-.5)*80,y+(R()-.5)*16);pctx.stroke();
+  }
+  pctx.strokeStyle='rgba(30,36,46,.16)';pctx.lineWidth=1;
+  pctx.strokeRect(8.5,8.5,W-17,H-17);
+}
+
+/* ================= 尺寸 ================= */
+function resize(){
+  var r=stage.getBoundingClientRect();
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  W=Math.max(300,r.width);H=Math.max(300,r.height);
+  cv.width=W*dpr;cv.height=H*dpr;
+  paper.width=W*dpr;paper.height=H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var oldA=inkA,oldW=gw,oldH=gh;
+  gw=176;gh=Math.max(90,Math.round(gw*H/W));
+  sim.width=gw;sim.height=gh;
+  inkA=new Float32Array(gw*gh);inkB=new Float32Array(gw*gh);
+  iu=new Float32Array(gw*gh);iv=new Float32Array(gw*gh);
+  grainA=new Float32Array(gw*gh);
+  var R=mulberry32(seed^0x77);
+  for(var i=0;i<gw*gh;i++)grainA[i]=R();
+  /* 尺寸变化时把旧墨最近邻采样进新网格——墨迹不被清空 */
+  if(oldA&&oldW>2){
+    for(var y=0;y<gh;y++)for(var x=0;x<gw;x++){
+      inkA[y*gw+x]=oldA[Math.min(oldH-1,(y*oldH/gh)|0)*oldW+Math.min(oldW-1,(x*oldW/gw)|0)];
     }
-    var vx = new Float32Array(gw*gh), vy = new Float32Array(gw*gh);
-    for (var y=0;y<gh;y++) for (var x=0;x<gw;x++){
-      var ang = noise(x*scale, y*scale) * Math.PI * 2.4;
-      var k = y*gw+x;
-      vx[k] = Math.cos(ang); vy[k] = Math.sin(ang);
-    }
-    return { x:vx, y:vy };
   }
+  img=sctx.createImageData(gw,gh);
+  buildFields();makePaper();
+}
 
-  function buildFields(){
-    var f1 = makeField((Math.random()*1e9)|0, .035);
-    var f2 = makeField((Math.random()*1e9)|0, .021);
-    fx1=f1.x; fy1=f1.y; fx2=f2.x; fy2=f2.y;
+/* ================= 滴墨（沿用：高斯核 + 卫星冠） ================= */
+function splat(cx,cy,rad,amt){
+  var x0=Math.max(0,(cx-rad*2)|0),x1=Math.min(gw-1,(cx+rad*2)|0);
+  var y0=Math.max(0,(cy-rad*2)|0),y1=Math.min(gh-1,(cy+rad*2)|0);
+  for(var y=y0;y<=y1;y++)for(var x=x0;x<=x1;x++){
+    var dx=(x-cx)/rad,dy=(y-cy)/rad,d2=dx*dx+dy*dy;
+    if(d2<4)inkA[y*gw+x]+=amt*Math.exp(-d2*1.8);
   }
-
-  function makePaper(){
-    pctx.setTransform(dpr,0,0,dpr,0,0);
-    pctx.fillStyle = '#fbf7ee'; pctx.fillRect(0,0,W,H);
-    for (var i=0;i<130;i++){
-      pctx.fillStyle = 'rgba(168,152,120,'+rnd(.015,.05)+')';
-      pctx.beginPath(); pctx.arc(rnd(0,W),rnd(0,H),rnd(6,60),0,7); pctx.fill();
-    }
-    pctx.strokeStyle = 'rgba(140,126,100,.05)';
-    for (i=0;i<70;i++){
-      pctx.beginPath();
-      var x=rnd(0,W), y=rnd(0,H);
-      pctx.moveTo(x,y); pctx.lineTo(x+rnd(-40,40), y+rnd(-8,8)); pctx.stroke();
-    }
-    // deckled border
-    pctx.strokeStyle = 'rgba(23,19,14,.16)'; pctx.lineWidth = 1;
-    pctx.strokeRect(8.5,8.5,W-17,H-17);
-  }
-
-  function resize(){
-    var r = stage.parentElement.getBoundingClientRect();
-    dpr = Math.min(window.devicePixelRatio||1, 2);
-    W = Math.max(320, r.width); H = Math.max(300, r.height);
-    stage.width = W*dpr; stage.height = H*dpr;
-    paper.width = W*dpr; paper.height = H*dpr;
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    gw = 176; gh = Math.max(90, Math.round(gw * H / W));
-    sim.width = gw; sim.height = gh;
-    inkA = new Float32Array(gw*gh);
-    inkB = new Float32Array(gw*gh);
-    grain = new Float32Array(gw*gh);
-    for (var i=0;i<gw*gh;i++) grain[i] = Math.random();
-    img = sctx.createImageData(gw,gh);
-    buildFields(); makePaper();
-  }
-
-  /* add a gaussian blob of ink (grid coords) */
-  function splat(cx, cy, rad, amt){
-    var x0=Math.max(0,(cx-rad*2)|0), x1=Math.min(gw-1,(cx+rad*2)|0);
-    var y0=Math.max(0,(cy-rad*2)|0), y1=Math.min(gh-1,(cy+rad*2)|0);
-    for (var y=y0;y<=y1;y++) for (var x=x0;x<=x1;x++){
-      var dx=(x-cx)/rad, dy=(y-cy)/rad, d2=dx*dx+dy*dy;
-      if (d2 < 4) inkA[y*gw+x] += amt * Math.exp(-d2*1.8);
+}
+function pushImpulse(cx,cy,dx,dy,rad){
+  var x0=Math.max(0,(cx-rad*2)|0),x1=Math.min(gw-1,(cx+rad*2)|0);
+  var y0=Math.max(0,(cy-rad*2)|0),y1=Math.min(gh-1,(cy+rad*2)|0);
+  for(var y=y0;y<=y1;y++)for(var x=x0;x<=x1;x++){
+    var ddx=(x-cx)/rad,ddy=(y-cy)/rad,d2=ddx*ddx+ddy*ddy;
+    if(d2<4){
+      var w=Math.exp(-d2*1.8),k=y*gw+x;
+      iu[k]=clamp(iu[k]+dx*w,-3,3);
+      iv[k]=clamp(iv[k]+dy*w,-3,3);
     }
   }
-  function dropInk(px, py, big){
-    var cx = px/W*gw, cy = py/H*gh;
-    var rad = big ? rnd(3.2,4.6) : rnd(1.4,2.2);
-    splat(cx, cy, rad, big ? rnd(2.2,3.2) : rnd(1.2,2));
-    var n = big ? 7 : 3;                             // crown satellites
-    for (var i=0;i<n;i++){
-      var a = rnd(0,6.28), d = rad*rnd(1.4,2.6);
-      splat(cx+Math.cos(a)*d, cy+Math.sin(a)*d, rad*rnd(.25,.45), rnd(.5,1.1));
-    }
-    dropCount++;
+}
+function dropInk(px,py,big,vx,vy){
+  var cx=px/W*gw,cy=py/H*gh;
+  var R=Math.random;
+  var rad=big?3.2+R()*1.4:1.4+R()*.8;
+  splat(cx,cy,rad,big?2.2+R():1.2+R()*.8);
+  var n=big?7:3;
+  for(var i=0;i<n;i++){
+    var a=R()*6.28,d=rad*(1.4+R()*1.2);
+    splat(cx+Math.cos(a)*d,cy+Math.sin(a)*d,rad*(.25+R()*.2),.5+R()*.6);
   }
+  if(vx||vy)pushImpulse(cx,cy,(vx||0)*.05,(vy||0)*.05,rad*1.6);
+  dropCount++;
+}
 
-  /* one solver step: advect → diffuse → paper absorb */
-  function step(t){
-    var mix1 = Math.cos(t*.12), mix2 = Math.sin(t*.12);
-    var flow = P.flow * .9, diff = P.diff * .34 + .02;
-    var x, y, k;
-    // semi-Lagrangian advection
-    for (y=0;y<gh;y++){
-      var row = y*gw;
-      for (x=0;x<gw;x++){
-        k = row+x;
-        var vx = (fx1[k]*mix1 + fx2[k]*mix2) * flow;
-        var vy = (fy1[k]*mix1 + fy2[k]*mix2) * flow;
-        var sx = x - vx, sy = y - vy;
-        if (sx<0) sx=0; else if (sx>gw-2.001) sx=gw-2.001;
-        if (sy<0) sy=0; else if (sy>gh-2.001) sy=gh-2.001;
-        var xi=sx|0, yi=sy|0, xf=sx-xi, yf=sy-yi;
-        var k2 = yi*gw+xi;
-        var a=inkA[k2], b=inkA[k2+1], c=inkA[k2+gw], d=inkA[k2+gw+1];
-        inkB[k] = a+(b-a)*xf+(c-a)*yf+(a-b-c+d)*xf*yf;
+/* ================= 求解 ================= */
+function step(t){
+  var se=seasonAt(look);
+  var mix1=Math.cos(t*.12),mix2=Math.sin(t*.12);
+  var flow=S.flow*.9*se.flowK,diff=S.diff*.34+.02;
+  var x,y,k;
+  if(S.mode==='pond'){
+    for(y=0;y<gh;y++){
+      var row=y*gw;
+      for(x=0;x<gw;x++){
+        k=row+x;
+        var vx=(fx1[k]*mix1+fx2[k]*mix2)*flow+iu[k];
+        var vy=(fy1[k]*mix1+fy2[k]*mix2)*flow+iv[k];
+        var sx=x-vx,sy=y-vy;
+        if(sx<0)sx=0;else if(sx>gw-2.001)sx=gw-2.001;
+        if(sy<0)sy=0;else if(sy>gh-2.001)sy=gh-2.001;
+        var xi=sx|0,yi=sy|0,xf=sx-xi,yf=sy-yi;
+        var k2=yi*gw+xi;
+        var a=inkA[k2],b=inkA[k2+1],c=inkA[k2+gw],d=inkA[k2+gw+1];
+        inkB[k]=a+(b-a)*xf+(c-a)*yf+(a-b-c+d)*xf*yf;
       }
     }
-    // diffusion + slow paper absorption at the rim
-    for (y=1;y<gh-1;y++){
-      var row2 = y*gw;
-      for (x=1;x<gw-1;x++){
-        k = row2+x;
-        var avg = (inkB[k-1]+inkB[k+1]+inkB[k-gw]+inkB[k+gw])*.25;
-        var v = inkB[k]*(1-diff) + avg*diff;
-        inkA[k] = v > .0015 ? v*.9993 : 0;
-      }
-    }
-    // borders act as the paper's edge — ink never settles there
-    for (x=0;x<gw;x++){ inkA[x]=0; inkA[(gh-1)*gw+x]=0; }
-    for (y=0;y<gh;y++){ inkA[y*gw]=0; inkA[y*gw+gw-1]=0; }
+  }else{
+    inkB.set(inkA); /* 纸上洇：无平流 */
   }
-
-  function render(t){
-    var data = img.data;
-    var tone = .6 + P.tone*1.3;
-    for (var k=0, n=gw*gh;k<n;k++){
-      var v = inkA[k];
-      var a = v <= 0 ? 0 : 1 - Math.exp(-v * tone * (0.72 + grain[k]*.55));
-      var o = k*4;
-      if (a < .012){ data[o+3] = 0; continue; }
-      // dilute wash = warm grey, concentrate = near-black sepia
-      var c = Math.min(1, a*1.5);
-      data[o]   = 118 - 92*c;
-      data[o+1] = 108 - 88*c;
-      data[o+2] =  92 - 78*c;
-      data[o+3] = Math.min(255, a*300);
+  /* 扩散（纸上洇由纸纹引导 → 枝状洇缘） */
+  for(y=1;y<gh-1;y++){
+    var row2=y*gw;
+    for(x=1;x<gw-1;x++){
+      k=row2+x;
+      var dk=S.mode==='xuan'?diff*(.25+grainA[k]*.75):diff;
+      var avg=(inkB[k-1]+inkB[k+1]+inkB[k-gw]+inkB[k+gw])*.25;
+      var v=inkB[k]*(1-dk)+avg*dk;
+      inkA[k]=v>.0015?v*.9993:0;
     }
-    sctx.putImageData(img, 0, 0);
-    ctx.clearRect(0,0,W,H);
-    ctx.drawImage(paper, 0, 0, W, H);
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(sim, 0, 0, gw, gh, 0, 0, W, H);
-    // collector's seal
-    ctx.save();
-    ctx.translate(W-34, H-34); ctx.rotate(-.04);
-    ctx.fillStyle = 'rgba(178,58,44,.92)';
-    ctx.fillRect(-13,-13,26,26);
-    ctx.fillStyle = '#fbf7ee';
-    ctx.font = '15px Georgia, "Songti SC", serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('墨', 0, 1);
-    ctx.restore();
   }
+  /* 动量场衰减与自扩散 */
+  for(y=1;y<gh-1;y++){
+    var row3=y*gw;
+    for(x=1;x<gw-1;x++){
+      k=row3+x;
+      iu[k]=(iu[k]*.9+(iu[k-1]+iu[k+1]+iu[k-gw]+iu[k+gw])*.025)*.965;
+      iv[k]=(iv[k]*.9+(iv[k-1]+iv[k+1]+iv[k-gw]+iv[k+gw])*.025)*.965;
+    }
+  }
+  for(x=0;x<gw;x++){inkA[x]=0;inkA[(gh-1)*gw+x]=0;}
+  for(y=0;y<gh;y++){inkA[y*gw]=0;inkA[y*gw+gw-1]=0;}
+}
 
-  var last = 0, acc = 0;
-  var dropRead = document.getElementById('dropRead');
-  function loop(ts){
-    var dt = Math.min(.05,(ts-last)/1000 || .016); last = ts;
-    simT += dt; acc += dt;
+/* ================= 游鱼 ================= */
+function callFish(){
+  if(fish)return;
+  var dir=Math.random()<.5?1:-1;
+  fish={t:0,dir:dir,y0:H*(.25+Math.random()*.5),amp:H*(.08+Math.random()*.12),
+        ph:Math.random()*6.28,sp:.09+Math.random()*.05};
+}
+function stepFish(dt){
+  if(!fish)return;
+  fish.t+=dt*fish.sp;
+  var tt=fish.t;
+  if(tt>1.25){fish=null;return;}
+  var x=fish.dir>0?lerp(-60,W+60,tt):lerp(W+60,-60,tt);
+  var y=fish.y0+Math.sin(tt*6.28*1.3+fish.ph)*fish.amp;
+  var vx=fish.dir*(W+120)*fish.sp,vy=Math.cos(tt*6.28*1.3+fish.ph)*fish.amp*6.28*1.3*fish.sp;
+  fish.x=x;fish.y=y;fish.vx=vx;fish.vy=vy;
+  /* 鱼尾搅水：注入动量 */
+  var gx=x/W*gw,gy=y/H*gh;
+  pushImpulse(gx,gy,vx*.012,vy*.012,3.2);
+}
+function drawFish(){
+  if(!fish||fish.x===undefined)return;
+  var x=fish.x,y=fish.y;
+  var ang=Math.atan2(fish.vy,fish.vx);
+  ctx.save();
+  ctx.translate(x,y);ctx.rotate(ang);
+  ctx.globalAlpha=.16;
+  ctx.fillStyle='#1E242E';
+  ctx.beginPath();ctx.ellipse(0,0,26,7.5,0,0,7);ctx.fill();
+  ctx.beginPath();ctx.moveTo(-22,0);ctx.lineTo(-36,-9);ctx.lineTo(-33,0);ctx.lineTo(-36,9);ctx.closePath();ctx.fill();
+  ctx.globalAlpha=.1;
+  ctx.beginPath();ctx.ellipse(4,-2,16,3.6,0,0,7);ctx.fill();
+  ctx.restore();
+  ctx.globalAlpha=1;
+}
+
+/* ================= 渲染 ================= */
+function render(){
+  var se=seasonAt(look);
+  var data=img.data;
+  var tone=.6+S.tone*1.3;
+  var dil=hexToHsl(se.dilute),inkH=hexToHsl(se.inkC);
+  for(var k=0,n=gw*gh;k<n;k++){
+    var v=inkA[k];
+    var o=k*4;
+    if(v<=0){data[o+3]=0;continue;}
+    var a=1-Math.exp(-v*tone*(.72+grainA[k]*.55));
+    /* 洇缘积墨：梯度处加深 */
+    if(S.fringe>0.01){
+      var e=Math.abs(inkA[k<(n-1)?k+1:k]-v)+Math.abs(inkA[k<(n-gw)?k+gw:k]-v);
+      a=Math.min(1,a+e*S.fringe*.9);
+    }
+    if(a<.012){data[o+3]=0;continue;}
+    var c=Math.min(1,a*1.5);
+    var hh=dil[0]+(inkH[0]-dil[0])*c,
+        ss=lerp(dil[1],inkH[1],c),
+        ll=lerp(dil[2],inkH[2],c);
+    var col=hslToHex(hh,ss,ll);
+    data[o]=parseInt(col.slice(1,3),16);
+    data[o+1]=parseInt(col.slice(3,5),16);
+    data[o+2]=parseInt(col.slice(5,7),16);
+    data[o+3]=Math.min(255,a*300);
+  }
+  sctx.putImageData(img,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.drawImage(paper,0,0,W,H);
+  ctx.imageSmoothingEnabled=true;
+  ctx.imageSmoothingQuality='high';
+  ctx.drawImage(sim,0,0,gw,gh,0,0,W,H);
+  drawFish();
+  /* 藏家印 */
+  ctx.save();
+  ctx.translate(W-34,H-34);ctx.rotate(-.04);
+  ctx.fillStyle='rgba(168,58,46,.92)';
+  ctx.fillRect(-13,-13,26,26);
+  ctx.fillStyle='#F8F4E8';
+  ctx.font='15px Georgia,"Songti SC",serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('墨',0,1);
+  ctx.restore();
+  /* 颗粒 */
+  ctx.globalAlpha=.04;ctx.globalCompositeOperation='multiply';
+  ctx.fillStyle=grainPat;ctx.fillRect(0,0,W,H);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+}
+var grainPat=(function(){
+  var t=document.createElement('canvas');t.width=t.height=140;
+  var g=t.getContext('2d'),R=mulberry32(414),i;
+  for(i=0;i<2000;i++){g.fillStyle='rgba(60,52,40,'+(.02+R()*.05)+')';g.fillRect(R()*140,R()*140,1,1);}
+  return ctx.createPattern(t,'repeat');
+})();
+
+/* ================= 指针：滴墨 / 画笔（动量） / 养墨 / 读浓淡 ================= */
+var drawing=false,moved=false,lastP=null,pressT=0,pressPos=null,pressTimer=null;
+function toLocal(e){
+  var r=cv.getBoundingClientRect();
+  return {x:e.clientX-r.left,y:e.clientY-r.top};
+}
+function gradeAt(p){
+  var gx=clamp((p.x/W*gw)|0,0,gw-1),gy=clamp((p.y/H*gh)|0,0,gh-1);
+  var v=inkA[gy*gw+gx];
+  if(v>2.2)return {n:'浓',v:v};
+  if(v>1.2)return {n:'重',v:v};
+  if(v>.5)return {n:'淡',v:v};
+  if(v>.05)return {n:'清',v:v};
+  return {n:'水',v:v};
+}
+cv.addEventListener('pointerdown',function(e){
+  cv.setPointerCapture(e.pointerId);
+  drawing=true;moved=false;lastP=toLocal(e);pressPos=lastP;
+  pressT=performance.now();
+  pressTimer=setInterval(function(){ /* 按住养墨 */
+    var held=performance.now()-pressT;
+    if(held>240&&pressPos){
+      dropInk(pressPos.x+(Math.random()-.5)*3,pressPos.y+(Math.random()-.5)*3,held>900,0,0);
+    }
+  },120);
+  poke();
+});
+cv.addEventListener('pointermove',function(e){
+  var p=toLocal(e);
+  if(!drawing){
+    var g2=gradeAt(p);
+    tip.style.display='block';tip.style.left=p.x+'px';tip.style.top=p.y+'px';
+    tip.textContent=g2.n+' · '+Math.round(Math.min(1,g2.v/3)*100)+'%';
+    return;
+  }
+  var d=Math.hypot(p.x-lastP.x,p.y-lastP.y);
+  if(d>4)moved=true;
+  if(moved&&d>3){
+    var steps=Math.ceil(d/6);
+    var vx=(p.x-lastP.x)/d*Math.min(d,40),vy=(p.y-lastP.y)/d*Math.min(d,40);
+    for(var i=1;i<=steps;i++){
+      dropInk(lastP.x+(p.x-lastP.x)*i/steps,lastP.y+(p.y-lastP.y)*i/steps,false,vx,vy);
+    }
+    lastP=p;pressPos=p;
+  }
+  poke();
+});
+function endStroke(e){
+  if(!drawing)return;
+  if(!moved&&performance.now()-pressT<240){
+    dropInk(lastP.x,lastP.y,true,0,0);
+  }
+  drawing=false;clearInterval(pressTimer);poke();
+}
+cv.addEventListener('pointerup',endStroke);
+cv.addEventListener('pointerleave',function(){tip.style.display='none';});
+
+/* ================= 控件 ================= */
+function bindRange(id,out,fmt,fn){
+  var el=document.getElementById(id),o=document.getElementById(out);
+  function apply(){
+    var v=+el.value;
+    el.style.setProperty('--fill',((v-el.min)/(el.max-el.min)*100)+'%');
+    o.textContent=fmt(v);fn(v);
+  }
+  el.addEventListener('input',function(){apply();poke();});apply();
+}
+bindRange('rFlow','oFlow',function(v){return v+'%';},function(v){S.flow=v/100;});
+bindRange('rDiff','oDiff',function(v){return v+'%';},function(v){S.diff=v/100;});
+bindRange('rTone','oTone',function(v){return v+'%';},function(v){S.tone=v/100;});
+bindRange('rFringe','oFringe',function(v){return v+'%';},function(v){S.fringe=v/100;});
+
+var modeChips=document.querySelectorAll('[data-mode]');
+function syncMode(){
+  modeChips.forEach(function(c){c.classList.toggle('on',c.dataset.mode===S.mode);});
+}
+modeChips.forEach(function(c){
+  c.addEventListener('click',function(){S.mode=c.dataset.mode;syncMode();poke();});
+});
+var seasonChips=document.querySelectorAll('[data-h]');
+seasonChips.forEach(function(c){
+  c.addEventListener('click',function(){
+    lookTarget=+c.dataset.h;
+    seasonChips.forEach(function(x){x.classList.toggle('on',x===c);});
+    writeHash();poke();
+  });
+});
+
+document.getElementById('bReseed').addEventListener('click',function(){
+  seed=(Math.random()*0xFFFFFF)|0;
+  reelNo++;
+  document.getElementById('reelNo').textContent='INK-'+String(reelNo).padStart(2,'0');
+  buildFields();makePaper();
+  inkA.fill(0);dropCount=0;
+  writeHash();syncColophon();poke();
+});
+document.getElementById('bClear').addEventListener('click',function(){
+  inkA.fill(0);iu.fill(0);iv.fill(0);dropCount=0;poke();
+});
+var bPlay=document.getElementById('bPlay');
+bPlay.addEventListener('click',function(){
+  S.playing=!S.playing;this.textContent=S.playing?'暂停 PAUSE':'继续 JOUER';poke();
+});
+document.getElementById('bPNG').addEventListener('click',function(){
+  var a=document.createElement('a');
+  a.download='ink-diffusion_N028_'+seedHex()+'.png';
+  a.href=cv.toDataURL('image/png');a.click();
+});
+document.getElementById('bFish').addEventListener('click',function(){callFish();poke();});
+document.getElementById('bCopy').addEventListener('click',function(){
+  var url=location.href.split('#')[0]+'#seed='+seedHex()+'&h='+Math.round(look);
+  var b=this,o=b.textContent;
+  function done(){b.textContent='已复制 COPIÉ';setTimeout(function(){b.textContent=o;},1400);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done,function(){prompt('复制此链接',url);});
+  }else prompt('复制此链接',url);
+});
+function writeHash(){
+  var h='#seed='+seedHex()+'&h='+Math.round(look);
+  if(history.replaceState)history.replaceState(null,'',h);else location.hash=h;
+}
+function syncColophon(){
+  document.getElementById('cophSeed').textContent='SEED '+seedHex()+' · '+SEASONS[Math.round(look)].name;
+}
+
+/* ================= 键盘 ================= */
+document.addEventListener('keydown',function(e){
+  var tag=document.activeElement&&document.activeElement.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  var k=e.key;
+  if(k===' '){e.preventDefault();bPlay.click();}
+  else if(k>='1'&&k<='4'){seasonChips[+k-1].click();}
+  else if(k==='x'||k==='X'){S.mode=S.mode==='pond'?'xuan':'pond';syncMode();}
+  else if(k==='b'||k==='B'){callFish();}
+  else if(k==='c'||k==='C'){document.getElementById('bCopy').click();}
+  poke();
+});
+
+/* ================= 彩蛋：闲置手记 ================= */
+var lastPoke=performance.now(),noteShown=false,fishTimer=0;
+function poke(){
+  lastPoke=performance.now();
+  document.getElementById('hiddenNote').classList.remove('show');noteShown=false;
+}
+document.getElementById('colophon').addEventListener('click',(function(){
+  var n=0;return function(){
+    n++;if(n>=3){document.getElementById('hiddenNote').classList.add('show');noteShown=true;n=0;}
+  };
+})());
+
+/* ================= 页面颗粒 ================= */
+(function pageGrain(){
+  var g=document.getElementById('grain'),gc=g.getContext('2d');
+  var tile=document.createElement('canvas');tile.width=tile.height=140;
+  var tg=tile.getContext('2d'),R=mulberry32(999),i;
+  for(i=0;i<2400;i++){tg.fillStyle='rgba(46,42,34,'+(.03+R()*.07)+')';tg.fillRect(R()*140,R()*140,1,1);}
+  for(i=0;i<1200;i++){tg.fillStyle='rgba(255,252,240,'+(.03+R()*.05)+')';tg.fillRect(R()*140,R()*140,1,1);}
+  function fit(){
+    g.width=Math.ceil(innerWidth/2);g.height=Math.ceil(innerHeight/2);
+    var pat=gc.createPattern(tile,'repeat');
+    gc.fillStyle=pat;gc.fillRect(0,0,g.width,g.height);
+  }
+  fit();window.addEventListener('resize',fit);
+})();
+
+/* ================= 主循环 ================= */
+var last=performance.now(),accT=0;
+var etudeRead=document.getElementById('etudeRead'),inkRead=document.getElementById('inkRead'),
+    dropRead=document.getElementById('dropRead');
+function loop(ts){
+  var dt=Math.min(.05,(ts-last)/1000||.016);last=ts;
+  look+=(lookTarget-look)*Math.min(1,dt*1.6);
+  if(S.playing){
+    simT+=dt;accT+=dt;
     step(simT);
-    if (acc > .033){ step(simT+.07); acc = 0; }     // extra step for livelier water
-    render(simT);
-    dropRead.textContent = 'DROPS ' + String(dropCount).padStart(2,'0');
-    requestAnimationFrame(loop);
+    if(accT>.033){step(simT+.07);accT=0;}
+    stepFish(dt);
+    /* 闲置 24s 且池中有墨 → 游鱼自己来了 */
+    if(!fish&&ts-lastPoke>24000&&dropCount>2)callFish();
   }
-
-  /* pointer: tap = drip, drag = brush */
-  var drawing = false, lastP = null, moved = false;
-  function toLocal(e){
-    var r = stage.getBoundingClientRect();
-    return { x:e.clientX-r.left, y:e.clientY-r.top };
+  render();
+  dropRead.textContent='DROPS '+String(dropCount).padStart(2,'0');
+  etudeRead.textContent=seasonAt(look).name+(S.mode==='xuan'?' · XUAN':' · ÉTANG');
+  if(!noteShown&&ts-lastPoke>45000){
+    document.getElementById('hiddenNote').classList.add('show');noteShown=true;
   }
-  stage.addEventListener('pointerdown', function(e){
-    stage.setPointerCapture(e.pointerId);
-    drawing = true; moved = false; lastP = toLocal(e);
-  });
-  stage.addEventListener('pointermove', function(e){
-    if (!drawing) return;
-    var p = toLocal(e);
-    var d = Math.hypot(p.x-lastP.x, p.y-lastP.y);
-    if (d > 4) moved = true;
-    if (moved && d > 3){
-      var steps = Math.ceil(d/6);
-      for (var i=1;i<=steps;i++)
-        dropInk(lastP.x+(p.x-lastP.x)*i/steps, lastP.y+(p.y-lastP.y)*i/steps, false);
-      lastP = p;
-    }
-  });
-  stage.addEventListener('pointerup', function(e){
-    if (!moved) dropInk(lastP.x, lastP.y, true);
-    drawing = false;
-  });
-
-  function bindRange(id,out,fn){
-    var el = document.getElementById(id), o = document.getElementById(out);
-    function apply(){
-      var v = +el.value;
-      el.style.setProperty('--fill', ((v-el.min)/(el.max-el.min)*100)+'%');
-      o.textContent = v + '%';
-      fn(v);
-    }
-    el.addEventListener('input', apply); apply();
-  }
-  bindRange('rFlow','oFlow',function(v){ P.flow = v/100; });
-  bindRange('rDiff','oDiff',function(v){ P.diff = v/100; });
-  bindRange('rTone','oTone',function(v){ P.tone = v/100; });
-
-  function clearWater(){
-    inkA.fill(0); inkB.fill(0); dropCount = 0;
-    reelNo++;
-    document.getElementById('reelNo').textContent = 'INK-' + String(reelNo).padStart(2,'0');
-  }
-  document.getElementById('bClear').addEventListener('click', clearWater);
-  document.getElementById('bDrop').addEventListener('click', function(){
-    buildFields();
-    var n = 4 + (Math.random()*4|0);
-    for (var i=0;i<n;i++) dropInk(rnd(W*.15,W*.85), rnd(H*.15,H*.8), Math.random()<.5);
-  });
-  document.getElementById('bSave').addEventListener('click', function(){
-    var out = document.createElement('canvas');
-    out.width = W*dpr; out.height = H*dpr;
-    var o = out.getContext('2d');
-    o.setTransform(dpr,0,0,dpr,0,0);
-    o.drawImage(stage, 0, 0, W, H);
-    o.fillStyle = 'rgba(23,19,14,.55)';
-    o.font = '10px Menlo, monospace';
-    o.fillText('INK DIFFUSION N°03 — REEL INK-' + String(reelNo).padStart(2,'0'), 14, 22);
-    var a = document.createElement('a');
-    a.download = 'ink-diffusion_' + String(reelNo).padStart(2,'0') + '.png';
-    a.href = out.toDataURL('image/png');
-    a.click();
-  });
-
-  window.addEventListener('resize', resize);
-  resize();
-  /* opening scene: three drops fall on their own */
-  dropInk(W*.32, H*.38, true);
-  dropInk(W*.62, H*.55, true);
-  dropInk(W*.48, H*.30, false);
   requestAnimationFrame(loop);
+}
+
+/* ================= boot ================= */
+resize();
+syncColophon();syncMode();writeHash();
+window.addEventListener('resize',resize);
+/* 开场即有生命：三滴旧墨 */
+(function seedInk(){
+  var R=mulberry32(seed^0x1cc3);
+  for(var i=0;i<4;i++)dropInk(W*(.28+R()*.44),H*(.28+R()*.44),i<2,0,0);
+})();
+requestAnimationFrame(loop);
 })();
 </script>
-</body>
-</html>
+</body></html>

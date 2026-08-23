@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Voxel Island — 体素浮岛 No.10</title>
+<title>Voxel Island · 体素浮岛 — Atelier MIRA N°088</title>
 <style>
   :root{
     --paper:#f7f0e1;
@@ -16,94 +16,167 @@
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{width:100%;height:100%;overflow:hidden;background:var(--paper);
             transition:background 1.2s cubic-bezier(.4,0,.2,1);}
-  body.night{background:#1d2440;}
   body{font-family:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;color:var(--ink);
        -webkit-font-smoothing:antialiased;}
-  body.night{color:#e8e4d8;}
   #stage{position:fixed;inset:0;cursor:grab;}
   #stage.dragging{cursor:grabbing;}
   #stage canvas{display:block;}
+  #grainLay{position:fixed;inset:0;z-index:6;pointer-events:none;mix-blend-mode:multiply;opacity:.09;
+       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E");}
 
   .plate{position:fixed;top:26px;left:28px;z-index:10;pointer-events:none;}
-  .plate .no{font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.3em;color:var(--orange);}
+  .sealrow{display:flex;align-items:center;gap:12px;}
+  .seal{width:44px;height:44px;flex:none;}
+  .plate .no{font-family:"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.3em;color:var(--orange);line-height:1.9;}
+  .plate .no span{color:var(--dim);}
   .plate h1{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;font-size:30px;font-weight:700;
-            letter-spacing:.04em;margin-top:6px;line-height:1;}
+            letter-spacing:.04em;margin-top:8px;line-height:1;}
   .plate .sub{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;font-style:italic;
               font-size:13px;color:var(--dim);margin-top:6px;letter-spacing:.1em;}
-  body.night .plate .sub{color:#9aa3c0;}
   .plate .stamp{display:inline-block;margin-top:10px;padding:4px 9px;border:2px solid var(--orange);
                 color:var(--orange);font-size:9px;letter-spacing:.34em;transform:rotate(-2deg);}
 
   .caption{position:fixed;right:26px;top:28px;z-index:10;text-align:right;pointer-events:none;
            font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.2em;
            color:var(--dim);line-height:2;}
-  body.night .caption{color:#9aa3c0;}
   .caption b{color:var(--green);font-weight:600;}
-  body.night .caption b{color:#7fb7ff;}
+  .caption .blk{color:var(--orange);}
 
   /* ---------- controls ---------- */
   .controls{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:10;
-            display:flex;gap:14px;align-items:stretch;max-width:calc(100vw - 28px);flex-wrap:wrap;justify-content:center;}
+            display:flex;gap:12px;align-items:stretch;max-width:calc(100vw - 28px);flex-wrap:wrap;justify-content:center;}
   .card{background:var(--paper);border:2px solid var(--ink);
         box-shadow:4px 4px 0 var(--blue);
-        padding:11px 16px;display:flex;flex-direction:column;justify-content:center;gap:5px;
+        padding:10px 14px;display:flex;flex-direction:column;justify-content:center;gap:6px;
         transition:box-shadow .3s,background 1.2s;}
-  body.night .card{background:#252d4d;border-color:#e8e4d8;box-shadow:4px 4px 0 #11162b;}
-  .card .k{font-family:"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.28em;color:var(--dim);}
-  body.night .card .k{color:#9aa3c0;}
-  .card .v{font-family:"SF Mono",Menlo,monospace;font-size:13px;letter-spacing:.1em;color:var(--green);}
-  body.night .card .v{color:#7fb7ff;}
+  .card .k{font-family:"SF Mono",Menlo,monospace;font-size:8.5px;letter-spacing:.26em;color:var(--dim);
+           display:flex;justify-content:space-between;gap:12px;white-space:nowrap;}
+  .card .k b{color:var(--green);font-weight:600;font-variant-numeric:tabular-nums;}
+  .card .v{font-family:"SF Mono",Menlo,monospace;font-size:12px;letter-spacing:.1em;color:var(--green);}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:2px;background:var(--ink);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;background:var(--paper);border:2.5px solid var(--ink);border-radius:0;cursor:ew-resize;}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--orange);border-color:var(--orange);}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--paper);border:2.5px solid var(--ink);border-radius:0;cursor:ew-resize;}
+  .seg{display:flex;}
+  .seg button{appearance:none;background:var(--paper);border:2px solid var(--ink);border-left:none;color:var(--ink);
+       font-family:inherit;font-weight:700;font-size:10px;letter-spacing:.14em;padding:6px 9px;cursor:pointer;
+       transition:all .15s;}
+  .seg button:first-child{border-left:2px solid var(--ink);}
+  .seg button:hover{background:var(--orange);border-color:var(--orange);color:var(--paper);}
+  .seg button.on{background:var(--ink);color:var(--paper);}
   .btn{appearance:none;background:var(--paper);border:2px solid var(--ink);color:var(--ink);
-       font-family:inherit;font-weight:700;font-size:11px;letter-spacing:.22em;
-       padding:12px 20px;cursor:pointer;box-shadow:4px 4px 0 var(--ink);
+       font-family:inherit;font-weight:700;font-size:10px;letter-spacing:.2em;
+       padding:10px 14px;cursor:pointer;box-shadow:4px 4px 0 var(--ink);
        transition:transform .12s cubic-bezier(.2,.7,.3,1),box-shadow .12s,background .2s,color .2s;}
   .btn:hover{background:var(--orange);border-color:var(--orange);color:var(--paper);box-shadow:4px 4px 0 var(--blue);}
   .btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink);}
   .btn.alt:hover{background:var(--blue);border-color:var(--blue);}
-  body.night .btn{background:#252d4d;color:#e8e4d8;border-color:#e8e4d8;box-shadow:4px 4px 0 #11162b;}
+  .btnrow{display:flex;gap:8px;flex-wrap:wrap;}
+  .colophon{position:fixed;left:28px;bottom:26px;z-index:9;font-family:"SF Mono",Menlo,monospace;
+            font-size:8.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;pointer-events:none;}
+  .colophon b{color:var(--orange);font-weight:400;}
+  .hintline{position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:8;
+            font-family:"SF Mono",Menlo,monospace;font-size:8.5px;letter-spacing:.2em;color:var(--dim);
+            pointer-events:none;text-transform:uppercase;}
+  body.t-nuit{background:#1d2440;}
+  body.t-nuit .plate h1{color:#e8e4d8;}
+  body.t-nuit .plate .sub{color:#9aa3c0;}
+  body.t-nuit .caption{color:#9aa3c0;}
+  body.t-nuit .caption b{color:#7fb7ff;}
+  body.t-nuit .colophon{color:#9aa3c0;}
+  body.t-nuit .hintline{color:#7c86a8;}
+  body.t-nuit #grainLay{mix-blend-mode:overlay;opacity:.12;}
 
   @media (max-width:680px){
     .caption{display:none;}
+    .colophon{display:none;}
     .plate{top:16px;left:18px;}
     .plate h1{font-size:22px;}
-    .controls{bottom:14px;gap:10px;}
-    .btn{padding:10px 14px;font-size:10px;}
-    .card{padding:9px 12px;}
+    .controls{bottom:14px;gap:8px;}
+    .btn{padding:9px 11px;font-size:9px;}
+    .card{padding:8px 10px;}
+    input[type=range]{width:88px;}
   }
 </style>
 </head>
 <body>
 <div id="stage"></div>
+<div id="grainLay"></div>
 
 <header class="plate">
-  <div class="no">No.10 / ARCHIPELAGO SERIES</div>
+  <div class="sealrow">
+    <svg class="seal" viewBox="0 0 46 46" aria-hidden="true">
+      <circle cx="23" cy="23" r="21.5" fill="none" stroke="#e8603c" stroke-width="1.1"/>
+      <defs><path id="miring88" d="M23 5.5 a17.5 17.5 0 1 1 -0.01 0"/></defs>
+      <text font-family="SF Mono,Menlo,monospace" font-size="4.6" letter-spacing="1.6" fill="#e8603c">
+        <textPath href="#miring88" startOffset="2">ATELIER MIRA · ATELIER MIRA ·</textPath>
+      </text>
+      <path d="M14.5 31 C13.8 24.5 14.2 18 15.2 12.5 C17.2 18.5 20 24.5 22.6 29.5 C25.2 23.5 28 17.5 30 12.5 C30.8 18.5 31.2 25 30.6 31"
+            fill="none" stroke="#e8603c" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="no">ÉTUDE N°88 / 100<br><span>3D WORLDS · PLEIN AIR</span></div>
+  </div>
   <h1>Voxel Island</h1>
-  <div class="sub">体素浮岛 · 一座漂在云上的一方块世界</div>
+  <div class="sub">体素浮岛 · 一座漂在云上的方块世界</div>
   <div class="stamp">PROCEDURAL</div>
 </header>
 
 <div class="caption">
-  ISLAND ID <b id="capSeed">—</b><br>
+  ISLAND <b id="capSeed">—</b><br>
   BLOCKS <b id="capBlocks">—</b><br>
-  CYCLE <b id="capCycle">DAY</b>
+  <span id="capBlock" class="blk">HOVER A BLOCK —</span><br>
+  <span id="capMode">环游 ORBIT · 晴 CLEAR</span>
 </div>
 
 <div class="controls">
   <div class="card">
-    <span class="k">ISLAND ID / 编号</span>
-    <span class="v" id="seedVal">#0000</span>
+    <span class="k">山高 PEAKS <b id="peakVal">1.0×</b></span>
+    <input type="range" id="peaks" min="50" max="170" value="100">
   </div>
-  <button class="btn" id="regen">REGENERATE / 再生</button>
-  <button class="btn alt" id="cycle">NIGHTFALL / 入夜</button>
-  <button class="btn" id="save">SAVE PNG / 存图</button>
+  <div class="card">
+    <span class="k">云层 CLOUDS <b id="cloudVal">1.0×</b></span>
+    <input type="range" id="cloudAmt" min="0" max="200" value="100">
+  </div>
+  <div class="card">
+    <span class="k">风 WIND <b id="windVal">1.0 M/S</b></span>
+    <input type="range" id="windAmt" min="0" max="40" value="10">
+  </div>
+  <div class="card">
+    <span class="k">时刻 HEURE</span>
+    <div class="seg" id="timeSeg">
+      <button data-t="matin">晨</button><button data-t="midi" class="on">午</button><button data-t="soir">昏</button><button data-t="nuit">夜</button>
+    </div>
+  </div>
+  <div class="card">
+    <span class="k">天气 CIEL</span>
+    <div class="seg" id="wxSeg">
+      <button data-w="clear" class="on">晴</button><button data-w="fog">雾</button><button data-w="rain">雨</button><button data-w="snow">雪</button>
+    </div>
+  </div>
+  <div class="card">
+    <span class="k">视角 VUE</span>
+    <div class="seg" id="modeSeg">
+      <button data-m="orbit" class="on">环游</button><button data-m="drift">贴水</button><button data-m="survey">测绘</button>
+    </div>
+  </div>
+  <div class="card">
+    <span class="k">ISLAND <b id="seedVal">#0000</b></span>
+    <div class="btnrow">
+      <button class="btn" id="regen">再生 ↻</button>
+      <button class="btn alt" id="share">分享</button>
+      <button class="btn" id="save">存图</button>
+    </div>
+  </div>
 </div>
+<div class="colophon">WebGL · THREE r128 · seed <b id="coloSeed">#0000</b> · Painted with code, plein air</div>
+<div class="hintline">点击方块开采 · 拖拽环游 · 滚轮推拉 · 1-4 时刻 · Z X C V 天气</div>
 
 <script src="../../../vendor/three.min.js"></script>
 <script>
 (function(){
   "use strict";
 
-  /* ================= seeded rng + 2D value noise ================= */
+  /* ================= seeded rng + noise ================= */
   function mulberry32(a){
     return function(){
       a|=0;a=(a+0x6D2B79F5)|0;
@@ -112,6 +185,13 @@
       return ((t^(t>>>14))>>>0)/4294967296;
     };
   }
+  var SEED=parseInt((location.hash.match(/seed=([0-9a-f]{1,6})/i)||[])[1],16);
+  if(!SEED||SEED<0)SEED=(Math.random()*0xffff)|0;
+  SEED=SEED&0xffffff;
+  var HASH_T=(location.hash.match(/t=(matin|midi|soir|nuit)/)||[])[1];
+  var HASH_W=(location.hash.match(/w=(clear|fog|rain|snow)/)||[])[1];
+  function fmt(s){return "#"+("000000"+s.toString(16).toUpperCase()).slice(-6);}
+  function setHash(){try{history.replaceState(null,"","#seed="+SEED.toString(16)+"&t="+timeName+"&w="+wxName);}catch(e){}}
   function makeNoise2(seed){
     var rand=mulberry32(seed);
     var vals=new Float32Array(256),perm=new Uint8Array(512),i,j,t;
@@ -142,11 +222,10 @@
   stage.appendChild(renderer.domElement);
 
   var scene=new THREE.Scene();
-  var SKY_DAY=new THREE.Color(0xf7f0e1), SKY_NIGHT=new THREE.Color(0x1d2440);
-  scene.background=SKY_DAY.clone();
-  scene.fog=new THREE.Fog(scene.background.clone(),10,26);
+  scene.background=new THREE.Color(0xf7f0e1);
+  scene.fog=new THREE.Fog(0xf7f0e1,10,26);
 
-  var camera=new THREE.PerspectiveCamera(40,1,0.1,100);
+  var camera=new THREE.PerspectiveCamera(40,1,0.1,120);
   var azim=0.7,elev=0.42,radius=9.2;
   var lookAt=new THREE.Vector3(0,0.15,0);
   function placeCamera(){
@@ -156,15 +235,13 @@
       lookAt.z+radius*Math.cos(elev)*Math.cos(azim));
     camera.lookAt(lookAt);
   }
-  placeCamera();
 
   var sun=new THREE.DirectionalLight(0xfff2d8,1.15);
-  sun.position.set(5,8,3);
-  scene.add(sun);
-  var amb=new THREE.HemisphereLight(0xfff6e6,0x8a97a8,0.85);
-  scene.add(amb);
+  sun.position.set(5,8,3);scene.add(sun);
+  var amb=new THREE.HemisphereLight(0xfff6e6,0x8a97a8,0.85);scene.add(amb);
+  var lanternLight=new THREE.PointLight(0xffa04a,0,6,2);lanternLight.position.set(0,1.2,0);scene.add(lanternLight);
 
-  /* stars (night) */
+  /* stars + moon */
   var starMat;
   (function(){
     var n=500,pos=new Float32Array(n*3),rand=mulberry32(77);
@@ -179,42 +256,40 @@
     starMat=new THREE.PointsMaterial({size:0.08,color:0xfdf6d8,transparent:true,opacity:0});
     scene.add(new THREE.Points(g,starMat));
   })();
-  /* moon */
   var moon=(function(){
     var c=document.createElement("canvas");c.width=c.height=128;
     var x=c.getContext("2d");
     var g=x.createRadialGradient(64,64,10,64,64,60);
-    g.addColorStop(0,"rgba(253,246,216,1)");
-    g.addColorStop(0.55,"rgba(253,246,216,0.95)");
-    g.addColorStop(1,"rgba(253,246,216,0)");
+    g.addColorStop(0,"rgba(253,246,216,1)");g.addColorStop(0.55,"rgba(253,246,216,0.95)");g.addColorStop(1,"rgba(253,246,216,0)");
     x.fillStyle=g;x.beginPath();x.arc(64,64,60,0,7);x.fill();
     var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,opacity:0}));
     sp.scale.set(3,3,1);sp.position.set(-9,8,-12);
     scene.add(sp);return sp;
   })();
 
-  /* ================= island ================= */
+  /* ================= island build ================= */
   var VOX=0.34,R=8;
   var islandGroup=null,instanceMesh=null;
   var waterfallSrc=new THREE.Vector3(1.8,0.6,0);
-  var blockCount=0;
+  var blockCount=0,peakScale=1;
+  var instBase=[],instPos=[],instTop=[],instType=[],removed={};
+  var lanterns=[];
 
   var GRASS=[0x3e7c4f,0x4a8a55,0x35704a];
   var DIRT=[0x7a5238,0x6e4a32];
   var STONE=[0x8d8a80,0x7c7970,0x98958a];
-  var SNOW=[0xf2f0e8];
+  var SNOW=0xf2f0e8;
   var TRUNK=0x5f4230;
   var LEAF=[0x2f6640,0x3e7c4f,0x4a8a55];
   var WATER=0x4d7f9e;
   var SAND=0xd9c88f;
+  var LANTERN=0xffb54a;
 
   function buildIsland(seed){
     var rand=mulberry32(seed);
     var fbm=makeNoise2(seed^0x51ab);
-    var maxH=3.2+rand()*2.2;
-    var vox=[]; /* {x,y,z,c} */
-    var tops=[];
-    var gx,gz,y;
+    var maxH=(3.2+rand()*2.2)*peakScale;
+    var vox=[],tops=[],gx,gz,y;
 
     for(gx=-R;gx<=R;gx++)for(gz=-R;gz<=R;gz++){
       var d=Math.sqrt(gx*gx+gz*gz)/R;
@@ -224,42 +299,45 @@
       h*=edge*1.15;
       var height=1+Math.floor(h*maxH);
       for(y=0;y<height;y++){
-        var c;
+        var c,type;
         if(y===height-1){
           var high=height>maxH*0.78;
           var moist=fbm(gx*0.5,gz*0.5+31,3);
-          c=high?SNOW[0]:(d>0.86?SAND:GRASS[Math.floor(moist*3)%3]);
-        }else if(y>=height-3)c=DIRT[(gx+gz+y)&1];
-        else c=STONE[(gx*3+gz+y)%3];
-        vox.push({x:gx,y:y,z:gz,c:c});
+          if(high){c=SNOW;type="SNOW";}
+          else if(d>0.86){c=SAND;type="SAND";}
+          else{c=GRASS[Math.floor(moist*3)%3];type="GRASS";}
+        }else if(y>=height-3){c=DIRT[(gx+gz+y)&1];type="DIRT";}
+        else{c=STONE[(gx*3+gz+y)%3];type="STONE";}
+        vox.push({x:gx,y:y,z:gz,c:c,type:type,top:y===height-1});
       }
       tops.push({x:gx,z:gz,top:height-1,d:d,c:vox[vox.length-1].c});
-      /* underside taper: dense core, jagged hanging rock */
       var depth=Math.floor((1-d)*8+rand()*1.2);
       for(y=1;y<=depth;y++){
         var keepP=1-Math.pow(y/(depth+1),1.6)*0.92;
-        if(rand()<keepP){
-          vox.push({x:gx,y:-y,z:gz,c:STONE[Math.floor(rand()*3)]});
+        if(rand()<keepP)vox.push({x:gx,y:-y,z:gz,c:STONE[Math.floor(rand()*3)],type:"STONE",top:false});
+      }
+    }
+
+    /* trees */
+    for(var i=0;i<tops.length;i++){
+      var t=tops[i];
+      if(t.d<0.72&&t.c!==SNOW&&t.c!==SAND&&rand()<0.07){
+        var lc=LEAF[Math.floor(rand()*3)];
+        vox.push({x:t.x,y:t.top+1,z:t.z,c:TRUNK,type:"TRUNK",top:false});
+        vox.push({x:t.x,y:t.top+2,z:t.z,c:lc,type:"LEAF",top:false});
+        vox.push({x:t.x+1,y:t.top+2,z:t.z,c:lc,type:"LEAF",top:false});
+        vox.push({x:t.x-1,y:t.top+2,z:t.z,c:lc,type:"LEAF",top:false});
+        vox.push({x:t.x,y:t.top+2,z:t.z+1,c:lc,type:"LEAF",top:false});
+        vox.push({x:t.x,y:t.top+2,z:t.z-1,c:lc,type:"LEAF",top:false});
+        if(rand()<0.6)vox.push({x:t.x,y:t.top+3,z:t.z,c:LEAF[Math.floor(rand()*3)],type:"LEAF",top:false});
+        /* 灯笼挂在树下（夜里发光） */
+        if(rand()<0.5){
+          vox.push({x:t.x+1,y:t.top+1,z:t.z,c:LANTERN,type:"LANTERN",top:false});
         }
       }
     }
 
-    /* trees on grassy tops */
-    for(var i=0;i<tops.length;i++){
-      var t=tops[i];
-      if(t.d<0.72&&t.c!==SNOW[0]&&t.c!==SAND&&rand()<0.07){
-        var lc=LEAF[Math.floor(rand()*3)];
-        vox.push({x:t.x,y:t.top+1,z:t.z,c:TRUNK});
-        vox.push({x:t.x,y:t.top+2,z:t.z,c:lc});
-        vox.push({x:t.x+1,y:t.top+2,z:t.z,c:lc});
-        vox.push({x:t.x-1,y:t.top+2,z:t.z,c:lc});
-        vox.push({x:t.x,y:t.top+2,z:t.z+1,c:lc});
-        vox.push({x:t.x,y:t.top+2,z:t.z-1,c:lc});
-        if(rand()<0.6)vox.push({x:t.x,y:t.top+3,z:t.z,c:LEAF[Math.floor(rand()*3)]});
-      }
-    }
-
-    /* waterfall: carve a channel at a random edge, mark water blocks */
+    /* waterfall */
     var wAng=rand()*Math.PI*2;
     var wx=Math.round(Math.cos(wAng)*(R-2)),wz=Math.round(Math.sin(wAng)*(R-2));
     var best=null,bd=1e9;
@@ -268,35 +346,65 @@
       if(dd<bd){bd=dd;best=tops[k];}
     }
     if(best){
-      best.c=WATER;
       for(var m=0;m<vox.length;m++){
-        if(vox[m].x===best.x&&vox[m].z===best.z&&vox[m].y===best.top)vox[m].c=WATER;
+        if(vox[m].x===best.x&&vox[m].z===best.z&&vox[m].y===best.top){vox[m].c=WATER;vox[m].type="WATER";}
       }
       var out=new THREE.Vector3(best.x,0,best.z).normalize();
       waterfallSrc.set((best.x+out.x*0.55)*VOX,(best.top+0.5)*VOX,(best.z+out.z*0.55)*VOX);
       waterfallSrc.userData={dir:out,y0:(best.top+0.5)*VOX};
     }
 
-    /* build instanced mesh */
+    /* instanced mesh */
     if(islandGroup){scene.remove(islandGroup);
-      islandGroup.traverse(function(o){if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}
+      islandGroup.traverse(function(o){if(o.geometry)o.geometry.dispose();if(o.material&&o.material.dispose)o.material.dispose();});}
     islandGroup=new THREE.Group();
     var geo=new THREE.BoxGeometry(VOX*0.96,VOX*0.96,VOX*0.96);
-    var mat=new THREE.MeshLambertMaterial({color:0xffffff});
+    var mat=new THREE.MeshLambertMaterial({color:0xffffff,emissive:0x000000});
     instanceMesh=new THREE.InstancedMesh(geo,mat,vox.length);
     var M=new THREE.Matrix4(),C=new THREE.Color();
+    instBase=[];instPos=[];instTop=[];instType=[];removed={};lanterns=[];
     for(var q=0;q<vox.length;q++){
       M.makeTranslation(vox[q].x*VOX,vox[q].y*VOX,vox[q].z*VOX);
       instanceMesh.setMatrixAt(q,M);
       C.setHex(vox[q].c);
       instanceMesh.setColorAt(q,C);
+      instBase.push(vox[q].c);
+      instPos.push([vox[q].x,vox[q].y,vox[q].z]);
+      instTop.push(vox[q].top);
+      instType.push(vox[q].type);
+      if(vox[q].type==="LANTERN")lanterns.push(q);
     }
     instanceMesh.instanceMatrix.needsUpdate=true;
     if(instanceMesh.instanceColor)instanceMesh.instanceColor.needsUpdate=true;
     islandGroup.add(instanceMesh);
     scene.add(islandGroup);
     blockCount=vox.length;
-    document.getElementById("capBlocks").textContent=blockCount;
+    snowApplied=-1;
+    updateBlockCount();
+  }
+  function updateBlockCount(){
+    document.getElementById("capBlocks").textContent=(blockCount-Object.keys(removed).length);
+  }
+
+  /* snow recolor (tops whiten as snowT rises) */
+  var snowT=0,snowApplied=-1;
+  var _c1=new THREE.Color(),_c2=new THREE.Color();
+  function applySnow(){
+    if(!instanceMesh||Math.abs(snowT-snowApplied)<0.02)return;
+    snowApplied=snowT;
+    for(var i=0;i<instBase.length;i++){
+      if(removed[i])continue;
+      _c1.setHex(instBase[i]);
+      if(instTop[i]||instType[i]==="LEAF"){
+        _c2.setHex(0xf4f6f2);
+        _c1.lerp(_c2,snowT*0.9);
+      }else if(instType[i]==="WATER"){
+        _c2.setHex(0xbfd8e0);
+        _c1.lerp(_c2,snowT*0.5);
+      }
+      instanceMesh.setColorAt(i,_c1);
+    }
+    instanceMesh.instanceColor.needsUpdate=true;
   }
 
   /* ================= waterfall particles ================= */
@@ -309,7 +417,6 @@
   scene.add(wf);
   var wfVel=new Float32Array(WF_N*3),wfLife=new Float32Array(WF_N);
   var wfRand=mulberry32(999);
-
   function wfSpawn(i){
     var d=waterfallSrc.userData&&waterfallSrc.userData.dir?waterfallSrc.userData.dir:{x:1,z:0};
     wfPos[i*3]=waterfallSrc.x+(wfRand()-0.5)*0.14;
@@ -322,25 +429,53 @@
   }
   for(var wi=0;wi<WF_N;wi++){wfSpawn(wi);wfLife[wi]*=wfRand();}
 
-  /* mist sprite at waterfall base */
   var mist=(function(){
     var c=document.createElement("canvas");c.width=c.height=128;
     var x=c.getContext("2d");
     var g=x.createRadialGradient(64,64,4,64,64,60);
-    g.addColorStop(0,"rgba(230,242,246,0.8)");
-    g.addColorStop(1,"rgba(230,242,246,0)");
+    g.addColorStop(0,"rgba(230,242,246,0.8)");g.addColorStop(1,"rgba(230,242,246,0)");
     x.fillStyle=g;x.fillRect(0,0,128,128);
     var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,opacity:0.55,depthWrite:false}));
     sp.scale.set(1.6,1.1,1);
     scene.add(sp);return sp;
   })();
 
-  /* ================= voxel clouds ================= */
+  /* ================= debris (mining) ================= */
+  var DEB=90,debGeo=new THREE.BufferGeometry();
+  var debPos=new Float32Array(DEB*3),debVel=new Float32Array(DEB*3),debLife=new Float32Array(DEB);
+  debGeo.setAttribute("position",new THREE.BufferAttribute(debPos,3));
+  var debMat=new THREE.PointsMaterial({size:0.09,color:0x8d8a80,transparent:true,opacity:0.95,depthWrite:false});
+  var deb=new THREE.Points(debGeo,debMat);scene.add(deb);
+  var debRand=mulberry32(3131);
+  for(var di=0;di<DEB;di++)debLife[di]=0;
+  function burst(x,y,z,hexC){
+    debMat.color.setHex(hexC);
+    var n=0;
+    for(var i=0;i<DEB&&n<14;i++){
+      if(debLife[i]>0)continue;
+      debLife[i]=0.7+debRand()*0.5;n++;
+      debPos[i*3]=x;debPos[i*3+1]=y;debPos[i*3+2]=z;
+      debVel[i*3]=(debRand()-0.5)*1.6;debVel[i*3+1]=1+debRand()*1.6;debVel[i*3+2]=(debRand()-0.5)*1.6;
+    }
+  }
+
+  /* ================= weather particles (rain / snow) ================= */
+  var WX_N=700;
+  var wxGeo=new THREE.BufferGeometry();
+  var wxPos=new Float32Array(WX_N*3);
+  wxGeo.setAttribute("position",new THREE.BufferAttribute(wxPos,3));
+  var wxMat=new THREE.PointsMaterial({size:0.05,color:0xdde8ee,transparent:true,opacity:0,depthWrite:false});
+  var wxPts=new THREE.Points(wxGeo,wxMat);scene.add(wxPts);
+  var wxRand=mulberry32(777);
+  var wxVel=new Float32Array(WX_N);
+  for(var xi=0;xi<WX_N;xi++){wxPos[xi*3]=(wxRand()-0.5)*16;wxPos[xi*3+1]=wxRand()*10-3;wxPos[xi*3+2]=(wxRand()-0.5)*16;wxVel[xi]=0.5+wxRand();}
+
+  /* ================= clouds ================= */
   var clouds=[];
   (function(){
     var rand=mulberry32(4242);
     var geo=new THREE.BoxGeometry(1,1,1);
-    for(var i=0;i<5;i++){
+    for(var i=0;i<6;i++){
       var g=new THREE.Group();
       var mat=new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.92});
       var nBox=5+Math.floor(rand()*5);
@@ -354,119 +489,276 @@
       var a=rand()*Math.PI*2;
       g.userData={ang:a,rad:4.2+rand()*2.6,y:-1.6-rand()*1.6,spd:0.03+rand()*0.05,mat:mat};
       g.position.set(Math.cos(a)*g.userData.rad,g.userData.y,Math.sin(a)*g.userData.rad);
-      scene.add(g);
-      clouds.push(g);
+      scene.add(g);clouds.push(g);
     }
   })();
 
-  /* ================= day / night ================= */
-  var dayT=1,dayTarget=1;
-  var SUN_DAY=new THREE.Color(0xfff2d8),SUN_NIGHT=new THREE.Color(0x8fa3d6);
-  var HEM_DAY=new THREE.Color(0xfff6e6),HEM_NIGHT=new THREE.Color(0x33406b);
-  var GND_DAY=new THREE.Color(0x8a97a8),GND_NIGHT=new THREE.Color(0x1a2036);
-  var CL_DAY=new THREE.Color(0xffffff),CL_NIGHT=new THREE.Color(0x8fa0c8);
-  var WF_DAY=new THREE.Color(0xbfe0ea),WF_NIGHT=new THREE.Color(0x9fd8ff);
-  var capCycle=document.getElementById("capCycle");
-  var cycleBtn=document.getElementById("cycle");
+  /* ================= time of day + weather ================= */
+  var TIMES={
+    matin:{sky:0xf6e3c8,fog:0xf6e3c8,sun:0xffd9a0,si:1.0,hemi:0xfdeed4,gnd:0xb0a294,hi:0.75,star:0,moon:0,wf:0xcfe4da,cloud:0xfdf0dd,lp:0,sp:[6,3.4,3],amb2:0.9},
+    midi:{sky:0xf7f0e1,fog:0xf7f0e1,sun:0xfff2d8,si:1.15,hemi:0xfff6e6,gnd:0x8a97a8,hi:0.85,star:0,moon:0,wf:0xbfe0ea,cloud:0xffffff,lp:0,sp:[5,8,3],amb2:1},
+    soir:{sky:0xefd3a8,fog:0xeed0a2,sun:0xff9a4e,si:1.05,hemi:0xf6d8a8,gnd:0x7c7468,hi:0.62,star:0.15,moon:0,wf:0xd8c8a8,cloud:0xf6d9b0,lp:0.25,sp:[7,2.2,2],amb2:0.85},
+    nuit:{sky:0x1d2440,fog:0x1d2440,sun:0x8fa3d6,si:0.28,hemi:0x33406b,gnd:0x1a2036,hi:0.38,star:1,moon:1,wf:0x9fd8ff,cloud:0x8fa0c8,lp:1,sp:[-4,6,-2],amb2:0.6}
+  };
+  var timeName="midi";
+  var cur={
+    sky:new THREE.Color(0xf7f0e1),sun:new THREE.Color(0xfff2d8),hemi:new THREE.Color(0xfff6e6),
+    gnd:new THREE.Color(0x8a97a8),wf:new THREE.Color(0xbfe0ea),cloud:new THREE.Color(0xffffff),
+    si:1.15,hi:0.85,star:0,moon:0,lp:0,sp:new THREE.Vector3(5,8,3),amb2:1
+  };
+  var WX={clear:{fo:0,rain:0,snow:0,gloom:0},fog:{fo:1,rain:0,snow:0,gloom:0.25},rain:{fo:0.35,rain:1,snow:0,gloom:0.55},snow:{fo:0.45,rain:0,snow:1,gloom:0.35}};
+  var wxName="clear";
+  var wxCur={fo:0,rain:0,snow:0,gloom:0};
+  var wind=1.0,cloudAmt=1;
 
-  cycleBtn.addEventListener("click",function(){
-    dayTarget=dayTarget>0.5?0:1;
-    document.body.classList.toggle("night",dayTarget<0.5);
-    capCycle.textContent=dayTarget<0.5?"NIGHT":"DAY";
-    cycleBtn.textContent=dayTarget<0.5?"DAYBREAK / 破晓":"NIGHTFALL / 入夜";
-  });
+  function lerpAll(dt){
+    var T=TIMES[timeName],W=WX[wxName],k=Math.max(0,Math.min(1,dt*1.8));
+    cur.sky.lerp(new THREE.Color(T.sky),k);
+    cur.sun.lerp(new THREE.Color(T.sun),k);
+    cur.hemi.lerp(new THREE.Color(T.hemi),k);
+    cur.gnd.lerp(new THREE.Color(T.gnd),k);
+    cur.wf.lerp(new THREE.Color(T.wf),k);
+    cur.cloud.lerp(new THREE.Color(T.cloud),k);
+    cur.si+=(T.si-cur.si)*k;cur.hi+=(T.hi-cur.hi)*k;
+    cur.star+=(T.star-cur.star)*k;cur.moon+=(T.moon-cur.moon)*k;cur.lp+=(T.lp-cur.lp)*k;
+    cur.sp.lerp(new THREE.Vector3().fromArray(T.sp),k);
+    cur.amb2+=(T.amb2-cur.amb2)*k;
+    wxCur.fo+=(W.fo-wxCur.fo)*k;wxCur.rain+=(W.rain-wxCur.rain)*k;
+    wxCur.snow+=(W.snow-wxCur.snow)*k;wxCur.gloom+=(W.gloom-wxCur.gloom)*k;
+    snowT+=( (wxName==="snow"?1:0) - snowT)*Math.min(1,dt*0.55);
 
-  function applyCycle(){
-    scene.background.copy(SKY_DAY).lerp(SKY_NIGHT,1-dayT);
+    var gloom=1-wxCur.gloom*0.55;
+    scene.background.copy(cur.sky).multiplyScalar(gloom+0.18);
     scene.fog.color.copy(scene.background);
-    sun.color.copy(SUN_DAY).lerp(SUN_NIGHT,1-dayT);
-    sun.intensity=0.25+dayT*0.9;
-    amb.color.copy(HEM_DAY).lerp(HEM_NIGHT,1-dayT);
-    amb.groundColor.copy(GND_DAY).lerp(GND_NIGHT,1-dayT);
-    amb.intensity=0.35+dayT*0.5;
-    starMat.opacity=(1-dayT)*0.95;
-    moon.material.opacity=(1-dayT)*0.95;
-    wfMat.color.copy(WF_DAY).lerp(WF_NIGHT,1-dayT);
+    scene.fog.near=10-wxCur.fo*6.5;
+    scene.fog.far=26-wxCur.fo*15;
+    sun.color.copy(cur.sun);sun.intensity=cur.si*gloom;sun.position.copy(cur.sp);
+    amb.color.copy(cur.hemi);amb.groundColor.copy(cur.gnd);amb.intensity=cur.hi*cur.amb2*(0.8+wxCur.fo*0.3);
+    starMat.opacity=cur.star*(1-wxCur.fo*0.7)*0.95;
+    moon.material.opacity=cur.moon*0.95;
+    wfMat.color.copy(cur.wf);
+    lanternLight.intensity=cur.lp*1.6;
     for(var i=0;i<clouds.length;i++){
-      clouds[i].userData.mat.color.copy(CL_DAY).lerp(CL_NIGHT,1-dayT);
+      clouds[i].userData.mat.color.copy(cur.cloud).multiplyScalar(gloom+0.1);
+      clouds[i].userData.mat.opacity=0.55+cloudAmt*0.35+wxCur.fo*0.3;
+      clouds[i].visible=cloudAmt>0.05;
+      clouds[i].scale.setScalar(0.6+cloudAmt*0.5);
     }
+    applySnow();
   }
-  applyCycle();
 
-  /* ================= UI ================= */
-  var SEED=(Math.random()*0xffff)|0;
-  var seedVal=document.getElementById("seedVal");
-  var capSeed=document.getElementById("capSeed");
-  function fmt(s){return "#"+("0000"+s.toString(16).toUpperCase()).slice(-4);}
+  /* ================= interaction: orbit / zoom / mine / hover ================= */
+  var dragging=false,px=0,py=0,moved=0,autoSpin=true;
+  var raycaster=new THREE.Raycaster(),ndc=new THREE.Vector2(-2,-2);
+  var lastInput=performance.now();
+  var hoverId=-1;
+  var capBlock=document.getElementById("capBlock");
 
-  function regenerate(newSeed){
-    if(newSeed)SEED=(Math.random()*0xffff)|0;
-    buildIsland(SEED);
-    seedVal.textContent=fmt(SEED);
-    capSeed.textContent=fmt(SEED);
-    for(var i=0;i<WF_N;i++)wfSpawn(i);
-  }
-  document.getElementById("regen").addEventListener("click",function(){regenerate(true);});
-  document.getElementById("save").addEventListener("click",function(){
-    renderer.render(scene,camera);
-    var a=document.createElement("a");
-    a.download="voxel-island-"+fmt(SEED)+".png";
-    a.href=renderer.domElement.toDataURL("image/png");
-    a.click();
-  });
-
-  /* drag orbit */
-  var dragging=false,px=0,py=0,autoSpin=true;
   stage.addEventListener("pointerdown",function(e){
-    dragging=true;autoSpin=false;px=e.clientX;py=e.clientY;
+    dragging=true;moved=0;px=e.clientX;py=e.clientY;
     stage.classList.add("dragging");
     stage.setPointerCapture(e.pointerId);
+    lastInput=performance.now();
   });
   stage.addEventListener("pointermove",function(e){
+    lastInput=performance.now();
+    var r=renderer.domElement.getBoundingClientRect();
+    ndc.x=((e.clientX-r.left)/r.width)*2-1;
+    ndc.y=-((e.clientY-r.top)/r.height)*2+1;
     if(!dragging)return;
-    azim-=(e.clientX-px)*0.005;
-    elev=Math.min(1.15,Math.max(0.12,elev+(e.clientY-py)*0.004));
+    var dx=e.clientX-px,dy=e.clientY-py;
+    moved+=Math.abs(dx)+Math.abs(dy);
+    azim-=dx*0.005;
+    elev=Math.min(1.5,Math.max(modeCur().elevMin,elev+dy*0.004));
     px=e.clientX;py=e.clientY;
   });
-  stage.addEventListener("pointerup",function(){
+  stage.addEventListener("pointerup",function(e){
     dragging=false;
     stage.classList.remove("dragging");
     setTimeout(function(){autoSpin=true;},2600);
+    if(moved<6&&instanceMesh){
+      raycaster.setFromCamera(ndc,camera);
+      var hits=raycaster.intersectObject(instanceMesh);
+      if(hits.length&&hits[0].instanceId!==undefined){
+        mineBlock(hits[0].instanceId);
+      }
+    }
+  });
+  stage.addEventListener("wheel",function(e){
+    e.preventDefault();lastInput=performance.now();
+    radius=Math.max(4.5,Math.min(16,radius+e.deltaY*0.008));
+  },{passive:false});
+
+  var _m4=new THREE.Matrix4(),_v3=new THREE.Vector3();
+  function mineBlock(id){
+    if(removed[id])return;
+    removed[id]=1;
+    instanceMesh.getMatrixAt(id,_m4);
+    _v3.setFromMatrixPosition(_m4);
+    _m4.makeScale(0.001,0.001,0.001);
+    instanceMesh.setMatrixAt(id,_m4);
+    instanceMesh.instanceMatrix.needsUpdate=true;
+    burst(_v3.x,_v3.y+islandGroup.position.y,_v3.z,instBase[id]);
+    capBlock.textContent=instType[id]+" @"+instPos[id].join(",")+" — MINED";
+    updateBlockCount();
+  }
+  function hoverBlock(){
+    if(!instanceMesh||dragging)return;
+    raycaster.setFromCamera(ndc,camera);
+    var hits=raycaster.intersectObject(instanceMesh);
+    var id=(hits.length&&hits[0].instanceId!==undefined&&!removed[hits[0].instanceId])?hits[0].instanceId:-1;
+    if(id===hoverId)return;
+    if(hoverId>=0&&!removed[hoverId]){_c1.setHex(instBase[hoverId]);instanceMesh.setColorAt(hoverId,_c1);}
+    hoverId=id;
+    if(hoverId>=0){
+      _c1.setHex(instBase[hoverId]).multiplyScalar(1.35);
+      instanceMesh.setColorAt(hoverId,_c1);
+      capBlock.textContent=instType[hoverId]+" @"+instPos[hoverId].join(",");
+      stage.style.cursor="crosshair";
+    }else{
+      capBlock.textContent="HOVER A BLOCK —";
+      stage.style.cursor="";
+    }
+    instanceMesh.instanceColor.needsUpdate=true;
+  }
+
+  /* ================= UI ================= */
+  var seedVal=document.getElementById("seedVal"),capSeed=document.getElementById("capSeed");
+  function refreshSeedUi(){
+    seedVal.textContent=fmt(SEED);capSeed.textContent=fmt(SEED);
+    document.getElementById("coloSeed").textContent=fmt(SEED);
+  }
+  function regenerate(newSeed){
+    if(newSeed){SEED=((SEED*1664525+1013904223)>>>0)&0xffffff;setHash();}
+    buildIsland(SEED);
+    refreshSeedUi();
+    for(var i=0;i<WF_N;i++)wfSpawn(i);
+  }
+  document.getElementById("regen").addEventListener("click",function(){regenerate(true);});
+  document.getElementById("share").addEventListener("click",function(){
+    var url=location.href.split("#")[0]+"#seed="+SEED.toString(16)+"&t="+timeName+"&w="+wxName;
+    var b=this;
+    function done(){b.textContent="已复制 ✓";setTimeout(function(){b.textContent="分享";},1400);}
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,done);}
+    else{prompt("Copy this island link",url);}
+  });
+  document.getElementById("save").addEventListener("click",function(){
+    renderer.render(scene,camera);
+    var a=document.createElement("a");
+    a.download="voxel-island-"+SEED.toString(16)+".png";
+    a.href=renderer.domElement.toDataURL("image/png");a.click();
+  });
+  var peakTimer=null;
+  document.getElementById("peaks").addEventListener("input",function(){
+    peakScale=this.value/100;document.getElementById("peakVal").textContent=peakScale.toFixed(1)+"×";
+    if(peakTimer)return;
+    peakTimer=setTimeout(function(){peakTimer=null;regenerate(false);},180);
+  });
+  document.getElementById("cloudAmt").addEventListener("input",function(){
+    cloudAmt=this.value/100;document.getElementById("cloudVal").textContent=cloudAmt.toFixed(1)+"×";
+  });
+  document.getElementById("windAmt").addEventListener("input",function(){
+    wind=this.value/10;document.getElementById("windVal").textContent=wind.toFixed(1)+" M/S";
   });
 
-  /* ================= resize + loop ================= */
+  function setTime(t,skipBtn){
+    timeName=t;
+    document.body.className="t-"+t;
+    if(!skipBtn)document.querySelectorAll("#timeSeg button").forEach(function(b){b.classList.toggle("on",b.dataset.t===t);});
+    updateCapMode();setHash();
+  }
+  function setWx(w,skipBtn){
+    wxName=w;
+    if(!skipBtn)document.querySelectorAll("#wxSeg button").forEach(function(b){b.classList.toggle("on",b.dataset.w===w);});
+    updateCapMode();setHash();
+  }
+  document.querySelectorAll("#timeSeg button").forEach(function(b){b.addEventListener("click",function(){setTime(b.dataset.t);});});
+  document.querySelectorAll("#wxSeg button").forEach(function(b){b.addEventListener("click",function(){setWx(b.dataset.w);});});
+  var TN={matin:"晨 MATIN",midi:"午 MIDI",soir:"昏 SOIR",nuit:"夜 NUIT"};
+  var WN={clear:"晴 CLEAR",fog:"雾 BRUME",rain:"雨 PLUIE",snow:"雪 NEIGE"};
+  var MN={orbit:"环游 ORBIT",drift:"贴水 DRIFT",survey:"测绘 SURVEY"};
+  var modeName="orbit";
+  function updateCapMode(){document.getElementById("capMode").textContent=MN[modeName]+" · "+TN[timeName]+" · "+WN[wxName];}
+
+  /* view modes */
+  var MODES={
+    orbit:{elev:0.42,elevMin:0.12,radius:9.2,spin:0.07,lookY:0.15},
+    drift:{elev:0.10,elevMin:0.03,radius:11.5,spin:0.045,lookY:0.6},
+    survey:{elev:1.45,elevMin:1.2,radius:8.2,spin:0.02,lookY:0}
+  };
+  function modeCur(){return MODES[modeName];}
+  var tElev=MODES.orbit.elev,tRadius=MODES.orbit.radius,tLookY=0.15,tSpin=0.07;
+  function viewRadius(){return MODES[modeName].radius*(window.innerWidth<680?1.5:1);}
+  function setMode(m){
+    modeName=m;
+    var M=MODES[m];
+    tElev=M.elev;tRadius=viewRadius();tLookY=M.lookY;tSpin=M.spin;
+    document.querySelectorAll("#modeSeg button").forEach(function(b){b.classList.toggle("on",b.dataset.m===m);});
+    updateCapMode();
+  }
+  document.querySelectorAll("#modeSeg button").forEach(function(b){b.addEventListener("click",function(){setMode(b.dataset.m);});});
+
+  window.addEventListener("keydown",function(e){
+    if(/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||""))return;
+    var k=e.key;
+    if(k==="1")setTime("matin");else if(k==="2")setTime("midi");
+    else if(k==="3")setTime("soir");else if(k==="4")setTime("nuit");
+    else if(k==="z"||k==="Z")setWx("clear");else if(k==="x"||k==="X")setWx("fog");
+    else if(k==="c"||k==="C")setWx("rain");else if(k==="v"||k==="V")setWx("snow");
+    else if(k==="r"||k==="R")regenerate(true);
+    else if(k==="s"||k==="S")document.getElementById("save").click();
+    else if(k==="m"||k==="M")setMode(modeName==="orbit"?"drift":modeName==="drift"?"survey":"orbit");
+    lastInput=performance.now();
+  });
+  stage.addEventListener("dblclick",function(){if(islandGroup)islandGroup.userData.hop=1;});
+
+  /* ================= resize + boot ================= */
   function resize(){
     var w=window.innerWidth,h=window.innerHeight;
     renderer.setSize(w,h);
-    camera.aspect=w/h;
-    camera.updateProjectionMatrix();
+    camera.aspect=w/h;camera.updateProjectionMatrix();
+    tRadius=viewRadius();
   }
   window.addEventListener("resize",resize);
   resize();
-
   regenerate(false);
+  if(HASH_T)setTime(HASH_T,true);else setTime("midi",true);
+  if(HASH_W)setWx(HASH_W,true);else setWx("clear",true);
+  setTime(HASH_T||"midi");setWx(HASH_W||"clear");
+  setMode("orbit");
+  lerpAll(10); /* 初始状态即刻到位（分享链接所见即所得） */
 
   var last=performance.now();
   function loop(now){
-    var dt=Math.min(0.05,(now-last)/1000);
-    last=now;
+    requestAnimationFrame(loop);
+    var dt=(now-last)/1000;if(!(dt>0))dt=0.016;dt=Math.min(0.05,dt);last=now;
 
-    if(autoSpin)azim+=dt*0.07;
+    /* idle drift */
+    if(now-lastInput>40000)azim+=dt*0.05;
+    else if(autoSpin)azim+=dt*tSpin;
+
+    /* camera damp toward mode */
+    elev+=(tElev-elev)*Math.min(1,dt*1.6);
+    radius+=(tRadius-radius)*Math.min(1,dt*1.6);
+    lookAt.y+=(tLookY-lookAt.y)*Math.min(1,dt*1.6);
     placeCamera();
 
-    dayT+=(dayTarget-dayT)*Math.min(1,dt*2.2);
-    applyCycle();
+    lerpAll(dt);
 
-    var bobY=islandGroup?islandGroup.position.y:0;
+    /* island bob + hop */
+    var bobY=0;
     if(islandGroup){
-      islandGroup.position.y=Math.sin(now*0.0006)*0.12;
+      var hop=islandGroup.userData.hop||0;
+      if(hop>0.01)islandGroup.userData.hop=hop*Math.pow(0.03,dt);else islandGroup.userData.hop=0;
+      islandGroup.position.y=Math.sin(now*0.0006)*0.12+Math.sin(Math.min(1,hop)*Math.PI)*0.55;
       bobY=islandGroup.position.y;
       wf.position.y=bobY;
     }
 
-    /* waterfall */
+    /* waterfall (rain 时更急) */
+    var flow=1+wxCur.rain*0.8;
     for(var i=0;i<WF_N;i++){
-      wfLife[i]-=dt;
+      wfLife[i]-=dt*flow;
       if(wfLife[i]<=0||wfPos[i*3+1]<-3.4){wfSpawn(i);continue;}
       wfVel[i*3+1]-=dt*2.6;
       wfPos[i*3]+=wfVel[i*3]*dt;
@@ -474,24 +766,83 @@
       wfPos[i*3+2]+=wfVel[i*3+2]*dt;
     }
     wfGeo.attributes.position.needsUpdate=true;
+    wfMat.opacity=0.6+wxCur.rain*0.35;
     mist.position.set(waterfallSrc.x+((waterfallSrc.userData&&waterfallSrc.userData.dir)?waterfallSrc.userData.dir.x:1)*0.35,
                       -2.6+bobY+Math.sin(now*0.002)*0.05,
                       waterfallSrc.z+((waterfallSrc.userData&&waterfallSrc.userData.dir)?waterfallSrc.userData.dir.z:0)*0.35);
-    mist.material.opacity=0.35+0.2*Math.sin(now*0.003);
+    mist.material.opacity=(0.35+0.2*Math.sin(now*0.003))*(1+wxCur.fo*0.6);
 
-    /* clouds drift */
+    /* weather particles */
+    var wxActive=wxCur.rain>0.03||wxCur.snow>0.03;
+    wxPts.visible=wxActive;
+    if(wxActive){
+      var isRain=wxCur.rain>=wxCur.snow;
+      var amt=isRain?wxCur.rain:wxCur.snow;
+      wxMat.opacity=amt*(isRain?0.55:0.85);
+      wxMat.size=isRain?0.045:0.075;
+      wxMat.color.setHex(isRain?0x9fb8cc:0xf4f6f2);
+      var fall=isRain?7.5:1.1,driftX=isRain?wind*0.6:wind*0.9;
+      for(var j=0;j<WX_N;j++){
+        wxPos[j*3+1]-=fall*wxVel[j]*dt*(isRain?1:0.8+0.4*Math.sin(now*0.001+j));
+        wxPos[j*3]+=Math.sin(now*0.0005+j*1.7)*dt*driftX;
+        if(wxPos[j*3+1]<-3.5){
+          wxPos[j*3+1]=8+wxRand()*2;
+          wxPos[j*3]=(wxRand()-0.5)*16;
+          wxPos[j*3+2]=(wxRand()-0.5)*16;
+        }
+      }
+      wxGeo.attributes.position.needsUpdate=true;
+    }
+
+    /* debris */
+    var anyDeb=false;
+    for(var d2=0;d2<DEB;d2++){
+      if(debLife[d2]<=0){debPos[d2*3+1]=-99;continue;}
+      anyDeb=true;
+      debLife[d2]-=dt;
+      debVel[d2*3+1]-=dt*4.5;
+      debPos[d2*3]+=debVel[d2*3]*dt;
+      debPos[d2*3+1]+=debVel[d2*3+1]*dt;
+      debPos[d2*3+2]+=debVel[d2*3+2]*dt;
+    }
+    if(anyDeb)debGeo.attributes.position.needsUpdate=true;
+    deb.visible=anyDeb;
+
+    /* clouds drift（风推） */
     for(var c=0;c<clouds.length;c++){
       var g=clouds[c];
-      g.userData.ang+=dt*g.userData.spd;
+      g.userData.ang+=dt*g.userData.spd*(0.4+wind*0.6);
       g.position.x=Math.cos(g.userData.ang)*g.userData.rad;
       g.position.z=Math.sin(g.userData.ang)*g.userData.rad;
       g.position.y=g.userData.y+Math.sin(now*0.0005+c*2)*0.15;
     }
 
+    /* lanterns flicker at night */
+    if(instanceMesh&&cur.lp>0.02){
+      var fl=0.85+Math.sin(now*0.011)*0.15;
+      for(var L=0;L<lanterns.length;L++){
+        var id=lanterns[L];
+        if(removed[id])continue;
+        _c1.setHex(instBase[id]).multiplyScalar(1+cur.lp*0.9*fl);
+        instanceMesh.setColorAt(id,_c1);
+      }
+      instanceMesh.instanceColor.needsUpdate=true;
+    }
+
+    hoverBlock();
     renderer.render(scene,camera);
-    requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
+  /* lab 共存：捕获阶段截获 r/s，阻断 lab 快捷键的双重触发 */
+  window.addEventListener("keydown",function(e){
+    if(/INPUT|TEXTAREA|SELECT/.test((document.activeElement||{}).tagName||""))return;
+    var k=(e.key||"").toLowerCase();
+    if(k==="r"||k==="s"){
+      e.stopImmediatePropagation();
+      if(k==="r")regenerate(true);
+      else document.getElementById("save").click();
+    }
+  },true);
 })();
 </script>
 </body>

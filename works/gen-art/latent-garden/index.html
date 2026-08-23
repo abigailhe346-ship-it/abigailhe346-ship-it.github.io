@@ -1,2 +1,528 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Latent Garden / MIRA</title><style>:root{--paper:#f5f0e6;--ink:#26302b;--pink:#f39bb7;--mint:#a4e4c1;--lilac:#b7a7e8;--mono:"SF Mono",Menlo,monospace;--serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif}header{height:66px;border-bottom:1px solid #26302b33;display:flex;justify-content:space-between;align-items:center;padding:0 4vw;font:10px var(--mono);letter-spacing:.11em;text-transform:uppercase}a{color:inherit;text-decoration:none}.back{display:flex;align-items:center;gap:12px}.back b{font:18px var(--serif);font-weight:400}.hero{padding:5vw 4vw 3vw;display:flex;justify-content:space-between;align-items:end}.kicker,.micro{font:10px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#778079}.hero h1{font:400 clamp(64px,11vw,158px)/.75 var(--serif);letter-spacing:-.07em;margin:22px 0 24px}.hero h1 em{font-style:italic;color:#d8678e}.hero p{max-width:390px;color:#5b675f;line-height:1.6;font-size:15px}.garden-wrap{padding:0 4vw 4vw}.garden{height:min(66vw,690px);min-height:430px;position:relative;background:#192721;overflow:hidden}.garden canvas{width:100%;height:100%;display:block}.garden:after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 70% 30%,transparent 0 22%,rgba(0,0,0,.18) 70%);pointer-events:none}.hud{position:absolute;inset:20px;display:flex;justify-content:space-between;color:rgba(245,240,230,.67);font:9px var(--mono);letter-spacing:.1em}.hud strong{font-weight:400;color:var(--mint)}.control-bar{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:25px;padding:18px 0;border-bottom:1px solid #26302b33;align-items:center}.control label{display:flex;justify-content:space-between;font:9px var(--mono);color:#778079;letter-spacing:.1em;text-transform:uppercase;margin-bottom:7px}.control output{color:var(--ink)}input[type=range]{width:100%;accent-color:#d8678e}button{border:1px solid var(--ink);background:var(--ink);color:var(--paper);padding:12px 16px;font:10px var(--mono);letter-spacing:.08em;text-transform:uppercase}button:hover{background:var(--pink);border-color:var(--pink);color:var(--ink)}.caption{display:grid;grid-template-columns:1fr 1fr;gap:5vw;padding:4vw 4vw 8vw}.caption h2{font:400 43px/.9 var(--serif);letter-spacing:-.06em;margin:0}.caption h2 em{font-style:italic;color:#d8678e}.caption p{margin:0;max-width:460px;color:#5b675f;font-size:13px;line-height:1.65}.micro{margin-top:24px;font-size:9px}@media(max-width:750px){.hero{display:block;padding-top:11vw}.hero h1{font-size:20vw}.garden{height:82vw;min-height:340px}.control-bar{grid-template-columns:1fr 1fr;gap:17px}.control-bar button{grid-column:1/-1}.caption{grid-template-columns:1fr;gap:28px}}
-</style></head><body><header><a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a><span>02 / 100 · Image + Motion</span><span>Latent Garden</span></header><main><section class="hero"><div><div class="kicker">Prompt choreography / 2026</div><h1>Latent<br><em>Garden</em></h1><p>让不可见的向量，在屏幕上长成一座有气味的花园。拖动鼠标，让花朵朝向你的注意力。</p></div><div class="micro">Midjourney / Runway / Canvas 2D<br>Visual identity + motion study</div></section><section class="garden-wrap"><div class="garden"><canvas id="gardenCanvas"></canvas><div class="hud"><span>SPECIMEN 02 / LIVE</span><strong id="mood">MOOD / TENDER</strong></div></div><div class="control-bar"><div class="control"><label>Bloom <output id="bloomOut">52</output></label><input id="bloom" type="range" min="10" max="100" value="52"></div><div class="control"><label>Wind <output id="windOut">24</output></label><input id="wind" type="range" min="0" max="100" value="24"></div><div class="control"><label>Memory <output id="memoryOut">68</output></label><input id="memory" type="range" min="0" max="100" value="68"></div><button id="newGarden">Regrow ↗</button></div></section><section class="caption"><h2>Every flower is<br>a <em>decision.</em></h2><div><p>我把“提示词”当作园艺而不是命令：种下形状、颜色与情绪，让模型在不确定性里找到自己的生长方式。这个花园每 12 秒重写一次。</p><div class="micro">Interaction / pointer field · 3 live parameters · auto-loop</div></div></section></main><script>const c=document.getElementById('gardenCanvas'),x=c.getContext('2d');let w,h,dpr,t=0,mx=.5,my=.5,bloom=52,wind=24,memory=68,seed=Math.random()*20,flowers=[];function size(){dpr=Math.min(devicePixelRatio||1,2);w=c.clientWidth;h=c.clientHeight;c.width=w*dpr;c.height=h*dpr;x.setTransform(dpr,0,0,dpr,0,0);seedFlowers()}function seedFlowers(){flowers=Array.from({length:Math.floor(12+bloom/2)},(_,i)=>({x:Math.random()*w,y:h*(.45+Math.random()*.5),r:8+Math.random()*18,phase:Math.random()*7,petals:5+Math.floor(Math.random()*4)}))}function draw(){t+=.012;x.fillStyle='#192721';x.fillRect(0,0,w,h);x.strokeStyle='rgba(164,228,193,.15)';for(let i=0;i<24;i++){x.beginPath();x.moveTo(i*w/24,h);const bend=Math.sin(t*.7+i*.8)*wind*.5;x.quadraticCurveTo(i*w/24+bend,h*.65,(i*w/24)+bend*.4,h*.36);x.stroke()}flowers.forEach((f,i)=>{const sway=Math.sin(t*(.45+wind/120)+f.phase)*wind*.18,xx=f.x+sway,yy=f.y-Math.sin(t*.7+f.phase)*2;const c1=i%3===0?'#f39bb7':i%3===1?'#b7a7e8':'#a4e4c1';x.strokeStyle=c1;x.lineWidth=1.2;x.beginPath();x.moveTo(xx,yy);x.quadraticCurveTo(xx-4,yy-f.r*2,xx+sway*.3,yy-f.r*4);x.stroke();const rr=f.r*(.55+bloom/130);for(let p=0;p<f.petals;p++){const a=p/f.petals*Math.PI*2+t*.08;const px=xx+Math.cos(a)*rr,py=yy-f.r*4+Math.sin(a)*rr;x.fillStyle=c1;x.globalAlpha=.7;x.beginPath();x.ellipse(px,py,rr*.54,rr*.9,a,0,Math.PI*2);x.fill()}x.globalAlpha=1;x.fillStyle='#f5f0e6';x.beginPath();x.arc(xx,yy-f.r*4,Math.max(2,rr*.35),0,Math.PI*2);x.fill()});const glow=x.createRadialGradient(w*mx,h*my,0,w*mx,h*my,160);glow.addColorStop(0,'rgba(243,155,183,.2)');glow.addColorStop(1,'transparent');x.fillStyle=glow;x.fillRect(0,0,w,h);document.getElementById('mood').textContent=`MOOD / ${bloom>72?'OVERFLOW':wind>68?'RESTLESS':memory<32?'FORGETTING':'TENDER'}`;requestAnimationFrame(draw)}function wire(id,out,key){document.getElementById(id).addEventListener('input',e=>{window[key]=+e.target.value;document.getElementById(out).textContent=e.target.value})}wire('bloom','bloomOut','bloom');wire('wind','windOut','wind');wire('memory','memoryOut','memory');document.getElementById('newGarden').onclick=()=>{seed=Math.random()*20;seedFlowers()};c.addEventListener('pointermove',e=>{const r=c.getBoundingClientRect();mx=(e.clientX-r.left)/r.width;my=(e.clientY-r.top)/r.height});addEventListener('resize',size);size();draw();</script><script>["bloom","wind","memory"].forEach(id=>document.getElementById(id).addEventListener("input",e=>{if(id==="bloom")bloom=+e.target.value;if(id==="wind")wind=+e.target.value;if(id==="memory")memory=+e.target.value;if(id==="bloom")seedFlowers()}));</script></body></html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Latent Garden — 睡莲潜园 · Atelier MIRA</title>
+<style>
+  :root{
+    --paper:#F2EFE6; --panel:#EDEBE0; --line:#CFCDC0;
+    --ink:#3A4540; --dim:#8A9188;
+    --ripple:#DCE4DA; --willow:#A9BFAD; --pond:#5F7D6E;
+    --skyref:#7C8FA6; --lotus:#C9A6B4;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{background:var(--paper)}
+  body{color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--pond);color:var(--paper)}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;
+    padding:20px clamp(18px,4vw,44px) 14px;
+  }
+  .brand{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .back{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:color .4s var(--ease)}
+  .back:hover{color:var(--ink)}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.4vw,40px);letter-spacing:-.01em;line-height:1}
+  h1 em{font-style:italic;color:var(--pond)}
+  .epig{font-family:var(--serif);font-style:italic;font-size:14.5px;color:#68746C;max-width:340px;line-height:1.5}
+  .idx{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+
+  .stage-wrap{padding:0 clamp(18px,4vw,44px) 26px}
+  .stage{
+    position:relative;height:min(76vh,720px);min-height:430px;border-radius:3px;overflow:hidden;
+    background:var(--paper);box-shadow:0 1px 0 var(--line),0 18px 50px -30px rgba(95,125,110,.5);
+    cursor:crosshair;
+  }
+  canvas{display:block;width:100%;height:100%}
+
+  .etudes{position:absolute;top:14px;left:14px;display:flex;gap:8px;flex-wrap:wrap;z-index:4;transition:opacity .5s var(--ease)}
+  .etudes button{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink);
+    background:rgba(242,239,230,.72);border:1px solid rgba(58,69,64,.28);border-radius:2px;
+    padding:7px 12px;cursor:pointer;backdrop-filter:blur(3px);transition:all .45s var(--ease);
+  }
+  .etudes button:hover{background:rgba(242,239,230,.95);transform:translateY(-1px)}
+  .etudes button.on{background:var(--pond);color:var(--paper);border-color:var(--pond)}
+
+  .sndbtn{
+    position:absolute;top:14px;right:14px;z-index:4;width:34px;height:34px;border-radius:2px;
+    border:1px solid rgba(58,69,64,.28);background:rgba(242,239,230,.72);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .45s var(--ease);
+  }
+  .sndbtn:hover{background:rgba(242,239,230,.95)}
+  .sndbtn svg{width:17px;height:17px;stroke:var(--ink);fill:none;stroke-width:1.5;stroke-linecap:round}
+  .sndbtn .waves{opacity:0;transition:opacity .4s}
+  .sndbtn.on .waves{opacity:1}
+  .sndbtn.on .slash{opacity:0}
+  .sndbtn .slash{transition:opacity .4s}
+
+  .sig{position:absolute;left:14px;bottom:52px;z-index:4;display:flex;align-items:center;gap:9px;opacity:.68;user-select:none}
+  .sig svg{width:20px;height:13px}
+  .sig span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink)}
+
+  .note{
+    position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(8px);z-index:5;
+    font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink);
+    background:rgba(237,235,224,.92);border:1px solid var(--line);border-radius:2px;
+    padding:12px 20px;opacity:0;pointer-events:none;transition:all .8s var(--ease);
+    max-width:82%;text-align:center;
+  }
+  .note.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .hint{
+    position:absolute;right:16px;bottom:52px;z-index:4;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--ink);opacity:.5;
+    transition:opacity 1.2s var(--ease);pointer-events:none;
+  }
+  .hint.gone{opacity:0}
+
+  .lume{
+    position:absolute;left:0;right:0;bottom:0;z-index:4;height:40px;
+    display:flex;align-items:center;gap:12px;padding:0 16px;
+    background:linear-gradient(to top,rgba(242,239,230,.9),rgba(242,239,230,0));
+    transition:opacity .5s var(--ease);
+  }
+  .lume .lab{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);white-space:nowrap}
+  .lume .track{position:relative;flex:1;height:22px;cursor:ew-resize;touch-action:none}
+  .lume .track::before{
+    content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
+    background:linear-gradient(90deg,#9AA7B8,#C9CDD6,#F2EFE6,#F4E3C2,#E8B96F,#8E7BA8,#4E4A6B);
+    border-radius:1px;opacity:.65;
+  }
+  .lume .thumb{
+    position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#F4E3C2,#D98E4A);
+    border:1.5px solid rgba(58,69,64,.5);transform:translate(-50%,-50%);
+    box-shadow:0 2px 8px rgba(58,69,64,.3);pointer-events:none;
+  }
+  .lume .heure{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink);min-width:52px;text-align:right}
+  .hideme .etudes,.hideme .lume,.hideme .sig,.hideme .hint{opacity:0;pointer-events:none}
+
+  footer{padding:0 clamp(18px,4vw,44px) 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer p{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  @media (max-width:640px){
+    .stage{height:66vh;min-height:400px}
+    .epig{max-width:100%}
+    .hint{display:none}
+  }
+</style>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
+<body>
+
+<header>
+  <div class="brand">
+    <a class="back" href="../../../index.html#work">← Archive</a>
+    <h1>Latent <em>Garden</em></h1>
+  </div>
+  <p class="epig">我们画的不是睡莲，是水面上的下午。</p>
+  <span class="idx">Gen-Art · N°01</span>
+</header>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <canvas id="pond"></canvas>
+
+    <div class="etudes" id="etudes">
+      <button data-h="7">清晨</button>
+      <button data-h="12.5">正午</button>
+      <button data-h="18.5">将夜</button>
+    </div>
+
+    <button class="sndbtn" id="snd" aria-label="声景开关" title="声景（默认关闭）">
+      <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="waves" d="M16.5 8.5c1.6 1.8 1.6 5.2 0 7M19 6.5c2.6 3 2.6 8 0 11"/><path class="slash" d="M17 9l5 6M22 9l-5 6"/></svg>
+    </button>
+
+    <div class="sig" id="sig">
+      <svg viewBox="0 0 64 40" fill="#5F7D6E" aria-hidden="true">
+        <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+                 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+                 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+                 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+                 C 35 17, 33 17, 32 20 Z"/>
+      </svg>
+      <span>Atelier MIRA · N°001 · Nymphéas</span>
+    </div>
+
+    <div class="hint" id="hint">点按水面，种一朵莲</div>
+    <div class="note" id="note">七月二日。花园熄灯后才真正营业——萤火虫替我看管那些没画完的莲。</div>
+
+    <div class="lume">
+      <span class="lab">光 · HEURE</span>
+      <div class="track" id="lume"><div class="thumb" id="thumb"></div></div>
+      <span class="heure" id="heureOut">—</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>一池碎色，天光为水 · 涟漪随指，莲随触碰而生</p>
+  <p>Canvas 2D · divisionism water · RS 1.00 · seed 0702</p>
+</footer>
+
+<script>
+(function(){
+"use strict";
+/* ---------- palette: Nymphéas 睡莲（冷中带暖斑，莲粉 ≤8%） ---------- */
+const PAL={
+  paper:[242,239,230], ripple:[220,228,218], willow:[169,191,173],
+  pond:[95,125,110], skyref:[124,143,166], lotus:[201,166,180], ink:[58,69,64]
+};
+const cvs=document.getElementById('pond'),ctx=cvs.getContext('2d');
+const stage=document.getElementById('stage');
+let W=0,H=0,DPR=1;
+let seed=702;
+function srand(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646}
+const P=new Uint8Array(512);
+(function(){const p=[...Array(256).keys()];let s=702;
+  const r=()=>{s=(s*16807)%2147483647;return (s-1)/2147483646};
+  for(let i=255;i>0;i--){const j=(r()*(i+1))|0;[p[i],p[j]]=[p[j],p[i]]}
+  for(let i=0;i<512;i++)P[i]=p[i&255];})();
+function vnoise(x,y){
+  const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  const h=(X,Y)=>P[(P[(X&255)]+(Y&255))&511]/255;
+  const a=h(xi,yi),b=h(xi+1,yi),c=h(xi,yi+1),d=h(xi+1,yi+1);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+}
+
+/* ---------- heure 时间系统 ---------- */
+let heure=new Date().getHours()+new Date().getMinutes()/60;
+const hh=location.hash.match(/h=([\d.]+)/);if(hh)heure=parseFloat(hh[1])%24;
+const KEYS=[ // h, tint, tintA, warm, warmA, light
+  [0,  [78,74,107],.32,[142,123,168],.04,.16],
+  [5,  [154,167,184],.24,[216,203,184],.08,.4],
+  [8,  [201,205,214],.08,[232,230,223],.05,.74],
+  [12, [227,230,220],.03,[244,240,228],.05,1.0],
+  [16, [232,214,178],.08,[244,227,194],.09,.86],
+  [18.5,[217,142,74],.18,[232,185,111],.18,.6],
+  [20.5,[110,123,140],.26,[201,166,180],.09,.32],
+  [24, [78,74,107],.32,[142,123,168],.04,.16]
+];
+function lightAt(h){
+  h=((h%24)+24)%24;let i=0;while(i<KEYS.length-2&&KEYS[i+1][0]<h)i++;
+  const a=KEYS[i],b=KEYS[i+1],t=Math.min(1,Math.max(0,(h-a[0])/(b[0]-a[0]||1)));
+  const L=(x,y)=>x+(y-x)*t,mix3=(u,v)=>[L(u[0],v[0]),L(u[1],v[1]),L(u[2],v[2])];
+  return {tint:mix3(a[1],b[1]),tintA:L(a[2],b[2]),warm:mix3(a[3],b[3]),warmA:L(a[4],b[4]),light:L(a[5],b[5])};
+}
+
+/* ---------- 纸纹 & 颗粒 ---------- */
+let paperC=null;
+function makePaper(){
+  paperC=document.createElement('canvas');paperC.width=Math.max(2,W*DPR/2);paperC.height=Math.max(2,H*DPR/2);
+  const p=paperC.getContext('2d');p.scale(DPR/2,DPR/2);
+  for(let i=0;i<4200;i++){
+    p.fillStyle=`rgba(${srand()<.5?'58,69,64':'255,255,250'},${(.02+srand()*.04).toFixed(3)})`;
+    p.fillRect(srand()*W,srand()*H,1+srand()*1.6,1+srand()*1.2);
+  }
+  p.strokeStyle='rgba(120,124,110,.05)';p.lineWidth=.6;
+  for(let i=0;i<60;i++){p.beginPath();const x=srand()*W,y=srand()*H,a=srand()*Math.PI;
+    p.moveTo(x,y);p.lineTo(x+Math.cos(a)*(20+srand()*70),y+Math.sin(a)*(20+srand()*70));p.stroke();}
+}
+let grainC=document.createElement('canvas');grainC.width=grainC.height=128;
+function makeGrain(){
+  const g=grainC.getContext('2d'),im=g.createImageData(128,128);
+  for(let i=0;i<im.data.length;i+=4){const v=110+Math.random()*40;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=13}
+  g.putImageData(im,0,0);
+}
+makeGrain();setInterval(makeGrain,83);
+
+/* ---------- 水面碎色笔触（Monet water） ---------- */
+let strokes=[],ripples=[],pads=[],blooms=[],fireflies=[];
+function waterBase(y){ // 水面基色：上天光倒影，中浅漪，下深塘（前中远三层）
+  const k=y/H;
+  if(k<.35){const u=k/.35;return [PAL.skyref[0]+(PAL.ripple[0]-PAL.skyref[0])*u*.5,
+    PAL.skyref[1]+(PAL.ripple[1]-PAL.skyref[1])*u*.5,PAL.skyref[2]+(PAL.ripple[2]-PAL.skyref[2])*u*.5]}
+  if(k<.7){const u=(k-.35)/.35;return [PAL.ripple[0]+(PAL.willow[0]-PAL.ripple[0])*u,
+    PAL.ripple[1]+(PAL.willow[1]-PAL.ripple[1])*u,PAL.ripple[2]+(PAL.willow[2]-PAL.ripple[2])*u]}
+  const u=(k-.7)/.3;return [PAL.willow[0]+(PAL.pond[0]-PAL.willow[0])*(.25+u*.75),
+    PAL.willow[1]+(PAL.pond[1]-PAL.willow[1])*(.25+u*.75),PAL.willow[2]+(PAL.pond[2]-PAL.willow[2])*(.25+u*.75)];
+}
+function buildWater(){
+  strokes=[];const n=Math.min(5600,Math.round(W*H/240));
+  for(let i=0;i<n;i++){
+    const y=srand()*H;
+    strokes.push({x:srand()*W,y,vx:0,ph:srand()*9,
+      len:4+srand()*14*(0.5+y/H),spd:.12+srand()*.3});
+  }
+  pads=[];
+  const np=7+Math.round(srand()*4);
+  for(let i=0;i<np;i++)pads.push({x:W*(.12+srand()*.76),y:H*(.3+srand()*.6),r:14+srand()*30,rot:srand()*9,wob:srand()*9});
+  // 首屏已有两朵莲在开放（点彩点缀 ≤8%）
+  plant(W*.62,H*.52);blooms[0].age=9;
+  plant(W*.3,H*.68);blooms[1].age=13;
+}
+
+/* ---------- 指针 ---------- */
+let px=-999,py=-999,ptx=-999,pty=-999,pvx=0,pvy=0;
+stage.addEventListener('pointermove',e=>{
+  const r=stage.getBoundingClientRect();ptx=e.clientX-r.left;pty=e.clientY-r.top;
+});
+stage.addEventListener('pointerleave',()=>{ptx=-999;pty=-999});
+stage.addEventListener('pointerdown',e=>{
+  if(e.target.closest('button')||e.target.closest('.lume')||e.target.closest('.sig'))return;
+  const r=stage.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top;
+  ripples.push({x,y,r:2,a:.9});
+  plant(x,y);
+  document.getElementById('hint').classList.add('gone');
+  if(sound.on)sound.drop();
+});
+
+/* ---------- 种莲：种→茎→苞→开（wow） ---------- */
+function plant(x,y){
+  if(blooms.length>11)blooms.shift();
+  blooms.push({x,y,age:0,open:0,petals:6+Math.round(srand()*3),rot:srand()*9,seedDots:seedDots()});
+}
+function seedDots(){ // 预生成花瓣点彩坐标（divisionism）
+  const dots=[];
+  for(let p=0;p<9;p++){
+    const a=p/9*Math.PI*2;
+    for(let k=0;k<10;k++){
+      dots.push({a:a+(srand()-.5)*.24,r:k/10,
+        pink:srand()<.72}); // 72% 莲粉，其余水光白，让眼睛自己混色
+    }
+  }
+  return dots;
+}
+
+/* ---------- 声景（L5，默认 OFF）：水滴 + 远鸟 + 微风 ---------- */
+const sound={on:false,ctx:null,master:null,
+  init(){if(this.ctx)return;
+    const C=this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const M=this.master=C.createGain();M.gain.value=0;M.connect(C.destination);
+    const len=2*C.sampleRate,buf=C.createBuffer(1,len,C.sampleRate),d=buf.getChannelData(0);
+    let l=0;for(let i=0;i<len;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3}
+    const src=C.createBufferSource();src.buffer=buf;src.loop=true;
+    const bp=C.createBiquadFilter();bp.type='bandpass';bp.frequency.value=480;bp.Q.value=.8;
+    const g=C.createGain();g.gain.value=.1;src.connect(bp);bp.connect(g);g.connect(M);src.start();
+    this.sched();
+  },
+  sched(){if(!this.ctx)return;
+    setTimeout(()=>{if(this.on&&Math.random()<.6)this.chirp();else if(this.on)this.drop(true);
+      this.sched()},2500+Math.random()*6500)},
+  chirp(){const C=this.ctx,t=C.currentTime;
+    const o=C.createOscillator(),m=C.createOscillator(),mg=C.createGain(),g=C.createGain();
+    o.frequency.setValueAtTime(2500,t);o.frequency.exponentialRampToValueAtTime(3100,t+.08);
+    m.frequency.value=34;mg.gain.value=260;m.connect(mg);mg.connect(o.frequency);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.024,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.12);
+    o.connect(g);g.connect(this.master);o.start(t);m.start(t);o.stop(t+.14);m.stop(t+.14)},
+  drop(far){const C=this.ctx;if(!C)return;const t=C.currentTime;
+    const o=C.createOscillator(),g=C.createGain();
+    o.frequency.setValueAtTime(far?1400:1800,t);o.frequency.exponentialRampToValueAtTime(600,t+.04);
+    g.gain.setValueAtTime(far?.015:.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+.06);
+    o.connect(g);g.connect(this.master);o.start(t);o.stop(t+.08)},
+  toggle(){this.on=!this.on;
+    if(this.on){this.init();this.ctx.resume();const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.setValueAtTime(0,t);
+      this.master.gain.linearRampToValueAtTime(1,t+1.5);}
+    else if(this.ctx){const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.linearRampToValueAtTime(0,t+.6);}
+    localStorage.setItem('mira-sound',this.on?'1':'0');
+    document.getElementById('snd').classList.toggle('on',this.on);}
+};
+document.getElementById('snd').addEventListener('click',e=>{e.stopPropagation();sound.toggle()});
+if(localStorage.getItem('mira-sound')==='1'){const arm=()=>{sound.toggle();removeEventListener('pointerdown',arm)};addEventListener('pointerdown',arm)}
+
+/* ---------- lume 时间轴 ---------- */
+const lume=document.getElementById('lume'),thumb=document.getElementById('thumb'),heureOut=document.getElementById('heureOut');
+let lumeDrag=false;
+function lumeSet(e){const r=lume.getBoundingClientRect();
+  heure=Math.min(24,Math.max(0,(e.clientX-r.left)/r.width*24));syncHash()}
+lume.addEventListener('pointerdown',e=>{lumeDrag=true;lume.setPointerCapture(e.pointerId);lumeSet(e);e.stopPropagation()});
+lume.addEventListener('pointermove',e=>{if(lumeDrag)lumeSet(e)});
+lume.addEventListener('pointerup',()=>lumeDrag=false);
+function syncHash(){history.replaceState(null,'',`#h=${heure.toFixed(1)}`)}
+document.getElementById('etudes').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  document.querySelectorAll('.etudes button').forEach(x=>x.classList.toggle('on',x===b));
+  heure=parseFloat(b.dataset.h);syncHash();
+});
+
+/* ---------- 落款三下 · H 键 ---------- */
+let sigClicks=0,sigTimer=null;
+document.getElementById('sig').addEventListener('click',()=>{
+  sigClicks++;clearTimeout(sigTimer);sigTimer=setTimeout(()=>sigClicks=0,900);
+  if(sigClicks>=3){sigClicks=0;const n=document.getElementById('note');
+    n.classList.add('show');setTimeout(()=>n.classList.remove('show'),5200);}
+});
+addEventListener('keydown',e=>{
+  if(e.key==='h'||e.key==='H')stage.classList.toggle('hideme');
+  const map={'1':'7','2':'12.5','3':'18.5'};
+  if(map[e.key]){heure=parseFloat(map[e.key]);syncHash()}
+});
+
+/* ---------- resize ---------- */
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  W=stage.clientWidth;H=stage.clientHeight;
+  cvs.width=W*DPR;cvs.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  makePaper();buildWater();
+}
+addEventListener('resize',resize);resize();
+
+/* ---------- 主循环 ---------- */
+let t=0;
+function jit(c,amt){const j=(Math.random()-.5)*2*amt;return [c[0]+j,c[1]+j,c[2]+j*.9]}
+function frame(){
+  t+=.008;
+  if(ptx>-100){px+=(ptx-px)*.09;py+=(pty-py)*.09;pvx=pvx*.86+(ptx-px)*.14;pvy=pvy*.86+(pty-py)*.14}
+  const L=lightAt(heure);
+
+  ctx.fillStyle=`rgb(${PAL.paper})`;ctx.fillRect(0,0,W,H);
+
+  // --- 水面：横向碎色笔触，方向随微波与指针速度 ---
+  ctx.lineCap='round';
+  for(const s of strokes){
+    s.x+=s.spd+Math.sin(t*1.4+s.ph)*.14+s.vx;
+    s.vx*=.94;
+    if(s.x>W+16){s.x=-14;s.y=Math.random()*H}
+    const wob=vnoise(s.x*.006,s.y*.006+t*.35)-.5;
+    let y=s.y+wob*10;
+    const dx=s.x-px,dy=y-py,dd=dx*dx+dy*dy;
+    if(dd<13000){const f=1-dd/13000;s.vx+=pvx*f*.05;y+=pvy*f*.06}
+    for(const rp of ripples){
+      const rx=s.x-rp.x,ry=y-rp.y,rd=Math.hypot(rx,ry);
+      if(Math.abs(rd-rp.r)<18&&rd>1)y+=ry/rd*rp.a*4;
+    }
+    const base=waterBase(y),c=jit(base,13),a=.62+Math.random()*.33;
+    ctx.strokeStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a.toFixed(2)})`;
+    ctx.lineWidth=1.3+Math.random()*1.3;
+    const ang=wob*.5+s.vx*.15;
+    ctx.beginPath();ctx.moveTo(s.x,y);
+    ctx.lineTo(s.x-Math.cos(ang)*s.len,y-Math.sin(ang)*s.len);ctx.stroke();
+  }
+
+  // --- 莲叶：碎色弧笔触聚成圆盘 ---
+  for(const p of pads){
+    const wob=Math.sin(t*1.2+p.wob)*2,n=Math.round(p.r*2.2);
+    for(let i=0;i<n;i++){
+      const a=p.rot+i/n*Math.PI*2;
+      if(((a-p.rot)%(Math.PI*2))<.5)continue; // 叶缺
+      const rr=p.r*(0.35+((i*7)%10)/10*.65);
+      const x=p.x+Math.cos(a)*rr,y=p.y+wob+Math.sin(a)*rr*.42;
+      const c=jit(PAL.pond,12);
+      ctx.strokeStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${(.68+((i*13)%10)/10*.28).toFixed(2)})`;
+      ctx.lineWidth=1.9;
+      ctx.beginPath();ctx.moveTo(x,y);
+      ctx.lineTo(x+Math.cos(a+.6)*6,y+Math.sin(a+.6)*3.6);ctx.stroke();
+    }
+  }
+
+  // --- 莲：生长 → 点彩绽放（wow moment） ---
+  const night=L.light<.35;
+  for(const b of blooms){
+    b.age+=1/60;
+    const target=night?.25:1;
+    b.open+=(target-b.open)*.02;
+    const grow=Math.min(1,b.age/2.5),ease=1-Math.pow(1-grow,3);
+    if(grow>.05){
+      ctx.strokeStyle=`rgba(${PAL.pond},.55)`;ctx.lineWidth=1.6;
+      ctx.beginPath();ctx.moveTo(b.x,b.y+26*(1-ease));
+      ctx.quadraticCurveTo(b.x+4,b.y+12,b.x,b.y+2);ctx.stroke();
+    }
+    const R=(16+b.petals*2.4)*ease*b.open;
+    if(R>1){
+      for(const d of b.seedDots){
+        if(d.r>ease)continue; // 花瓣自内向外点出来
+        const a=b.rot+d.a,rr=d.r*R;
+        const x=b.x+Math.cos(a)*rr,y=b.y-2+Math.sin(a)*rr*.5-rr*.28;
+        const base=d.pink?PAL.lotus:PAL.paper,c=jit(base,8);
+        ctx.fillStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},.9)`;
+        ctx.beginPath();ctx.arc(x,y,1.6+d.r*1.2,0,7);ctx.fill();
+      }
+      ctx.fillStyle=`rgba(${PAL.willow},.9)`;
+      ctx.beginPath();ctx.arc(b.x,b.y-2-R*.18,2.2,0,7);ctx.fill();
+    }
+  }
+
+  // --- 萤火虫（夜，花园熄灯后营业） ---
+  if(L.light<.32){
+    if(fireflies.length<9&&Math.random()<.02)
+      fireflies.push({x:Math.random()*W,y:H*(.3+Math.random()*.6),ph:Math.random()*9,vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.2});
+    for(const f of fireflies){
+      f.x+=f.vx+Math.sin(t+f.ph)*.3;f.y+=f.vy+Math.cos(t*.8+f.ph)*.2;
+      const gl=Math.max(0,Math.sin(t*2.2+f.ph));
+      ctx.fillStyle=`rgba(232,214,150,${(gl*.8).toFixed(2)})`;
+      ctx.beginPath();ctx.arc(f.x,f.y,1.6,0,7);ctx.fill();
+      if(gl>.2){ctx.fillStyle=`rgba(232,214,150,${(gl*.12).toFixed(2)})`;
+        ctx.beginPath();ctx.arc(f.x,f.y,5,0,7);ctx.fill()}
+    }
+  }else fireflies.length=0;
+
+  // --- 涟漪圈 ---
+  for(const rp of ripples){
+    rp.r+=1.6;rp.a*=.95;
+    ctx.strokeStyle=`rgba(${PAL.paper},${(rp.a*.5).toFixed(2)})`;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.ellipse(rp.x,rp.y,rp.r,rp.r*.4,0,0,7);ctx.stroke();
+  }
+  ripples=ripples.filter(r=>r.a>.04);
+
+  // --- 光：色温 + 暮金 + 有色的暗 ---
+  ctx.globalCompositeOperation='multiply';
+  ctx.fillStyle=`rgba(${L.tint[0]|0},${L.tint[1]|0},${L.tint[2]|0},${(L.tintA*.55).toFixed(3)})`;
+  ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='overlay';
+  if(L.warmA>.03){
+    const g=ctx.createRadialGradient(W*.72,H*.2,0,W*.72,H*.2,Math.max(W,H)*.7);
+    g.addColorStop(0,`rgba(${L.warm[0]|0},${L.warm[1]|0},${L.warm[2]|0},${L.warmA.toFixed(3)})`);
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  ctx.globalCompositeOperation='source-over';
+  const dark=(1-L.light)*.28;
+  if(dark>.02){ctx.fillStyle=`rgba(47,59,52,${dark.toFixed(3)})`;ctx.fillRect(0,0,W,H)}
+
+  // 纸纹 + 颗粒
+  ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.9;
+  ctx.drawImage(paperC,0,0,W,H);
+  ctx.globalCompositeOperation='overlay';ctx.globalAlpha=.05;
+  ctx.drawImage(grainC,0,0,W,H);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+
+  thumb.style.left=(heure/24*100)+'%';
+  const h2=Math.floor(heure),m2=Math.floor((heure-h2)*60);
+  heureOut.textContent=`H ${String(h2).padStart(2,'0')}:${String(m2).padStart(2,'0')}`;
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+<div id="mira-lab" data-project="latent-garden" data-num="01" style="--lab-a:#f39bb7;--lab-b:#a4e4c1"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 01 · GEN-ART</small><strong>Latent Garden</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

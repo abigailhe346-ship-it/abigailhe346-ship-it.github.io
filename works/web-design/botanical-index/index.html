@@ -3,47 +3,94 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>草木标本索引 Herbarium Index</title>
+<title>草木标本索引 Herbarium Index — Atelier MIRA Étude N°47</title>
 <style>
 :root{
   --paper:#F2ECDF; --sheet:#EDE5D2; --ink:#2C3A2E; --moss:#5A7250;
   --ochre:#B0793C; --line:rgba(44,58,46,.28); --fade:rgba(44,58,46,.58);
+  --fade2:rgba(44,58,46,.4);
+  --wash1:rgba(255,232,186,.3); --wash2:rgba(210,224,240,.1);
+  --leafveil:rgba(242,236,223,0);
+  --grainOp:.12;
+  --humid:30;
   --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
   --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
   --mono:"SF Mono",Menlo,monospace;
   --ease:cubic-bezier(.22,.9,.24,1);
 }
+body[data-wx="fog"]{
+  --paper:#E9E7DD; --sheet:#E2DFD3; --ink:#39443A; --moss:#5F6E58;
+  --line:rgba(57,68,58,.26); --fade:rgba(57,68,58,.55);
+  --wash1:rgba(220,222,214,.4); --wash2:rgba(200,206,198,.34);
+}
+body[data-wx="rain"]{
+  --paper:#E2E5E0; --sheet:#D8DDD5; --ink:#27333B; --moss:#4E6658;
+  --line:rgba(39,51,59,.3); --fade:rgba(39,51,59,.58);
+  --wash1:rgba(150,170,190,.28); --wash2:rgba(90,110,130,.24);
+}
+body[data-wx="snow"]{
+  --paper:#EFF0EB; --sheet:#E8EAE3; --ink:#333A36; --moss:#63705F;
+  --line:rgba(51,58,54,.26); --fade:rgba(51,58,54,.55);
+  --wash1:rgba(255,255,255,.4); --wash2:rgba(205,216,226,.26);
+}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
-body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:40;opacity:.5;mix-blend-mode:multiply;
-  background-image:radial-gradient(rgba(44,58,46,.05) 1px,transparent 1px);background-size:5px 5px}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;
+  transition:background-color 1.8s var(--ease),color 1.8s var(--ease);}
+body,.card,.sheet,.top,.easel,.toast,aside,footer,.fam{
+  transition:background-color 1.8s var(--ease),color 1.8s var(--ease),border-color 1.8s var(--ease);}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 
+/* ---- atmosphere layers ---- */
+#wash{position:fixed;inset:-20vmax;z-index:1;pointer-events:none;
+  background:
+    radial-gradient(60vmax 60vmax at 22% 20%,var(--wash1),transparent 62%),
+    radial-gradient(70vmax 70vmax at 78% 80%,var(--wash2),transparent 60%);
+  mix-blend-mode:soft-light;animation:wasdrift 80s ease-in-out infinite alternate;
+  transition:background 1.8s var(--ease);}
+@keyframes wasdrift{from{transform:translate3d(-3vmax,-2vmax,0) rotate(-2deg);}to{transform:translate3d(3vmax,2.5vmax,0) rotate(2deg);}}
+#wx{position:fixed;inset:0;z-index:2;pointer-events:none;}
+#grain{position:fixed;inset:0;z-index:3;pointer-events:none;opacity:var(--grainOp);mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");
+  background-size:240px 240px;}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:3;opacity:.5;mix-blend-mode:multiply;
+  background-image:radial-gradient(rgba(44,58,46,.05) 1px,transparent 1px);background-size:5px 5px}
+
 /* ---------- header ---------- */
 .top{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:16px;
-  padding:14px 28px;border-bottom:1px solid var(--line);background:rgba(242,236,223,.9);backdrop-filter:blur(8px);
+  padding:12px 28px;border-bottom:1px solid var(--line);background:var(--paper);
   font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase}
-.top .back{display:flex;align-items:center;gap:10px;transition:opacity .25s}
+.top .back{display:flex;align-items:center;gap:10px;transition:opacity .25s;flex:none}
 .top .back:hover{opacity:.55}
-.top .sig{line-height:1.7;text-align:center}
-.top .sig b{font:700 11px var(--mono);letter-spacing:.2em}
-.top .right{text-align:right}
-@media(max-width:720px){.top .right{display:none}.top{padding:12px 16px}}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.seal{width:46px;height:46px;flex:0 0 auto;color:var(--ink);transform:rotate(-6deg);cursor:pointer;
+  transition:transform .6s var(--ease),color 1.8s var(--ease);}
+.seal:hover{transform:rotate(6deg) scale(1.06);}
+.seal .ring{fill:none;stroke:currentColor;stroke-width:1.1;}
+.seal .ring2{fill:none;stroke:currentColor;stroke-width:.7;opacity:.7;}
+.seal text{fill:currentColor;font-family:var(--mono);font-size:6.4px;letter-spacing:1.6px;}
+.seal .m{fill:none;stroke:var(--ochre);stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;}
+.sig{line-height:1.7;text-align:left}
+.sig b{font:700 11px var(--mono);letter-spacing:.2em}
+.sig .etude{display:block;font-size:8px;letter-spacing:.3em;color:var(--fade2);margin-top:1px}
+.top .right{text-align:right;color:var(--fade)}
+@media(max-width:720px){.top .right{display:none}.top{padding:10px 14px}.top .back{display:none}}
 
 /* ---------- hero ---------- */
-.hero{display:grid;grid-template-columns:1fr auto;align-items:end;gap:30px;padding:64px 28px 34px;max-width:1280px;margin:0 auto}
+.hero{display:grid;grid-template-columns:1fr auto;align-items:end;gap:30px;padding:64px 28px 34px;max-width:1280px;margin:0 auto;position:relative;z-index:4}
 .hero .kicker{font:10px var(--mono);letter-spacing:.3em;color:var(--ochre);text-transform:uppercase;margin-bottom:18px}
 .hero h1{font:400 clamp(44px,7vw,96px)/.95 var(--serif);letter-spacing:-.02em}
-.hero h1 em{font-style:italic;color:var(--moss)}
+.hero h1 em{font-style:italic;color:var(--moss);transition:color 1.8s var(--ease)}
 .hero p{max-width:340px;font-size:13px;line-height:1.9;color:var(--fade)}
 .hero .stamp{width:92px;height:92px;border:1px solid var(--ochre);border-radius:50%;display:grid;place-items:center;
-  font:9px var(--mono);letter-spacing:.18em;color:var(--ochre);text-align:center;transform:rotate(8deg);flex:none}
+  font:9px var(--mono);letter-spacing:.18em;color:var(--ochre);text-align:center;transform:rotate(8deg);flex:none;cursor:pointer;
+  transition:transform .5s var(--ease)}
+.hero .stamp:hover{transform:rotate(-4deg) scale(1.05)}
 @media(max-width:720px){.hero{grid-template-columns:1fr;padding:40px 16px 24px}.hero .stamp{display:none}}
 
 /* ---------- layout ---------- */
-.layout{display:grid;grid-template-columns:230px 1fr;gap:0;max-width:1280px;margin:0 auto;padding:0 28px 90px}
+.layout{display:grid;grid-template-columns:230px 1fr;gap:0;max-width:1280px;margin:0 auto;padding:0 28px 90px;position:relative;z-index:4}
 aside{border-right:1px solid var(--line);padding:26px 26px 26px 0}
 aside h3{font:10px var(--mono);letter-spacing:.26em;text-transform:uppercase;color:var(--fade);margin:0 0 14px}
 .fam{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;
@@ -72,29 +119,51 @@ aside h3{font:10px var(--mono);letter-spacing:.26em;text-transform:uppercase;col
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px;padding:26px 0 26px 26px}
 @media(max-width:860px){.grid{padding:20px 0}}
 .card{position:relative;background:var(--sheet);border:1px solid var(--line);padding:18px 18px 14px;cursor:pointer;
-  opacity:0;transform:translateY(18px) scale(.97);transition:opacity .5s var(--ease),transform .5s var(--ease),box-shadow .35s var(--ease)}
+  border-radius:calc(1px + var(--humid)*.05px) calc(1px + var(--humid)*.11px) calc(1px + var(--humid)*.07px) calc(1px + var(--humid)*.09px);
+  opacity:0;transform:translateY(18px) scale(.97);transition:opacity .5s var(--ease),transform .5s var(--ease),box-shadow .35s var(--ease),background-color 1.8s var(--ease),border-color 1.8s var(--ease)}
 .card.show{opacity:1;transform:none}
 .card:hover{box-shadow:0 18px 40px -18px rgba(44,58,46,.45);transform:translateY(-4px)}
 .card.hide{display:none}
-.card .tape{position:absolute;top:-9px;width:56px;height:18px;background:rgba(176,121,60,.22);border:1px solid rgba(176,121,60,.18)}
-.card .tape.l{left:16px;transform:rotate(-4deg)}
-.card .tape.r{right:16px;transform:rotate(3deg)}
+.card .tape{position:absolute;top:-9px;width:56px;height:18px;background:rgba(176,121,60,.22);border:1px solid rgba(176,121,60,.18);
+  transition:transform .4s var(--ease)}
+.card .tape.l{left:16px;transform:rotate(calc(-4deg - var(--humid)*.04deg)) translateY(calc(var(--humid)*-.03px))}
+.card .tape.r{right:16px;transform:rotate(calc(3deg + var(--humid)*.05deg)) translateY(calc(var(--humid)*-.05px))}
 .card .no{position:absolute;top:10px;right:12px;font:9px var(--mono);letter-spacing:.14em;color:var(--fade)}
-.plate{height:230px;display:grid;place-items:center;border-bottom:1px solid var(--line);margin-bottom:12px;overflow:hidden}
+.plate{height:230px;display:grid;place-items:center;border-bottom:1px solid var(--line);margin-bottom:12px;overflow:hidden;
+  will-change:transform;position:relative}
+.breath{display:grid;place-items:center;animation:breathe 7s ease-in-out infinite alternate;animation-delay:var(--bd,0s)}
+@keyframes breathe{from{transform:scale(1) rotate(0deg)}to{transform:scale(1.022) rotate(.35deg)}}
 .plate svg{height:215px;width:auto;transition:transform .6s var(--ease)}
 .card:hover .plate svg{transform:scale(1.06) rotate(-1deg)}
 .card h4{font:400 22px/1.1 var(--serif);letter-spacing:.01em}
 .card .latin{font:italic 12px var(--serif);color:var(--moss);margin:4px 0 10px}
 .card .meta{display:flex;justify-content:space-between;font:9px var(--mono);letter-spacing:.1em;color:var(--fade);text-transform:uppercase}
 .card .meta .famtag{color:var(--ochre)}
+.loupe{position:absolute;width:130px;height:130px;border-radius:50%;border:1px solid var(--ochre);
+  background:var(--sheet);box-shadow:0 12px 28px rgba(20,28,22,.3),inset 0 0 0 1px rgba(255,255,255,.3);
+  pointer-events:none;display:none;z-index:6;overflow:hidden}
+.loupe .lz{position:absolute;left:0;top:0;transform-origin:0 0;display:grid;place-items:center}
+.loupe::after{content:"×2.6";position:absolute;right:10px;bottom:8px;font:8px var(--mono);letter-spacing:.12em;color:var(--ochre)}
+
+/* ---------- timeline mode ---------- */
+.grid.tl{display:flex;align-items:stretch;overflow-x:auto;gap:34px;padding:40px 6px 30px;scrollbar-width:thin}
+.grid.tl .tl-year{flex:0 0 auto;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;
+  font:italic 400 clamp(40px,5vw,64px)/1 var(--serif);color:var(--ochre);padding-bottom:64px;opacity:.85;user-select:none}
+.grid.tl .tl-year small{font:9px var(--mono);letter-spacing:.3em;color:var(--fade);margin-top:10px}
+.grid.tl .card{flex:0 0 236px;position:relative}
+.grid.tl .card::before{content:"";position:absolute;left:50%;top:-22px;width:1px;height:22px;background:var(--line)}
+.grid.tl{position:relative}
+.grid.tl::before{content:"";position:absolute;left:0;right:0;top:18px;height:1px;background:var(--line)}
 
 /* ---------- overlay ---------- */
 .overlay{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:4vmin;
   background:rgba(44,58,46,.45);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
 .overlay.open{opacity:1;pointer-events:auto}
 .sheet{position:relative;width:min(880px,100%);max-height:92vh;overflow:auto;background:var(--sheet);border:1px solid var(--line);
-  box-shadow:0 40px 90px -30px rgba(20,28,22,.6);transform:translateY(26px) rotate(.6deg);transition:transform .45s var(--ease)}
+  box-shadow:0 40px 90px -30px rgba(20,28,22,.6);transform:translateY(26px) rotate(.6deg);transition:transform .45s var(--ease),background-color 1.8s var(--ease);
+  touch-action:pan-y}
 .overlay.open .sheet{transform:none}
+.sheet.held{transition:none;cursor:grabbing}
 .sheet-inner{display:grid;grid-template-columns:1fr 1fr;gap:0}
 .sheet .big{padding:40px 30px;display:grid;place-items:center;border-right:1px solid var(--line);min-height:420px}
 .sheet .big svg{height:min(430px,52vh);width:auto}
@@ -106,25 +175,98 @@ aside h3{font:10px var(--mono);letter-spacing:.26em;text-transform:uppercase;col
   padding:9px 0;border-top:1px dashed var(--line);color:var(--fade)}
 .spec-row b{color:var(--ink);font-weight:400}
 .note{margin:18px 0 8px;font-size:12.5px;line-height:2;color:var(--ink);border-left:2px solid var(--ochre);padding-left:14px;font-style:normal}
-.sheet .navrow{margin-top:auto;display:flex;gap:10px;padding-top:18px}
+.sheet .navrow{margin-top:auto;display:flex;gap:10px;padding-top:18px;flex-wrap:wrap}
 .sbtn{border:1px solid var(--ink);padding:10px 18px;font:10px var(--mono);letter-spacing:.18em;text-transform:uppercase;
   transition:background .25s,color .25s}
 .sbtn:hover{background:var(--ink);color:var(--paper)}
 .sbtn.ghost{border-color:var(--line);color:var(--fade)}
 .sbtn.ghost:hover{border-color:var(--ink);color:var(--ink);background:none}
+.sbtn.accent{background:var(--ochre);border-color:var(--ochre);color:#fff}
+.sbtn.accent:hover{background:var(--ink);border-color:var(--ink)}
 .close-x{position:absolute;top:12px;right:14px;font:18px var(--mono);color:var(--fade);padding:6px;z-index:2}
 .close-x:hover{color:var(--ochre)}
 @media(max-width:720px){.sheet-inner{grid-template-columns:1fr}.sheet .big{border-right:none;border-bottom:1px solid var(--line);min-height:300px}}
 
-footer{border-top:1px solid var(--line);padding:22px 28px;display:flex;justify-content:space-between;gap:14px;
-  font:9px var(--mono);letter-spacing:.16em;color:var(--fade);text-transform:uppercase;flex-wrap:wrap}
+footer{border-top:1px solid var(--line);padding:22px 28px 120px;display:flex;justify-content:space-between;gap:14px;
+  font:9px var(--mono);letter-spacing:.16em;color:var(--fade);text-transform:uppercase;flex-wrap:wrap;position:relative;z-index:4}
+footer b{color:var(--ochre);font-weight:400}
+
+/* ---------- easel console ---------- */
+.easel{position:fixed;left:18px;bottom:18px;z-index:90;width:min(320px,calc(100vw - 36px));
+  border:1px solid var(--ink);background:var(--paper);box-shadow:8px 8px 0 rgba(44,58,46,.14);
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink)}
+.easel .etab{width:100%;display:flex;justify-content:space-between;align-items:center;background:var(--ink);
+  color:var(--paper);border:none;padding:10px 14px;font:10px var(--mono);letter-spacing:.24em;cursor:pointer}
+.easel .etab i{font-style:normal;color:var(--ochre)}
+.easel .ebody{padding:14px}
+.easel.closed .ebody{display:none}
+.eg{margin-bottom:14px}
+.eg:last-child{margin-bottom:0}
+.ek{display:block;font-size:8px;letter-spacing:.3em;color:var(--fade2);margin-bottom:8px}
+.ebts{display:flex;gap:6px;flex-wrap:wrap}
+.ebts button{flex:1;min-width:48px;border:1px solid var(--ink);background:transparent;color:var(--ink);
+  font:9px var(--mono);letter-spacing:.1em;padding:8px 4px;cursor:pointer;transition:.25s}
+.ebts button small{display:block;font-size:7px;letter-spacing:.14em;color:var(--fade2);margin-top:3px}
+.ebts button.on{background:var(--ochre);border-color:var(--ochre);color:#fff}
+.ebts button.on small{color:rgba(255,255,255,.75)}
+.ebts button:not(.on):hover{background:var(--ink);color:var(--paper)}
+.ebts button:not(.on):hover small{color:var(--paper)}
+.esl{display:flex;justify-content:space-between;font-size:8px;letter-spacing:.2em;color:var(--fade);margin:8px 0 4px}
+.esl output{color:var(--ochre)}
+.easel input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--ink);
+  outline:none;cursor:ew-resize;margin:2px 0 6px}
+.easel input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;
+  background:var(--paper);border:2px solid var(--ochre);border-radius:0;transform:rotate(45deg);transition:background .2s}
+.easel input[type=range]::-webkit-slider-thumb:hover{background:var(--ochre)}
+.easel input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--paper);
+  border:2px solid var(--ochre);border-radius:0;transform:rotate(45deg)}
+.eacts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.eacts button{border:1px solid var(--ink);background:transparent;color:var(--ink);font:9px var(--mono);
+  letter-spacing:.12em;padding:9px 4px;cursor:pointer;transition:.25s}
+.eacts button:hover{background:var(--ink);color:var(--paper)}
+.eacts button.primary{background:var(--ochre);border-color:var(--ochre);color:#fff}
+.eacts button.primary:hover{background:var(--ink);border-color:var(--ink)}
+.ekeys{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);font-size:8px;
+  letter-spacing:.12em;color:var(--fade2);line-height:1.9}
+
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);z-index:95;background:var(--ink);
+  color:var(--paper);font-family:var(--mono);font-size:10px;letter-spacing:.2em;padding:11px 20px;
+  opacity:0;pointer-events:none;transition:opacity .5s var(--ease),transform .5s var(--ease);white-space:nowrap;
+  max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast i{font-style:normal;color:var(--ochre)}
 </style>
-</head>
-<body>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
+<body data-wx="sun">
+
+<div id="wash" aria-hidden="true"></div>
+<canvas id="wx" aria-hidden="true"></canvas>
+<div id="grain" aria-hidden="true"></div>
 
 <header class="top">
   <a class="back" href="../../../index.html#work">← 返回总目</a>
-  <div class="sig"><b>№ 06 · HERBARIUM INDEX</b><br>草木标本索引 — 纸上植物园</div>
+  <div class="brand">
+    <svg class="seal" id="sealSvg" viewBox="0 0 64 64" role="img" aria-label="Atelier MIRA 印章">
+      <defs><path id="sealring" d="M32 9 a23 23 0 1 1 -0.01 0"/></defs>
+      <circle class="ring" cx="32" cy="32" r="30"/>
+      <circle class="ring2" cx="32" cy="32" r="18.5"/>
+      <text><textPath href="#sealring" startOffset="1">ATELIER MIRA · PLEIN AIR ·</textPath></text>
+      <path class="m" d="M22.5 42 C 23.5 33, 24.5 25, 25.5 21.5 C 27.5 27.5, 29.5 33.5, 32 37.5 C 34.5 33.5, 36.5 27.5, 38.5 21.5 C 39.5 25, 40.5 33, 41.5 42"/>
+    </svg>
+    <div class="sig"><b>№ 06 · HERBARIUM INDEX</b><br>草木标本索引 — 纸上植物园
+      <span class="etude">ÉTUDE N°47/100 — ATELIER MIRA</span></div>
+  </div>
   <div class="right">EST. 1954 · 华东植物档案室<br>12 SPECIMENS / 5 FAMILIES</div>
 </header>
 
@@ -133,42 +275,116 @@ footer{border-top:1px solid var(--line);padding:22px 28px;display:flex;justify-c
     <div class="kicker">INDEX OF PRESSED THINGS · 压制物索引</div>
     <h1>草木<em>标本室</em></h1>
   </div>
-  <p>每一枚标本都是一次被压平的春天。这里收存十二份山野采集记录——按科属翻检，点开任何一张卡片，读它的采集手记。</p>
-  <div class="stamp">ARCHIVE<br>华东<br>1954</div>
+  <p>每一枚标本都是一次被压平的春天。这里收存十二份山野采集记录——按科属翻检，点开任何一张卡片，读它的采集手记。
+    画架台上可以换天气：标本不变，看标本的天光在变。</p>
+  <div class="stamp" id="stampBtn" title="双击换天气">ARCHIVE<br>华东<br>1954</div>
 </section>
 
 <div class="layout">
   <aside>
     <h3>科属索引 / Families</h3>
     <div id="famList"></div>
-    <div class="aside-note">采集季 <b>1986—1991</b><br>压制方式 · 吸水纸干压<br>保存地 · 三楼恒湿柜 B<br><br>点击标本卡查看<br>完整采集记录</div>
+    <div class="aside-note">采集季 <b>1986—1991</b><br>压制方式 · 吸水纸干压<br>保存地 · 三楼恒湿柜 B<br><br>挥过标本阵可掀起一阵风<br>点击标本卡查看完整记录</div>
   </aside>
   <section class="grid" id="grid"></section>
 </div>
 
 <div class="overlay" id="overlay">
-  <div class="sheet" role="dialog" aria-modal="true">
+  <div class="sheet" role="dialog" aria-modal="true" id="sheet">
     <button class="close-x" id="closeX" aria-label="关闭">×</button>
     <div class="sheet-inner" id="sheetInner"></div>
   </div>
 </div>
 
 <footer>
-  <span>HERBARIUM INDEX · № 06 / WEB DESIGN</span>
+  <span>HERBARIUM INDEX · ÉTUDE N°47/100 · ATELIER MIRA</span>
+  <span>MEDIUM — SVG / CANVAS 2D / CSS · SEED <b id="seedOut">—</b> · PAINTED WITH CODE, PLEIN AIR</span>
   <span>标本插画为程序生成 SVG · 无任何外部图片</span>
-  <span>翻检愉快</span>
 </footer>
 
+<!-- ============ EASEL CONSOLE ============ -->
+<div class="easel" id="easel">
+  <button class="etab" id="easelTab"><span>画架台 <i>EASEL</i></span><span id="easelState">天 · 晴</span></button>
+  <div class="ebody">
+    <div class="eg"><span class="ek">天光 WEATHER — 同一柜标本，四种天色</span>
+      <div class="ebts" id="wxBtns">
+        <button data-w="sun" class="on">晴<small>SUN</small></button>
+        <button data-w="fog">雾<small>FOG</small></button>
+        <button data-w="rain">雨<small>RAIN</small></button>
+        <button data-w="snow">雪<small>SNOW</small></button>
+      </div>
+    </div>
+    <div class="eg"><span class="ek">构成 VIEW — 三种研究法</span>
+      <div class="ebts" id="viewBtns">
+        <button data-v="wall" class="on">标本墙<small>WALL</small></button>
+        <button data-v="timeline">年表<small>1986–91</small></button>
+        <button data-v="ink">线稿<small>PLATES</small></button>
+      </div>
+    </div>
+    <div class="eg"><span class="ek">参数 PARAMETERS</span>
+      <div class="esl"><span>风 WIND</span><output id="oWind">35%</output></div>
+      <input type="range" id="cWind" min="0" max="100" value="35">
+      <div class="esl"><span>湿度 HUMIDITY</span><output id="oHumid">30%</output></div>
+      <input type="range" id="cHumid" min="0" max="100" value="30">
+      <div class="esl"><span>颗粒 GRAIN</span><output id="oGrain">12%</output></div>
+      <input type="range" id="cGrain" min="0" max="40" value="12">
+    </div>
+    <div class="eg"><span class="ek">输出 OUTPUT</span>
+      <div class="eacts">
+        <button class="primary" id="bReseed">再生 ↻</button>
+        <button id="bShare">分享链接</button>
+        <button id="bSave">存标本 PNG</button>
+      </div>
+    </div>
+    <div class="ekeys">T 换构成 · 1–4 换天 · R 再生 · ←/→ 翻标本 · ESC 合上<br>悬停标本见叶脉放大镜 · 闲下三十秒，天光自转</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
+/* ---------------- seed ---------------- */
+function readSeed(){
+  var m=location.hash.match(/seed=(\d+)/);
+  if(m)return parseInt(m[1],10);
+  return 1000+Math.floor(Math.random()*89000);
+}
+var SEED=readSeed();
+function writeSeed(){
+  try{history.replaceState(null,"","#seed="+SEED);}catch(e){location.hash="seed="+SEED;}
+  document.getElementById("seedOut").textContent=SEED;
+}
+function rng(seed){var s=(seed*9301+49297+SEED)%233280;return function(){s=(s*9301+49297)%233280;return s/233280}}
+
+/* ---------------- weather ---------------- */
+var WXS={
+  sun:{cn:"晴",en:"SUN"},
+  fog:{cn:"雾",en:"FOG"},
+  rain:{cn:"雨",en:"RAIN"},
+  snow:{cn:"雪",en:"SNOW"}
+};
+var WX_ORDER=["sun","fog","rain","snow"];
+var WX="sun";
+function applyWx(name,quiet){
+  WX=name;
+  document.body.dataset.wx=name;
+  document.querySelectorAll("#wxBtns button").forEach(function(b){
+    b.classList.toggle("on",b.dataset.w===name);
+  });
+  document.getElementById("easelState").textContent="天 · "+WXS[name].cn;
+  seedWxParts();
+  if(!quiet)toast("天窗换了 — "+WXS[name].cn+" "+WXS[name].en);
+}
+
 /* ---------------- data ---------------- */
-const FAMS = {
+var FAMS = {
   pter:{cn:"蕨科",la:"Pteridaceae"},
   rosa:{cn:"蔷薇科",la:"Rosaceae"},
   aster:{cn:"菊科",la:"Asteraceae"},
   faba:{cn:"豆科",la:"Fabaceae"},
   lili:{cn:"百合科",la:"Liliaceae"}
 };
-const PLANTS = [
+var PLANTS = [
  {id:"HB-001",cn:"铁线蕨",la:"Adiantum capillus-veneris",fam:"pter",type:"fern",flower:null,seed:7,
   place:"莫干山阴谷",date:"1987.06.12",h:"18—40 cm",bloom:"孢子期 夏",note:"叶柄细如铁丝，得名的由来。生于滴水的岩壁，采下时扇形小叶还在往下滴水，压了九天才干透。"},
  {id:"HB-002",cn:"凤尾蕨",la:"Pteris cretica",fam:"pter",type:"fern2",flower:null,seed:21,
@@ -195,189 +411,568 @@ const PLANTS = [
   place:"灵隐寺墙角",date:"1990.08.25",h:"30—50 cm",bloom:"花期 8—9月",note:"花白如玉簪，夜里最香。喜阴，寺墙根下年年自己长出来，僧人从不锄它。"}
 ];
 
-/* deterministic pseudo-random */
-function rng(seed){let s=seed*9301+49297;return()=>{s=(s*9301+49297)%233280;return s/233280}}
-const STEM="#5A7250",LEAF="#46603F",LEAF2="#6E8560";
+/* ---------------- params ---------------- */
+var P={wind:35,humid:30,grain:12};
+var VIEW="wall";
+
+var STEM="#5A7250",LEAF="#46603F",LEAF2="#6E8560";
 
 /* ---------------- SVG plant illustrators ---------------- */
-function leaf(x,y,len,ang,w,col){return `<path d="M${x} ${y} q ${Math.cos(ang)*len*.5-w} ${Math.sin(ang)*len*.5-w*.6} ${Math.cos(ang)*len} ${Math.sin(ang)*len} q ${-w} ${w*.7} ${-Math.cos(ang)*len} ${-Math.sin(ang)*len} z" fill="${col}" opacity=".88"/>`}
+function leaf(x,y,len,ang,w,col){return '<path d="M'+x+' '+y+' q '+(Math.cos(ang)*len*.5-w)+' '+(Math.sin(ang)*len*.5-w*.6)+' '+(Math.cos(ang)*len)+' '+(Math.sin(ang)*len)+' q '+(-w)+' '+(w*.7)+' '+(-Math.cos(ang)*len)+' '+(-Math.sin(ang)*len)+' z" fill="'+col+'" opacity=".88"/>'}
 function fern(r,variant){
-  let s=`<path d="M100 250 Q ${variant?96:104} 150 100 60" stroke="${STEM}" stroke-width="2.2" fill="none"/>`;
-  const n=variant?9:12;
-  for(let i=0;i<n;i++){
-    const t=i/n,y=245-t*180,len=(variant?44:52)*(1-t*.75),a=Math.PI/2-.25+t*.15;
-    s+=`<path d="M100 ${y} q ${len*.6} ${-len*.3} ${len} ${-len*.55}" stroke="${STEM}" stroke-width="1.4" fill="none"/>`;
-    s+=`<path d="M100 ${y} q ${-len*.6} ${-len*.3} ${-len} ${-len*.55}" stroke="${STEM}" stroke-width="1.4" fill="none"/>`;
-    const leaflets=5+Math.floor(r()*3);
-    for(const dir of[1,-1]){
-      for(let j=1;j<=leaflets;j++){
-        const tt=j/leaflets,x=100+dir*len*tt*.98,yy=y-len*.55*tt*tt-len*.05;
-        const ll=(variant?9:7)*(1-tt*.6)*(1-t*.5);
+  var s='<path d="M100 250 Q '+(variant?96:104)+' 150 100 60" stroke="'+STEM+'" stroke-width="2.2" fill="none"/>';
+  var n=variant?9:12;
+  for(var i=0;i<n;i++){
+    var t=i/n,y=245-t*180,len=(variant?44:52)*(1-t*.75);
+    s+='<path d="M100 '+y+' q '+(len*.6)+' '+(-len*.3)+' '+len+' '+(-len*.55)+'" stroke="'+STEM+'" stroke-width="1.4" fill="none"/>';
+    s+='<path d="M100 '+y+' q '+(-len*.6)+' '+(-len*.3)+' '+(-len)+' '+(-len*.55)+'" stroke="'+STEM+'" stroke-width="1.4" fill="none"/>';
+    var leaflets=5+Math.floor(r()*3);
+    for(var di=0;di<2;di++){
+      var dir=di===0?1:-1;
+      for(var j=1;j<=leaflets;j++){
+        var tt=j/leaflets,x=100+dir*len*tt*.98,yy=y-len*.55*tt*tt-len*.05;
+        var ll=(variant?9:7)*(1-tt*.6)*(1-t*.5);
         s+=leaf(x,yy,ll,dir>0?-.5:-Math.PI+.5,3.4,r()>.5?LEAF:LEAF2);
       }
     }
   }
-  s+=`<circle cx="100" cy="57" r="6" fill="none" stroke="${STEM}" stroke-width="2"/>`;
+  s+='<circle cx="100" cy="57" r="6" fill="none" stroke="'+STEM+'" stroke-width="2"/>';
   return s;
 }
 function compound(r,flower,nLeaf){
-  let s=`<path d="M100 250 Q 94 170 102 90" stroke="${STEM}" stroke-width="2.4" fill="none"/>`;
-  for(let i=0;i<nLeaf;i++){
-    const t=i/nLeaf,y=235-t*130,side=i%2?1:-1,len=34-t*14;
-    s+=`<path d="M${100+side*2} ${y} L ${100+side*len} ${y-10}" stroke="${STEM}" stroke-width="1.6"/>`;
-    for(let j=0;j<3;j++){
-      const bx=100+side*(len*.3+len*.28*j),by=y-3-8*j;
+  var s='<path d="M100 250 Q 94 170 102 90" stroke="'+STEM+'" stroke-width="2.4" fill="none"/>';
+  for(var i=0;i<nLeaf;i++){
+    var t=i/nLeaf,y=235-t*130,side=i%2?1:-1,len=34-t*14;
+    s+='<path d="M'+(100+side*2)+' '+y+' L '+(100+side*len)+' '+(y-10)+'" stroke="'+STEM+'" stroke-width="1.6"/>';
+    for(var j=0;j<3;j++){
+      var bx=100+side*(len*.3+len*.28*j),by=y-3-8*j;
       s+=leaf(bx,by,13-t*5,-.9,5,r()>.5?LEAF:LEAF2);
       s+=leaf(bx,by,13-t*5,-2.2,5,r()>.5?LEAF2:LEAF);
     }
     s+=leaf(100+side*len,y-10,14-t*5,-1.5,5,LEAF);
   }
   if(flower){
-    const fx=102,fy=78;
-    for(let p=0;p<5;p++){
-      const a=p/5*Math.PI*2-Math.PI/2;
-      s+=`<ellipse cx="${fx+Math.cos(a)*11}" cy="${fy+Math.sin(a)*11}" rx="9.5" ry="6.5" fill="${flower}" opacity=".9" transform="rotate(${a*180/Math.PI} ${fx+Math.cos(a)*11} ${fy+Math.sin(a)*11})"/>`;
+    var fx=102,fy=78;
+    for(var p=0;p<5;p++){
+      var a=p/5*Math.PI*2-Math.PI/2;
+      s+='<ellipse cx="'+(fx+Math.cos(a)*11)+'" cy="'+(fy+Math.sin(a)*11)+'" rx="9.5" ry="6.5" fill="'+flower+'" opacity=".9" transform="rotate('+(a*180/Math.PI)+' '+(fx+Math.cos(a)*11)+' '+(fy+Math.sin(a)*11)+')"/>';
     }
-    s+=`<circle cx="${fx}" cy="${fy}" r="5.5" fill="#B0793C"/>`;
-    for(let st=0;st<7;st++){const a=st/7*Math.PI*2;s+=`<line x1="${fx}" y1="${fy}" x2="${fx+Math.cos(a)*9}" y2="${fy+Math.sin(a)*9}" stroke="#8A6A30" stroke-width=".8"/>`}
+    s+='<circle cx="'+fx+'" cy="'+fy+'" r="5.5" fill="#B0793C"/>';
+    for(var st=0;st<7;st++){var a2=st/7*Math.PI*2;s+='<line x1="'+fx+'" y1="'+fy+'" x2="'+(fx+Math.cos(a2)*9)+'" y2="'+(fy+Math.sin(a2)*9)+'" stroke="#8A6A30" stroke-width=".8"/>'}
   }
   return s;
 }
 function daisy(r,petal,disk,variant){
-  let s=`<path d="M100 250 Q 98 180 100 120" stroke="${STEM}" stroke-width="2.2" fill="none"/>`;
+  var s='<path d="M100 250 Q 98 180 100 120" stroke="'+STEM+'" stroke-width="2.2" fill="none"/>';
   s+=leaf(100,215,26,-2.6,6,LEAF2);s+=leaf(100,190,22,-.6,5,LEAF);
-  const fx=100,fy=92,n=variant?26:14,R=variant?30:26;
-  for(let p=0;p<n;p++){
-    const a=p/n*Math.PI*2,rr=R*(0.9+r()*.2);
-    s+=`<ellipse cx="${fx+Math.cos(a)*rr*.72}" cy="${fy+Math.sin(a)*rr*.72}" rx="${variant?3:8.5}" ry="${variant?10:4.5}" fill="${petal}" opacity="${variant?.75:.92}" transform="rotate(${a*180/Math.PI+90} ${fx+Math.cos(a)*rr*.72} ${fy+Math.sin(a)*rr*.72})"/>`;
+  var fx=100,fy=92,n=variant?26:14,R=variant?30:26;
+  for(var p=0;p<n;p++){
+    var a=p/n*Math.PI*2,rr=R*(0.9+r()*.2);
+    s+='<ellipse cx="'+(fx+Math.cos(a)*rr*.72)+'" cy="'+(fy+Math.sin(a)*rr*.72)+'" rx="'+(variant?3:8.5)+'" ry="'+(variant?10:4.5)+'" fill="'+petal+'" opacity="'+(variant?.75:.92)+'" transform="rotate('+(a*180/Math.PI+90)+' '+(fx+Math.cos(a)*rr*.72)+' '+(fy+Math.sin(a)*rr*.72)+')"/>';
   }
-  s+=`<circle cx="${fx}" cy="${fy}" r="${variant?9:7}" fill="${disk}"/>`;
+  s+='<circle cx="'+fx+'" cy="'+fy+'" r="'+(variant?9:7)+'" fill="'+disk+'"/>';
   if(variant==="dandelion"){
-    s+=`<g stroke="${STEM}" stroke-width="1" opacity=".7">`;
-    for(let p=0;p<10;p++){const a=p/10*Math.PI*2;s+=`<line x1="150" y1="70" x2="${150+Math.cos(a)*14}" y2="${70+Math.sin(a)*14}"/>`}
-    s+=`</g><circle cx="150" cy="70" r="3" fill="${STEM}"/>`;
+    s+='<g stroke="'+STEM+'" stroke-width="1" opacity=".7">';
+    for(var p2=0;p2<10;p2++){var a2=p2/10*Math.PI*2;s+='<line x1="150" y1="70" x2="'+(150+Math.cos(a2)*14)+'" y2="'+(70+Math.sin(a2)*14)+'"/>'}
+    s+='</g><circle cx="150" cy="70" r="3" fill="'+STEM+'"/>';
   }
   return s;
 }
 function pea(r,col){
-  let s=`<path d="M100 250 Q 106 180 98 110" stroke="${STEM}" stroke-width="2" fill="none"/>`;
-  for(let i=0;i<4;i++){
-    const y=225-i*30,side=i%2?1:-1;
-    s+=`<path d="M100 ${y} L ${100+side*26} ${y-8}" stroke="${STEM}" stroke-width="1.4"/>`;
+  var s='<path d="M100 250 Q 106 180 98 110" stroke="'+STEM+'" stroke-width="2" fill="none"/>';
+  for(var i=0;i<4;i++){
+    var y=225-i*30,side=i%2?1:-1;
+    s+='<path d="M100 '+y+' L '+(100+side*26)+' '+(y-8)+'" stroke="'+STEM+'" stroke-width="1.4"/>';
     s+=leaf(100+side*26,y-8,12,-1.2,5,LEAF);s+=leaf(100+side*26,y-8,12,-1.9,5,LEAF2);
   }
-  s+=`<path d="M98 110 q 14 -8 18 4 q 6 14 -8 16 q -16 2 -16 -8 q 0 -9 6 -12 z" fill="${col}" opacity=".92"/>`;
-  s+=`<path d="M98 108 q 4 -14 14 -12 q 8 2 4 12" fill="${col}" opacity=".7"/>`;
-  const fx=100,fy=66;
-  s+=`<path d="M100 100 Q 100 80 ${fx} ${fy+14}" stroke="${STEM}" stroke-width="1.4" fill="none"/>`;
-  s+=`<path d="M${fx} ${fy} q 12 -10 20 0 q -2 12 -20 8 z" fill="${col}"/>`;
-  s+=`<path d="M${fx} ${fy} q -12 -10 -20 0 q 2 12 20 8 z" fill="${col}" opacity=".8"/>`;
-  s+=`<path d="M${fx} ${fy-4} q 0 -14 10 -16 q 6 8 -2 16 z" fill="${col}" opacity=".65"/>`;
+  s+='<path d="M98 110 q 14 -8 18 4 q 6 14 -8 16 q -16 2 -16 -8 q 0 -9 6 -12 z" fill="'+col+'" opacity=".92"/>';
+  s+='<path d="M98 108 q 4 -14 14 -12 q 8 2 4 12" fill="'+col+'" opacity=".7"/>';
+  var fx=100,fy=66;
+  s+='<path d="M100 100 Q 100 80 '+fx+' '+(fy+14)+'" stroke="'+STEM+'" stroke-width="1.4" fill="none"/>';
+  s+='<path d="M'+fx+' '+fy+' q 12 -10 20 0 q -2 12 -20 8 z" fill="'+col+'"/>';
+  s+='<path d="M'+fx+' '+fy+' q -12 -10 -20 0 q 2 12 20 8 z" fill="'+col+'" opacity=".8"/>';
+  s+='<path d="M'+fx+' '+(fy-4)+' q 0 -14 10 -16 q 6 8 -2 16 z" fill="'+col+'" opacity=".65"/>';
   return s;
 }
 function lily(r,col,hosta){
-  let s="";
+  var s="";
   if(hosta){
-    for(let i=0;i<5;i++){
-      const a=-Math.PI/2+(i-2)*.45;
-      s+=`<path d="M100 250 q ${Math.cos(a)*60} ${Math.sin(a)*60-30} ${Math.cos(a)*95} ${Math.sin(a)*150}" stroke="${STEM}" stroke-width="1.8" fill="none"/>`;
-      s+=`<ellipse cx="${100+Math.cos(a)*95}" cy="${250+Math.sin(a)*150}" rx="13" ry="26" fill="${i%2?LEAF:LEAF2}" opacity=".85" transform="rotate(${a*180/Math.PI+90} ${100+Math.cos(a)*95} ${250+Math.sin(a)*150})"/>`;
+    for(var i=0;i<5;i++){
+      var a=-Math.PI/2+(i-2)*.45;
+      s+='<path d="M100 250 q '+(Math.cos(a)*60)+' '+(Math.sin(a)*60-30)+' '+(Math.cos(a)*95)+' '+(Math.sin(a)*150)+'" stroke="'+STEM+'" stroke-width="1.8" fill="none"/>';
+      s+='<ellipse cx="'+(100+Math.cos(a)*95)+'" cy="'+(250+Math.sin(a)*150)+'" rx="13" ry="26" fill="'+(i%2?LEAF:LEAF2)+'" opacity=".85" transform="rotate('+(a*180/Math.PI+90)+' '+(100+Math.cos(a)*95)+' '+(250+Math.sin(a)*150)+')"/>';
     }
   }
-  s+=`<path d="M100 250 Q 102 170 100 110" stroke="${STEM}" stroke-width="2.4" fill="none"/>`;
+  s+='<path d="M100 250 Q 102 170 100 110" stroke="'+STEM+'" stroke-width="2.4" fill="none"/>';
   if(!hosta){s+=leaf(100,210,30,-2.7,5,LEAF2);s+=leaf(100,180,26,-.5,5,LEAF)}
-  const fx=100,fy=88;
-  for(let p=0;p<6;p++){
-    const a=p/6*Math.PI*2-Math.PI/2;
-    s+=`<ellipse cx="${fx+Math.cos(a)*17}" cy="${fy+Math.sin(a)*17}" rx="18" ry="7" fill="${col}" opacity=".9" transform="rotate(${a*180/Math.PI} ${fx+Math.cos(a)*17} ${fy+Math.sin(a)*17})"/>`;
+  var fx=100,fy=88;
+  for(var p=0;p<6;p++){
+    var a2=p/6*Math.PI*2-Math.PI/2;
+    s+='<ellipse cx="'+(fx+Math.cos(a2)*17)+'" cy="'+(fy+Math.sin(a2)*17)+'" rx="18" ry="7" fill="'+col+'" opacity=".9" transform="rotate('+(a2*180/Math.PI)+' '+(fx+Math.cos(a2)*17)+' '+(fy+Math.sin(a2)*17)+')"/>';
   }
-  for(let st=0;st<6;st++){const a=st/6*Math.PI*2-Math.PI/2;
-    s+=`<line x1="${fx}" y1="${fy}" x2="${fx+Math.cos(a)*20}" y2="${fy+Math.sin(a)*20}" stroke="#8A6A30" stroke-width="1"/><circle cx="${fx+Math.cos(a)*20}" cy="${fy+Math.sin(a)*20}" r="1.8" fill="#8A6A30"/>`}
-  s+=`<circle cx="${fx}" cy="${fy}" r="4" fill="#B0793C"/>`;
+  for(var st=0;st<6;st++){var a3=st/6*Math.PI*2-Math.PI/2;
+    s+='<line x1="'+fx+'" y1="'+fy+'" x2="'+(fx+Math.cos(a3)*20)+'" y2="'+(fy+Math.sin(a3)*20)+'" stroke="#8A6A30" stroke-width="1"/><circle cx="'+(fx+Math.cos(a3)*20)+'" cy="'+(fy+Math.sin(a3)*20)+'" r="1.8" fill="#8A6A30"/>'}
+  s+='<circle cx="'+fx+'" cy="'+fy+'" r="4" fill="#B0793C"/>';
   return s;
 }
-function plantSVG(p,size){
-  const r=rng(p.seed);let body="";
+function plantBody(p){
+  var r=rng(p.seed),body="";
   switch(p.type){
     case"fern":body=fern(r,0);break;
     case"fern2":body=fern(r,1);break;
     case"rose":body=compound(r,p.flower,4);break;
-    case"berry":body=compound(r,p.flower,3)+`<circle cx="70" cy="238" r="8" fill="#B0503C"/><circle cx="132" cy="242" r="7" fill="#B0503C"/>`;break;
+    case"berry":body=compound(r,p.flower,3)+'<circle cx="70" cy="238" r="8" fill="#B0503C"/><circle cx="132" cy="242" r="7" fill="#B0503C"/>';break;
     case"daisy":body=daisy(r,p.flower,"#B0793C");break;
     case"dandelion":body=daisy(r,p.flower,"#8A6A30","dandelion");break;
     case"pea":body=pea(r,p.flower);break;
     case"lily":body=lily(r,p.flower,false);break;
     case"hosta":body=lily(r,p.flower,true);break;
   }
-  return `<svg viewBox="0 0 200 270" role="img" aria-label="${p.cn}插画">${body}
-  <line x1="40" y1="252" x2="160" y2="252" stroke="rgba(44,58,46,.3)" stroke-width="1"/></svg>`;
+  return body;
+}
+function plantSVG(p,opts){
+  opts=opts||{};
+  var body=plantBody(p);
+  if(opts.ink){
+    /* 铜版线稿：叶与花化填为描，只留赭石点蕊 */
+    body=body.replace(/fill="(#[0-9A-Fa-f]{6})"/g,function(m,c){
+      if(c==="#B0793C"||c==="#8A6A30")return m;
+      return 'fill="none" stroke="#2C3A2E" stroke-width=".9"';
+    });
+  }
+  return '<svg viewBox="0 0 200 270" role="img" aria-label="'+p.cn+'插画">'+body+
+  '<line x1="40" y1="252" x2="160" y2="252" stroke="rgba(44,58,46,.3)" stroke-width="1"/></svg>';
 }
 
-/* ---------------- render grid ---------------- */
-const grid=document.getElementById("grid");
-function cardHTML(p){
-  return `<article class="card" data-fam="${p.fam}" data-id="${p.id}" tabindex="0" role="button" aria-label="查看${p.cn}标本">
-    <span class="tape l"></span><span class="tape r"></span><span class="no">${p.id}</span>
-    <div class="plate">${plantSVG(p)}</div>
-    <h4>${p.cn}</h4><div class="latin">${p.la}</div>
-    <div class="meta"><span class="famtag">${FAMS[p.fam].cn}</span><span>${p.place}</span></div>
-  </article>`;
+/* ---------------- render ---------------- */
+var grid=document.getElementById("grid");
+var curFam="all";
+function cardHTML(p,i){
+  return '<article class="card" data-fam="'+p.fam+'" data-id="'+p.id+'" tabindex="0" role="button" aria-label="查看'+p.cn+'标本" style="--bd:'+(-i*0.9).toFixed(1)+'s">'+
+    '<span class="tape l"></span><span class="tape r"></span><span class="no">'+p.id+'</span>'+
+    '<div class="plate"><span class="breath">'+plantSVG(p,{ink:VIEW==="ink"})+'</span></div>'+
+    '<h4>'+p.cn+'</h4><div class="latin">'+p.la+'</div>'+
+    '<div class="meta"><span class="famtag">'+FAMS[p.fam].cn+'</span><span>'+p.place+'</span></div>'+
+  '</article>';
 }
-grid.innerHTML=PLANTS.map(cardHTML).join("");
-const cards=[...grid.children];
-requestAnimationFrame(()=>cards.forEach((c,i)=>setTimeout(()=>c.classList.add("show"),40*i)));
+function renderGrid(){
+  if(VIEW==="timeline"){
+    var sorted=PLANTS.slice().sort(function(a,b){return a.date<b.date?-1:1;});
+    var html='',lastY='';
+    sorted.forEach(function(p){
+      var y=p.date.slice(0,4);
+      if(y!==lastY){html+='<div class="tl-year">'+y+'<small>采集于 '+y+' 年</small></div>';lastY=y;}
+      var i=PLANTS.indexOf(p);
+      html+=cardHTML(p,i);
+    });
+    grid.innerHTML=html;
+    grid.classList.add("tl");
+  }else{
+    grid.innerHTML=PLANTS.map(cardHTML).join("");
+    grid.classList.remove("tl");
+  }
+  applyFam(false);
+  var cards=grid.querySelectorAll(".card");
+  requestAnimationFrame(function(){cards.forEach(function(c,i){setTimeout(function(){c.classList.add("show");},40*i);});});
+  bindPlates();
+}
 
 /* ---------------- family filter ---------------- */
-const famList=document.getElementById("famList");
-const allBtn=`<button class="fam on" data-fam="all"><span class="fname"><span class="dot"></span>全部 <span class="lat">All</span></span><span class="cnt">${PLANTS.length}</span></button>`;
-famList.innerHTML=allBtn+Object.entries(FAMS).map(([k,f])=>
- `<button class="fam" data-fam="${k}"><span class="fname"><span class="dot"></span>${f.cn} <span class="lat">${f.la}</span></span><span class="cnt">${PLANTS.filter(p=>p.fam===k).length}</span></button>`).join("");
-famList.addEventListener("click",e=>{
-  const b=e.target.closest(".fam");if(!b)return;
-  famList.querySelectorAll(".fam").forEach(x=>{x.classList.toggle("on",x===b);x.classList.toggle("dim",x!==b&&b.dataset.fam!=="all"&&x.dataset.fam!=="all")});
-  const f=b.dataset.fam;let shown=0;
-  cards.forEach(c=>{
-    const ok=f==="all"||c.dataset.fam===f;
-    if(ok){c.classList.remove("hide");c.classList.remove("show");setTimeout(()=>c.classList.add("show"),50+shown*45);shown++}
+var famList=document.getElementById("famList");
+famList.innerHTML='<button class="fam on" data-fam="all"><span class="fname"><span class="dot"></span>全部 <span class="lat">All</span></span><span class="cnt">'+PLANTS.length+'</span></button>'+
+  Object.keys(FAMS).map(function(k){var f=FAMS[k];
+    return '<button class="fam" data-fam="'+k+'"><span class="fname"><span class="dot"></span>'+f.cn+' <span class="lat">'+f.la+'</span></span><span class="cnt">'+PLANTS.filter(function(p){return p.fam===k}).length+'</span></button>';
+  }).join("");
+function applyFam(anim){
+  var f=curFam,shown=0;
+  grid.querySelectorAll(".card").forEach(function(c){
+    var ok=f==="all"||c.dataset.fam===f;
+    if(ok){c.classList.remove("hide");
+      if(anim!==false){c.classList.remove("show");setTimeout(function(){c.classList.add("show");},50+shown*45);}
+      shown++;}
     else c.classList.add("hide");
   });
+}
+famList.addEventListener("click",function(e){
+  var b=e.target.closest(".fam");if(!b)return;
+  curFam=b.dataset.fam;
+  famList.querySelectorAll(".fam").forEach(function(x){
+    x.classList.toggle("on",x===b);
+    x.classList.toggle("dim",x!==b&&curFam!=="all"&&x.dataset.fam!=="all");
+  });
+  applyFam(true);
+});
+
+/* ---------------- wind (direct manipulation) ---------------- */
+var gust=0,gustT=0,gustDir=1,plates=[];
+function bindPlates(){
+  plates=[];
+  grid.querySelectorAll(".card").forEach(function(c,i){
+    plates.push({el:c.querySelector(".plate"),ph:i*0.7});
+  });
+}
+document.addEventListener("pointermove",function(e){
+  if(!e.movementX)return;
+  var overGrid=e.target.closest&&e.target.closest("#grid");
+  var v=Math.abs(e.movementX);
+  if(overGrid&&v>2){
+    gustT=Math.min(gustT+v*0.06,3);
+    gustDir=e.movementX>0?1:-1;
+  }
+},{passive:true});
+var lastScroll=0,scrollVel=0;
+window.addEventListener("scroll",function(){
+  var y=window.scrollY;
+  scrollVel=Math.min(Math.abs(y-lastScroll)*0.06,2.4);
+  lastScroll=y;
+},{passive:true});
+var wt=0;
+function windLoop(){
+  wt+=0.016;
+  gustT*=0.94;scrollVel*=0.9;
+  gust+=((gustT+scrollVel)-gust)*0.06;
+  var amp=(P.wind/100)*2.2+gust*3.2;
+  plates.forEach(function(p){
+    var sway=Math.sin(wt*1.6+p.ph)*amp*(0.5+0.5*Math.sin(p.ph*2.3));
+    var tilt=sway*0.9+gust*gustDir*2.2*Math.sin(p.ph+wt*3);
+    p.el.style.transform="rotate("+tilt.toFixed(2)+"deg) translateX("+(sway*1.6).toFixed(1)+"px)";
+  });
+  requestAnimationFrame(windLoop);
+}
+
+/* ---------------- loupe (SVG vein magnifier) ---------------- */
+var loupe=document.createElement("div");
+loupe.className="loupe";
+var lz=document.createElement("div");
+lz.className="lz";
+loupe.appendChild(lz);
+grid.addEventListener("pointerover",function(e){
+  var plate=e.target.closest(".plate");if(!plate)return;
+  var card=plate.closest(".card");
+  var p=PLANTS.filter(function(x){return x.id===card.dataset.id})[0];
+  lz.innerHTML=plantSVG(p,{ink:VIEW==="ink"});
+  plate.appendChild(loupe);
+  loupe.style.display="block";
+});
+grid.addEventListener("pointerout",function(e){
+  if(e.target.closest&&e.target.closest(".plate"))loupe.style.display="none";
+});
+grid.addEventListener("pointermove",function(e){
+  var plate=e.target.closest(".plate");if(!plate||loupe.style.display!=="block")return;
+  var r=plate.getBoundingClientRect();
+  var nx=(e.clientX-r.left)/r.width, ny=(e.clientY-r.top)/r.height;
+  loupe.style.left=(e.clientX-r.left-65)+"px";
+  loupe.style.top=(e.clientY-r.top-65)+"px";
+  var Z=2.6;
+  var svgEl=lz.querySelector("svg");
+  if(svgEl){
+    svgEl.style.height=(r.height*Z)+"px";
+    svgEl.style.width="auto";
+    var sw=r.height*Z*(200/270);
+    lz.style.transform="translate("+(65-nx*sw)+"px,"+(65-ny*r.height*Z)+"px)";
+  }
 });
 
 /* ---------------- detail overlay ---------------- */
-const overlay=document.getElementById("overlay"),sheetInner=document.getElementById("sheetInner");
-let cur=0;
+var overlay=document.getElementById("overlay"),sheetInner=document.getElementById("sheetInner"),sheet=document.getElementById("sheet");
+var cur=0;
 function openSheet(id){
-  cur=PLANTS.findIndex(p=>p.id===id);const p=PLANTS[cur],f=FAMS[p.fam];
-  sheetInner.innerHTML=`
-   <div class="big">${plantSVG(p,1)}</div>
-   <div class="info">
-     <div class="kicker">${p.id} · ${f.cn} ${f.la}</div>
-     <h2>${p.cn}</h2><div class="latin">${p.la}</div>
-     <div class="spec-row"><span>采集地</span><b>${p.place}</b></div>
-     <div class="spec-row"><span>采集日期</span><b>${p.date}</b></div>
-     <div class="spec-row"><span>株高</span><b>${p.h}</b></div>
-     <div class="spec-row"><span>物候</span><b>${p.bloom}</b></div>
-     <p class="note">${p.note}</p>
-     <div class="navrow">
-       <button class="sbtn" id="prevB">← 上一份</button>
-       <button class="sbtn" id="nextB">下一份 →</button>
-     </div>
-   </div>`;
+  cur=PLANTS.findIndex(function(p){return p.id===id});
+  var p=PLANTS[cur],f=FAMS[p.fam];
+  sheetInner.innerHTML=
+   '<div class="big">'+plantSVG(p,{ink:VIEW==="ink"})+'</div>'+
+   '<div class="info">'+
+     '<div class="kicker">'+p.id+' · '+f.cn+' '+f.la+' · '+WXS[WX].en+'</div>'+
+     '<h2>'+p.cn+'</h2><div class="latin">'+p.la+'</div>'+
+     '<div class="spec-row"><span>采集地</span><b>'+p.place+'</b></div>'+
+     '<div class="spec-row"><span>采集日期</span><b>'+p.date+'</b></div>'+
+     '<div class="spec-row"><span>株高</span><b>'+p.h+'</b></div>'+
+     '<div class="spec-row"><span>物候</span><b>'+p.bloom+'</b></div>'+
+     '<p class="note">'+p.note+'</p>'+
+     '<div class="navrow">'+
+       '<button class="sbtn" id="prevB">← 上一份</button>'+
+       '<button class="sbtn" id="nextB">下一份 →</button>'+
+       '<button class="sbtn accent" id="saveB">存 PNG</button>'+
+     '</div>'+
+   '</div>';
   overlay.classList.add("open");document.body.style.overflow="hidden";
-  document.getElementById("prevB").onclick=()=>openSheet(PLANTS[(cur-1+PLANTS.length)%PLANTS.length].id);
-  document.getElementById("nextB").onclick=()=>openSheet(PLANTS[(cur+1)%PLANTS.length].id);
+  document.getElementById("prevB").onclick=function(){openSheet(PLANTS[(cur-1+PLANTS.length)%PLANTS.length].id)};
+  document.getElementById("nextB").onclick=function(){openSheet(PLANTS[(cur+1)%PLANTS.length].id)};
+  document.getElementById("saveB").onclick=function(){saveSpecimenPNG(p)};
 }
 function closeSheet(){overlay.classList.remove("open");document.body.style.overflow=""}
-grid.addEventListener("click",e=>{const c=e.target.closest(".card");if(c)openSheet(c.dataset.id)});
-grid.addEventListener("keydown",e=>{if(e.key==="Enter"){const c=e.target.closest(".card");if(c)openSheet(c.dataset.id)}});
+grid.addEventListener("click",function(e){var c=e.target.closest(".card");if(c)openSheet(c.dataset.id)});
+grid.addEventListener("keydown",function(e){if(e.key==="Enter"){var c=e.target.closest(".card");if(c)openSheet(c.dataset.id)}});
 document.getElementById("closeX").onclick=closeSheet;
-overlay.addEventListener("click",e=>{if(e.target===overlay)closeSheet()});
-document.addEventListener("keydown",e=>{
-  if(!overlay.classList.contains("open"))return;
-  if(e.key==="Escape")closeSheet();
-  if(e.key==="ArrowLeft")openSheet(PLANTS[(cur-1+PLANTS.length)%PLANTS.length].id);
-  if(e.key==="ArrowRight")openSheet(PLANTS[(cur+1)%PLANTS.length].id);
+overlay.addEventListener("click",function(e){if(e.target===overlay)closeSheet()});
+
+/* sheet drag-to-tilt */
+var shDrag=false,shX=0,shRot=0;
+sheet.addEventListener("pointerdown",function(e){
+  if(e.target.closest("button"))return;
+  shDrag=true;shX=e.clientX;sheet.classList.add("held");
 });
+window.addEventListener("pointermove",function(e){
+  if(!shDrag)return;
+  shRot=Math.max(-4,Math.min(4,(e.clientX-shX)*0.012));
+  sheet.style.transform="rotate("+shRot+"deg)";
+});
+window.addEventListener("pointerup",function(){
+  if(!shDrag)return;
+  shDrag=false;sheet.classList.remove("held");
+  sheet.style.transform="";
+});
+
+/* ---------------- PNG export ---------------- */
+function saveSpecimenPNG(p){
+  var svgStr=plantSVG(p,{ink:VIEW==="ink"}).replace("<svg ",'<svg xmlns="http://www.w3.org/2000/svg" ');
+  var url=URL.createObjectURL(new Blob([svgStr],{type:"image/svg+xml"}));
+  var img=new Image();
+  img.onload=function(){
+    var W=900,H=1200,cv=document.createElement("canvas");
+    cv.width=W;cv.height=H;
+    var ctx=cv.getContext("2d");
+    var cs=getComputedStyle(document.body);
+    ctx.fillStyle=cs.getPropertyValue("--sheet").trim()||"#EDE5D2";
+    ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle="rgba(44,58,46,.4)";
+    ctx.strokeRect(24.5,24.5,W-49,H-49);
+    ctx.drawImage(img,W/2-210,110,420,567);
+    ctx.fillStyle="#2C3A2E";
+    ctx.font="400 64px Didot,Georgia,serif";
+    ctx.fillText(p.cn,70,H-260);
+    ctx.font="italic 30px Georgia,serif";
+    ctx.fillStyle="#5A7250";
+    ctx.fillText(p.la,70,H-205);
+    ctx.font="22px Menlo,monospace";
+    ctx.fillStyle="#B0793C";
+    ctx.fillText(p.id+" · "+FAMS[p.fam].cn+" "+FAMS[p.fam].la,70,H-140);
+    ctx.fillStyle="rgba(44,58,46,.7)";
+    ctx.fillText(p.place+" · "+p.date,70,H-100);
+    ctx.font="18px Menlo,monospace";
+    ctx.fillStyle="rgba(44,58,46,.5)";
+    ctx.fillText("ATELIER MIRA · ÉTUDE N°47 · SEED "+SEED+" · "+WXS[WX].en,70,H-56);
+    URL.revokeObjectURL(url);
+    var a=document.createElement("a");
+    a.download="herbarium-"+p.id.toLowerCase()+"-seed"+SEED+".png";
+    a.href=cv.toDataURL("image/png");
+    a.click();
+    toast("已存标本卡 — "+p.id+" · SEED "+SEED);
+  };
+  img.src=url;
+}
+
+/* ---------------- weather particles ---------------- */
+var wxc=document.getElementById("wx"),wctx=wxc.getContext("2d");
+var parts=[],fogs=[];
+function sizeWx(){
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  wxc.width=innerWidth*dpr;wxc.height=innerHeight*dpr;
+  wctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function seedWxParts(){
+  parts=[];fogs=[];
+  var i;
+  if(WX==="sun"){
+    for(i=0;i<26;i++)parts.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+      r:0.7+Math.random()*1.8,ph:Math.random()*6.28,vx:0.1+Math.random()*0.24,vy:-0.05-Math.random()*0.1});
+  }else if(WX==="rain"){
+    for(i=0;i<110;i++)parts.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+      len:9+Math.random()*16,sp:7+Math.random()*6,drift:1.2+Math.random()});
+  }else if(WX==="snow"){
+    for(i=0;i<70;i++)parts.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight,
+      r:1+Math.random()*2.4,ph:Math.random()*6.28,sp:0.4+Math.random()*0.8});
+  }else{
+    for(i=0;i<7;i++)fogs.push({x:Math.random()*innerWidth,y:Math.random()*innerHeight*0.9,
+      r:180+Math.random()*260,vx:0.12+Math.random()*0.2,ph:Math.random()*6.28});
+  }
+}
+var wxt=0;
+function wxLoop(){
+  wxt+=0.008;
+  wctx.clearRect(0,0,innerWidth,innerHeight);
+  var i,p;
+  if(WX==="sun"){
+    wctx.fillStyle="rgba(214,168,80,.5)";
+    for(i=0;i<parts.length;i++){p=parts[i];
+      p.x+=p.vx;p.y+=p.vy+Math.sin(wxt*2+p.ph)*0.1;
+      if(p.x>innerWidth+6){p.x=-6;p.y=Math.random()*innerHeight;}
+      if(p.y<-6)p.y=innerHeight+6;
+      wctx.globalAlpha=0.25+0.3*Math.sin(wxt*3+p.ph);
+      wctx.beginPath();wctx.arc(p.x,p.y,p.r,0,7);wctx.fill();
+    }
+  }else if(WX==="rain"){
+    wctx.strokeStyle="rgba(90,110,125,.34)";wctx.lineWidth=1;
+    for(i=0;i<parts.length;i++){p=parts[i];
+      p.y+=p.sp;p.x+=p.drift*0.4;
+      if(p.y>innerHeight+20){p.y=-20;p.x=Math.random()*innerWidth;}
+      wctx.globalAlpha=0.5;
+      wctx.beginPath();wctx.moveTo(p.x,p.y);wctx.lineTo(p.x-p.drift*0.5,p.y+p.len);wctx.stroke();
+    }
+  }else if(WX==="snow"){
+    wctx.fillStyle="rgba(255,255,255,.85)";
+    for(i=0;i<parts.length;i++){p=parts[i];
+      p.y+=p.sp;p.x+=Math.sin(wxt*1.6+p.ph)*0.5;
+      if(p.y>innerHeight+6){p.y=-6;p.x=Math.random()*innerWidth;}
+      wctx.globalAlpha=0.5+0.3*Math.sin(wxt*2+p.ph);
+      wctx.beginPath();wctx.arc(p.x,p.y,p.r,0,7);wctx.fill();
+    }
+  }else{
+    for(i=0;i<fogs.length;i++){var f=fogs[i];
+      f.x+=f.vx;
+      if(f.x-f.r>innerWidth)f.x=-f.r;
+      var g=wctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r);
+      g.addColorStop(0,"rgba(226,226,218,.24)");
+      g.addColorStop(1,"rgba(226,226,218,0)");
+      wctx.globalAlpha=0.6+0.2*Math.sin(wxt+f.ph);
+      wctx.fillStyle=g;
+      wctx.beginPath();wctx.arc(f.x,f.y,f.r,0,7);wctx.fill();
+    }
+  }
+  wctx.globalAlpha=1;
+  requestAnimationFrame(wxLoop);
+}
+
+/* ---------------- console wiring ---------------- */
+var easel=document.getElementById("easel");
+document.getElementById("easelTab").addEventListener("click",function(){
+  easel.classList.toggle("closed");
+});
+if(window.matchMedia("(max-width:860px)").matches)easel.classList.add("closed");
+document.getElementById("wxBtns").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  applyWx(b.dataset.w);
+});
+function setView(v){
+  VIEW=v;
+  document.querySelectorAll("#viewBtns button").forEach(function(b){
+    b.classList.toggle("on",b.dataset.v===v);
+  });
+  renderGrid();
+}
+document.getElementById("viewBtns").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  setView(b.dataset.v);
+  toast(b.dataset.v==="timeline"?"铺开年表 — 1986 到 1991":(b.dataset.v==="ink"?"换成铜版线稿 — 同一株，另一种画法":"回到标本墙"));
+});
+document.getElementById("cWind").addEventListener("input",function(e){
+  P.wind=+e.target.value;
+  document.getElementById("oWind").textContent=P.wind+"%";
+});
+document.getElementById("cHumid").addEventListener("input",function(e){
+  P.humid=+e.target.value;
+  document.getElementById("oHumid").textContent=P.humid+"%";
+  document.documentElement.style.setProperty("--humid",P.humid);
+});
+document.getElementById("cGrain").addEventListener("input",function(e){
+  P.grain=+e.target.value;
+  document.getElementById("oGrain").textContent=P.grain+"%";
+  document.documentElement.style.setProperty("--grainOp",(P.grain/100).toFixed(2));
+});
+
+/* ---------------- output ---------------- */
+function reseed(){
+  SEED=1000+Math.floor(Math.random()*89000);
+  writeSeed();renderGrid();
+  toast("换了新种子 — SEED "+SEED+" · 标本姿态微调");
+}
+document.getElementById("bReseed").addEventListener("click",reseed);
+document.getElementById("bShare").addEventListener("click",function(){
+  var url=location.href.split("#")[0]+"#seed="+SEED;
+  var done=function(){toast("分享链接已复制 — SEED "+SEED);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done,function(){prompt("复制分享链接",url);});
+  }else{prompt("复制分享链接",url);}
+});
+document.getElementById("bSave").addEventListener("click",function(){
+  if(overlay.classList.contains("open")){saveSpecimenPNG(PLANTS[cur]);return;}
+  saveSpecimenPNG(PLANTS[0]);
+  toast("存了第一份 — 打开标本卡可存任意一份");
+});
+
+/* ---------------- toast ---------------- */
+var toastEl=document.getElementById("toast"),toastT=null;
+function toast(msg){
+  toastEl.innerHTML="<i>HERBARIUM</i> · "+msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastT);
+  toastT=setTimeout(function(){toastEl.classList.remove("show");},2400);
+}
+
+/* ---------------- keyboard ---------------- */
+document.addEventListener("keydown",function(e){
+  if(["INPUT","TEXTAREA","SELECT"].indexOf((document.activeElement||{}).tagName)>=0)return;
+  var k=e.key;
+  if(overlay.classList.contains("open")){
+    if(k==="Escape")closeSheet();
+    else if(k==="ArrowLeft")openSheet(PLANTS[(cur-1+PLANTS.length)%PLANTS.length].id);
+    else if(k==="ArrowRight")openSheet(PLANTS[(cur+1)%PLANTS.length].id);
+    return;
+  }
+  if(k==="t"||k==="T")setView(VIEW==="wall"?"timeline":(VIEW==="timeline"?"ink":"wall"));
+  else if(k==="r"||k==="R")reseed();
+  else if(k>="1"&&k<="4")applyWx(WX_ORDER[+k-1]);
+  else if(k==="Escape")closeSheet();
+});
+function cycleWx(){
+  applyWx(WX_ORDER[(WX_ORDER.indexOf(WX)+1)%4]);
+}
+document.getElementById("sealSvg").addEventListener("dblclick",cycleWx);
+document.getElementById("stampBtn").addEventListener("dblclick",cycleWx);
+
+/* ---------------- idle: weather turns itself (easter egg) ---------------- */
+var idleT=null,wxPatrol=null,patrolling=false;
+function armIdle(){
+  clearTimeout(idleT);
+  if(patrolling){clearInterval(wxPatrol);patrolling=false;toast("云停住了 — 恢复手动天气");}
+  idleT=setTimeout(function(){
+    patrolling=true;
+    toast("起风了 — 天光在自转，动一下即停");
+    wxPatrol=setInterval(cycleWxQuiet,7000);
+  },30000);
+}
+function cycleWxQuiet(){
+  WX=WX_ORDER[(WX_ORDER.indexOf(WX)+1)%4];
+  applyWx(WX,true);
+}
+["pointermove","pointerdown","wheel","keydown","touchstart"].forEach(function(ev){
+  document.addEventListener(ev,armIdle,{passive:true});
+});
+
+/* ---------------- init / resize ---------------- */
+var rt;
+window.addEventListener("resize",function(){
+  clearTimeout(rt);
+  rt=setTimeout(function(){sizeWx();},150);
+});
+writeSeed();
+applyWx(WX,true);
+renderGrid();
+sizeWx();seedWxParts();wxLoop();
+windLoop();
+armIdle();
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="botanical-index" data-num="47" style="--lab-a:#2C3A2E;--lab-b:#B0793C"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 47 · WEB-DESIGN</small><strong>Herbarium Index</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

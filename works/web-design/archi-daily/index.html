@@ -3,70 +3,134 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ARCHI DAILY 建筑日报 — 今日版面</title>
+<title>ARCHI DAILY 建筑日报 — ÉTUDE N°54 · Atelier MIRA</title>
 <style>
   :root{
     --paper:#F5F2EC; --ink:#16130E; --red:#C2331B; --gray:#8A857A;
+    --ink90:color-mix(in srgb,var(--ink) 90%,transparent);
+    --ink70:color-mix(in srgb,var(--ink) 70%,transparent);
+    --ink45:color-mix(in srgb,var(--ink) 45%,transparent);
+    --ink25:color-mix(in srgb,var(--ink) 25%,transparent);
+    --ink10:color-mix(in srgb,var(--ink) 10%,transparent);
+    --paper70:color-mix(in srgb,var(--paper) 70%,transparent);
+    --grain-op:.5; --wash-op:.55;
     --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
     --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
     --mono:"SF Mono",Menlo,monospace;
     --ease:cubic-bezier(.22,1,.36,1);
     --rule:1px solid var(--ink);
   }
-  body.night{--paper:#16130E; --ink:#E8E2D4; --red:#E8573A; --gray:#6E6A5F;}
+  body[data-light="noon"]{--paper:#FAF7F0;--ink:#100D08;--red:#B32E16;--gray:#94907F;--wash-op:.4;}
+  body[data-light="dusk"]{--paper:#F0E2CC;--ink:#241A10;--red:#C24A1F;--gray:#96836B;--wash-op:.75;}
+  body[data-light="night"]{--paper:#14120E;--ink:#EAE3D2;--red:#E8573A;--gray:#6E6A5F;--grain-op:.3;--wash-op:.5;}
   *{margin:0;padding:0;box-sizing:border-box;}
-  body{background:var(--paper);color:var(--ink);font-family:var(--sans);transition:background .45s,color .45s;overflow-x:hidden;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    transition:background 1.1s ease,color 1.1s ease;overflow-x:hidden;}
   ::selection{background:var(--red);color:#F5F2EC;}
   button{font-family:inherit;cursor:pointer;}
 
+  #wash{position:fixed;inset:-12%;z-index:3;pointer-events:none;mix-blend-mode:soft-light;opacity:var(--wash-op);
+    transition:opacity 1.1s ease;animation:washdrift 36s ease-in-out infinite alternate;}
+  @keyframes washdrift{from{transform:translate(-2%,-2%) rotate(-1deg);}to{transform:translate(2%,1.6%) rotate(1.2deg);}}
+  #grain{position:fixed;inset:0;z-index:4;pointer-events:none;mix-blend-mode:multiply;opacity:var(--grain-op);
+    transition:opacity 1.1s ease;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .42 0 0 0 0 .38 0 0 0 0 .32 0 0 0 .15 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");}
+  #vig{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 40%,transparent 60%,var(--ink10) 100%);}
+
   header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:flex-start;
-    padding:16px 3.5vw;mix-blend-mode:difference;color:#fff;}
-  body.night header{mix-blend-mode:normal;color:var(--ink);}
-  .sig{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.8;}
-  .sig .no{color:var(--red);font-weight:700;}
-  .hbtns{display:flex;gap:10px;}
-  .hbtn{font-family:var(--mono);font-size:10px;letter-spacing:.16em;background:transparent;color:inherit;
-    border:1px solid currentColor;padding:8px 14px;transition:.25s;}
-  .hbtn:hover{background:var(--red);border-color:var(--red);color:#F5F2EC;}
+    padding:14px 3.5vw;pointer-events:none;}
+  header>*{pointer-events:auto;}
+  .brand{display:flex;gap:13px;align-items:center;text-decoration:none;color:var(--ink);}
+  .seal{width:50px;height:50px;flex:none;}
+  .brand .et{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.9;}
+  .brand .et b{font-weight:700;color:var(--red);}
+  .brand .et span{display:block;color:var(--ink45);}
+  .hright{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+  .light-sw{display:flex;border:1px solid var(--ink25);background:var(--paper70);backdrop-filter:blur(6px);}
+  .light-sw button{border:none;background:transparent;color:var(--ink45);font-family:var(--mono);font-size:10px;
+    letter-spacing:.16em;padding:8px 12px;transition:.3s;border-right:1px solid var(--ink10);}
+  .light-sw button:last-child{border-right:none;}
+  .light-sw button:hover{color:var(--red);}
+  .light-sw button.on{background:var(--ink);color:var(--paper);}
+  @media(max-width:640px){
+    .light-sw{position:fixed;left:12px;bottom:12px;z-index:60;box-shadow:0 6px 18px -8px var(--ink45);}
+    .light-sw button{padding:8px 11px;}
+    .seal{width:40px;height:40px;}
+    .brand .et{font-size:9px;}
+    .brand .et span{display:none;}
+  }
 
   /* ---------- masthead ---------- */
-  .mast{padding:15vh 4vw 0;max-width:1400px;margin:0 auto;}
+  .mast{padding:15vh 4vw 0;max-width:1400px;margin:0 auto;position:relative;z-index:5;}
   .mast-top{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.18em;
-    border-bottom:var(--rule);padding-bottom:10px;flex-wrap:wrap;gap:8px;}
-  .nameplate{font-family:var(--serif);font-weight:900;font-size:clamp(58px,11.5vw,180px);line-height:1;
-    text-align:center;letter-spacing:-.02em;padding:2.5vh 0;border-bottom:3px double var(--ink);white-space:nowrap;}
-  .nameplate .en{font-family:var(--sans);font-weight:800;vertical-align:middle;}
+    border-bottom:var(--rule);padding-bottom:10px;flex-wrap:wrap;gap:8px;transition:border-color 1.1s;}
+  .nameplate{font-family:var(--serif);font-weight:900;font-size:clamp(42px,8vw,124px);line-height:1;
+    text-align:center;letter-spacing:-.02em;padding:2.5vh 0;border-bottom:3px double var(--ink);white-space:nowrap;
+    cursor:pointer;transition:font-size .6s var(--ease),color .4s,border-color 1.1s;user-select:none;}
+  .nameplate .en{font-family:var(--sans);font-weight:800;font-size:.84em;vertical-align:middle;}
+  .nameplate:hover{color:var(--red);}
+  .mast.extra .nameplate{font-size:clamp(64px,14.5vw,220px);color:var(--red);animation:press .5s var(--ease) 2;}
+  @keyframes press{50%{transform:scale(.985) rotate(-.3deg);}}
+  .mast.extra .nameplate .en{display:none;}
+  .extra-band{display:none;font-family:var(--mono);font-size:10px;letter-spacing:.5em;text-align:center;
+    color:var(--red);padding:8px 0;border-bottom:var(--rule);}
+  .mast.extra .extra-band{display:block;}
   .mast-bot{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.16em;
-    padding:10px 0;border-bottom:var(--rule);flex-wrap:wrap;gap:8px;color:var(--gray);}
+    padding:10px 0;border-bottom:var(--rule);flex-wrap:wrap;gap:8px;color:var(--gray);transition:border-color 1.1s;}
   .mast-bot b{color:var(--red);font-weight:600;}
+  .plate-hint{text-align:center;font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--ink45);padding:6px 0 0;}
 
   /* ---------- front page generator ---------- */
-  .front{max-width:1400px;margin:0 auto;padding:6vh 4vw 4vh;}
-  .front-grid{display:grid;grid-template-columns:1fr 300px;gap:4vw;align-items:start;}
+  .front{max-width:1400px;margin:0 auto;padding:6vh 4vw 4vh;position:relative;z-index:5;}
+  .front-grid{display:grid;grid-template-columns:1fr 308px;gap:4vw;align-items:start;}
   @media(max-width:960px){.front-grid{grid-template-columns:1fr;}}
-  #pageSVG{width:100%;display:block;border:var(--rule);background:var(--paper);transition:background .45s,border-color .45s;}
-  .front-side{position:sticky;top:14vh;}
+  .page-frame{border:var(--rule);background:var(--paper);transition:background 1.1s,border-color 1.1s;position:relative;}
+  #pageSVG{width:100%;display:block;}
+  #pageSVG .in{opacity:0;animation:fadein .8s var(--ease) forwards;}
+  @keyframes fadein{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  .lamp-hint{position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:9px;letter-spacing:.2em;
+    color:var(--ink45);pointer-events:none;}
+  .front-side{position:sticky;top:12vh;}
   @media(max-width:960px){.front-side{position:static;}}
-  .front-side h2{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.25;margin-bottom:2.5vh;}
+  .front-side h2{font-family:var(--serif);font-weight:400;font-size:29px;line-height:1.25;margin-bottom:2.5vh;}
   .front-side h2 em{font-style:italic;color:var(--red);}
-  .front-side p{font-size:13px;line-height:2.1;color:var(--gray);margin-bottom:3.5vh;}
-  .gen-btn{display:block;width:100%;font-family:var(--mono);font-size:11px;letter-spacing:.2em;padding:16px;
-    border:var(--rule);background:var(--ink);color:var(--paper);margin-bottom:12px;transition:.25s;text-transform:uppercase;}
+  .front-side>p{font-size:13px;line-height:2.1;color:var(--gray);margin-bottom:3vh;}
+  .mode-sw{display:flex;border:1px solid var(--ink25);margin-bottom:3vh;}
+  .mode-sw button{flex:1;border:none;background:transparent;color:var(--ink45);font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;padding:10px 6px;transition:.3s;border-right:1px solid var(--ink10);}
+  .mode-sw button:last-child{border-right:none;}
+  .mode-sw button.on{background:var(--ink);color:var(--paper);}
+  .ctl{margin-bottom:2.6vh;}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.14em;margin-bottom:10px;}
+  .ctl label b{color:var(--red);font-weight:600;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:18px;background:transparent;outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,var(--red) var(--fill,50%),var(--ink25) var(--fill,50%));}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-5.5px;
+    background:var(--paper);border:2px solid var(--ink);transform:rotate(45deg);transition:.2s;}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--red);border-color:var(--red);}
+  input[type=range]::-moz-range-track{height:2px;background:var(--ink25);}
+  input[type=range]::-moz-range-progress{height:2px;background:var(--red);}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:0;background:var(--paper);border:2px solid var(--ink);transform:rotate(45deg);}
+  .gen-btn{display:block;width:100%;font-family:var(--mono);font-size:11px;letter-spacing:.2em;padding:15px;
+    border:var(--rule);background:var(--ink);color:var(--paper);margin-bottom:10px;transition:.25s;text-transform:uppercase;}
   .gen-btn:hover{background:var(--red);border-color:var(--red);color:#F5F2EC;letter-spacing:.3em;}
   .gen-btn.ghost{background:transparent;color:var(--ink);}
   .gen-btn.ghost:hover{background:var(--red);color:#F5F2EC;}
+  .btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .btn-row .gen-btn{margin-bottom:0;}
   .seed-line{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--gray);margin-top:2vh;line-height:2;}
 
   /* ---------- editorial grid ---------- */
-  .paper{max-width:1400px;margin:0 auto;padding:4vh 4vw 10vh;}
+  .paper{max-width:1400px;margin:0 auto;padding:4vh 4vw 10vh;position:relative;z-index:5;}
   .sec-rule{display:flex;align-items:baseline;justify-content:space-between;border-top:3px solid var(--ink);
-    border-bottom:var(--rule);padding:12px 0;margin-bottom:0;flex-wrap:wrap;gap:6px;}
+    border-bottom:var(--rule);padding:12px 0;flex-wrap:wrap;gap:6px;transition:border-color 1.1s;}
   .sec-rule h2{font-family:var(--serif);font-weight:900;font-size:clamp(26px,3vw,42px);letter-spacing:-.01em;}
   .sec-rule .idx{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--gray);}
-  .news-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:0;}
+  .news-grid{display:grid;grid-template-columns:repeat(12,1fr);}
   .art{border-right:var(--rule);border-bottom:var(--rule);padding:26px 24px;cursor:pointer;position:relative;
-    transition:background .3s;}
-  .art:hover{background:rgba(194,51,27,.06);}
+    transition:background .3s,border-color 1.1s;}
+  .art:hover{background:color-mix(in srgb,var(--red) 7%,transparent);}
   .art .kicker{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:var(--red);margin-bottom:14px;display:block;}
   .art h3{font-family:var(--serif);font-weight:400;line-height:1.28;letter-spacing:.005em;}
   .art h3 .u{background-image:linear-gradient(var(--red),var(--red));background-size:0% 2px;background-repeat:no-repeat;
@@ -74,9 +138,13 @@
   .art:hover h3 .u{background-size:100% 2px;}
   .art .byline{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--gray);margin-top:14px;}
   .art .lead{font-size:13px;line-height:2;margin-top:14px;color:inherit;opacity:.78;}
-  .art .fig{margin:0 0 18px;border:var(--rule);overflow:hidden;}
+  .art .fig{margin:0 0 18px;border:var(--rule);overflow:hidden;position:relative;transition:border-color 1.1s;}
   .art .fig svg{width:100%;display:block;transition:transform .6s var(--ease);}
   .art:hover .fig svg{transform:scale(1.05);}
+  .fig .survey{position:absolute;left:0;right:0;bottom:0;font-family:var(--mono);font-size:9px;letter-spacing:.12em;
+    background:var(--ink);color:var(--paper);padding:7px 10px;opacity:0;transform:translateY(100%);
+    transition:.4s var(--ease);}
+  .art:hover .fig .survey{opacity:1;transform:none;}
   .a-lead{grid-column:span 8;}.a-lead h3{font-size:clamp(30px,3.6vw,54px);}
   .a-side{grid-column:span 4;}.a-side h3{font-size:clamp(20px,2vw,28px);}
   .a-third{grid-column:span 4;}.a-third h3{font-size:clamp(19px,1.8vw,26px);}
@@ -92,7 +160,7 @@
 
   /* ---------- reader overlay ---------- */
   .reader{position:fixed;inset:0;z-index:100;background:var(--paper);overflow:auto;transform:translateY(100%);
-    transition:transform .5s var(--ease);}
+    transition:transform .5s var(--ease),background 1.1s;}
   .reader.open{transform:none;}
   .reader-inner{max-width:720px;margin:0 auto;padding:12vh 6vw 14vh;}
   .reader .rk{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--red);}
@@ -107,35 +175,100 @@
     border:var(--rule);background:var(--paper);color:var(--ink);padding:12px 20px;z-index:2;transition:.25s;}
   .rclose:hover{background:var(--red);color:#F5F2EC;border-color:var(--red);}
 
-  footer{border-top:3px solid var(--ink);max-width:1400px;margin:0 auto;padding:5vh 4vw 8vh;display:flex;
-    justify-content:space-between;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--gray);}
+  footer{border-top:3px solid var(--ink);max-width:1400px;margin:0 auto;padding:5vh 4vw 5vh;position:relative;z-index:5;
+    transition:border-color 1.1s;}
+  .foot-grid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:18px;align-items:flex-end;}
+  .foot-grid .fb{font-family:var(--serif);font-weight:900;font-size:clamp(22px,2.6vw,34px);}
+  .foot-grid .fb em{font-style:italic;color:var(--red);font-weight:400;}
+  .keys{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--ink45);line-height:2.4;text-align:right;}
+  .keys b{color:var(--ink70);font-weight:600;border:1px solid var(--ink25);padding:1px 5px;margin:0 1px;}
+  @media(max-width:640px){.keys{text-align:left;}}
+  .colophon{margin-top:4vh;padding-top:16px;border-top:1px dashed var(--ink25);font-family:var(--mono);
+    font-size:9.5px;letter-spacing:.16em;color:var(--ink45);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;}
 </style>
-</head>
-<body>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
+<body data-light="morning">
+
+<div id="wash"></div>
+<div id="vig"></div>
+<div id="grain"></div>
 
 <header>
-  <div class="sig"><span class="no">№ 08</span> · <b>ARCHI DAILY 建筑日报</b><br>WEB DESIGN / EDITORIAL GRID</div>
-  <div class="hbtns">
-    <button class="hbtn" id="nightBtn">夜班模式 NIGHT</button>
+  <a class="brand" href="#top">
+    <svg class="seal" viewBox="0 0 104 104" aria-hidden="true">
+      <defs><path id="ringPath54" d="M52 14 a38 38 0 1 1 -0.01 0"/></defs>
+      <circle cx="52" cy="52" r="49" fill="none" stroke="var(--red)" stroke-width="1.4"/>
+      <circle cx="52" cy="52" r="30" fill="none" stroke="var(--red)" stroke-width=".8" opacity=".55"/>
+      <text font-family="SF Mono,Menlo,monospace" font-size="10.5" letter-spacing="3.2" fill="var(--red)">
+        <textPath href="#ringPath54" startOffset="2">ATELIER MIRA · ÉTUDE · ATELIER MIRA ·</textPath>
+      </text>
+      <path d="M37 66 C37 55 37 46 39 37 C43 44 47 51 51 57 C54 49 57 42 61 35 C64 45 66 55 67 66"
+        fill="none" stroke="var(--red)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="et"><b>ÉTUDE N°54/100</b> · ARCHI DAILY 建筑日报<span>WEB DESIGN / GENERATIVE EDITORIAL</span></span>
+  </a>
+  <div class="hright">
+    <div class="light-sw" id="lightSw" role="group" aria-label="时刻氛围">
+      <button data-l="morning" class="on">晨</button>
+      <button data-l="noon">午</button>
+      <button data-l="dusk">昏</button>
+      <button data-l="night">夜</button>
+    </div>
   </div>
 </header>
 
 <!-- masthead -->
-<div class="mast">
+<div class="mast" id="mast">
   <div class="mast-top"><span>第 128 期 · 每日清晨付印</span><span>SHANGHAI · 售价 ¥2.00</span></div>
-  <div class="nameplate" id="nameplate">建筑日报 <span class="en">ARCHI DAILY</span></div>
-  <div class="mast-bot"><span id="dateLine"></span><span>天气 · 晴转多云 26°C</span><span>本期主题 · <b id="themeLine">垂直的城市</b></span></div>
+  <div class="extra-band">号外 · EXTRA · 号外 · EXTRA · 号外 · EXTRA · 号外 · EXTRA</div>
+  <div class="nameplate" id="nameplate" title="双击 · 号外">建筑日报 <span class="en">ARCHI DAILY</span></div>
+  <div class="plate-hint">双击报头 · 刊发号外</div>
+  <div class="mast-bot"><span id="dateLine"></span><span id="wxLine">天气 · 晴转多云 26°C</span><span>本期主题 · <b id="themeLine">垂直的城市</b></span></div>
 </div>
 
 <!-- front page generator -->
-<div class="front">
+<div class="front" id="top">
   <div class="front-grid">
-    <div id="pageWrap"></div>
+    <div class="page-frame">
+      <div id="pageWrap"></div>
+      <div class="lamp-hint">按住图片拖动 · 给城市开灯</div>
+    </div>
     <aside class="front-side">
       <h2>每天凌晨四点，<br>版面<em>自己排好</em>。</h2>
-      <p>头版由排版引擎生成：头条、图片与栏框从当日选题池随机组合，网格严格遵守十二栏系统。点击再生，看看明天的报纸长什么样；喜欢就下载存证。</p>
+      <p>头版由排版引擎生成：头条、图片与栏框从当日选题池随机组合。同一颗种子，可以排成西式横排，也可以排成和式竖版——纸张与油墨，随画室此刻的光。</p>
+      <div class="mode-sw" id="modeSw">
+        <button data-m="classic" class="on">横排 CLASSIC</button>
+        <button data-m="vertical">竖版 VERTICAL</button>
+      </div>
+      <div class="ctl">
+        <label><span>栏数 COLUMNS</span><b id="colsVal">3 栏</b></label>
+        <input type="range" id="cols" min="2" max="4" value="3" step="1">
+      </div>
+      <div class="ctl">
+        <label><span>标题字级 HEADLINE</span><b id="hscaleVal">× 1.00</b></label>
+        <input type="range" id="hscale" min="70" max="130" value="100" step="5">
+      </div>
+      <div class="ctl">
+        <label><span>图片密度 PHOTO</span><b id="photoVal">60 %</b></label>
+        <input type="range" id="photo" min="0" max="100" value="60" step="5">
+      </div>
       <button class="gen-btn" id="regen">↻ 生成今日版面</button>
-      <button class="gen-btn ghost" id="download">↓ 下载版面 SVG</button>
+      <div class="btn-row">
+        <button class="gen-btn ghost" id="dlSVG">↓ SVG</button>
+        <button class="gen-btn ghost" id="dlPNG">↓ PNG</button>
+      </div>
+      <button class="gen-btn ghost" id="shareBtn" style="margin-top:10px;">⧉ 复制分享链接</button>
       <div class="seed-line" id="seedLine"></div>
     </aside>
   </div>
@@ -143,13 +276,22 @@
 
 <!-- editorial grid -->
 <div class="paper">
-  <div class="sec-rule"><h2>二版 · 城市观察</h2><span class="idx">CITY WATCH / 点击标题阅读全文</span></div>
+  <div class="sec-rule"><h2>二版 · 城市观察</h2><span class="idx">CITY WATCH / 点击标题阅读 · 悬停查看测绘</span></div>
   <div class="news-grid" id="newsGrid"></div>
 </div>
 
 <footer>
-  <span>ARCHI DAILY 建筑日报 © 2026 · 编辑部 · 外滩源</span>
-  <span>作品 № 08 / WEB DESIGN</span>
+  <div class="foot-grid">
+    <div class="fb">报纸会死，<br>版面<em>每天重生</em>。</div>
+    <div class="keys">
+      <b>1</b>–<b>4</b> 时刻 · <b>R</b> 再生 · <b>V</b> 横/竖版 · <b>D</b> 存 SVG · <b>P</b> 存 PNG · <b>K</b> 复制链接<br>
+      拖动头版图片 = 给城市开灯 · 双击报头 = 号外 · <b>ESC</b> 合上报纸
+    </div>
+  </div>
+  <div class="colophon">
+    <span>SVG · Canvas 2D · CSS — 网格与油墨皆为程序所排</span>
+    <span id="colophSeed">seed #0000 · Painted with code, plein air</span>
+  </div>
 </footer>
 
 <!-- reader -->
@@ -164,21 +306,40 @@
 </div>
 
 <script>
-/* ================= utils ================= */
+"use strict";
+/* ================= utils & seed ================= */
 function mulberry(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let seed=(()=>{const m=location.hash.match(/seed=([A-Za-z0-9_-]+)/);if(!m)return Math.floor(Math.random()*100000);return /^\d+$/.test(m[1])?parseInt(m[1],10)%100000:hashStr(m[1])%100000;})();
+function seedLabel(){return "#"+String(seed).padStart(4,"0");}
+function setSeedHash(){const h="#seed="+seed;if(location.hash!==h)history.replaceState(null,"",h);}
+setSeedHash();
 
-/* ================= masthead date ================= */
+/* ================= atmosphere ================= */
+const LIGHT={
+  morning:{name:"晨 MORNING",wx:"天气 · 晨雾初散 24°C",lit:.5,wash:"radial-gradient(60% 55% at 16% 6%,rgba(228,164,118,.8),transparent 70%),radial-gradient(45% 45% at 88% 92%,rgba(140,150,130,.3),transparent 70%)"},
+  noon:{name:"午 NOON",wx:"天气 · 晴 31°C",lit:.28,wash:"radial-gradient(70% 60% at 50% 0%,rgba(255,248,226,.9),transparent 72%)"},
+  dusk:{name:"昏 DUSK",wx:"天气 · 晚霞 27°C",lit:.62,wash:"radial-gradient(65% 60% at 90% 26%,rgba(224,120,52,.8),transparent 72%),radial-gradient(45% 45% at 6% 88%,rgba(120,80,110,.35),transparent 70%)"},
+  night:{name:"夜 NIGHT",wx:"天气 · 晴夜 22°C",lit:.85,wash:"radial-gradient(55% 50% at 80% 4%,rgba(150,170,205,.6),transparent 72%),radial-gradient(55% 50% at 12% 92%,rgba(60,50,80,.45),transparent 75%)"}
+};
+let light="morning";
+function P(){const s=getComputedStyle(document.body);return{paper:s.getPropertyValue("--paper").trim(),ink:s.getPropertyValue("--ink").trim(),red:s.getPropertyValue("--red").trim(),gray:s.getPropertyValue("--gray").trim()};}
+function applyLight(l){
+  light=l;document.body.dataset.light=l;
+  $("wash").style.background=LIGHT[l].wash;
+  $("wxLine").textContent=LIGHT[l].wx;
+  document.querySelectorAll("#lightSw button").forEach(b=>b.classList.toggle("on",b.dataset.l===l));
+  renderPage();renderFacades();
+}
+document.querySelectorAll("#lightSw button").forEach(b=>b.addEventListener("click",()=>applyLight(b.dataset.l)));
+
+/* ================= masthead ================= */
 const now=new Date();
 const WD=["日","一","二","三","四","五","六"];
 $("dateLine").textContent=`${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日 · 星期${WD[now.getDay()]}`;
-
-/* ================= night mode ================= */
-$("nightBtn").addEventListener("click",()=>{
-  document.body.classList.toggle("night");
-  $("nightBtn").textContent=document.body.classList.contains("night")?"早班模式 DAY":"夜班模式 NIGHT";
-  renderPage(); // re-render with new palette
-});
+$("nameplate").addEventListener("dblclick",()=>$("mast").classList.toggle("extra"));
 
 /* ================= front page generator ================= */
 const HEADLINES=[
@@ -189,31 +350,42 @@ const HEADLINES=[
   ["垂直村落实验","把弄堂竖起来，邻居回来了吗"],
   ["雨棚之下的城市学","一条骑楼如何养活三种方言"],
   ["废墟上的临时剧场","未完工建筑的七十二小时"],
-  ["窗台的政治学","一米进深里的晾衣、养花与张望"],
+  ["窗台的政治学","一米进深里的晾衣、养花与张望"]
 ];
 const THEMES=["垂直的城市","砖与缝隙","临时建筑学","街道的尊严","屋檐之下","未完成之美"];
 const PHOTOS=["天际线研究","街角测绘","立面采样","屋顶档案"];
-function pal(){const s=getComputedStyle(document.body);return{paper:s.getPropertyValue("--paper").trim(),ink:s.getPropertyValue("--ink").trim(),red:s.getPropertyValue("--red").trim(),gray:s.getPropertyValue("--gray").trim()};}
-let seed=Math.floor(Math.random()*99999);
+const OPINIONS=[["高度之上，","还有街道"],["檐口之下，","才是城市"],["砖缝之间，","住着时间"],["转角之后，","仍有生活"]];
+const COLNEWS=[["◇ 现场","脚手架上的野餐会"],["◇ 档案","一座水塔的四次重生"],["◇ 对话","与晾衣杆谈判的人"],["◇ 巷口","修伞匠的测量学"]];
+let mode="classic";
 
-function buildingStrip(r,x,y,w,h,ink,red){
-  // procedural skyline photo
-  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${ink}"/>`;
+/* skyline: day & night layers; night revealed through lamp mask */
+function skyline(r,x,y,w,h,p,night,density){
+  let s="";
+  const base=night?p.ink:p.ink;
+  s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${night?p.ink:p.ink}"/>`;
   let bx=x+4;
   while(bx<x+w-8){
-    const bw=6+r()*18,bh=h*(.3+r()*.62);
-    s+=`<rect x="${bx}" y="${y+h-bh}" width="${bw}" height="${bh}" fill="${paperEsc}" opacity="${.25+r()*.5}"/>`;
-    // windows
-    for(let wy=y+h-bh+4;wy<y+h-6;wy+=5)for(let wx=bx+2;wx<bx+bw-2;wx+=4)
-      if(r()<.5)s+=`<rect x="${wx}" y="${wy}" width="1.6" height="2.2" fill="${r()<.08?red:paperEsc}" opacity="${.5+r()*.5}"/>`;
+    const bw=(6+r()*18)*(.7+density*.6),bh=h*(.3+r()*.62);
+    const op=night?.12+r()*.1:.25+r()*.5;
+    s+=`<rect x="${bx}" y="${y+h-bh}" width="${bw}" height="${bh}" fill="${p.paper}" opacity="${op}"/>`;
+    for(let wy=y+h-bh+4;wy<y+h-6;wy+=5)for(let wx=bx+2;wx<bx+bw-2;wx+=4){
+      const lit=r();
+      if(night){
+        if(lit<LIGHT[light].lit)s+=`<rect class="win" x="${wx}" y="${wy}" width="1.7" height="2.3" fill="${lit<.06?p.red:"#F2C96B"}" opacity="${.55+r()*.45}"/>`;
+      }else if(lit<density*.5){
+        s+=`<rect x="${wx}" y="${wy}" width="1.6" height="2.2" fill="${lit<.05?p.red:p.paper}" opacity="${.5+r()*.5}"/>`;
+      }
+    }
     bx+=bw+2+r()*6;
   }
-  // halftone corner
-  for(let i=0;i<5;i++)for(let j=0;j<5;j++)
-    s+=`<circle cx="${x+w-30+i*5}" cy="${y+6+j*5}" r="${1.8-(i+j)*.14}" fill="${paperEsc}" opacity=".7"/>`;
+  if(!night){
+    for(let i=0;i<5;i++)for(let j=0;j<5;j++)
+      s+=`<circle cx="${x+w-30+i*5}" cy="${y+6+j*5}" r="${1.8-(i+j)*.14}" fill="${p.paper}" opacity=".7"/>`;
+  }else{
+    s+=`<circle cx="${x+w*.24}" cy="${y+h*.2}" r="${h*.09}" fill="#F2C96B" opacity=".8"/>`;
+  }
   return s;
 }
-let paperEsc="#F5F2EC";
 function textBars(r,x,y,w,lines,ink,lh){
   let s="";
   for(let i=0;i<lines;i++){
@@ -223,65 +395,182 @@ function textBars(r,x,y,w,lines,ink,lh){
   return s;
 }
 function renderPage(){
-  const P=pal();paperEsc=P.paper;
+  const p=P();
   const r=mulberry(seed);
-  const W=900,H=1180,m=54,g=18,colW=(W-m*2-g*2)/3;
+  const cols=+$("cols").value,hscale=+$("hscale").value/100,density=+$("photo").value/100;
+  const W=900,H=1180,m=54,g=18;
   const [hl,sub]=HEADLINES[Math.floor(r()*HEADLINES.length)];
+  const [op1,op2]=OPINIONS[Math.floor(r()*OPINIONS.length)];
   $("themeLine").textContent=THEMES[Math.floor(r()*THEMES.length)];
+  let d=0;const fade=()=>`class="in" style="animation-delay:${(d+=.07)}s"`;
   let s=`<svg id="pageSVG" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Georgia,'Songti SC',serif">`;
-  s+=`<rect width="${W}" height="${H}" fill="${P.paper}"/>`;
-  // top rule + flag
-  s+=`<rect x="${m}" y="${m-14}" width="${W-m*2}" height="3" fill="${P.ink}"/>`;
-  s+=`<text x="${m}" y="${m+34}" font-size="15" letter-spacing="6" fill="${P.ink}" font-family="Menlo,monospace">ARCHI DAILY · 建筑日报 · 第128期</text>`;
-  s+=`<text x="${W-m}" y="${m+34}" font-size="13" fill="${P.gray}" text-anchor="end" font-family="Menlo,monospace">${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,"0")}.${String(now.getDate()).padStart(2,"0")} · NO.${seed%900+100}</text>`;
-  s+=`<rect x="${m}" y="${m+48}" width="${W-m*2}" height="1" fill="${P.ink}"/>`;
-  // headline zone
-  const hlSize=Math.min(92,(W-m*2)/hl.length*1.55);
-  s+=`<text x="${m}" y="${m+48+hlSize}" font-size="${hlSize}" font-weight="900" fill="${P.ink}" letter-spacing="2">${hl}</text>`;
-  s+=`<text x="${m+4}" y="${m+48+hlSize+38}" font-size="21" fill="${P.gray}" font-style="italic">${sub}</text>`;
-  s+=`<rect x="${m}" y="${m+48+hlSize+58}" width="${40}" height="4" fill="${P.red}"/>`;
-  let y=m+48+hlSize+86;
-  // main photo left 2 cols, text right 1 col
-  const photoW=colW*2+g,photoH=300+r()*60;
-  s+=buildingStrip(r,m,y,photoW,photoH,P.ink,P.red);
-  s+=`<text x="${m}" y="${y+photoH+20}" font-size="11" fill="${P.gray}" font-family="Menlo,monospace">图 · ${PHOTOS[Math.floor(r()*PHOTOS.length)]} / 本报记者摄</text>`;
-  // right column text
-  const tx=m+photoW+g;
-  s+=`<text x="${tx}" y="${y+16}" font-size="13" fill="${P.red}" font-family="Menlo,monospace" letter-spacing="3">◆ 社论 OPINION</text>`;
-  s+=`<text x="${tx}" y="${y+52}" font-size="26" font-weight="700" fill="${P.ink}">高度之上，<tspan x="${tx}" dy="34">还有街道</tspan></text>`;
-  s+=textBars(r,tx,y+92,colW-10,Math.floor(photoH/13),P.ink,13);
-  s+=`<text x="${tx}" y="${y+photoH+20}" font-size="11" fill="${P.gray}" font-family="Menlo,monospace">社论版 · A04</text>`;
-  y+=photoH+44;
-  s+=`<rect x="${m}" y="${y}" width="${W-m*2}" height="1" fill="${P.ink}"/>`;
-  y+=26;
-  // three columns of news
-  for(let c=0;c<3;c++){
-    const cx=m+c*(colW+g);
-    s+=`<text x="${cx}" y="${y+14}" font-size="12" fill="${P.red}" font-family="Menlo,monospace" letter-spacing="3">${["◇ 现场","◇ 档案","◇ 对话"][c]}</text>`;
-    const t=["脚手架上的野餐会","一座水塔的四次重生","与晾衣杆谈判的人"][c];
-    s+=`<text x="${cx}" y="${y+44}" font-size="20" font-weight="700" fill="${P.ink}">${t.slice(0,6)}<tspan x="${cx}" dy="26">${t.slice(6)}</tspan></text>`;
-    if(c===1&&r()<.8){
-      s+=buildingStrip(r,cx,y+80,colW,120,P.ink,P.red);
-      s+=textBars(r,cx,y+220,colW,Math.floor((H-m-y-220)/13),P.ink,13);
-    }else{
-      s+=textBars(r,cx,y+80,colW,Math.floor((H-m-y-80)/13),P.ink,13);
+  s+=`<defs><clipPath id="lampClip"><circle id="lampC" r="0"/></clipPath></defs>`;
+  s+=`<rect width="${W}" height="${H}" fill="${p.paper}"/>`;
+  s+=`<rect x="${m}" y="${m-14}" width="${W-m*2}" height="3" fill="${p.ink}" ${fade()}/>`;
+  s+=`<text x="${m}" y="${m+34}" font-size="15" letter-spacing="6" fill="${p.ink}" font-family="Menlo,monospace" ${fade()}>ARCHI DAILY · 建筑日报 · 第128期</text>`;
+  s+=`<text x="${W-m}" y="${m+34}" font-size="13" fill="${p.gray}" text-anchor="end" font-family="Menlo,monospace" ${fade()}>${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,"0")}.${String(now.getDate()).padStart(2,"0")} · NO.${seed%900+100}</text>`;
+  s+=`<rect x="${m}" y="${m+48}" width="${W-m*2}" height="1" fill="${p.ink}" ${fade()}/>`;
+  if(mode==="classic"){
+    const colW=(W-m*2-g*(cols-1))/cols;
+    const hlSize=Math.min(92,(W-m*2)/hl.length*1.55)*hscale;
+    s+=`<text x="${m}" y="${m+48+hlSize}" font-size="${hlSize}" font-weight="900" fill="${p.ink}" letter-spacing="2" ${fade()}>${hl}</text>`;
+    s+=`<text x="${m+4}" y="${m+48+hlSize+38}" font-size="21" fill="${p.gray}" font-style="italic" ${fade()}>${sub}</text>`;
+    s+=`<rect x="${m}" y="${m+48+hlSize+58}" width="40" height="4" fill="${p.red}" ${fade()}/>`;
+    let y=m+48+hlSize+86;
+    const photoW=cols===2?colW:colW*(cols-1)+g*(cols-2),photoH=(300+r()*60)*(.6+density*.4);
+    const gx=m,gy=y;
+    s+=`<g ${fade()}><g id="skyDay">${skyline(r,gx,gy,photoW,photoH,p,false,density)}</g>
+      <circle id="lampHalo" r="0" fill="#F2C96B" opacity=".14"/>
+      <g clip-path="url(#lampClip)"><g id="skyNight">${skyline(mulberry(seed^0xAA),gx,gy,photoW,photoH,p,true,density)}</g></g>
+      <rect id="skyHit" x="${gx}" y="${gy}" width="${photoW}" height="${photoH}" fill="transparent" style="cursor:crosshair"/>
+      <circle id="lampRing" r="0" fill="none" stroke="#F2C96B" stroke-width="1.5" opacity=".7" pointer-events="none"/></g>`;
+    s+=`<text x="${m}" y="${y+photoH+20}" font-size="11" fill="${p.gray}" font-family="Menlo,monospace">图 · ${PHOTOS[Math.floor(r()*PHOTOS.length)]} / 本报记者摄</text>`;
+    const tx=m+photoW+g;
+    s+=`<text x="${tx}" y="${y+16}" font-size="13" fill="${p.red}" font-family="Menlo,monospace" letter-spacing="3" ${fade()}>◆ 社论 OPINION</text>`;
+    s+=`<text x="${tx}" y="${y+52}" font-size="${26*hscale}" font-weight="700" fill="${p.ink}" ${fade()}>${op1}<tspan x="${tx}" dy="34">${op2}</tspan></text>`;
+    s+=textBars(r,tx,y+92,colW-10,Math.floor(photoH/13),p.ink,13);
+    s+=`<text x="${tx}" y="${y+photoH+20}" font-size="11" fill="${p.gray}" font-family="Menlo,monospace">社论版 · A04</text>`;
+    y+=photoH+44;
+    s+=`<rect x="${m}" y="${y}" width="${W-m*2}" height="1" fill="${p.ink}"/>`;
+    y+=26;
+    for(let c=0;c<cols;c++){
+      const cx=m+c*(colW+g);
+      const [kick,tt]=COLNEWS[c%COLNEWS.length];
+      s+=`<text x="${cx}" y="${y+14}" font-size="12" fill="${p.red}" font-family="Menlo,monospace" letter-spacing="3" ${fade()}>${kick}</text>`;
+      s+=`<text x="${cx}" y="${y+44}" font-size="${20*hscale}" font-weight="700" fill="${p.ink}" ${fade()}>${tt.slice(0,6)}<tspan x="${cx}" dy="26">${tt.slice(6)}</tspan></text>`;
+      if(c===1&&r()<density+.2){
+        s+=skyline(r,cx,y+80,colW,120,p,false,density);
+        s+=textBars(r,cx,y+220,colW,Math.max(2,Math.floor((H-m-y-220)/13)),p.ink,13);
+      }else{
+        s+=textBars(r,cx,y+80,colW,Math.max(2,Math.floor((H-m-y-80)/13)),p.ink,13);
+      }
+      if(c<cols-1)s+=`<line x1="${cx+colW+g/2}" y1="${y}" x2="${cx+colW+g/2}" y2="${H-m}" stroke="${p.ink}" stroke-width=".6" opacity=".5"/>`;
     }
-    if(c<2)s+=`<line x1="${cx+colW+g/2}" y1="${y}" x2="${cx+colW+g/2}" y2="${H-m}" stroke="${P.ink}" stroke-width=".6" opacity=".5"/>`;
+  }else{
+    /* vertical edition: headline down the right, photo bottom-left */
+    const hlSize=Math.min(84,560/hl.length*1.6)*hscale;
+    s+=`<text x="${W-m-10}" y="${m+80}" font-size="${hlSize}" font-weight="900" fill="${p.ink}" letter-spacing="6"
+      style="writing-mode:vertical-rl" ${fade()}>${hl}</text>`;
+    s+=`<text x="${W-m-hlSize-26}" y="${m+86}" font-size="17" fill="${p.gray}" style="writing-mode:vertical-rl" font-style="italic" ${fade()}>${sub}</text>`;
+    s+=`<rect x="${W-m-hlSize-58}" y="${m+70}" width="4" height="${Math.min(420,hlSize*hl.length*.72)}" fill="${p.red}" ${fade()}/>`;
+    const photoW=(W-m*2)*.52,photoH=(300+r()*50)*(.6+density*.4),gx=m,gy=m+84;
+    s+=`<g ${fade()}><g id="skyDay">${skyline(r,gx,gy,photoW,photoH,p,false,density)}</g>
+      <circle id="lampHalo" r="0" fill="#F2C96B" opacity=".14"/>
+      <g clip-path="url(#lampClip)"><g id="skyNight">${skyline(mulberry(seed^0xAA),gx,gy,photoW,photoH,p,true,density)}</g></g>
+      <rect id="skyHit" x="${gx}" y="${gy}" width="${photoW}" height="${photoH}" fill="transparent" style="cursor:crosshair"/>
+      <circle id="lampRing" r="0" fill="none" stroke="#F2C96B" stroke-width="1.5" opacity=".7" pointer-events="none"/></g>`;
+    s+=`<text x="${m}" y="${gy+photoH+22}" font-size="11" fill="${p.gray}" font-family="Menlo,monospace">图 · ${PHOTOS[Math.floor(r()*PHOTOS.length)]} / 本报记者摄</text>`;
+    const tx=m+photoW+g,vx=W-m-hlSize-90;
+    s+=`<text x="${vx}" y="${gy+14}" font-size="13" fill="${p.red}" font-family="Menlo,monospace" letter-spacing="3" style="writing-mode:vertical-rl" ${fade()}>◆ 社论 OPINION</text>`;
+    s+=`<text x="${vx-34}" y="${gy+16}" font-size="${24*hscale}" font-weight="700" fill="${p.ink}" style="writing-mode:vertical-rl" ${fade()}>${op1}${op2}</text>`;
+    let y=gy+photoH+52;
+    s+=`<rect x="${m}" y="${y}" width="${W-m*2}" height="1" fill="${p.ink}"/>`;
+    y+=26;
+    const cols2=cols+1,colW=(W-m*2-g*(cols2-1))/cols2;
+    for(let c=0;c<cols2;c++){
+      const cx=m+c*(colW+g);
+      const [kick,tt]=COLNEWS[c%COLNEWS.length];
+      s+=`<text x="${cx}" y="${y+14}" font-size="12" fill="${p.red}" font-family="Menlo,monospace" letter-spacing="3" ${fade()}>${kick}</text>`;
+      s+=`<text x="${cx}" y="${y+44}" font-size="${19*hscale}" font-weight="700" fill="${p.ink}" ${fade()}>${tt.slice(0,6)}<tspan x="${cx}" dy="26">${tt.slice(6)}</tspan></text>`;
+      s+=textBars(r,cx,y+82,colW,Math.max(2,Math.floor((H-m-y-82)/13)),p.ink,13);
+      if(c<cols2-1)s+=`<line x1="${cx+colW+g/2}" y1="${y}" x2="${cx+colW+g/2}" y2="${H-m}" stroke="${p.ink}" stroke-width=".6" opacity=".5"/>`;
+    }
   }
-  s+=`<rect x="${m}" y="${H-m+6}" width="${W-m*2}" height="3" fill="${P.ink}"/>`;
+  s+=`<rect x="${m}" y="${H-m+6}" width="${W-m*2}" height="3" fill="${p.ink}"/>`;
   s+="</svg>";
   $("pageWrap").innerHTML=s;
-  $("seedLine").innerHTML=`版面种子 SEED #${seed}<br>头条数 ${HEADLINES.length} · 主题池 ${THEMES.length}`;
+  $("seedLine").innerHTML=`版面种子 SEED ${seedLabel()}<br>头条池 ${HEADLINES.length} · 主题池 ${THEMES.length} · ${mode==="classic"?"横排":"竖版"}`;
+  bindLamp();collectWins();
 }
-$("regen").addEventListener("click",()=>{seed=Math.floor(Math.random()*99999);renderPage();});
-$("download").addEventListener("click",()=>{
+
+/* lamp reveal: drag to light the city */
+let lampR=0,lampTarget=0,lampX=-99,lampY=-99,tx=-99,ty=-99;
+function bindLamp(){
+  const hit=$("skyHit");if(!hit)return;
+  const svg=$("pageSVG");
+  const toLocal=e=>{
+    const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;
+    return pt.matrixTransform(svg.getScreenCTM().inverse());
+  };
+  let down=false;
+  const move=e=>{
+    const q=toLocal(e);tx=q.x;ty=q.y;
+    lampTarget=down?120:Math.max(lampTarget,0);
+  };
+  hit.addEventListener("pointermove",move);
+  hit.addEventListener("pointerdown",e=>{down=true;lampTarget=120;hit.setPointerCapture(e.pointerId);move(e);});
+  hit.addEventListener("pointerup",()=>{down=false;lampTarget=0;});
+  hit.addEventListener("pointerleave",()=>{if(!down)lampTarget=0;});
+}
+(function lampTick(){
+  lampR+=(lampTarget-lampR)*.08;
+  lampX+=(tx-lampX)*.14;lampY+=(ty-lampY)*.14;
+  const c=$("lampC"),h=$("lampHalo"),g=$("lampRing");
+  if(c){c.setAttribute("cx",lampX.toFixed(1));c.setAttribute("cy",lampY.toFixed(1));c.setAttribute("r",Math.max(lampR,0).toFixed(1));}
+  if(h){h.setAttribute("cx",lampX.toFixed(1));h.setAttribute("cy",lampY.toFixed(1));h.setAttribute("r",Math.max(lampR+26,0).toFixed(1));}
+  if(g){g.setAttribute("cx",lampX.toFixed(1));g.setAttribute("cy",lampY.toFixed(1));g.setAttribute("r",Math.max(lampR,0).toFixed(1));}
+  requestAnimationFrame(lampTick);
+})();
+
+/* window flicker — the city is alive */
+let winPool=[];
+function collectWins(){winPool=[...document.querySelectorAll("#pageSVG .win")];}
+setInterval(()=>{
+  if(!winPool.length||light!=="night"&&light!=="dusk")return;
+  for(let i=0;i<5;i++){
+    const w=winPool[Math.floor(Math.random()*winPool.length)];
+    if(w)w.setAttribute("opacity",(Math.random()*.7+.2).toFixed(2));
+  }
+},1100);
+
+/* ================= console bindings ================= */
+$("modeSw").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  mode=b.dataset.m;
+  document.querySelectorAll("#modeSw button").forEach(x=>x.classList.toggle("on",x===b));
+  renderPage();
+});
+function paintRange(el){const pc=(el.value-el.min)/(el.max-el.min)*100;el.style.setProperty("--fill",pc+"%");}
+function syncCtl(){
+  $("colsVal").textContent=$("cols").value+" 栏";
+  $("hscaleVal").textContent="× "+(+$("hscale").value/100).toFixed(2);
+  $("photoVal").textContent=$("photo").value+" %";
+}
+["cols","hscale","photo"].forEach(id=>{
+  const el=$(id);el.addEventListener("input",()=>{paintRange(el);syncCtl();renderPage();});paintRange(el);
+});
+syncCtl();
+$("regen").addEventListener("click",()=>{
+  seed=Math.floor(Math.random()*100000);setSeedHash();syncSeedLabels();renderPage();
+});
+function syncSeedLabels(){
+  $("colophSeed").textContent="seed "+seedLabel()+" · Painted with code, plein air";
+}
+syncSeedLabels();
+$("shareBtn").addEventListener("click",async()=>{
+  try{await navigator.clipboard.writeText(location.href);$("shareBtn").textContent="✓ 已复制（链接含种子）";}
+  catch{prompt("复制此链接（含种子）",location.href);}
+  setTimeout(()=>$("shareBtn").textContent="⧉ 复制分享链接",2200);
+});
+$("dlSVG").addEventListener("click",()=>{
   const svg=$("pageSVG");if(!svg)return;
   const blob=new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(svg)],{type:"image/svg+xml"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-  a.download=`archi-daily-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}-${seed}.svg`;
-  a.click();URL.revokeObjectURL(a.href);
+  a.download=`archi-daily-${seed}.svg`;a.click();URL.revokeObjectURL(a.href);
 });
-renderPage();
+$("dlPNG").addEventListener("click",()=>{
+  const svg=$("pageSVG");if(!svg)return;
+  const str=new XMLSerializer().serializeToString(svg);
+  const img=new Image();
+  img.onload=()=>{
+    const cv=document.createElement("canvas");cv.width=1800;cv.height=2360;
+    const x=cv.getContext("2d");
+    x.fillStyle=P().paper;x.fillRect(0,0,1800,2360);
+    x.drawImage(img,0,0,1800,2360);
+    const a=document.createElement("a");a.download=`archi-daily-${seed}.png`;a.href=cv.toDataURL("image/png");a.click();
+  };
+  img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(str);
+});
 
 /* ================= editorial grid ================= */
 const ARTS=[
@@ -305,32 +594,42 @@ const ARTS=[
    body:["垂直村落试点整一年。数据令人欣慰：晾衣纠纷下降六成，电梯里的寒暄频次翻倍，共享厨房的翻台率超过了楼下的连锁餐厅。","但访谈里也出现了意外的句子。住在二十三楼的王阿姨说，她最怀念的是一楼窗台下那盆谁也不认领、谁都能摘一把的小葱。『垂直了之后，葱怎么办呢？』","设计师把这个意见记在了笔记本第一页。二期方案里，每五层将出现一个『葱层』——一个专门留给说不清用途的、一楼式的空间。"]},
   {cls:"a-half",k:"技术 / TECH",t:"会呼吸的砖",by:"撰稿 · 陈檐",
    lead:"新型烧结砖的孔隙率可以做到 38%，夏天的墙面比空调房低四度——老祖宗的材料，学会了新本领。",
-   body:["新型烧结砖把孔隙率做到了 38%。夏天的正午，这种墙面的内侧温度比空调设定还低四度——不插电，零噪音。","材料学家说这是『被动式降温的文艺复兴』。烧制车间里，师傅们更直接：『就是老祖宗的砖，多留了几个气孔。』有时候，创新不过是把忘掉的事重新想起来。"]},
+   body:["新型烧结砖把孔隙率做到了 38%。夏天的正午，这种墙面的内侧温度比空调设定还低四度——不插电，零噪音。","材料学家说这是『被动式降温的文艺复兴』。烧制车间里，师傅们更直接：『就是老祖宗的砖，多留了几个气孔。』有时候，创新不过是把忘掉的事重新想起来。"]}
 ];
 function facadeSVG(i){
-  const r=mulberry(i*31+7);
-  let s=`<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="260" fill="#16130E"/>`;
+  const r=mulberry((seed^0xFACE)+i*31+7);
+  const p=P();
+  let s=`<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="260" fill="${p.ink}"/>`;
   const cols=4+Math.floor(r()*3),rows=3+Math.floor(r()*3);
   const cw=400/cols,ch=260/rows;
   for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
     const lit=r();
-    s+=`<rect x="${x*cw+8}" y="${y*ch+10}" width="${cw-16}" height="${ch-20}" fill="${lit<.18?"#C2331B":lit<.5?"#F5F2EC":"#3A362E"}" opacity="${lit<.18?.9:.25+r()*.55}"/>`;
-    if(r()<.3)s+=`<line x1="${x*cw+8}" y1="${y*ch+ch/2}" x2="${x*cw+cw-8}" y2="${y*ch+ch/2}" stroke="#16130E" stroke-width="3"/>`;
+    const litTh=LIGHT[light].lit*.35;
+    s+=`<rect x="${x*cw+8}" y="${y*ch+10}" width="${cw-16}" height="${ch-20}" fill="${lit<litTh?p.red:lit<.5?p.paper:"#3A362E"}" opacity="${lit<litTh?.9:.25+r()*.55}"/>`;
+    if(r()<.3)s+=`<line x1="${x*cw+8}" y1="${y*ch+ch/2}" x2="${x*cw+cw-8}" y2="${y*ch+ch/2}" stroke="${p.ink}" stroke-width="3"/>`;
   }
-  s+=`<rect x="0" y="244" width="400" height="16" fill="#F5F2EC" opacity=".08"/></svg>`;
+  s+=`<rect x="0" y="244" width="400" height="16" fill="${p.paper}" opacity=".08"/></svg>`;
   return s;
 }
+function surveyText(i){
+  const r=mulberry((seed^0x500)+i*61);
+  return `测绘 · 建成 ${1958+Math.floor(r()*60)} · 层 ${3+Math.floor(r()*28)} · 开窗率 ${Math.floor(20+r()*50)}%`;
+}
 const grid=$("newsGrid");
+function renderFacades(){
+  document.querySelectorAll(".art .fig").forEach((f)=>{
+    const i=+f.dataset.i;f.querySelector("svg").outerHTML=facadeSVG(i);
+  });
+}
 ARTS.forEach((a,i)=>{
   const el=document.createElement("article");
   el.className="art "+a.cls;
-  el.innerHTML=`${a.fig?`<figure class="fig">${facadeSVG(i)}</figure>`:""}
+  el.innerHTML=`${a.fig?`<figure class="fig" data-i="${i}">${facadeSVG(i)}<div class="survey">${surveyText(i)}</div></figure>`:""}
     <span class="kicker">${a.k}</span><h3><span class="u">${a.t}</span></h3>
     <p class="lead ${i===0?"dropcap":""}">${a.lead}</p><div class="byline">${a.by} · 阅读约 ${2+i%3} 分钟</div>`;
   el.addEventListener("click",()=>openReader(i));
   grid.appendChild(el);
 });
-// pull quote
 const pull=document.createElement("div");
 pull.className="art pull";
 pull.innerHTML=`<blockquote>「建筑应该讨好<b>时间</b>，<br>而不是讨好<b>快门</b>。」</blockquote>`;
@@ -344,8 +643,44 @@ function openReader(i){
   $("rbody").innerHTML=(a.body||[a.lead]).map(p=>`<p>${p}</p>`).join("");
   $("reader").classList.add("open");document.body.style.overflow="hidden";
 }
-$("rclose").addEventListener("click",()=>{$("reader").classList.remove("open");document.body.style.overflow="";});
-document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("reader").classList.remove("open");document.body.style.overflow="";}});
+function closeReader(){$("reader").classList.remove("open");document.body.style.overflow="";}
+$("rclose").addEventListener("click",closeReader);
+
+/* ================= keyboard ================= */
+document.addEventListener("keydown",e=>{
+  if(["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName))return;
+  const k=e.key.toLowerCase();
+  if(k==="1")applyLight("morning");if(k==="2")applyLight("noon");
+  if(k==="3")applyLight("dusk");if(k==="4")applyLight("night");
+  if(k==="r")$("regen").click();if(k==="k")$("shareBtn").click();
+  if(k==="d")$("dlSVG").click();if(k==="p")$("dlPNG").click();
+  if(k==="v")$("modeSw").querySelector(mode==="classic"?"[data-m=vertical]":"[data-m=classic]").click();
+  if(k==="escape")closeReader();
+});
+
+applyLight("morning");
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="archi-daily" data-num="54" style="--lab-a:#16130E;--lab-b:#C2331B"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 54 · WEB-DESIGN</small><strong>Archi Daily</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

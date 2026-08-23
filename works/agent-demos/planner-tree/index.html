@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PLANNER TREE — 任务规划树可视化</title>
+<title>ÉTUDE N°71 · PLANNER TREE — 灯下的规划蓝图</title>
 <style>
   :root{
     --bp:#0E2E52; --bp-deep:#0A2340; --grid:rgba(127,179,224,.10); --grid2:rgba(127,179,224,.20);
     --ink:#E9F1F8; --dim:#8FA9C4; --faint:#5B7692;
-    --gold:#F2C14E; --cut:#E2604C; --cyan:#7FB3E0;
+    --gold:#F2C14E; --cut:#E2604C; --cyan:#7FB3E0; --panel:rgba(10,35,64,.88);
     --mono:"SF Mono",Menlo,Consolas,monospace;
     --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
     --ease:cubic-bezier(.22,1,.36,1);
@@ -16,106 +16,233 @@
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%}
   body{background:var(--bp);color:var(--ink);font-family:var(--sans);
-    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden;
+    transition:background 1.2s var(--ease)}
   ::selection{background:rgba(242,193,78,.3)}
 
-  header{flex:0 0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-    padding:10px 16px;border-bottom:1px solid rgba(127,179,224,.35);background:var(--bp-deep)}
-  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap;margin-right:8px}
-  .brand .no{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.12em}
-  .brand .name{font-size:15px;font-weight:700;letter-spacing:.2em}
-  .brand .sub{font-size:11px;color:var(--dim)}
-  .grp{display:flex;align-items:center;gap:6px}
-  .grp .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--faint);margin-right:2px}
-  .seg{display:flex;border:1px solid rgba(127,179,224,.4)}
-  .seg button{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;padding:7px 12px;
-    background:transparent;border:none;color:var(--dim);cursor:pointer;transition:all .15s var(--ease)}
-  .seg button+button{border-left:1px solid rgba(127,179,224,.25)}
+  header{flex:0 0 auto;display:flex;align-items:center;gap:11px;flex-wrap:wrap;
+    padding:8px 14px;border-bottom:1px solid var(--grid2);background:var(--bp-deep);
+    transition:background 1.2s var(--ease)}
+  .seal-wrap{display:flex;align-items:center;gap:10px;white-space:nowrap}
+  .seal{width:40px;height:40px;flex:0 0 40px;color:var(--dim)}
+  .seal .ring-txt{animation:sealspin 46s linear infinite;transform-origin:32px 32px}
+  @keyframes sealspin{to{transform:rotate(360deg)}}
+  .seal .m-hand{stroke:var(--gold)}
+  .etitle{line-height:1.22}
+  .etitle .no{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:.22em}
+  .etitle .name{font-size:15px;font-weight:700;letter-spacing:.18em}
+  .etitle .sub{font-size:9.5px;color:var(--dim);letter-spacing:.06em}
+  .seg{display:flex;border:1px solid var(--grid2)}
+  .seg button{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;padding:6px 10px;
+    background:transparent;border:none;color:var(--dim);cursor:pointer;transition:all .16s var(--ease)}
+  .seg button+button{border-left:1px solid var(--grid)}
   .seg button:hover{color:var(--ink)}
   .seg button.on{background:var(--cyan);color:var(--bp-deep);font-weight:600}
-  .btn{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;padding:7px 14px;cursor:pointer;
+  .seg-label{font-family:var(--mono);font-size:8px;letter-spacing:.2em;color:var(--faint);margin-right:-4px}
+  header .spacer{flex:1}
+  .hbtns{display:flex;gap:7px;align-items:center}
+  .btn{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;padding:6px 11px;cursor:pointer;
     background:transparent;color:var(--gold);border:1px solid rgba(242,193,78,.5);transition:all .16s var(--ease)}
   .btn:hover{background:rgba(242,193,78,.12);border-color:var(--gold)}
-  .btn.solid{background:var(--gold);color:var(--bp-deep);font-weight:600}
-  .btn.solid:hover{background:#FFD97A}
-  .btn.ghost{color:var(--dim);border-color:rgba(127,179,224,.4)}
+  .btn.ghost{color:var(--dim);border-color:var(--grid2)}
   .btn.ghost:hover{color:var(--ink);border-color:var(--cyan);background:rgba(127,179,224,.08)}
   .btn.ghost.on{color:var(--cut);border-color:var(--cut);background:rgba(226,96,76,.1)}
-  header .spacer{flex:1}
+
+  #deck{flex:0 0 auto;display:flex;align-items:center;gap:20px;padding:6px 14px;flex-wrap:wrap;
+    border-bottom:1px solid var(--grid);background:var(--bp)}
+  .ctl{display:flex;align-items:center;gap:8px}
+  .ctl label{font-size:8.5px;letter-spacing:.18em;color:var(--faint);white-space:nowrap}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:96px;height:2px;
+    background:linear-gradient(90deg,var(--gold) var(--fill,50%),var(--grid2) var(--fill,50%));
+    outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;
+    border-radius:50%;background:var(--bp);border:2px solid var(--gold);transition:transform .15s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3)}
+  input[type=range]::-moz-range-thumb{width:8px;height:8px;border-radius:50%;background:var(--bp);border:2px solid var(--gold)}
+  .ctl output{font-family:var(--mono);font-size:9.5px;color:var(--gold);min-width:44px}
+  #deck .seedtag{margin-left:auto;font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.14em}
+  #deck .seedtag b{color:var(--dim);font-weight:400}
 
   main{flex:1;position:relative;min-height:0}
-  #cv{position:absolute;inset:0;display:block;cursor:default}
+  #cv{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+  #cv.panning{cursor:grabbing}
+  #cv.pruning{cursor:crosshair}
 
-  #log{position:absolute;left:16px;bottom:14px;width:340px;max-width:calc(100vw - 32px);
-    background:rgba(10,35,64,.88);border:1px solid rgba(127,179,224,.35);
-    font-family:var(--mono);font-size:10.5px;line-height:1.8;color:var(--dim);
-    padding:10px 12px;pointer-events:none;backdrop-filter:blur(3px)}
-  #log .lt{color:var(--faint);letter-spacing:.16em;font-size:9px;margin-bottom:4px}
+  /* 伪代码同步面板 */
+  #pcode{position:absolute;left:14px;top:14px;width:262px;max-width:calc(100vw - 28px);
+    background:var(--panel);border:1px solid var(--grid2);backdrop-filter:blur(3px);
+    font-family:var(--mono);font-size:10.5px;color:var(--dim);z-index:5}
+  #pcode .ph{display:flex;align-items:center;gap:8px;padding:7px 11px;border-bottom:1px solid var(--grid);
+    font-size:8.5px;letter-spacing:.2em;color:var(--faint)}
+  #pcode .ph .sq{width:7px;height:7px;background:var(--gold)}
+  #pcode .ph .st{margin-left:auto;letter-spacing:.06em;color:var(--cyan)}
+  #pcode .pl{display:grid;grid-template-columns:20px 1fr;gap:6px;padding:2.5px 11px;
+    line-height:1.55;white-space:pre;transition:background .18s,color .18s}
+  #pcode .pl .ln{color:var(--faint);font-size:8.5px;padding-top:2px;text-align:right}
+  #pcode .pl.hot{background:rgba(242,193,78,.14);color:var(--gold)}
+  #pcode .pl.hot .ln{color:var(--gold)}
+  #pcode .pstat{padding:6px 11px;border-top:1px solid var(--grid);font-size:9px;
+    color:var(--faint);letter-spacing:.08em;display:flex;gap:12px}
+  #pcode .pstat b{color:var(--cyan);font-weight:400}
+
+  #log{position:absolute;left:14px;bottom:14px;width:330px;max-width:calc(100vw - 28px);
+    background:var(--panel);border:1px solid var(--grid2);
+    font-family:var(--mono);font-size:10px;line-height:1.75;color:var(--dim);
+    padding:9px 11px;pointer-events:none;backdrop-filter:blur(3px);z-index:5}
+  #log .lt{color:var(--faint);letter-spacing:.16em;font-size:8.5px;margin-bottom:3px}
   #log .hl{color:var(--gold)}
   #log .ct{color:var(--cut)}
   #log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  #legend{position:absolute;right:16px;bottom:14px;display:flex;gap:14px;
-    font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:.08em;
-    background:rgba(10,35,64,.88);border:1px solid rgba(127,179,224,.35);padding:8px 12px}
-  #legend i{display:inline-block;width:14px;height:8px;margin-right:5px;vertical-align:middle}
+  /* 走带控制 */
+  #transport{position:absolute;left:50%;transform:translateX(-50%);bottom:14px;z-index:6;
+    display:flex;align-items:center;gap:0;background:var(--panel);border:1px solid var(--grid2);
+    backdrop-filter:blur(3px)}
+  #transport button{width:40px;height:34px;background:transparent;border:none;color:var(--ink);
+    font-family:var(--mono);font-size:12px;cursor:pointer;transition:all .15s var(--ease)}
+  #transport button+button{border-left:1px solid var(--grid)}
+  #transport button:hover{background:var(--cyan);color:var(--bp-deep)}
+  #transport button:disabled{opacity:.3;cursor:default;background:transparent;color:var(--ink)}
+  #transport .tlabel{padding:0 12px;font-family:var(--mono);font-size:9.5px;color:var(--dim);
+    letter-spacing:.1em;border-left:1px solid var(--grid);height:34px;display:flex;align-items:center}
+  #transport .tlabel b{color:var(--gold);font-weight:400;margin-left:6px}
+
+  #legend{position:absolute;right:14px;bottom:14px;display:flex;gap:12px;z-index:5;
+    font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.06em;
+    background:var(--panel);border:1px solid var(--grid2);padding:8px 11px}
+  #legend i{display:inline-block;width:13px;height:8px;margin-right:5px;vertical-align:middle}
   #legend .l1 i{background:var(--cyan)} #legend .l2 i{background:var(--gold)}
   #legend .l3 i{background:repeating-linear-gradient(45deg,var(--cut) 0 2px,transparent 2px 5px)}
+  #legend .l4 i{background:var(--gold);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
 
-  footer{flex:0 0 30px;display:flex;align-items:center;gap:20px;padding:0 16px;
-    border-top:1px solid rgba(127,179,224,.35);background:var(--bp-deep);
-    font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.08em}
+  footer{flex:0 0 30px;display:flex;align-items:center;gap:16px;padding:0 14px;
+    border-top:1px solid var(--grid2);background:var(--bp-deep);
+    font-family:var(--mono);font-size:9px;color:var(--faint);letter-spacing:.08em;
+    white-space:nowrap;overflow:hidden;transition:background 1.2s var(--ease)}
   footer b{color:var(--dim);font-weight:600}
+  footer .dotsep{color:var(--grid2)}
   footer .sig{margin-left:auto}
-  #tip{position:fixed;z-index:50;pointer-events:none;background:rgba(10,35,64,.95);
-    border:1px solid rgba(127,179,224,.5);padding:7px 10px;font-family:var(--mono);
-    font-size:10.5px;color:var(--ink);opacity:0;transition:opacity .15s;max-width:240px;line-height:1.6}
+  #tip{position:fixed;z-index:50;pointer-events:none;background:var(--bp-deep);
+    border:1px solid var(--cyan);padding:7px 10px;font-family:var(--mono);
+    font-size:10px;color:var(--ink);opacity:0;transition:opacity .15s;max-width:240px;line-height:1.6}
   #tip .s{color:var(--gold)}
 
-  @media (max-width:860px){
-    header{padding:8px 10px;gap:6px}
-    .brand .sub{display:none}
-    .grp .lbl{display:none}
-    .btn,.seg button{padding:6px 9px;font-size:9.5px}
+  #grain{position:fixed;inset:0;z-index:70;pointer-events:none;opacity:.13;mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.85'/%3E%3C/svg%3E")}
+  #vignette{position:fixed;inset:0;z-index:69;pointer-events:none;
+    background:radial-gradient(ellipse 120% 105% at 50% 42%, transparent 62%, rgba(0,0,0,.30) 100%)}
+
+  @media (max-width:900px){
+    header{padding:7px 10px;gap:7px}
+    .etitle .sub{display:none}
+    .seg-label{display:none}
+    #pcode{width:210px;font-size:9.5px}
     #legend{display:none}
-    #log{width:calc(100vw - 20px);left:10px;bottom:10px;font-size:9.5px}
-    footer{font-size:9px;gap:10px}
+    #log{width:calc(100vw - 20px);left:10px;bottom:60px;font-size:9px}
+    #transport{bottom:10px}
+    footer{font-size:8px;gap:8px}
+    #deck .seedtag{display:none}
+    .ctl label{display:none}
+    input[type=range]{width:60px}
+  }
+  @media (max-width:560px){
+    header .spacer{display:none}
+    .hbtns{flex:1 0 100%;justify-content:flex-end;gap:6px}
+    .seal{width:32px;height:32px;flex-basis:32px}
+    .etitle .name{font-size:12.5px}
+    .btn{padding:5px 7px;font-size:8.5px}
   }
 </style>
-</head>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
 <body>
 
 <header>
-  <div class="brand">
-    <span class="no">A·07</span>
-    <span class="name">PLANNER TREE</span>
-    <span class="sub">任务规划树可视化</span>
-  </div>
-  <div class="grp">
-    <span class="lbl">SEARCH</span>
-    <div class="seg" id="algo-seg">
-      <button data-a="bfs" class="on">BFS</button>
-      <button data-a="dfs">DFS</button>
-      <button data-a="greedy">贪心</button>
+  <div class="seal-wrap">
+    <svg class="seal" viewBox="0 0 64 64" aria-hidden="true">
+      <defs><path id="seal-ring71" d="M32,32 m-23.5,0 a23.5,23.5 0 1,1 47,0 a23.5,23.5 0 1,1 -47,0"/></defs>
+      <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1"/>
+      <circle cx="32" cy="32" r="17" fill="none" stroke="currentColor" stroke-width=".7" stroke-dasharray="1 2.6"/>
+      <g class="ring-txt"><text font-size="6" letter-spacing="1.7" fill="currentColor" font-family="SF Mono,Menlo,monospace">
+        <textPath href="#seal-ring71">ATELIER MIRA · PLEIN AIR · MMXXVI ·</textPath>
+      </text></g>
+      <path class="m-hand" d="M22.5 42.5 L22.8 24.5 L31.6 36.8 L40.6 24.2 L41 42.3" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path class="m-hand" d="M22.9 42.2 L23.1 24.8 L31.9 36.5" fill="none" stroke-width=".8" stroke-linecap="round" opacity=".45"/>
+    </svg>
+    <div class="etitle">
+      <div class="no">ÉTUDE N°71/100</div>
+      <div class="name">PLANNER TREE</div>
+      <div class="sub">灯下的规划蓝图 · 任务规划树可视化</div>
     </div>
   </div>
-  <button class="btn solid" id="run">开始搜索</button>
-  <button class="btn ghost" id="prune-mode">剪枝模式 OFF</button>
+  <span class="seg-label">搜索</span>
+  <div class="seg" id="algo-seg">
+    <button data-a="bfs" class="on">BFS</button>
+    <button data-a="dfs">DFS</button>
+    <button data-a="greedy">贪心</button>
+  </div>
+  <span class="seg-label">光色</span>
+  <div class="seg" id="atmo-seg">
+    <button data-t="dawn">晨</button>
+    <button data-t="noon" class="on">午</button>
+    <button data-t="dusk">昏</button>
+    <button data-t="night">夜</button>
+  </div>
+  <span class="seg-label">图法</span>
+  <div class="seg" id="mode-seg">
+    <button data-m="ortho" class="on">正交</button>
+    <button data-m="radial">年轮</button>
+  </div>
   <div class="spacer"></div>
-  <button class="btn ghost" id="regen">随机再生</button>
-  <button class="btn" id="dl">下载 PNG</button>
+  <div class="hbtns">
+    <button class="btn ghost" id="prune-mode">剪枝 OFF</button>
+    <button class="btn ghost" id="view-reset">复位视图</button>
+    <button class="btn ghost" id="dl">PNG</button>
+    <button class="btn ghost" id="share">分享链接</button>
+    <button class="btn" id="regen">再生 ↻</button>
+  </div>
 </header>
+
+<div id="deck">
+  <div class="ctl"><label>搜索节拍</label><input type="range" id="stepms" min="120" max="900" step="20" value="300"><output id="stepms-val">300ms</output></div>
+  <div class="ctl"><label>分支密度</label><input type="range" id="density" min="2" max="5" step="1" value="3"><output id="density-val">3 支</output></div>
+  <div class="ctl"><label>目标数</label><input type="range" id="goals" min="1" max="4" step="1" value="2"><output id="goals-val">2 个</output></div>
+  <div class="seedtag">SEED <b id="seed-tag">—</b></div>
+</div>
 
 <main>
   <canvas id="cv"></canvas>
+  <div id="pcode">
+    <div class="ph"><span class="sq"></span>PSEUDOCODE · 同步推演<span class="st" id="pc-algo">BFS</span></div>
+    <div id="pc-lines"></div>
+    <div class="pstat"><span>已访问 <b id="pc-visited">0</b></span><span>开放集 <b id="pc-open">0</b></span><span>步 <b id="pc-step">0/0</b></span></div>
+  </div>
   <div id="log">
     <div class="lt">PLANNER LOG · 规划日志</div>
-    <div id="log-lines"><div>就绪。点击节点折叠/展开子任务。</div></div>
+    <div id="log-lines"><div>就绪。点击节点折叠/展开，双击星标，拖拽平移，滚轮缩放。</div></div>
+  </div>
+  <div id="transport">
+    <button id="t-prev" title="上一步 ←">&#9664;</button>
+    <button id="t-play" title="播放 / 暂停（空格）">&#9654;</button>
+    <button id="t-next" title="下一步 →">&#9654;&#9654;</button>
+    <button id="t-clear" title="清除搜索痕迹">&#8634;</button>
+    <span class="tlabel">SEARCH<b id="t-state">IDLE</b></span>
   </div>
   <div id="legend">
     <span class="l1"><i></i>已访问</span>
     <span class="l2"><i></i>最终路径</span>
     <span class="l3"><i></i>已剪枝</span>
+    <span class="l4"><i></i>星标</span>
   </div>
 </main>
 <div id="tip"></div>
@@ -125,376 +252,663 @@
   <div>深度 <b id="st-depth">0</b></div>
   <div>已剪枝 <b id="st-pruned">0</b></div>
   <div>访问 <b id="st-visited">0</b></div>
-  <div>悬停查看评分 · 剪枝模式下点击节点裁剪子树</div>
-  <div class="sig">ATELIER M · 2026</div>
+  <span class="dotsep">·</span>
+  <div id="colophon">CANVAS 2D · SEED — · Painted with code, plein air</div>
+  <div class="sig">ATELIER MIRA · ÉTUDE N°71</div>
 </footer>
+
+<div id="vignette" aria-hidden="true"></div>
+<div id="grain" aria-hidden="true"></div>
 
 <script>
 'use strict';
-/* ================= 数据:随机任务树 ================= */
-const TASK_ROOTS = ['筹备秋季产品发布会','重构支付网关','组织团队北海道团建','上线多语言支持','撰写年度技术白皮书'];
-const TASK_MID = ['场地与档期','供应商谈判','视觉与物料','嘉宾邀请','预算编制','风险预案','数据迁移','接口设计','灰度方案','回滚预案','翻译管线','术语表对齐','问卷调研','路线规划','素材拍摄','法务审阅'];
-const TASK_LEAF = ['锁定 3 个候选场地','比价并拟合同','设计主视觉 KV','确认演讲嘉宾','拆分预算表','梳理 Top5 风险','写迁移脚本','定义错误码','列灰度名单','演练回滚','接入翻译 API','校对高频词','发放问卷','预订新干线票','踩点取景','审阅免责条款','准备彩排脚本','搭建监控看板','冻结需求列表','通知渠道伙伴'];
+/* =====================================================
+   ÉTUDE N°71 — PLANNER TREE · 灯下的规划蓝图
+   媒介 Canvas 2D · 种子可复现 · 晨午昏夜光色研究
+   ===================================================== */
 
-let uid = 0;
-function mkNode(label, depth){
+/* ================= 种子系统 ================= */
+function hashStr(s){ let h=2166136261>>>0; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function parseHash(){
+  const h=location.hash.slice(1), out={};
+  h.split('&').forEach(kv=>{ const i=kv.indexOf('='); if(i>0) out[kv.slice(0,i)]=decodeURIComponent(kv.slice(i+1)); });
+  return out;
+}
+const HP=parseHash();
+let seed=HP.seed || String(10000+Math.floor(Math.random()*89999));
+let R=mulberry32(hashStr(seed));
+let atmo=(HP.atmo&&['dawn','noon','dusk','night'].includes(HP.atmo))?HP.atmo:'noon';
+let mode=(HP.mode==='radial')?'radial':'ortho';
+let modeMix=mode==='radial'?1:0, modeTarget=modeMix;
+function writeHash(){ history.replaceState(null,'','#seed='+seed+'&atmo='+atmo+'&mode='+mode); }
+
+/* ================= 数据：种子化随机任务树 ================= */
+const TASK_ROOTS=['筹备秋季产品发布会','重构支付网关','组织团队北海道团建','上线多语言支持','撰写年度技术白皮书','策划品牌焕新 campaign'];
+const TASK_MID=['场地与档期','供应商谈判','视觉与物料','嘉宾邀请','预算编制','风险预案','数据迁移','接口设计','灰度方案','回滚预案','翻译管线','术语表对齐','问卷调研','路线规划','素材拍摄','法务审阅'];
+const TASK_LEAF=['锁定 3 个候选场地','比价并拟合同','设计主视觉 KV','确认演讲嘉宾','拆分预算表','梳理 Top5 风险','写迁移脚本','定义错误码','列灰度名单','演练回滚','接入翻译 API','校对高频词','发放问卷','预订新干线票','踩点取景','审阅免责条款','准备彩排脚本','搭建监控看板','冻结需求列表','通知渠道伙伴'];
+
+let uid=0, density=3, goalCount=2;
+function mkNode(label,depth){
   return {id:uid++, label, depth,
-    score:+(0.25+Math.random()*0.75).toFixed(2),
+    score:+(0.25+R()*0.75).toFixed(2),
     goal:false, children:[], parent:null,
-    collapsed:false, pruned:false,
+    collapsed:false, pruned:false, star:false,
     x:0,y:0,tx:0,ty:0, a:0, ta:1,
     visit:0, onPath:false};
 }
 function genTree(){
-  uid = 0;
-  const root = mkNode(TASK_ROOTS[Math.random()*TASK_ROOTS.length|0], 0);
-  const mids = [...TASK_MID].sort(()=>Math.random()-.5);
-  const leafs = [...TASK_LEAF].sort(()=>Math.random()-.5);
-  const nMid = 3+(Math.random()*2|0);
+  uid=0;
+  const root=mkNode(TASK_ROOTS[R()*TASK_ROOTS.length|0],0);
+  const mids=[...TASK_MID].sort(()=>R()-.5);
+  const leafs=[...TASK_LEAF].sort(()=>R()-.5);
+  const nMid=density+(R()<0.5?0:1);
   for(let i=0;i<nMid;i++){
-    const m = mkNode(mids[i% mids.length],1); m.parent=root; root.children.push(m);
-    const nLeaf = 1+(Math.random()*3|0);
+    const m=mkNode(mids[i%mids.length],1); m.parent=root; root.children.push(m);
+    const nLeaf=1+(R()*3|0);
     for(let j=0;j<nLeaf;j++){
-      const l = mkNode(leafs[(i*3+j)%leafs.length],2); l.parent=m; m.children.push(l);
-      if(Math.random()<0.3){
-        const ll = mkNode(leafs[(i*5+j*2+7)%leafs.length],3); ll.parent=l; l.children.push(ll);
+      const l=mkNode(leafs[(i*3+j)%leafs.length],2); l.parent=m; m.children.push(l);
+      if(R()<0.3){
+        const ll=mkNode(leafs[(i*5+j*2+7)%leafs.length],3); ll.parent=l; l.children.push(ll);
       }
     }
   }
-  /* 在叶子上标 2 个可执行目标 */
   const leaves=[]; (function walk(n){ n.children.length?n.children.forEach(walk):leaves.push(n); })(root);
-  leaves.sort(()=>Math.random()-.5).slice(0,2).forEach(n=>{n.goal=true;});
+  leaves.sort(()=>R()-.5).slice(0,goalCount).forEach(n=>{n.goal=true;});
   return root;
 }
 
-/* ================= 画布 ================= */
-const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+/* ================= 氛围：晨 / 午 / 昏 / 夜 ================= */
+const ATMOS={
+  dawn:{label:'晨', css:{'--bp':'#14203C','--bp-deep':'#0E1730','--grid':'rgba(150,160,220,.10)','--grid2':'rgba(150,160,220,.22)','--ink':'#EAE8F2','--dim':'#9690BC','--faint':'#5E5890','--gold':'#F0B8A0','--cut':'#E2604C','--cyan':'#9FB4E8','--panel':'rgba(14,23,48,.88)'},
+    sky:['#16223F','#1D2A4C'], glow:'rgba(240,184,160,.10)', edge:'rgba(234,232,242,.45)', glowEdges:false, fireflies:false},
+  noon:{label:'午', css:{'--bp':'#0E2E52','--bp-deep':'#0A2340','--grid':'rgba(127,179,224,.10)','--grid2':'rgba(127,179,224,.22)','--ink':'#E9F1F8','--dim':'#8FA9C4','--faint':'#5B7692','--gold':'#F2C14E','--cut':'#E2604C','--cyan':'#7FB3E0','--panel':'rgba(10,35,64,.88)'},
+    sky:['#0F3055','#123B66'], glow:'rgba(127,179,224,.07)', edge:'rgba(233,241,248,.45)', glowEdges:false, fireflies:false},
+  dusk:{label:'昏', css:{'--bp':'#1E1B30','--bp-deep':'#161325','--grid':'rgba(220,180,140,.10)','--grid2':'rgba(220,180,140,.20)','--ink':'#F2EADC','--dim':'#B09A88','--faint':'#6E5F58','--gold':'#F0A850','--cut':'#E2604C','--cyan':'#C8A8E0','--panel':'rgba(22,19,37,.88)'},
+    sky:['#201C33','#2A2340'], glow:'rgba(240,168,80,.13)', edge:'rgba(242,234,220,.42)', glowEdges:false, fireflies:true},
+  night:{label:'夜', css:{'--bp':'#070B18','--bp-deep':'#04070F','--grid':'rgba(110,170,230,.08)','--grid2':'rgba(110,170,230,.16)','--ink':'#D8E4F2','--dim':'#6E86A8','--faint':'#3E5070','--gold':'#F2C14E','--cut':'#E2604C','--cyan':'#5FA8E0','--panel':'rgba(4,7,15,.88)'},
+    sky:['#080C1A','#0B1124'], glow:'rgba(95,168,224,.08)', edge:'rgba(216,228,242,.5)', glowEdges:true, fireflies:true},
+};
+function applyAtmo(){
+  const A=ATMOS[atmo];
+  for(const k in A.css) document.documentElement.style.setProperty(k,A.css[k]);
+  document.querySelectorAll('#atmo-seg button').forEach(b=>b.classList.toggle('on',b.dataset.t===atmo));
+  writeHash();
+}
+document.querySelectorAll('#atmo-seg button').forEach(b=>b.onclick=()=>{ atmo=b.dataset.t; applyAtmo(); seedFireflies(); });
+
+/* ================= 画布与视图（平移 / 缩放） ================= */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 let W=0,H=0,DPR=1;
+const view={z:1, ox:0, oy:0};
 function resize(){
-  DPR = Math.min(2, window.devicePixelRatio||1);
-  W = cv.clientWidth; H = cv.clientHeight;
-  cv.width = W*DPR; cv.height = H*DPR;
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  W=cv.clientWidth; H=cv.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR;
   relayout();
 }
-window.addEventListener('resize', resize);
+window.addEventListener('resize',resize);
+const s2w=(sx,sy)=>({x:(sx-view.ox)/view.z, y:(sy-view.oy)/view.z});
+const w2s=(wx,wy)=>({x:wx*view.z+view.ox, y:wy*view.z+view.oy});
+document.getElementById('view-reset').onclick=()=>{ view.z=1; view.ox=0; view.oy=0; log('视图复位'); };
 
-/* ================= 布局 ================= */
-let root = null, allNodes = [];
-const NODE_H = 34;
+/* ================= 布局：正交蓝图 / 放射年轮 ================= */
+let root=null, allNodes=[];
+const NODE_H=34;
+const radC={cx:0, cy:0};
 function hiddenByAncestor(n){
-  let p = n.parent;
-  while(p){ if(p.collapsed) return true; p = p.parent; }
+  let p=n.parent;
+  while(p){ if(p.collapsed) return true; p=p.parent; }
   return false;
 }
+function leafCount(){
+  let c=0;
+  (function count(n){ if(n.collapsed||!n.children.length){ c++; return; } n.children.forEach(count); })(root);
+  return c;
+}
 function relayout(){
-  if(!root || W<10) return;
-  let leafCount = 0;
-  (function count(n){
-    if(n.collapsed || !n.children.length){ leafCount++; return; }
-    n.children.forEach(count);
-  })(root);
-  const pad = Math.max(30, W*0.05);
-  const unitW = (W-2*pad)/Math.max(1,leafCount);
-  const maxDepth = 3;
-  const levelH = (H-90)/Math.max(1,maxDepth);
-  let li = 0;
-  (function place(n, depth){
-    n.ty = 46 + depth*levelH;
-    if(n.collapsed || !n.children.length){ n.tx = pad + (li+0.5)*unitW; li++; }
+  if(!root||W<10) return;
+  const lc=leafCount();
+  /* ---- 正交 ---- */
+  const pad=Math.max(30,W*0.05);
+  const unitW=(W-2*pad)/Math.max(1,lc);
+  const maxDepth=3;
+  const levelH=(H-110)/Math.max(1,maxDepth);
+  let li=0;
+  (function place(n,depth){
+    n._oy=52+depth*levelH;
+    if(n.collapsed||!n.children.length){ n._ox=pad+(li+0.5)*unitW; li++; }
     else{
-      n.children.forEach(c=>place(c, depth+1));
-      n.tx = (n.children[0].tx + n.children[n.children.length-1].tx)/2;
+      n.children.forEach(c=>place(c,depth+1));
+      n._ox=(n.children[0]._ox+n.children[n.children.length-1]._ox)/2;
     }
   })(root,0);
-  /* 目标透明度:被折叠祖先隐藏的节点淡出 */
-  allNodes.forEach(n=>{ n.ta = hiddenByAncestor(n)?0:1; });
+  /* ---- 年轮 ---- */
+  const cx=W/2, cy=H/2+8, maxR=Math.min(W,H)*0.42;
+  radC.cx=cx; radC.cy=cy;
+  let ai=0;
+  (function placeR(n,depth){
+    const r=depth===0?0:(maxR*depth/maxDepth);
+    if(n.collapsed||!n.children.length){ n._ra=-Math.PI/2+(ai+0.5)/lc*Math.PI*2; ai++; }
+    else{
+      n.children.forEach(c=>placeR(c,depth+1));
+      let sx=0,sy=0;
+      n.children.forEach(c=>{ sx+=Math.cos(c._ra); sy+=Math.sin(c._ra); });
+      n._ra=Math.atan2(sy,sx);
+    }
+    n._rx=cx+Math.cos(n._ra)*r; n._ry=cy+Math.sin(n._ra)*r;
+  })(root,0);
+  allNodes.forEach(n=>{
+    n.tx=n._ox+(n._rx-n._ox)*modeMix;
+    n.ty=n._oy+(n._ry-n._oy)*modeMix;
+    n.ta=hiddenByAncestor(n)?0:1;
+  });
 }
+document.querySelectorAll('#mode-seg button').forEach(b=>b.onclick=()=>{
+  mode=b.dataset.m; modeTarget=mode==='radial'?1:0;
+  document.querySelectorAll('#mode-seg button').forEach(x=>x.classList.toggle('on',x===b));
+  relayout(); writeHash();
+});
 
-/* ================= 搜索 ================= */
-let algo = 'bfs', searching = false, searchTimer = null;
-function visibleNodes(){
-  return allNodes.filter(n=>!hiddenByAncestor(n) && !n.pruned && !underPruned(n));
-}
-function underPruned(n){
-  let p = n.parent; while(p){ if(p.pruned) return true; p = p.parent; } return false;
-}
+/* ================= 搜索：走带控制 + 伪代码同步 ================= */
+let algo='bfs';
+const PCODE={
+  bfs:{name:'BFS · 广度优先', lines:['Q ← {根节点}','while Q 非空','  n ← 取出队首','  若 n 是目标 → 返回路径','  子节点依次入队']},
+  dfs:{name:'DFS · 深度优先', lines:['S ← {根节点}','while S 非空','  n ← 弹出栈顶','  若 n 是目标 → 返回路径','  子节点逆序压栈']},
+  greedy:{name:'GREEDY · 最佳优先', lines:['OPEN ← {根节点}','while OPEN 非空','  n ← 评分最高者','  若 n 是目标 → 返回路径','  子节点并入 OPEN']},
+};
+let order=[], kStep=0, goalStep=-1, playing=false, acc=0, stepMs=300;
+function underPruned(n){ let p=n.parent; while(p){ if(p.pruned) return true; p=p.parent; } return false; }
+function reachable(n){ return !n.pruned && !underPruned(n) && !hiddenByAncestor(n); }
 function computeOrder(){
-  const seen = new Set(), order = [];
+  const seen=new Set(), out=[];
+  const push=(arr,n,meta)=>{ if(seen.has(n.id)||!reachable(n)) return; seen.add(n.id); out.push({n, open:meta}); };
   if(algo==='bfs'){
     const q=[root];
-    while(q.length){ const n=q.shift();
-      if(seen.has(n.id)||n.pruned||hiddenByAncestor(n)||underPruned(n)) continue;
-      seen.add(n.id); order.push(n); q.push(...n.children); }
+    while(q.length){ const n=q.shift(); if(seen.has(n.id)||!reachable(n)) continue;
+      seen.add(n.id); q.push(...n.children); out.push({n, open:q.length}); }
   } else if(algo==='dfs'){
     const st=[root];
-    while(st.length){ const n=st.pop();
-      if(seen.has(n.id)||n.pruned||hiddenByAncestor(n)||underPruned(n)) continue;
-      seen.add(n.id); order.push(n); st.push(...[...n.children].reverse()); }
+    while(st.length){ const n=st.pop(); if(seen.has(n.id)||!reachable(n)) continue;
+      seen.add(n.id); st.push(...[...n.children].reverse()); out.push({n, open:st.length}); }
   } else {
-    /* 贪心 best-first:每次扩展当前分数最高的开放节点 */
     const open=[root];
     while(open.length){
       open.sort((a,b)=>b.score-a.score);
-      const n=open.shift();
-      if(seen.has(n.id)||n.pruned||hiddenByAncestor(n)||underPruned(n)) continue;
-      seen.add(n.id); order.push(n); open.push(...n.children);
+      const n=open.shift(); if(seen.has(n.id)||!reachable(n)) continue;
+      seen.add(n.id); open.push(...n.children); out.push({n, open:open.length});
       if(n.goal) break;
     }
   }
-  return order;
+  return out;
 }
-function runSearch(){
-  if(searching) return;
+function renderPcode(){
+  const box=document.getElementById('pc-lines');
+  box.innerHTML='';
+  PCODE[algo].lines.forEach((l,i)=>{
+    const d=document.createElement('div');
+    d.className='pl'; d.id='pcl'+i;
+    d.innerHTML='<span class="ln">'+(i+1)+'</span><span>'+l+'</span>';
+    box.appendChild(d);
+  });
+  document.getElementById('pc-algo').textContent=PCODE[algo].name.split(' ')[0];
+}
+function hotLine(i){
+  for(let j=0;j<5;j++){ const el=document.getElementById('pcl'+j); if(el) el.classList.toggle('hot', j===i); }
+}
+function setState(t){ document.getElementById('t-state').textContent=t; }
+function startSearch(){
   clearSearch(false);
-  searching = true;
-  const order = computeOrder();
-  let i = 0;
-  log('以 <span class="hl">'+algo.toUpperCase()+'</span> 开始搜索,开放节点 '+order.length+' 个');
-  searchTimer = setInterval(()=>{
-    if(i>=order.length){ log('搜索结束,未命中目标 — 目标可能被折叠或剪枝'); finishSearch(null); return; }
-    const n = order[i++];
-    n.visit = i;
-    $('st-visited').textContent = i;
-    if(n.goal){
-      let p=n; while(p){ p.onPath=true; p=p.parent; }
-      log('命中目标:<span class="hl">'+n.label+'</span> · 共访问 '+i+' 节点');
-      finishSearch(n);
-    }
-  }, 300);
+  order=computeOrder();
+  kStep=0; goalStep=-1; acc=0;
+  log('以 <span class="hl">'+PCODE[algo].name+'</span> 开始搜索，可达节点 '+order.length+' 个');
+  playing=true;
+  document.getElementById('t-play').innerHTML='&#10073;&#10073;';
+  setState('RUNNING');
 }
-function finishSearch(){
-  clearInterval(searchTimer); searchTimer=null; searching=false;
+function doStep(){
+  if(kStep>=order.length){
+    playing=false; document.getElementById('t-play').innerHTML='&#9654;';
+    setState('EXHAUSTED'); hotLine(1);
+    log('搜索结束，未命中目标 — 目标可能被折叠或剪枝');
+    return;
+  }
+  const s=order[kStep]; kStep++;
+  s.n.visit=kStep;
+  document.getElementById('st-visited').textContent=kStep;
+  document.getElementById('pc-visited').textContent=kStep;
+  document.getElementById('pc-open').textContent=s.open;
+  document.getElementById('pc-step').textContent=kStep+'/'+order.length;
+  if(s.n.goal){
+    goalStep=kStep;
+    let p=s.n; while(p){ p.onPath=true; p=p.parent; }
+    playing=false; document.getElementById('t-play').innerHTML='&#9654;';
+    setState('GOAL'); hotLine(3);
+    log('命中目标：<span class="hl">'+s.n.label+'</span> · 共访问 '+kStep+' 节点');
+  }
+}
+function stepBack(){
+  if(kStep<=0) return;
+  kStep--;
+  const s=order[kStep];
+  if(s){ s.n.visit=0; }
+  if(goalStep>0 && kStep<goalStep){
+    allNodes.forEach(n=>n.onPath=false); goalStep=-1;
+  }
+  document.getElementById('st-visited').textContent=kStep;
+  document.getElementById('pc-visited').textContent=kStep;
+  document.getElementById('pc-step').textContent=kStep+'/'+order.length;
+  if(kStep>0&&order[kStep-1]) document.getElementById('pc-open').textContent=order[kStep-1].open;
+  setState('STEP');
 }
 function clearSearch(logIt){
-  finishSearch();
+  playing=false; acc=0; kStep=0; goalStep=-1;
+  document.getElementById('t-play').innerHTML='&#9654;';
   allNodes.forEach(n=>{ n.visit=0; n.onPath=false; });
-  $('st-visited').textContent = '0';
+  document.getElementById('st-visited').textContent='0';
+  document.getElementById('pc-visited').textContent='0';
+  document.getElementById('pc-open').textContent='0';
+  document.getElementById('pc-step').textContent='0/0';
+  setState('IDLE'); hotLine(-1);
   if(logIt!==false) log('已清除搜索痕迹');
 }
-
-/* ================= 交互 ================= */
-let pruneMode = false;
-const tip = document.getElementById('tip');
-let mouse = {x:-1,y:-1}, hoverN = null;
-
 document.querySelectorAll('#algo-seg button').forEach(b=>{
-  b.onclick = ()=>{
+  b.onclick=()=>{
     document.querySelectorAll('#algo-seg button').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); algo = b.dataset.a;
-    clearSearch(false);
-    log('算法切换为 <span class="hl">'+algo.toUpperCase()+'</span>');
+    b.classList.add('on'); algo=b.dataset.a;
+    clearSearch(false); renderPcode();
+    log('算法切换为 <span class="hl">'+PCODE[algo].name+'</span>');
   };
 });
-$('run').onclick = runSearch;
-$('prune-mode').onclick = e=>{
-  pruneMode = !pruneMode;
-  e.target.textContent = '剪枝模式 '+(pruneMode?'ON':'OFF');
-  e.target.classList.toggle('on', pruneMode);
-  log(pruneMode?'进入剪枝模式:点击节点裁剪 / 恢复子树':'退出剪枝模式');
+document.getElementById('t-play').onclick=()=>{
+  if(playing){ playing=false; document.getElementById('t-play').innerHTML='&#9654;'; setState('PAUSED'); }
+  else if(kStep===0||goalStep>0||kStep>=order.length) startSearch();
+  else { playing=true; document.getElementById('t-play').innerHTML='&#10073;&#10073;'; setState('RUNNING'); }
 };
-$('regen').onclick = ()=>{
-  finishSearch();
-  root = genTree();
-  collect();
-  relayout();
-  allNodes.forEach(n=>{ n.a = hiddenByAncestor(n)?0:1; n.x=n.tx; n.y=n.ty; });
-  updateStats();
-  log('已生成新规划树:<span class="hl">'+root.label+'</span>');
+document.getElementById('t-next').onclick=()=>{
+  if(order.length===0||goalStep>0){ order=computeOrder(); clearSearch(false); order=computeOrder(); }
+  playing=false; document.getElementById('t-play').innerHTML='&#9654;';
+  doStep(); if(goalStep<0&&kStep>0) setState('STEP');
 };
-$('dl').onclick = ()=>{
-  const a = document.createElement('a');
-  a.download = 'planner-tree.png';
-  a.href = cv.toDataURL('image/png');
-  a.click();
-  log('已导出 PNG 快照');
+document.getElementById('t-prev').onclick=()=>{ playing=false; document.getElementById('t-play').innerHTML='&#9654;'; stepBack(); };
+document.getElementById('t-clear').onclick=()=>clearSearch();
+
+/* ================= 参数台 ================= */
+function bindSlider(id,valId,fmt,cb){
+  const el=document.getElementById(id), out=document.getElementById(valId);
+  const paint=()=>{ const pc=(el.value-el.min)/(el.max-el.min)*100; el.style.setProperty('--fill',pc+'%'); out.textContent=fmt(+el.value); };
+  el.addEventListener('input',()=>{ paint(); cb(+el.value); });
+  paint(); cb(+el.value);
+}
+bindSlider('stepms','stepms-val',v=>v+'ms',v=>stepMs=v);
+bindSlider('density','density-val',v=>v+' 支',v=>{ density=v; });
+bindSlider('goals','goals-val',v=>v+' 个',v=>{ goalCount=v; });
+
+/* ================= 剪枝 / 星标 / 折叠 ================= */
+let pruneMode=false;
+const tip=document.getElementById('tip');
+let mouse={x:-1,y:-1}, hoverN=null;
+document.getElementById('prune-mode').onclick=e=>{
+  pruneMode=!pruneMode;
+  e.target.textContent='剪枝 '+(pruneMode?'ON':'OFF');
+  e.target.classList.toggle('on',pruneMode);
+  cv.classList.toggle('pruning',pruneMode);
+  log(pruneMode?'进入剪枝模式：点击节点裁剪 / 恢复子树':'退出剪枝模式');
 };
-cv.addEventListener('mousemove', e=>{
-  const r = cv.getBoundingClientRect();
-  mouse = {x:e.clientX-r.left, y:e.clientY-r.top, cx:e.clientX, cy:e.clientY};
+
+/* 平移 / 缩放 / 点击 */
+let pDown=null, panning=false;
+cv.addEventListener('pointerdown',e=>{
+  const r=cv.getBoundingClientRect();
+  pDown={x:e.clientX-r.left,y:e.clientY-r.top, vx:view.ox, vy:view.oy};
+  panning=false; wake();
+  cv.setPointerCapture(e.pointerId);
 });
-cv.addEventListener('mouseleave', ()=>{ mouse={x:-1,y:-1}; hoverN=null; tip.style.opacity=0; });
-cv.addEventListener('click', ()=>{
-  if(!hoverN || searching) return;
-  const n = hoverN;
-  if(pruneMode){
-    n.pruned = !n.pruned;
-    clearSearch(false);
-    updateStats();
-    log(n.pruned
-      ? '<span class="ct">✕ 剪枝</span> 「'+n.label+'」及其子树'
-      : '恢复 「'+n.label+'」子树');
-  } else if(n.children.length){
-    n.collapsed = !n.collapsed;
-    clearSearch(false);
-    relayout();
-    log((n.collapsed?'折叠 ':'展开 ')+'「'+n.label+'」');
+cv.addEventListener('pointermove',e=>{
+  const r=cv.getBoundingClientRect();
+  const nx=e.clientX-r.left, ny=e.clientY-r.top;
+  if(pDown){
+    if(Math.hypot(nx-pDown.x,ny-pDown.y)>6) panning=true;
+    if(panning){
+      view.ox=pDown.vx+(nx-pDown.x); view.oy=pDown.vy+(ny-pDown.y);
+      cv.classList.add('panning');
+    }
+  }
+  mouse={x:nx,y:ny,cx:e.clientX,cy:e.clientY};
+  wake();
+});
+cv.addEventListener('pointerup',()=>{
+  cv.classList.remove('panning');
+  if(pDown&&!panning&&hoverN&&!playing){
+    const n=hoverN;
+    if(pruneMode){
+      n.pruned=!n.pruned;
+      clearSearch(false); updateStats();
+      log(n.pruned?'<span class="ct">✕ 剪枝</span> 「'+n.label+'」及其子树':'恢复 「'+n.label+'」子树');
+    } else if(n.children.length){
+      n.collapsed=!n.collapsed;
+      clearSearch(false); relayout();
+      log((n.collapsed?'折叠 ':'展开 ')+'「'+n.label+'」');
+    }
+  }
+  pDown=null; panning=false;
+});
+cv.addEventListener('pointerleave',()=>{ mouse={x:-1,y:-1}; hoverN=null; tip.style.opacity=0; pDown=null; panning=false; });
+cv.addEventListener('dblclick',()=>{
+  if(hoverN){
+    hoverN.star=!hoverN.star;
+    log(hoverN.star?'星标 <span class="hl">「'+hoverN.label+'」</span> — 关键节点':'取消星标 「'+hoverN.label+'」');
   }
 });
+cv.addEventListener('wheel',e=>{
+  e.preventDefault(); wake();
+  const r=cv.getBoundingClientRect();
+  const mx=e.clientX-r.left, my=e.clientY-r.top;
+  const z0=view.z;
+  const z1=Math.min(2.6,Math.max(0.45,z0*(e.deltaY<0?1.09:0.92)));
+  view.ox=mx-(mx-view.ox)/z0*z1;
+  view.oy=my-(my-view.oy)/z0*z1;
+  view.z=z1;
+},{passive:false});
 
 /* ================= 日志 / 统计 ================= */
-const logEl = document.getElementById('log-lines');
+const logEl=document.getElementById('log-lines');
 function log(html){
-  const d = document.createElement('div');
-  d.innerHTML = html;
+  const d=document.createElement('div');
+  d.innerHTML=html;
   logEl.appendChild(d);
   while(logEl.children.length>4) logEl.removeChild(logEl.firstChild);
 }
 function updateStats(){
-  $('st-nodes').textContent = allNodes.length;
-  $('st-depth').textContent = Math.max(...allNodes.map(n=>n.depth))+1;
-  $('st-pruned').textContent = allNodes.filter(n=>n.pruned||underPruned(n)).length;
+  document.getElementById('st-nodes').textContent=allNodes.length;
+  document.getElementById('st-depth').textContent=Math.max(...allNodes.map(n=>n.depth))+1;
+  document.getElementById('st-pruned').textContent=allNodes.filter(n=>n.pruned||underPruned(n)).length;
 }
+
+/* ================= 萤火（昏 / 夜）与闲置巡游 ================= */
+let fireflies=[];
+function seedFireflies(){
+  fireflies=[...Array(ATMOS[atmo].fireflies?26:0)].map(()=>({x:R(),y:R(),ph:R()*7,sp:0.6+R()}));
+}
+let lastAct=performance.now(), roaming=false;
+function wake(){ lastAct=performance.now(); if(roaming) roaming=false; }
+document.addEventListener('keydown',()=>wake());
 
 /* ================= 绘制 ================= */
 function nodeWidth(n){
-  ctx.font = '11px "SF Mono",Menlo,monospace';
-  return Math.max(64, ctx.measureText(n.label).width + 26);
+  ctx.font='11px "SF Mono",Menlo,monospace';
+  return Math.max(64,ctx.measureText(n.label).width+26);
 }
-function draw(){
+function hexA(hex,a){
+  const n=parseInt(hex.slice(1),16);
+  return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';
+}
+function draw(now){
+  const A=ATMOS[atmo];
   ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.clearRect(0,0,W,H);
-  /* 蓝图网格 */
-  ctx.strokeStyle = 'rgba(127,179,224,.10)';
-  ctx.lineWidth = 1;
+  /* 图纸底色 */
+  const g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,A.sky[0]); g.addColorStop(1,A.sky[1]);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  const gg=ctx.createRadialGradient(W*0.78,H*0.12,0,W*0.78,H*0.12,Math.max(W,H)*0.7);
+  gg.addColorStop(0,A.glow); gg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=gg; ctx.fillRect(0,0,W,H);
+  /* 网格（屏幕空间，随视图微微视差） */
+  ctx.strokeStyle=A.css['--grid']; ctx.lineWidth=1;
   ctx.beginPath();
-  for(let x=0;x<W;x+=24){ ctx.moveTo(x+.5,0); ctx.lineTo(x+.5,H); }
-  for(let y=0;y<H;y+=24){ ctx.moveTo(0,y+.5); ctx.lineTo(W,y+.5); }
+  const gx=((view.ox*0.3)%24+24)%24, gy=((view.oy*0.3)%24+24)%24;
+  for(let x=gx;x<W;x+=24){ ctx.moveTo(x+.5,0); ctx.lineTo(x+.5,H); }
+  for(let y=gy;y<H;y+=24){ ctx.moveTo(0,y+.5); ctx.lineTo(W,y+.5); }
   ctx.stroke();
-  ctx.strokeStyle = 'rgba(127,179,224,.16)';
+  ctx.strokeStyle=A.css['--grid2'];
   ctx.beginPath();
-  for(let x=0;x<W;x+=120){ ctx.moveTo(x+.5,0); ctx.lineTo(x+.5,H); }
-  for(let y=0;y<H;y+=120){ ctx.moveTo(0,y+.5); ctx.lineTo(W,y+.5); }
+  const GX=((view.ox*0.3)%120+120)%120, GY=((view.oy*0.3)%120+120)%120;
+  for(let x=GX;x<W;x+=120){ ctx.moveTo(x+.5,0); ctx.lineTo(x+.5,H); }
+  for(let y=GY;y<H;y+=120){ ctx.moveTo(0,y+.5); ctx.lineTo(W,y+.5); }
   ctx.stroke();
+  /* 萤火 */
+  fireflies.forEach(f=>{
+    const t=now/1000;
+    const bl=Math.max(0,Math.sin(t*f.sp*1.3+f.ph));
+    if(bl<0.05) return;
+    const x=((f.x+Math.sin(t*0.11+f.ph)*0.03)%1)*W;
+    const y=((f.y+Math.cos(t*0.09+f.ph*2)*0.03)%1)*H;
+    ctx.beginPath(); ctx.arc(x,y,0.8+bl*1.4,0,7);
+    ctx.fillStyle='rgba(242,193,78,'+(0.12+bl*0.5)+')';
+    ctx.shadowColor='rgba(242,193,78,.9)'; ctx.shadowBlur=7*bl;
+    ctx.fill(); ctx.shadowBlur=0;
+  });
 
-  /* 边:正交连接线 */
+  /* 世界变换 */
+  ctx.setTransform(DPR*view.z,0,0,DPR*view.z,DPR*view.ox,DPR*view.oy);
+  const zInv=1/view.z;
+
+  /* 边 */
   allNodes.forEach(n=>{
-    if(!n.parent || n.a<0.02) return;
-    const p = n.parent;
-    const x1=p.x, y1=p.y+NODE_H/2, x2=n.x, y2=n.y-NODE_H/2;
-    const my = (y1+y2)/2;
-    const cut = n.pruned || underPruned(n) || p.pruned || underPruned(p);
-    const onPath = n.onPath && p.onPath;
-    ctx.globalAlpha = n.a * (cut?0.35:1);
-    ctx.beginPath();
-    ctx.moveTo(x1,y1); ctx.lineTo(x1,my); ctx.lineTo(x2,my); ctx.lineTo(x2,y2);
-    if(onPath){ ctx.strokeStyle='#F2C14E'; ctx.lineWidth=2.2; }
+    if(!n.parent||n.a<0.02) return;
+    const p=n.parent;
+    const x1=p.x,y1=p.y+NODE_H/2,x2=n.x,y2=n.y-NODE_H/2;
+    const cut=n.pruned||underPruned(n)||p.pruned||underPruned(p);
+    const onPath=n.onPath&&p.onPath;
+    ctx.globalAlpha=n.a*(cut?0.35:1);
+    if(modeMix>0.5){
+      const mx=(x1+x2)/2,my=(y1+y2)/2;
+      const cxx=(mx+radC.cx)/2,cyy=(my+radC.cy)/2;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.quadraticCurveTo(cxx,cyy,x2,y2);
+    } else {
+      const my=(y1+y2)/2;
+      ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x1,my); ctx.lineTo(x2,my); ctx.lineTo(x2,y2);
+    }
+    if(onPath){
+      ctx.strokeStyle='#F2C14E'; ctx.lineWidth=2.2;
+      if(A.glowEdges){ ctx.shadowColor='rgba(242,193,78,.8)'; ctx.shadowBlur=10; }
+    }
     else if(cut){ ctx.strokeStyle='#E2604C'; ctx.lineWidth=1; ctx.setLineDash([3,4]); }
-    else { ctx.strokeStyle='rgba(233,241,248,.45)'; ctx.lineWidth=1; }
-    ctx.stroke(); ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
+    else{
+      ctx.strokeStyle=A.edge; ctx.lineWidth=1;
+      if(A.glowEdges){ ctx.shadowColor='rgba(95,168,224,.5)'; ctx.shadowBlur=4; }
+    }
+    ctx.stroke(); ctx.setLineDash([]); ctx.shadowBlur=0;
+    ctx.globalAlpha=1;
   });
 
   /* 节点 */
-  hoverN = null;
-  let bestD = 14;
+  hoverN=null;
+  const wm=s2w(mouse.x,mouse.y);
+  let bestD=14;
   allNodes.forEach(n=>{
     if(n.a<0.02) return;
-    const w = nodeWidth(n), x = n.x-w/2, y = n.y-NODE_H/2;
-    const cut = n.pruned || underPruned(n);
+    const w=nodeWidth(n), x=n.x-w/2, y=n.y-NODE_H/2;
+    const cut=n.pruned||underPruned(n);
     ctx.save();
-    ctx.globalAlpha = n.a * (cut?0.55:1);
-
-    /* 搜索访问脉冲 */
-    if(n.visit && !n.onPath){
-      const t = (performance.now()%1600)/1600;
-      ctx.beginPath(); ctx.arc(n.x, n.y, 10+t*16, 0, 7);
-      ctx.strokeStyle = 'rgba(127,179,224,'+(0.5*(1-t))+')'; ctx.lineWidth=1; ctx.stroke();
+    ctx.globalAlpha=n.a*(cut?0.55:1);
+    if(n.visit&&!n.onPath){
+      const t=(now%1600)/1600;
+      ctx.beginPath(); ctx.arc(n.x,n.y,10+t*16,0,7);
+      ctx.strokeStyle=hexA(A.css['--cyan'],0.5*(1-t)); ctx.lineWidth=1; ctx.stroke();
     }
-    /* 框体 */
-    ctx.fillStyle = n.onPath ? 'rgba(242,193,78,.16)' : n.visit ? 'rgba(127,179,224,.16)' : 'rgba(10,35,64,.9)';
+    ctx.fillStyle=n.onPath?'rgba(242,193,78,.16)':n.visit?hexA(A.css['--cyan'],0.16):A.css['--panel'];
     ctx.fillRect(x,y,w,NODE_H);
-    ctx.strokeStyle = n.onPath ? '#F2C14E' : cut ? '#E2604C' : hoverN===n ? '#E9F1F8' : 'rgba(233,241,248,.75)';
-    ctx.lineWidth = n.onPath ? 2 : 1;
+    ctx.strokeStyle=n.onPath?'#F2C14E':cut?'#E2604C':hoverN===n?A.css['--ink']:A.edge;
+    ctx.lineWidth=n.onPath?2:1;
     if(cut) ctx.setLineDash([4,3]);
+    if(A.glowEdges&&n.onPath){ ctx.shadowColor='rgba(242,193,78,.9)'; ctx.shadowBlur=12; }
     ctx.strokeRect(x,y,w,NODE_H);
-    ctx.setLineDash([]);
-    /* 剪枝斜纹 */
+    ctx.setLineDash([]); ctx.shadowBlur=0;
     if(cut){
       ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,NODE_H); ctx.clip();
       ctx.strokeStyle='rgba(226,96,76,.5)'; ctx.lineWidth=1;
-      for(let d=-NODE_H; d<w; d+=7){
+      for(let d=-NODE_H;d<w;d+=7){
         ctx.beginPath(); ctx.moveTo(x+d,y+NODE_H); ctx.lineTo(x+d+NODE_H,y); ctx.stroke();
       }
       ctx.restore();
     }
     /* 角标十字 */
-    ctx.strokeStyle='rgba(233,241,248,.6)';
-    [[x,y],[x+w,y],[x,y+NODE_H],[x+w,y+NODE_H]].forEach(([cx,cy])=>{
-      ctx.beginPath(); ctx.moveTo(cx-3,cy); ctx.lineTo(cx+3,cy); ctx.moveTo(cx,cy-3); ctx.lineTo(cx,cy+3); ctx.stroke();
+    ctx.strokeStyle=A.edge;
+    [[x,y],[x+w,y],[x,y+NODE_H],[x+w,y+NODE_H]].forEach(([px,py])=>{
+      ctx.beginPath(); ctx.moveTo(px-3,py); ctx.lineTo(px+3,py); ctx.moveTo(px,py-3); ctx.lineTo(px,py+3); ctx.stroke();
     });
-    /* 文本 */
-    ctx.font = '11px "SF Mono",Menlo,monospace';
+    ctx.font='11px "SF Mono",Menlo,monospace';
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillStyle = cut ? 'rgba(226,96,76,.9)' : n.onPath ? '#F2C14E' : '#E9F1F8';
-    ctx.fillText(n.label, n.x, n.y-2);
-    /* 评分小字 */
-    ctx.font = '8px "SF Mono",Menlo,monospace';
-    ctx.fillStyle = 'rgba(143,169,196,.9)';
-    ctx.fillText(n.goal ? 'GOAL · '+n.score.toFixed(2) : 's='+n.score.toFixed(2), n.x, n.y+9);
-    if(n.goal && !cut){
-      ctx.strokeStyle = '#F2C14E'; ctx.lineWidth=1;
+    ctx.fillStyle=cut?'rgba(226,96,76,.9)':n.onPath?'#F2C14E':A.css['--ink'];
+    ctx.fillText(n.label,n.x,n.y-2);
+    ctx.font='8px "SF Mono",Menlo,monospace';
+    ctx.fillStyle=A.css['--dim'];
+    ctx.fillText(n.goal?'GOAL · '+n.score.toFixed(2):'s='+n.score.toFixed(2),n.x,n.y+9);
+    if(n.goal&&!cut){
+      ctx.strokeStyle='#F2C14E'; ctx.lineWidth=1;
       ctx.strokeRect(x-3,y-3,w+6,NODE_H+6);
     }
-    /* 折叠角标 */
-    if(n.children.length && n.collapsed){
-      ctx.fillStyle='#7FB3E0';
+    /* 星标 */
+    if(n.star){
+      const sx=n.x, sy=n.y-NODE_H/2-9;
+      ctx.fillStyle='#F2C14E';
+      if(A.glowEdges){ ctx.shadowColor='rgba(242,193,78,.9)'; ctx.shadowBlur=8; }
+      ctx.beginPath();
+      for(let i=0;i<8;i++){
+        const ang=-Math.PI/2+i*Math.PI/4, rr=i%2?2.2:5.5;
+        ctx[i?'lineTo':'moveTo'](sx+Math.cos(ang)*rr,sy+Math.sin(ang)*rr);
+      }
+      ctx.closePath(); ctx.fill(); ctx.shadowBlur=0;
+    }
+    if(n.children.length&&n.collapsed){
+      ctx.fillStyle=A.css['--cyan'];
       ctx.font='9px "SF Mono",Menlo,monospace';
-      ctx.fillText('+'+countSubtree(n), x+w+4, y);
+      ctx.fillText('+'+countSubtree(n),x+w+4,y);
     }
     ctx.restore();
-    /* 悬停检测 */
-    if(mouse.x>=x && mouse.x<=x+w && mouse.y>=y && mouse.y<=y+NODE_H && n.a>0.5){
-      const d = Math.abs(mouse.x-n.x)+Math.abs(mouse.y-n.y);
-      if(d<bestD+100){ hoverN = n; bestD = d; }
+    if(mouse.x>=0&&wm.x>=x&&wm.x<=x+w&&wm.y>=y&&wm.y<=y+NODE_H&&n.a>0.5){
+      const d=Math.abs(wm.x-n.x)+Math.abs(wm.y-n.y);
+      if(d<bestD+100){ hoverN=n; bestD=d; }
     }
   });
 
-  /* 悬停提示 */
+  /* 悬停提示（屏幕空间） */
+  ctx.setTransform(DPR,0,0,DPR,0,0);
   if(hoverN){
-    const n = hoverN;
-    const cut = n.pruned || underPruned(n);
-    tip.innerHTML = n.label+'<br><span class="s">评分 '+n.score.toFixed(2)+'</span>'+
-      ' · 深度 '+n.depth+(n.goal?' · <span class="s">目标节点</span>':'')+
-      (cut?'<br>状态:已剪枝(点击恢复)':n.children.length?'<br>点击'+(n.collapsed?'展开':'折叠')+' · 子节点 '+n.children.length+' 个':'<br>叶节点')+
+    const n=hoverN;
+    const cut=n.pruned||underPruned(n);
+    tip.innerHTML=n.label+'<br><span class="s">评分 '+n.score.toFixed(2)+'</span>'+
+      ' · 深度 '+n.depth+(n.goal?' · <span class="s">目标节点</span>':'')+(n.star?' · <span class="s">星标</span>':'')+
+      (cut?'<br>状态：已剪枝（点击恢复）':n.children.length?'<br>点击'+(n.collapsed?'展开':'折叠')+' · 双击星标':'<br>叶节点 · 双击星标')+
       (n.visit?'<br>搜索第 '+n.visit+' 步访问':'');
-    tip.style.opacity = 1;
-    tip.style.left = Math.min(window.innerWidth-250, mouse.cx+14)+'px';
-    tip.style.top = (mouse.cy+16)+'px';
-    cv.style.cursor = 'pointer';
-  } else {
-    tip.style.opacity = 0;
-    cv.style.cursor = 'default';
-  }
+    tip.style.opacity=1;
+    tip.style.left=Math.min(window.innerWidth-252,mouse.cx+14)+'px';
+    tip.style.top=(mouse.cy+16)+'px';
+  } else tip.style.opacity=0;
+
+  /* 年轮模式：中心环刻度 */
+  if(modeMix>0.5&&A.fireflies){ /* 夜景的静气，无需额外元素 */ }
 }
 function countSubtree(n){
-  let c = 0; (function w(m){ c++; m.children.forEach(w); })(n); return c-1;
+  let c=0; (function w(m){ c++; m.children.forEach(w); })(n); return c-1;
 }
 
+/* ================= 输出 / 分享 / 再生 ================= */
+document.getElementById('dl').onclick=()=>{
+  const a=document.createElement('a');
+  a.download='planner-tree-71-'+atmo+'-'+seed+'.png';
+  a.href=cv.toDataURL('image/png');
+  a.click();
+  log('已导出 PNG 快照');
+};
+document.getElementById('share').onclick=async e=>{
+  writeHash();
+  try{ await navigator.clipboard.writeText(location.href); e.target.textContent='已复制 ✓'; }
+  catch{ prompt('复制此链接',location.href); }
+  setTimeout(()=>e.target.textContent='分享链接',1600);
+};
+function collect(){ allNodes=[]; (function w(n){ allNodes.push(n); n.children.forEach(w); })(root); }
+function initWorld(){
+  R=mulberry32(hashStr(seed));
+  root=genTree(); collect(); clearSearch(false); updateStats();
+  document.getElementById('seed-tag').textContent='#'+seed;
+  document.getElementById('colophon').textContent='CANVAS 2D · SEED #'+seed+' · Painted with code, plein air';
+  seedFireflies();
+  resize();
+  allNodes.forEach(n=>{ n.a=hiddenByAncestor(n)?0:1; n.x=n.tx; n.y=n.ty; });
+  log('已生成新规划树：<span class="hl">'+root.label+'</span>');
+}
+document.getElementById('regen').onclick=()=>{
+  seed=String(10000+Math.floor(Math.random()*89999));
+  initWorld(); writeHash();
+};
+
+/* ================= 键盘 ================= */
+document.addEventListener('keydown',e=>{
+  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)) return;
+  const k=e.key;
+  if(k===' '){ e.preventDefault(); document.getElementById('t-play').click(); }
+  else if(k==='ArrowRight') document.getElementById('t-next').click();
+  else if(k==='ArrowLeft') document.getElementById('t-prev').click();
+  else if(k.toLowerCase()==='p') document.getElementById('prune-mode').click();
+  else if(k.toLowerCase()==='m'){ const nx=mode==='radial'?'ortho':'radial'; document.querySelector('#mode-seg [data-m="'+nx+'"]').click(); }
+  else if(k>='1'&&k<='4'){ atmo=['dawn','noon','dusk','night'][+k-1]; applyAtmo(); seedFireflies(); }
+});
+
 /* ================= 主循环 ================= */
-let last = performance.now();
+let last=performance.now();
 function loop(now){
-  if(cv.clientWidth>0 && (cv.clientWidth!==W || cv.clientHeight!==H)) resize();
-  const dt = Math.min(0.05,(now-last)/1000); last = now;
-  const k = 1 - Math.pow(0.002, dt);
+  if(cv.clientWidth>0&&(cv.clientWidth!==W||cv.clientHeight!==H)) resize();
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  /* 搜索走带 */
+  if(playing){
+    acc+=dt*1000;
+    let guard=0;
+    while(acc>stepMs&&playing&&guard++<40){ acc-=stepMs; doStep(); }
+    if(playing) hotLine(2+Math.min(2,(acc/stepMs*3)|0)>4?4:2+((acc/stepMs*3)|0));
+  }
+  /* 闲置巡游：缓慢漂移 */
+  if(!roaming&&now-lastAct>30000) roaming=true;
+  if(roaming){
+    view.ox+=Math.sin(now/9000)*0.12;
+    view.oy+=Math.cos(now/11000)*0.08;
+  }
+  modeMix+=(modeTarget-modeMix)*(1-Math.pow(0.004,dt));
+  const kk=1-Math.pow(0.002,dt);
   allNodes.forEach(n=>{
-    n.x += (n.tx-n.x)*k; n.y += (n.ty-n.y)*k; n.a += (n.ta-n.a)*k;
+    n.x+=(n.tx-n.x)*kk; n.y+=(n.ty-n.y)*kk; n.a+=(n.ta-n.a)*kk;
   });
-  draw();
+  if(modeMix>0.02&&modeMix<0.98) relayout();
+  draw(now);
   requestAnimationFrame(loop);
 }
 
-function collect(){
-  allNodes = [];
-  (function w(n){ allNodes.push(n); n.children.forEach(w); })(root);
-}
-
 /* ================= init ================= */
-root = genTree();
-collect();
-resize();
-allNodes.forEach(n=>{ n.a = hiddenByAncestor(n)?0:1; n.x=n.tx; n.y=n.ty; });
-updateStats();
+renderPcode();
+applyAtmo();
+document.querySelectorAll('#mode-seg button').forEach(x=>x.classList.toggle('on',x.dataset.m===mode));
+initWorld();
+/* 深链快进：#…&ff=步数，同步预演搜索（便于截图校验与分享某个瞬间） */
+if(HP.ff&&+HP.ff>0){
+  order=computeOrder();
+  const n=Math.min(order.length,+HP.ff|0);
+  for(let i=0;i<n&&goalStep<0;i++) doStep();
+  if(goalStep<0) setState('STEP');
+}
 requestAnimationFrame(loop);
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="planner-tree" data-num="71" style="--lab-a:#7FB3E0;--lab-b:#F2C14E"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 71 · AGENT-DEMOS</small><strong>Planner Tree</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

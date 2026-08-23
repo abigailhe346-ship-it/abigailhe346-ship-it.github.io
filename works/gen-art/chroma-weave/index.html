@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CHROMA WEAVE 织色 — 算法编织纹理</title>
+<title>CHROMA WEAVE 织色 — Atelier MIRA · Étude N°09</title>
 <style>
   :root{
     --paper:#f2efe9; --ink:#16130f; --dim:#7b7466;
@@ -14,14 +14,22 @@
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background 1.2s var(--ease)}
+  body.atm-dawn{--paper:#eef0ee}
+  body.atm-dusk{--paper:#f4ece0}
+  body.atm-night{--paper:#e8e7e4}
   ::selection{background:var(--acc);color:#fff}
 
   header{display:flex;justify-content:space-between;align-items:flex-end;padding:26px 30px 0;gap:20px;flex-wrap:wrap}
-  .sig{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+  .sig{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .seal{width:64px;height:64px;flex:none;color:var(--ink)}
+  .seal .ring{stroke:var(--ink)}
+  .seal .m{stroke:var(--acc)}
+  .seal text{fill:var(--dim);font-family:var(--mono);font-size:9.5px;letter-spacing:.32em}
+  .sig .tt{display:flex;flex-direction:column;gap:5px}
   .sig h1{font-family:var(--heavy);font-size:29px;font-weight:900;letter-spacing:-.01em;line-height:1;text-transform:uppercase}
   .sig h1 em{font-style:normal;color:var(--acc)}
-  .sig .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em;padding-bottom:3px}
+  .sig .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em}
   .sig .no b{color:var(--acc);font-weight:400}
   header p.tag{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.14em;text-align:right;text-transform:uppercase;line-height:1.9}
   .rule{margin:16px 30px 0;border-top:2px solid var(--ink);position:relative}
@@ -41,13 +49,23 @@
     display:flex;align-items:center;justify-content:center;
     padding:26px;min-height:420px;
   }
-  .stage canvas{display:block;background:#16130f;box-shadow:0 3px 18px rgba(22,19,15,.28);cursor:pointer;max-width:100%}
+  .stage canvas{display:block;background:#16130f;box-shadow:0 3px 18px rgba(22,19,15,.28);cursor:pointer;max-width:100%;touch-action:none}
   .stamp{position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink);border:1px solid var(--ink);padding:4px 9px;background:rgba(242,239,233,.9);pointer-events:none;text-transform:uppercase}
   .hint{position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:rgba(22,19,15,.55);pointer-events:none;text-transform:uppercase}
+  .draft{
+    position:absolute;pointer-events:none;opacity:0;transition:opacity .18s var(--ease);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;line-height:1.8;
+    color:var(--paper);background:rgba(22,19,15,.92);border:1px solid var(--acc);
+    padding:7px 10px;white-space:nowrap;z-index:5;text-transform:uppercase;
+    box-shadow:4px 4px 0 rgba(22,19,15,.18);
+  }
+  .draft.on{opacity:1}
+  .draft b{color:var(--acc);font-weight:400}
+  .draft i{font-style:normal;display:inline-block;width:9px;height:9px;margin:0 3px 0 0;border:1px solid rgba(242,239,233,.4);vertical-align:-1px}
 
-  .dock{border:1px solid var(--ink);background:#fff;padding:0;display:flex;flex-direction:column;align-self:start;position:sticky;top:20px}
-  @media (max-width:960px){.dock{position:static}}
-  .dock section{padding:18px 20px;border-bottom:1px solid #ddd8cc;display:flex;flex-direction:column;gap:12px}
+  .dock{border:1px solid var(--ink);background:#fff;padding:0;display:flex;flex-direction:column;align-self:start;position:sticky;top:20px;max-height:calc(100vh - 40px);overflow:auto}
+  @media (max-width:960px){.dock{position:static;max-height:none}}
+  .dock section{padding:16px 20px;border-bottom:1px solid #ddd8cc;display:flex;flex-direction:column;gap:12px}
   .dock section:last-child{border-bottom:none}
   .dock h2{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);letter-spacing:.24em;text-transform:uppercase;display:flex;justify-content:space-between}
   .dock h2 span{color:var(--acc)}
@@ -72,10 +90,23 @@
   .pats button.on{background:var(--ink);border-color:var(--ink);color:#fff}
   .pats button.on i{color:var(--acc);font-style:normal}
 
+  .atms{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--ink)}
+  .atms button{
+    appearance:none;border:0;border-right:1px solid var(--ink);background:transparent;
+    padding:9px 2px 8px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    color:var(--ink);cursor:pointer;transition:background .2s var(--ease),color .2s var(--ease);
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+  }
+  .atms button:last-child{border-right:0}
+  .atms button i{width:14px;height:14px;border-radius:50%;border:1px solid var(--ink);display:block}
+  .atms button:hover{background:rgba(179,64,42,.08)}
+  .atms button.on{background:var(--ink);color:#fff}
+  .atms button.on i{border-color:#fff}
+
   .btns{display:flex;flex-direction:column;gap:10px}
   .dock button.act{
     font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
-    padding:13px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    padding:12px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);
     cursor:pointer;transition:all .2s var(--ease);
   }
   .dock button.act:hover{background:var(--ink);color:#fff}
@@ -83,40 +114,95 @@
   .dock button.act.primary:hover{background:var(--acc);border-color:var(--acc)}
   .dock button.act:active{transform:translateY(1px)}
 
+  .keys{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-family:var(--mono);font-size:9px;letter-spacing:.08em;color:var(--dim);text-transform:uppercase}
+  .keys span{border:1px solid #ddd8cc;padding:5px 4px;text-align:center}
+  .keys b{color:var(--acc);font-weight:400}
+
   .note{font-size:11px;line-height:1.95;color:#5b564a;letter-spacing:.03em}
   .note b{color:var(--acc)}
 
   footer{padding:0 30px 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+  footer .colo{color:var(--ink)}
+  footer .colo b{color:var(--acc);font-weight:400}
+  @media (max-width:640px){
+    header{padding:18px 18px 0}
+    header p.tag{text-align:left;max-width:100%}
+    .rule{margin:12px 18px 0}
+    main{padding:16px 18px 32px}
+    .stage{padding:14px;min-height:0}
+    .dock section{padding:13px 16px}
+    .atms button{font-size:9px;letter-spacing:.04em;padding:8px 1px 7px}
+    .keys{font-size:8px}
+    footer{padding:0 18px 24px}
+  }
 </style>
-</head>
-<body>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
+<body class="atm-mid">
 
 <header>
   <div class="sig">
-    <h1>CHROMA <em>WEAVE</em></h1>
-    <span class="no">N°<b>08</b> — GEN-ART / 算法编织纹理</span>
+    <svg class="seal" viewBox="0 0 96 96" aria-hidden="true">
+      <defs><path id="sealArc09" d="M48 13a35 35 0 1 1 0 70 35 35 0 1 1 0-70"/></defs>
+      <circle class="ring" cx="48" cy="48" r="45" fill="none" stroke-width="1.4"/>
+      <circle class="ring" cx="48" cy="48" r="26" fill="none" stroke-width=".8"/>
+      <text><textPath href="#sealArc09" startOffset="2">ATELIER MIRA · PLEIN AIR · ÉTUDE ·</textPath></text>
+      <path class="m" d="M35 63 C35 55 35.4 45.6 36 37 C40.6 43.6 44.8 49.8 48 55.2 C51.2 49.8 55.4 43.6 60 37 C60.6 45.6 61 55 61 63" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="tt">
+      <h1>CHROMA <em>WEAVE</em></h1>
+      <span class="no"><b>ÉTUDE N°09/100</b> — 织色 · 算法编织纹理</span>
+    </div>
   </div>
-  <p class="tag">Warp × weft · draft notation · yarn sequence<br>经纬沉浮 × 提花组织 × 纱线色序</p>
+  <p class="tag">Warp × weft · draft notation · plein-air light<br>经纬沉浮 × 提花组织 × 外光派织室</p>
 </header>
 <div class="rule"></div>
 
 <main>
   <div class="stage" id="stage">
     <canvas id="c"></canvas>
-    <div class="stamp">Loom · Draft 08</div>
-    <div class="hint">Click cloth to flip threads · 点击布面翻纱</div>
+    <div class="stamp" id="stamp">ÉTUDE N°09 · LOOM</div>
+    <div class="hint">Click cloth to flip threads · Double-click reweaves · 点击翻纱 / 双击重织</div>
+    <div class="draft" id="draft"></div>
   </div>
 
   <aside class="dock">
     <section>
       <h2>织机 <span>LOOM</span></h2>
       <div class="ctl">
-        <label>密度 Density <output id="oDen">34</output></label>
+        <label>密度 Density <output id="oDen">34 扣</output></label>
         <input type="range" id="rDen" min="14" max="60" value="34">
       </div>
       <div class="ctl">
-        <label>纱粗 Yarn <output id="oYarn">82</output></label>
+        <label>纱粗 Yarn <output id="oYarn">82 %</output></label>
         <input type="range" id="rYarn" min="45" max="100" value="82">
+      </div>
+      <div class="ctl">
+        <label>毛羽 Fuzz <output id="oFuzz">55 %</output></label>
+        <input type="range" id="rFuzz" min="0" max="100" value="55">
+      </div>
+      <div class="ctl">
+        <label>光泽 Sheen <output id="oSheen">60 %</output></label>
+        <input type="range" id="rSheen" min="0" max="100" value="60">
+      </div>
+    </section>
+    <section>
+      <h2>天光 <span>PLEIN AIR</span></h2>
+      <div class="atms" id="atms">
+        <button data-atm="dawn"><i style="background:linear-gradient(135deg,#cfd8de,#e8e0cd)"></i>晨 DAWN</button>
+        <button data-atm="mid" class="on"><i style="background:linear-gradient(135deg,#fff8e8,#d9a441)"></i>午 NOON</button>
+        <button data-atm="dusk"><i style="background:linear-gradient(135deg,#d98a4b,#7a4a3a)"></i>昏 DUSK</button>
+        <button data-atm="night"><i style="background:linear-gradient(135deg,#2b3550,#0e1016)"></i>夜 NIGHT</button>
       </div>
     </section>
     <section>
@@ -125,18 +211,25 @@
     </section>
     <section>
       <div class="btns">
-        <button class="act primary" id="bRegen">随机再生 · Rewind</button>
+        <button class="act primary" id="bRegen">换纱再生 · Rewind</button>
+        <button class="act" id="bShare">复制分享链接 · Share</button>
         <button class="act" id="bSave">下载 PNG · Download</button>
       </div>
     </section>
     <section>
-      <p class="note">经纱竖行、纬纱横行，每一梭的<b>沉浮</b>由组织矩阵决定；色序在整经时随机排布。点击布面可翻转任一交叉点——那是属于你的<b>提花</b>。</p>
+      <div class="keys">
+        <span><b>1–6</b> 换组织</span><span><b>A</b> 天光</span><span><b>W</b> 重织</span>
+        <span><b>X</b> 存图</span><span><b>C</b> 清提花</span><span><b>双击</b> 回织口</span>
+      </div>
+    </section>
+    <section>
+      <p class="note">经纱竖行、纬纱横行,每一梭的<b>沉浮</b>由组织矩阵决定。布是一梭一梭织出来的——再生时看梭子来回。悬停任一交叉点可读它的<b>提花记号</b>,点击即翻转,那是属于你的纹样。</p>
     </section>
   </aside>
 </main>
 
 <footer>
-  <span>Chroma Weave — An Homage to the Weaving Workshop</span>
+  <span class="colo">Canvas 2D · SEED <b id="fseed">—</b> · Painted with code, plein air</span>
   <span id="stats">WARP 00 · WEFT 00</span>
 </footer>
 
@@ -148,8 +241,12 @@ function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a
 
 var canvas=document.getElementById("c"), ctx=canvas.getContext("2d");
 var stage=document.getElementById("stage");
+var draftEl=document.getElementById("draft");
 
+/* ---------- yarns & colour names ---------- */
 var YARNS=["#16130f","#2e4057","#b3402a","#d9a441","#e8e0cd","#7a8b6f"];
+var YARN_CN={"#16130f":"玄","#2e4057":"靛","#b3402a":"赭","#d9a441":"金","#e8e0cd":"月白","#7a8b6f":"苔"};
+
 var PATTERNS=[
   {id:"plain",  cn:"平纹", fn:function(i,j){return (i+j)%2===0}},
   {id:"twill",  cn:"斜纹", fn:function(i,j){return ((i-j)%4+4)%4<2}},
@@ -159,13 +256,57 @@ var PATTERNS=[
   {id:"random", cn:"乱织", fn:function(i,j,rand){return rand(i,j)<.5}}
 ];
 
-var seed=Math.floor(Math.random()*1e9);
-var P={den:34,yarn:82,pat:0};
+/* ---------- atmosphere: same motif, four lights ---------- */
+var ATMS={
+  dawn:{ blend:"#c7d2da", bf:.16, bright:.97, bg:"#171b20",
+         sheen:[255,255,255], sheenK:.9, veil:"rgba(206,220,232,.10)",
+         pool:null, sweepK:.55, shadow:.13 },
+  mid:{  blend:"#ffffff", bf:0, bright:1, bg:"#16130f",
+         sheen:[255,255,255], sheenK:1.15, veil:null,
+         pool:null, sweepK:1, shadow:.16 },
+  dusk:{ blend:"#d98a4b", bf:.24, bright:.97, bg:"#191410",
+         sheen:[255,196,128], sheenK:1.05, veil:"rgba(217,138,75,.07)",
+         pool:[.18,.5,.5,"rgba(255,166,88,.16)"], sweepK:.8, shadow:.2 },
+  night:{blend:"#2b3550", bf:.3, bright:.52, bg:"#0d1016",
+         sheen:[255,214,150], sheenK:.7, veil:"rgba(20,26,44,.16)",
+         pool:[.5,.46,.62,"rgba(255,203,138,.17)"], sweepK:.3, shadow:.22 }
+};
+var atm="mid";
+
+function hex2rgb(h){var n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255]}
+function rgb2css(r,g,b){return "rgb("+Math.round(r)+","+Math.round(g)+","+Math.round(b)+")"}
+/* grade a yarn colour through the atmosphere */
+function grade(hex,A){
+  var c=hex2rgb(hex), t=hex2rgb(A.blend);
+  var r=(c[0]*(1-A.bf)+t[0]*A.bf)*A.bright,
+      g=(c[1]*(1-A.bf)+t[1]*A.bf)*A.bright,
+      b=(c[2]*(1-A.bf)+t[2]*A.bf)*A.bright;
+  return rgb2css(Math.min(255,r),Math.min(255,g),Math.min(255,b));
+}
+function shadeCss(css,f){
+  var m=css.match(/\d+/g);
+  return rgb2css(Math.min(255,m[0]*f),Math.min(255,m[1]*f),Math.min(255,m[2]*f));
+}
+
+/* ---------- state ---------- */
+function readSeed(){
+  var m=location.hash.match(/seed=(\d+)/);
+  return m?parseInt(m[1],10):Math.floor(Math.random()*1e9);
+}
+function writeSeed(){
+  try{history.replaceState(null,"","#seed="+seed);}catch(e){location.hash="seed="+seed;}
+}
+var seed=readSeed();
+var P={den:34,yarn:82,fuzz:55,sheen:60,pat:0};
 var warpCols=[], weftCols=[], flips=new Map(), cellRand=null;
 var W=0,H=0,dpr=1,S=0,ox=0,oy=0;
 var hov={i:-1,j:-1}, down=false;
+var weaveStart=0, weaving=true;      // shuttle is running
+var grainPat=null;
+var lastAct=performance.now();       // for the idle night-loom easter egg
+var eggFlip=0;
 
-/* yarn color sequences */
+/* yarn colour sequences (seeded) */
 function buildYarns(rand,n){
   var seq=[], idx=Math.floor(rand()*YARNS.length), left=0;
   for(var k=0;k<n;k++){
@@ -177,14 +318,6 @@ function buildYarns(rand,n){
     seq.push(YARNS[idx]); left--;
   }
   return seq;
-}
-
-function shade(hex,f){ // f<1 darken
-  var n=parseInt(hex.slice(1),16);
-  var r=Math.min(255,Math.round(((n>>16)&255)*f)),
-      g=Math.min(255,Math.round(((n>>8)&255)*f)),
-      b=Math.min(255,Math.round((n&255)*f));
-  return "rgb("+r+","+g+","+b+")";
 }
 
 function rebuild(){
@@ -199,6 +332,17 @@ function rebuild(){
     if(cache[k]===undefined)cache[k]=cr();
     return cache[k];
   };
+  /* grain tile, seeded */
+  var g=document.createElement("canvas"); g.width=160; g.height=160;
+  var gg=g.getContext("2d"), gr=mulberry32(seed+77);
+  var img=gg.createImageData(160,160);
+  for(var p=0;p<img.data.length;p+=4){
+    var v=225+gr()*30;
+    img.data[p]=v; img.data[p+1]=v-4; img.data[p+2]=v-12; img.data[p+3]=26+gr()*30;
+  }
+  gg.putImageData(img,0,0);
+  grainPat=ctx.createPattern(g,"repeat");
+  document.getElementById("fseed").textContent=seed;
 }
 
 function warpOver(i,j){
@@ -207,12 +351,12 @@ function warpOver(i,j){
   return f===undefined?base:f;
 }
 
-/* ---------------- layout & render ---------------- */
+/* ---------------- layout ---------------- */
 function resize(){
   dpr=Math.min(window.devicePixelRatio||1,2);
   var r=stage.getBoundingClientRect();
   var avail=Math.min(r.width-52, window.innerHeight*.72);
-  W=Math.max(300,avail); H=W;
+  W=Math.max(230,avail); H=W;
   canvas.style.width=W+"px"; canvas.style.height=H+"px";
   canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -220,72 +364,129 @@ function resize(){
 }
 window.addEventListener("resize",resize);
 
-function render(time){
+/* ---------------- render ---------------- */
+function render(time,still){
+  var A=ATMS[atm];
   var n=P.den, cell=S/n, t=cell*P.yarn/100;
-  ctx.fillStyle="#16130f"; ctx.fillRect(0,0,W,H);
-  var rr=Math.min(3,cell*.18);
-  for(var j=0;j<n;j++){
+  ctx.fillStyle=A.bg; ctx.fillRect(0,0,W,H);
+
+  /* weaving progress: cloth grows row by row from the top beam */
+  var prog=1;
+  if(weaving&&!still){
+    prog=Math.min(1,(time-weaveStart)/3.6);
+    prog=1-Math.pow(1-prog,2); // ease-out, slow like a treadle
+  }
+  var rowsDone=Math.floor(prog*n);
+  var shuttleRow=rowsDone;                    // row on the fell
+  var shuttleX=(shuttleRow%2===0)?(time*2.4%1):(1-(time*2.4%1));
+
+  for(var j=0;j<rowsDone;j++){
     for(var i=0;i<n;i++){
       var x=ox+i*cell, y=oy+j*cell;
       var over=warpOver(i,j);
-      var wc=warpCols[i%warpCols.length], fc=weftCols[j%weftCols.length];
+      var wc=grade(warpCols[i%warpCols.length],ATMS[atm]),
+          fc=grade(weftCols[j%weftCols.length],ATMS[atm]);
       var under=over?fc:wc, overC=over?wc:fc;
-      // under thread (dimmed)
-      ctx.fillStyle=shade(under===overC?under:under,.62);
-      if(over){ctx.fillRect(x,y+(cell-t)/2,cell,t);}
-      else{ctx.fillRect(x+(cell-t)/2,y,t,cell);}
+      /* slight per-thread tension irregularity (seeded) */
+      var irr=.9+cellRand(i+97,j+53)*.2;
+      var tt=t*irr;
+      // under thread (dimmed by the shadow of the shed)
+      ctx.fillStyle=shadeCss(under,.62);
+      if(over){ctx.fillRect(x,y+(cell-tt)/2,cell,tt);}
+      else{ctx.fillRect(x+(cell-tt)/2,y,tt,cell);}
       // over thread
       ctx.fillStyle=overC;
-      if(over){ctx.fillRect(x+(cell-t)/2,y,t,cell);}
-      else{ctx.fillRect(x,y+(cell-t)/2,cell,t);}
-      // sheen
-      ctx.fillStyle="rgba(255,255,255,.13)";
-      if(over){ctx.fillRect(x+(cell-t)/2+t*.24,y,t*.16,cell);}
-      else{ctx.fillRect(x,y+(cell-t)/2+t*.24,cell,t*.16);}
+      if(over){ctx.fillRect(x+(cell-tt)/2,y,tt,cell);}
+      else{ctx.fillRect(x,y+(cell-tt)/2,cell,tt);}
+      // sheen — anisotropic glint along the over thread
+      var sk=A.sheenK*(P.sheen/60)*.13;
+      ctx.fillStyle="rgba("+A.sheen[0]+","+A.sheen[1]+","+A.sheen[2]+","+sk.toFixed(3)+")";
+      if(over){ctx.fillRect(x+(cell-tt)/2+tt*.24,y,tt*.16,cell);}
+      else{ctx.fillRect(x,y+(cell-tt)/2+tt*.24,cell,tt*.16);}
       // contact shadow
-      ctx.fillStyle="rgba(0,0,0,.16)";
+      ctx.fillStyle="rgba(0,0,0,"+A.shadow+")";
       if(over){
-        ctx.fillRect(x+(cell-t)/2-1,y,1,cell);
-        ctx.fillRect(x+(cell+t)/2,y,1,cell);
+        ctx.fillRect(x+(cell-tt)/2-1,y,1,cell);
+        ctx.fillRect(x+(cell+tt)/2,y,1,cell);
       }else{
-        ctx.fillRect(x,y+(cell-t)/2-1,cell,1);
-        ctx.fillRect(x,y+(cell+t)/2,cell,1);
+        ctx.fillRect(x,y+(cell-tt)/2-1,cell,1);
+        ctx.fillRect(x,y+(cell+tt)/2,cell,1);
+      }
+      // fibre fuzz: stray hairs catching the light
+      if(P.fuzz>2){
+        var fz=P.fuzz/100, hairs=Math.round(fz*3);
+        ctx.fillStyle="rgba("+A.sheen[0]+","+A.sheen[1]+","+A.sheen[2]+","+(fz*.10).toFixed(3)+")";
+        for(var hh=0;hh<hairs;hh++){
+          var r1=cellRand(i*3+hh,j*5+hh), r2=cellRand(i*7+hh,j*11+hh);
+          if(over){ctx.fillRect(x+(cell-tt)/2-1.6+r1*1.4, y+r2*cell, 1, cell*(.3+r2*.5));}
+          else{ctx.fillRect(x+r2*cell, y+(cell-tt)/2-1.6+r1*1.4, cell*(.3+r2*.5), 1);}
+        }
       }
     }
   }
-  // selvage fringe (warp ends)
-  for(i=0;i<n;i++){
-    ctx.strokeStyle=warpCols[i%warpCols.length];
-    ctx.lineWidth=Math.max(1,t*.3);
-    var fx=ox+i*cell+cell/2, l=8+(i%3)*4;
-    ctx.beginPath(); ctx.moveTo(fx,oy-2); ctx.lineTo(fx,oy-2-l); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(fx,oy+S+2); ctx.lineTo(fx,oy+S+2+l); ctx.stroke();
+
+  /* fell line + shuttle while weaving */
+  if(weaving&&!still&&prog<1){
+    var fy=oy+rowsDone*cell;
+    ctx.fillStyle="rgba(255,255,255,.16)";
+    ctx.fillRect(ox,fy-1,S,2);
+    var sx=ox+shuttleX*S;
+    ctx.fillStyle=grade("#d9a441",A);
+    ctx.fillRect(sx-14,fy-3,28,6);
+    ctx.fillStyle="rgba(0,0,0,.3)";
+    ctx.fillRect(sx-14,fy+3,28,2);
   }
-  // moving light sweep
-  var sw=((time*.06)%2.4)-.6; // -0.6..1.8
+
+  /* selvage fringe (warp ends) */
+  for(var i2=0;i2<n;i2++){
+    ctx.strokeStyle=grade(warpCols[i2%warpCols.length],A);
+    ctx.lineWidth=Math.max(1,t*.3);
+    var fx=ox+i2*cell+cell/2, l=8+(i2%3)*4;
+    ctx.beginPath(); ctx.moveTo(fx,oy-2); ctx.lineTo(fx,oy-2-l); ctx.stroke();
+    if(prog>=1){ctx.beginPath(); ctx.moveTo(fx,oy+S+2); ctx.lineTo(fx,oy+S+2+l); ctx.stroke();}
+  }
+
+  /* atmosphere veils & light pools */
+  if(A.pool){
+    var pg=ctx.createRadialGradient(W*A.pool[0],H*A.pool[1],10,W*A.pool[0],H*A.pool[1],W*A.pool[2]);
+    pg.addColorStop(0,A.pool[3]); pg.addColorStop(1,"rgba(0,0,0,0)");
+    ctx.fillStyle=pg; ctx.fillRect(0,0,W,H);
+  }
+  /* slow light sweep — the sun crossing the studio */
+  var sw=((time*.05*A.sweepK)%2.4)-.6;
   var grd=ctx.createLinearGradient(W*sw-W*.3,0,W*sw+W*.3,H);
   grd.addColorStop(0,"rgba(255,255,255,0)");
-  grd.addColorStop(.5,"rgba(255,255,255,.10)");
+  grd.addColorStop(.5,"rgba("+A.sheen[0]+","+A.sheen[1]+","+A.sheen[2]+","+(.10*A.sheenK).toFixed(3)+")");
   grd.addColorStop(1,"rgba(255,255,255,0)");
   ctx.fillStyle=grd; ctx.fillRect(ox,oy,S,S);
-  // hover cell
-  if(hov.i>=0){
+  if(A.veil){ctx.fillStyle=A.veil; ctx.fillRect(ox,oy,S,S);}
+
+  /* woven paper grain */
+  if(grainPat){ctx.fillStyle=grainPat; ctx.fillRect(ox,oy,S,S);}
+
+  /* hover cell */
+  if(hov.i>=0&&hov.j<rowsDone){
     ctx.strokeStyle="#b3402a"; ctx.lineWidth=2;
     ctx.strokeRect(ox+hov.i*cell+1,oy+hov.j*cell+1,cell-2,cell-2);
   }
-  // frame
+  /* frame */
   ctx.strokeStyle="rgba(232,224,205,.5)"; ctx.lineWidth=1;
   ctx.strokeRect(ox-.5,oy-.5,S+1,S+1);
+
   document.getElementById("stats").textContent=
-    "WARP "+("0"+n).slice(-2)+" · WEFT "+("0"+n).slice(-2)+" · "+PATTERNS[P.pat].id.toUpperCase();
+    "WARP "+("0"+n).slice(-2)+" · WEFT "+("0"+n).slice(-2)+" · "+PATTERNS[P.pat].id.toUpperCase()+" · "+atm.toUpperCase();
+  document.getElementById("stamp").textContent=
+    "ÉTUDE N°09 · "+(weaving&&prog<1?"WEAVING "+Math.round(prog*100)+"%":"ON LOOM");
+  if(weaving&&prog>=1)weaving=false;
 }
 
 function frame(now){
-  render(now/1000);
+  render(now/1000,false);
   requestAnimationFrame(frame);
 }
 
 /* ---------------- events ---------------- */
+function poke(){lastAct=performance.now();}
 function cellAt(e){
   var r=canvas.getBoundingClientRect();
   var x=(e.clientX-r.left)-ox, y=(e.clientY-r.top)-oy;
@@ -294,65 +495,163 @@ function cellAt(e){
   if(i<0||j<0||i>=P.den||j>=P.den)return null;
   return {i:i,j:j};
 }
+function showDraft(e,c){
+  var over=warpOver(c.i,c.j);
+  var wc=warpCols[c.i%warpCols.length], fc=weftCols[c.j%weftCols.length];
+  draftEl.innerHTML=
+    "经 "+("0"+(c.i+1)).slice(-2)+" × 纬 "+("0"+(c.j+1)).slice(-2)+" · <b>"+(over?"经上浮":"纬上浮")+"</b><br>"+
+    "<i style=\"background:"+wc+"\"></i>经·"+YARN_CN[wc]+"　<i style=\"background:"+fc+"\"></i>纬·"+YARN_CN[fc]+"<br>"+
+    PATTERNS[P.pat].cn+" "+PATTERNS[P.pat].id.toUpperCase()+" · 点击翻转";
+  var sr=stage.getBoundingClientRect();
+  var x=e.clientX-sr.left+16, y=e.clientY-sr.top-10;
+  x=Math.min(x,sr.width-190); y=Math.max(8,Math.min(y,sr.height-84));
+  draftEl.style.left=x+"px"; draftEl.style.top=y+"px";
+  draftEl.classList.add("on");
+}
 canvas.addEventListener("pointerdown",function(e){
-  down=true;
+  poke(); down=true;
   var c=cellAt(e); if(!c)return;
   var k=c.i*4096+c.j;
   flips.set(k,!warpOver(c.i,c.j));
 });
 canvas.addEventListener("pointermove",function(e){
+  poke();
   var c=cellAt(e);
   hov=c||{i:-1,j:-1};
+  if(c){showDraft(e,c);}else{draftEl.classList.remove("on");}
   if(down&&c){
     var k=c.i*4096+c.j;
     if(!flips.has(k))flips.set(k,!warpOver(c.i,c.j));
   }
 });
 window.addEventListener("pointerup",function(){down=false});
-canvas.addEventListener("pointerleave",function(){hov={i:-1,j:-1}});
+canvas.addEventListener("pointerleave",function(){hov={i:-1,j:-1};draftEl.classList.remove("on");});
+canvas.addEventListener("dblclick",function(){
+  poke(); weaving=true; weaveStart=performance.now()/1000;
+});
 
+/* sliders */
 document.getElementById("rDen").addEventListener("input",function(){
-  P.den=+this.value; document.getElementById("oDen").textContent=this.value; flips.clear();
+  poke(); P.den=+this.value; document.getElementById("oDen").textContent=this.value+" 扣"; flips.clear();
 });
 document.getElementById("rYarn").addEventListener("input",function(){
-  P.yarn=+this.value; document.getElementById("oYarn").textContent=this.value;
+  poke(); P.yarn=+this.value; document.getElementById("oYarn").textContent=this.value+" %";
+});
+document.getElementById("rFuzz").addEventListener("input",function(){
+  poke(); P.fuzz=+this.value; document.getElementById("oFuzz").textContent=this.value+" %";
+});
+document.getElementById("rSheen").addEventListener("input",function(){
+  poke(); P.sheen=+this.value; document.getElementById("oSheen").textContent=this.value+" %";
 });
 
+/* atmosphere */
+var atmBox=document.getElementById("atms");
+function setAtm(a){
+  atm=a;
+  document.body.className="atm-"+a;
+  atmBox.querySelectorAll("button").forEach(function(el){el.classList.toggle("on",el.dataset.atm===a)});
+}
+atmBox.addEventListener("click",function(e){
+  var b=e.target.closest("button"); if(!b)return;
+  poke(); setAtm(b.dataset.atm);
+});
+
+/* patterns */
 var patBox=document.getElementById("pats");
+function setPat(idx){
+  P.pat=idx; flips.clear();
+  patBox.querySelectorAll("button").forEach(function(el,k){el.classList.toggle("on",k===idx)});
+}
 PATTERNS.forEach(function(p,idx){
   var b=document.createElement("button");
   b.className=idx===0?"on":"";
-  b.innerHTML='<i>◆</i> '+p.cn+' '+p.id.toUpperCase();
-  b.addEventListener("click",function(){
-    P.pat=idx; flips.clear();
-    patBox.querySelectorAll("button").forEach(function(el,k){el.classList.toggle("on",k===idx)});
-  });
+  b.innerHTML='<i>'+(idx+1)+'</i> '+p.cn+' '+p.id.toUpperCase();
+  b.addEventListener("click",function(){poke(); setPat(idx);});
   patBox.appendChild(b);
 });
 
-document.getElementById("bRegen").addEventListener("click",function(){
-  seed=Math.floor(Math.random()*1e9); rebuild();
+/* regen / share / save */
+function regen(){
+  seed=Math.floor(Math.random()*1e9); writeSeed(); rebuild();
+  weaving=true; weaveStart=performance.now()/1000;
+}
+document.getElementById("bRegen").addEventListener("click",function(){poke(); regen();});
+document.getElementById("bShare").addEventListener("click",function(){
+  poke();
+  var url=location.href, btn=this;
+  function done(){btn.textContent="已复制 · Copied"; setTimeout(function(){btn.textContent="复制分享链接 · Share"},1600);}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(url).then(done,done);}
+  else{prompt("复制分享链接",url); done();}
 });
 document.getElementById("bSave").addEventListener("click",function(){
+  poke();
   var ex=document.createElement("canvas");
   ex.width=1200; ex.height=1200;
   var eg=ex.getContext("2d");
-  var keepCtx=ctx; // temporarily render into export canvas
+  var keepCtx=ctx;
   ctx=eg;
   var keep={W:W,H:H,S:S,ox:ox,oy:oy};
   W=1200;H=1200;S=1164;ox=18;oy=18;
   eg.setTransform(1,0,0,1,0,0);
-  render(4.2);
+  render(4.2,true);
   ctx=keepCtx; W=keep.W;H=keep.H;S=keep.S;ox=keep.ox;oy=keep.oy;
   var a=document.createElement("a");
-  a.download="chroma-weave-"+seed+".png";
+  a.download="chroma-weave-"+seed+"-"+atm+".png";
   a.href=ex.toDataURL("image/png");
   a.click();
 });
 
+/* keyboard */
+document.addEventListener("keydown",function(e){
+  var tag=(document.activeElement&&document.activeElement.tagName)||"";
+  if(tag==="INPUT"||tag==="TEXTAREA")return;
+  var k=e.key.toLowerCase();
+  if(k>="1"&&k<="6"){poke(); setPat(+k-1);}
+  else if(k==="a"){poke(); var order=["dawn","mid","dusk","night"]; setAtm(order[(order.indexOf(atm)+1)%4]);}
+  else if(k==="w"){poke(); regen();}
+  else if(k==="x"){poke(); document.getElementById("bSave").click();}
+  else if(k==="c"){poke(); flips.clear();}
+});
+
+/* easter egg: after 30 s idle the loom weaves on its own — one jacquard flip at a time */
+setInterval(function(){
+  if(performance.now()-lastAct>30000&&!weaving){
+    var n=P.den, i=Math.floor(Math.random()*n), j=Math.floor(Math.random()*n);
+    var k=i*4096+j;
+    flips.set(k,!warpOver(i,j));
+    eggFlip++;
+    if(eggFlip>40){eggFlip=0; weaving=true; weaveStart=performance.now()/1000;}
+  }
+},900);
+
+/* boot */
+setAtm("mid");
 rebuild(); resize();
+weaving=true; weaveStart=performance.now()/1000;
 requestAnimationFrame(frame);
 })();
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="chroma-weave" data-num="09" style="--lab-a:#b3402a;--lab-b:#2e4057"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 09 · GEN-ART</small><strong>Chroma Weave</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

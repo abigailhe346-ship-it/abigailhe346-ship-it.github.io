@@ -3,22 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>美术馆 1987 · 镀金时代 PALAIS</title>
+<title>美术馆 1987 · 镀金时代 PALAIS · ÉTUDE N°51</title>
 <style>
 :root{
   --black:#0E0D0B; --gold:#C9A227; --gold-dim:rgba(201,162,39,.4); --ivory:#F2EBDC;
   --green:#16281F; --fade:rgba(242,235,220,.5); --hair:rgba(201,162,39,.3);
+  --glowO:.55; --grainO:.10;
   --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
   --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
   --mono:"SF Mono",Menlo,monospace;
   --ease:cubic-bezier(.22,.9,.24,1);
 }
+/* 时刻：同一座美术馆的四次看展 */
+body[data-atmo="morning"]{--black:#11141A;--green:#14202A;--gold:#BFA94E;--gold-dim:rgba(191,169,78,.4);
+  --ivory:#EDEAE0;--fade:rgba(237,234,224,.5);--hair:rgba(191,169,78,.3)}
+body[data-atmo="noon"]{--black:#0E0D0B;--green:#16281F;--gold:#C9A227;--gold-dim:rgba(201,162,39,.4);
+  --ivory:#F2EBDC;--fade:rgba(242,235,220,.5);--hair:rgba(201,162,39,.3)}
+body[data-atmo="dusk"]{--black:#171009;--green:#221A10;--gold:#D8973A;--gold-dim:rgba(216,151,58,.42);
+  --ivory:#F4E7CE;--fade:rgba(244,231,206,.5);--hair:rgba(216,151,58,.32)}
+body[data-atmo="night"]{--black:#070605;--green:#0D1712;--gold:#E0B73C;--gold-dim:rgba(224,183,60,.45);
+  --ivory:#F0E8D4;--fade:rgba(240,232,212,.45);--hair:rgba(224,183,60,.3)}
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{background:var(--black);color:var(--ivory);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body{background:var(--black);color:var(--ivory);font-family:var(--sans);-webkit-font-smoothing:antialiased;transition:background 1.2s var(--ease)}
 a{color:inherit;text-decoration:none}
 button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 ::selection{background:var(--gold);color:var(--black)}
+
+/* 材质与光色层 */
+.veil{position:fixed;inset:0;pointer-events:none;z-index:30;mix-blend-mode:multiply;transition:background 1.2s var(--ease)}
+body[data-atmo="morning"] .veil{background:linear-gradient(170deg,rgba(120,140,170,.16),transparent 55%,rgba(90,100,130,.12))}
+body[data-atmo="noon"] .veil{background:linear-gradient(180deg,rgba(60,50,30,.06),rgba(20,16,10,.1))}
+body[data-atmo="dusk"] .veil{background:linear-gradient(155deg,rgba(216,140,58,.16),rgba(255,200,120,.04) 50%,rgba(90,40,20,.2))}
+body[data-atmo="night"] .veil{background:radial-gradient(60% 44% at 50% 6%,rgba(224,183,60,.06),transparent 70%),linear-gradient(180deg,rgba(4,3,2,.3),rgba(2,2,1,.44))}
+.grain{position:fixed;inset:0;pointer-events:none;z-index:31;opacity:var(--grainO);mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E")}
 
 /* progress */
 #pbar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--gold),#E8CD7A);z-index:99;width:0;
@@ -26,16 +45,20 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 
 /* header */
 .top{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:14px;
-  padding:13px 26px;background:rgba(14,13,11,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--hair);
-  font:10px var(--mono);letter-spacing:.16em;text-transform:uppercase}
-.top .sig{text-align:center;line-height:1.7}
-.top .sig b{color:var(--gold)}
+  padding:11px 26px;background:color-mix(in srgb,var(--black) 90%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--hair);
+  font:10px var(--mono);letter-spacing:.16em;text-transform:uppercase;transition:background 1.2s var(--ease)}
+.brand{display:flex;align-items:center;gap:12px;text-align:left}
+.seal{width:44px;height:44px;flex:none;animation:sealspin 70s linear infinite}
+@keyframes sealspin{to{transform:rotate(360deg)}}
+.brand .et{line-height:1.65}
+.brand .et b{font-weight:700;letter-spacing:.18em;color:var(--gold)}
+.brand .et span{color:var(--fade);letter-spacing:.1em}
 .top .right{text-align:right;color:var(--fade)}
 .top .back:hover{color:var(--gold)}
-@media(max-width:720px){.top .right{display:none}.top{padding:11px 14px}}
+@media(max-width:720px){.top .right{display:none}.top{padding:10px 14px}.brand .et span{display:none}.seal{width:36px;height:36px}}
 
 /* tour nav */
-.tour{position:sticky;top:57px;z-index:45;display:flex;justify-content:center;gap:0;background:rgba(14,13,11,.92);
+.tour{position:sticky;top:66px;z-index:45;display:flex;justify-content:center;gap:0;background:color-mix(in srgb,var(--black) 90%,transparent);
   backdrop-filter:blur(8px);border-bottom:1px solid var(--hair);overflow-x:auto}
 .tour a{display:flex;align-items:center;gap:9px;padding:12px 22px;font:9px var(--mono);letter-spacing:.22em;
   text-transform:uppercase;color:var(--fade);white-space:nowrap;transition:.3s;border-bottom:2px solid transparent}
@@ -43,9 +66,10 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .tour a:hover{color:var(--ivory)}
 .tour a.on{color:var(--gold);border-bottom-color:var(--gold)}
 .tour a.on .dm{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(201,162,39,.7)}
+body[data-mode="plan"] .tour{display:none}
 
 /* hero */
-.hero{position:relative;text-align:center;padding:96px 24px 84px;overflow:hidden}
+.hero{position:relative;text-align:center;padding:88px 24px 76px;overflow:hidden}
 .hero .burst{width:min(560px,86vw);margin:0 auto 8px;display:block;animation:slowspin 90s linear infinite}
 @keyframes slowspin{to{transform:rotate(360deg)}}
 .hero .kick{font:10px var(--mono);letter-spacing:.5em;color:var(--gold);text-transform:uppercase;margin-bottom:22px}
@@ -56,11 +80,38 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .orn::before,.orn::after{content:"";width:min(150px,20vw);height:1px;background:linear-gradient(90deg,transparent,var(--gold-dim));}
 .orn::after{background:linear-gradient(90deg,var(--gold-dim),transparent)}
 .orn .dm{width:10px;height:10px;border:1px solid var(--gold);transform:rotate(45deg)}
-.scrollcue{margin-top:44px;font:9px var(--mono);letter-spacing:.4em;color:var(--fade);text-transform:uppercase;animation:cue 2.4s var(--ease) infinite}
-@keyframes cue{50%{opacity:.35;transform:translateY(6px)}}
+
+/* 控制台 */
+.desk{max-width:1180px;margin:0 auto 30px;padding:0 24px;display:grid;grid-template-columns:auto auto 1fr auto;gap:14px;align-items:stretch}
+.dsec{border:1px solid var(--hair);background:rgba(242,235,220,.03);padding:11px 15px 12px;display:flex;flex-direction:column;gap:9px;justify-content:center;min-width:0}
+.dsec>.lab{font:8.5px var(--mono);letter-spacing:.3em;color:var(--fade);text-transform:uppercase}
+.seg{display:flex;border:1px solid var(--hair);flex-wrap:wrap}
+.seg button{padding:8px 12px;font:10px var(--mono);letter-spacing:.14em;transition:.3s;border-right:1px solid var(--hair)}
+.seg button:last-child{border-right:none}
+.seg button:hover{color:var(--gold)}
+.seg button.on{background:var(--gold);color:var(--black)}
+.params{display:flex;gap:18px;flex-wrap:wrap}
+.ctl{display:flex;flex-direction:column;gap:7px;min-width:108px;flex:1}
+.ctl span{display:flex;justify-content:space-between;font:9px var(--mono);letter-spacing:.12em;color:var(--fade);text-transform:uppercase}
+.ctl output{color:var(--gold);font-weight:700}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;cursor:ew-resize}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:linear-gradient(90deg,var(--gold),var(--hair))}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;transform:rotate(45deg);border-radius:2px;background:var(--black);border:2px solid var(--gold);margin-top:-5px;box-shadow:0 0 8px rgba(201,162,39,.5);transition:transform .2s}
+input[type=range]::-webkit-slider-thumb:hover{transform:rotate(45deg) scale(1.25)}
+input[type=range]::-moz-range-track{height:2px;background:var(--hair)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--black);border:2px solid var(--gold)}
+.acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.abtn{border:1px solid var(--hair);padding:8px 12px;font:9.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;transition:.25s;white-space:nowrap}
+.abtn:hover{border-color:var(--gold);color:var(--gold)}
+.abtn.prime{background:var(--gold);border-color:var(--gold);color:var(--black)}
+.abtn.prime:hover{background:var(--ivory);border-color:var(--ivory)}
+.keys{font:8.5px var(--mono);letter-spacing:.1em;color:var(--fade);line-height:1.9}
+.keys b{color:var(--gold);font-weight:400}
+@media(max-width:1080px){.desk{grid-template-columns:1fr 1fr}.dsec.params{grid-column:1/-1}}
+@media(max-width:720px){.desk{grid-template-columns:1fr;padding:0 16px}}
 
 /* rooms */
-.room{position:relative;padding:90px 24px 100px;border-top:1px solid var(--hair)}
+.room{position:relative;padding:90px 24px 100px;border-top:1px solid var(--hair);transition:background 1.2s var(--ease)}
 .room.alt{background:var(--green)}
 .room-head{text-align:center;margin-bottom:60px}
 .room-head .rn{display:inline-grid;place-items:center;width:52px;height:52px;border:1px solid var(--gold);
@@ -72,8 +123,9 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .piece{cursor:pointer;text-align:center;opacity:0;transform:translateY(30px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
 .piece.in{opacity:1;transform:none}
 .frame{position:relative;padding:14px;border:1px solid var(--gold);outline:1px solid var(--gold-dim);outline-offset:5px;
-  background:#12110E;transition:box-shadow .5s var(--ease),transform .5s var(--ease)}
-.piece:hover .frame{box-shadow:0 0 0 1px var(--gold),0 0 34px rgba(201,162,39,.28),inset 0 0 24px rgba(201,162,39,.1);transform:translateY(-5px)}
+  background:color-mix(in srgb,var(--black) 82%,var(--ivory) 2%);transition:box-shadow .5s var(--ease),transform .5s var(--ease)}
+.piece:hover .frame{box-shadow:0 0 0 1px var(--gold),0 0 calc(34px*var(--glowO)) rgba(201,162,39,calc(.28*var(--glowO)*2)),inset 0 0 24px rgba(201,162,39,.1);transform:translateY(-5px)}
+body[data-atmo="night"] .frame{box-shadow:0 0 calc(22px*var(--glowO)) rgba(224,183,60,calc(.2*var(--glowO)*2)),inset 0 0 18px rgba(224,183,60,.08)}
 .frame svg{display:block;width:100%;height:auto}
 .frame .shine{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .5s;
   background:linear-gradient(115deg,transparent 42%,rgba(242,235,220,.13) 50%,transparent 58%);background-size:250% 100%}
@@ -85,12 +137,34 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .label p{margin-top:6px;font:9.5px var(--mono);letter-spacing:.16em;color:var(--fade);text-transform:uppercase}
 .chev{display:flex;justify-content:center;gap:8px;padding:54px 0 0;color:var(--gold-dim)}
 .chev i{width:14px;height:14px;border-right:1px solid var(--gold-dim);border-bottom:1px solid var(--gold-dim);transform:rotate(45deg)}
+body[data-mode="plan"] .room,body[data-mode="plan"] #rooms,body[data-mode="plan"] .chev{display:none}
+#rooms{display:block}
+body[data-mode="plan"] #rooms{display:none}
+
+/* 放大镜 */
+.loupe{position:absolute;width:160px;height:160px;border-radius:50%;border:1px solid var(--gold);
+  outline:1px solid var(--gold-dim);outline-offset:3px;box-shadow:0 18px 40px rgba(0,0,0,.6),0 0 20px rgba(201,162,39,.25);
+  overflow:hidden;pointer-events:none;display:none;z-index:5;background:var(--black)}
+.loupe svg{width:100%;height:100%;display:block}
+.loupe::after{content:"×2.5";position:absolute;bottom:6px;right:12px;font:8px var(--mono);color:var(--gold);letter-spacing:.1em}
+
+/* 平面图模式 */
+#plan{display:none;padding:70px 24px 100px;border-top:1px solid var(--hair)}
+body[data-mode="plan"] #plan{display:block}
+.plan-wrap{max-width:980px;margin:0 auto;text-align:center}
+.plan-wrap h2{font:400 clamp(24px,3vw,36px) var(--serif);letter-spacing:.3em;margin-bottom:10px}
+.plan-wrap>p{font:10px var(--mono);letter-spacing:.22em;color:var(--fade);text-transform:uppercase;margin-bottom:40px}
+#planSvg{width:min(680px,92vw);height:auto;margin:0 auto;display:block}
+#planSvg .rm{cursor:pointer;transition:.3s}
+#planSvg .rm:hover rect.rm-body{fill:rgba(201,162,39,.16)}
+#planSvg .rm.on rect.rm-body{fill:rgba(201,162,39,.22);stroke-width:2}
+#planWorks{margin-top:56px}
 
 /* modal */
 .modal{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:4vmin;background:rgba(8,7,6,.75);
   backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
 .modal.open{opacity:1;pointer-events:auto}
-.mbox{width:min(780px,100%);max-height:92vh;overflow:auto;background:#12110E;border:1px solid var(--gold);outline:1px solid var(--gold-dim);outline-offset:6px;
+.mbox{width:min(820px,100%);max-height:92vh;overflow:auto;background:color-mix(in srgb,var(--black) 92%,var(--ivory) 2%);border:1px solid var(--gold);outline:1px solid var(--gold-dim);outline-offset:6px;
   transform:translateY(22px);transition:transform .45s var(--ease);position:relative}
 .modal.open .mbox{transform:none}
 .mcols{display:grid;grid-template-columns:1fr 1fr}
@@ -103,22 +177,61 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .mrow{display:flex;justify-content:space-between;font:10.5px var(--mono);letter-spacing:.08em;color:var(--fade);padding:9px 0;border-top:1px dashed var(--hair)}
 .mrow b{color:var(--ivory);font-weight:400}
 .mtxt{margin:16px 0;font-size:12.5px;line-height:2.05}
-.mfoot{margin-top:auto;padding-top:14px;border-top:1px solid var(--hair);font:9px var(--mono);letter-spacing:.2em;color:var(--fade);text-transform:uppercase}
+.mfoot{margin-top:auto;padding-top:14px;border-top:1px solid var(--hair);display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font:9px var(--mono);letter-spacing:.2em;color:var(--fade);text-transform:uppercase}
+.mfoot button{border:1px solid var(--hair);padding:8px 12px;transition:.25s;letter-spacing:.16em}
+.mfoot button:hover{border-color:var(--gold);color:var(--gold)}
 .mx{position:absolute;top:10px;right:14px;font:20px var(--mono);color:var(--fade);padding:8px;z-index:2}
 .mx:hover{color:var(--gold)}
 @media(max-width:680px){.mcols{grid-template-columns:1fr}.mcols .art{border-right:none;border-bottom:1px solid var(--hair)}}
 
-footer{border-top:1px solid var(--hair);padding:26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+/* 闭馆彩蛋 */
+#dozeTag{position:fixed;top:80px;right:24px;z-index:60;border:1px solid var(--gold);color:var(--gold);
+  padding:9px 16px;font:9px var(--mono);letter-spacing:.3em;text-transform:uppercase;background:rgba(7,6,5,.8);
+  opacity:0;pointer-events:none;transition:opacity 1s var(--ease)}
+body.doze #dozeTag{opacity:1}
+body.doze .veil{background:linear-gradient(180deg,rgba(2,2,1,.55),rgba(0,0,0,.7))!important}
+body.doze .frame{box-shadow:none!important}
+
+footer{border-top:1px solid var(--hair);padding:24px 26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
   font:9px var(--mono);letter-spacing:.18em;color:var(--fade);text-transform:uppercase}
+.colo{width:100%;border-top:1px dashed var(--hair);padding-top:12px;margin-top:4px}
+.colo b{color:var(--gold);font-weight:400}
 </style>
-</head>
-<body>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
+<body data-atmo="noon" data-mode="gallery">
 
 <div id="pbar"></div>
+<div class="veil" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+<div id="dozeTag">已闭馆 · 巡夜中</div>
 
 <header class="top">
   <a class="back" href="../../../index.html#work">← 返回总目</a>
-  <div class="sig"><b>№ 10 · PALAIS 1987</b><br>美术馆一九八七 — 装饰艺术回顾展</div>
+  <div class="brand">
+    <svg class="seal" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="29.5" fill="none" stroke="var(--gold)" stroke-width="1.3"/>
+      <circle cx="32" cy="32" r="24.5" fill="none" stroke="var(--gold)" stroke-width=".5" opacity=".55"/>
+      <defs><path id="ring51" d="M32 8.5 A23.5 23.5 0 1 1 31.9 8.5" fill="none"/></defs>
+      <text font-family="SF Mono,Menlo,monospace" font-size="6.4" letter-spacing="2.4" fill="var(--gold)"><textPath href="#ring51">ATELIER MIRA</textPath></text>
+      <g stroke="var(--gold)" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21.5 43 C23 34.5 24.5 26 26 19.5 C28.4 26.5 30.2 32.5 32 37.5 C33.8 30.5 35.6 24.5 38 19.5 C39.5 26.5 41 34.5 42.5 43" stroke-width="2.1"/>
+        <path d="M23 41 C24.3 34 25.4 27.5 26.6 22 M39.6 22.5 C40.8 28.5 41.9 35 43 41" stroke-width=".8" opacity=".45"/>
+      </g>
+    </svg>
+    <div class="et"><b>ÉTUDE N°51/100</b><br><span>美术馆一九八七 · PALAIS 1987 · 装饰艺术回顾展</span></div>
+  </div>
   <div class="right">1987.06.12 — 09.30<br>免费参观 · 周一闭馆</div>
 </header>
 
@@ -150,19 +263,61 @@ footer{border-top:1px solid var(--hair);padding:26px;display:flex;justify-conten
   <div class="kick">RÉTROSPECTIVE · 回顾展</div>
   <h1>镀金时代</h1>
   <div class="en">The Gilded Age · Art Déco 1925—1937</div>
-  <div class="dates">展期 1987.06.12 — 09.30 · 本馆四层 · 四个展厅</div>
+  <div class="dates">展期 1987.06.12 — 09.30 · 本馆四层 · 四个展厅 · 晨光与夜展皆宜</div>
   <div class="orn"><span class="dm"></span></div>
-  <div class="scrollcue">向下滚动 · 开始导览</div>
 </section>
 
+<div class="desk">
+  <div class="dsec">
+    <span class="lab">时刻 · 观展</span>
+    <div class="seg" id="atmoSeg">
+      <button data-a="morning">晨</button><button data-a="noon" class="on">午</button><button data-a="dusk">昏</button><button data-a="night">夜展</button>
+    </div>
+  </div>
+  <div class="dsec">
+    <span class="lab">动线 · 构成</span>
+    <div class="seg" id="modeSeg">
+      <button data-m="gallery" class="on">长廊</button><button data-m="plan">平面图</button>
+    </div>
+  </div>
+  <div class="dsec params">
+    <span class="lab">描金 · 参数</span>
+    <div class="params">
+      <label class="ctl"><span>描金 <output id="oGilt">×1.0</output></span><input id="pGilt" type="range" min="60" max="170" step="5" value="100"></label>
+      <label class="ctl"><span>密度 <output id="oDen">×1.0</output></span><input id="pDen" type="range" min="50" max="160" step="5" value="100"></label>
+      <label class="ctl"><span>金辉 <output id="oGlow">55%</output></span><input id="pGlow" type="range" min="0" max="100" value="55"></label>
+      <label class="ctl"><span>颗粒 <output id="oGrain">10%</output></span><input id="pGrain" type="range" min="0" max="40" value="10"></label>
+    </div>
+  </div>
+  <div class="dsec">
+    <span class="lab">画室 · 动作</span>
+    <div class="acts">
+      <button class="abtn prime" id="btnRegen">再生一展 ↻</button>
+      <button class="abtn" id="btnShare">复制链接</button>
+      <button class="abtn" id="btnPng">展品卡 PNG</button>
+    </div>
+    <div class="keys"><b>1–4</b> 时刻 · <b>M</b> 动线 · <b>N</b> 再生 · 展品上悬停有放大镜</div>
+  </div>
+</div>
+
 <div id="rooms"></div>
+
+<section id="plan">
+  <div class="plan-wrap">
+    <h2>导览平面图</h2>
+    <p>PLAN OF THE FOURTH FLOOR · 点一厅而入</p>
+    <svg id="planSvg" viewBox="0 0 680 420" role="img" aria-label="四层平面图"></svg>
+    <div id="planWorks"></div>
+  </div>
+</section>
 
 <div class="chev"><i></i><i></i><i></i></div>
 
 <footer>
-  <span>PALAIS 1987 · № 10 / WEB DESIGN</span>
-  <span>全部展品为内联 SVG 绘制的装饰图案，无馆藏照片</span>
+  <span>ÉTUDE N°51/100 · PALAIS 1987 / WEB DESIGN</span>
+  <span>全部展品为种子驱动的内联 SVG 描金，无馆藏照片</span>
   <span>导览结束 · 出口请向前</span>
+  <span class="colo" id="colo">MEDIUM SVG + Canvas 2D · SEED <b id="coloSeed">—</b> · Painted with code, plein air</span>
 </footer>
 
 <div class="modal" id="modal">
@@ -173,98 +328,125 @@ footer{border-top:1px solid var(--hair);padding:26px;display:flex;justify-conten
 </div>
 
 <script>
-/* ---------------- deco artwork generators (viewBox 0 0 300 380) ---------------- */
-const G="#C9A227",GD="rgba(201,162,39,.45)",IV="#F2EBDC",BG="#12110E";
-function svgWrap(inner,label){return `<svg viewBox="0 0 300 380" role="img" aria-label="${label}"><rect width="300" height="380" fill="${BG}"/>${inner}</svg>`}
-function artSunburst(){
-  let s="";
-  for(let i=0;i<=16;i++){const a=Math.PI-i/16*Math.PI;
-    s+=`<line x1="150" y1="330" x2="${150+Math.cos(a)*210}" y2="${330-Math.sin(a)*210}" stroke="${G}" stroke-width="1" opacity=".8"/>`}
-  [70,110,150,190].forEach((r,i)=>{s+=`<path d="M${150-r} 330 A${r} ${r} 0 0 1 ${150+r} 330" fill="none" stroke="${G}" stroke-width="${1.4-i*.3}"/>`});
-  s+=`<circle cx="150" cy="330" r="34" fill="${G}"/>`;
-  /* stepped skyline base */
-  let steps="",x=30;
-  const hs=[40,64,52,88,72,100,80,60,92,56,44];
-  hs.forEach(h=>{steps+=`<rect x="${x}" y="${380-h-50}" width="14" height="${h+50}" fill="none" stroke="${G}" stroke-width="1"/>`;x+=24});
-  return s+steps;
+/* ================= 种子系统 ================= */
+function xmur3(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19}
+  return()=>{h=Math.imul(h^(h>>>16),2246822507);h=Math.imul(h^(h>>>13),3266489909);return(h^=h>>>16)>>>0}}
+function mulberry32(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const seed4=()=>Math.floor(Math.random()*36**4).toString(36).padStart(4,"0").toUpperCase();
+let SEED=(location.hash.match(/seed=([a-z0-9]{3,8})/i)||[])[1]||seed4();
+const rngFor=key=>mulberry32(xmur3(SEED+"·"+key)());
+function setSeed(s){SEED=s.toUpperCase();history.replaceState(null,"","#seed="+SEED);
+  document.getElementById("coloSeed").textContent="#"+SEED;paintAll()}
+window.addEventListener("hashchange",()=>{const m=(location.hash.match(/seed=([a-z0-9]{3,8})/i)||[])[1];
+  if(m&&m.toUpperCase()!==SEED)setSeed(m)});
+
+/* ================= 状态 ================= */
+const S={atmo:"noon",mode:"gallery",gilt:1,den:1,glow:.55,grain:.10};
+const ATMOG={
+ morning:{gold:"#BFA94E",ivory:"#EDEAE0",bg:"#0C0F14"},
+ noon:{gold:"#C9A227",ivory:"#F2EBDC",bg:"#12110E"},
+ dusk:{gold:"#D8973A",ivory:"#F4E7CE",bg:"#17110A"},
+ night:{gold:"#E0B73C",ivory:"#F0E8D4",bg:"#0A0906"}
+};
+
+/* ================= 描金展品生成器（种子驱动） ================= */
+function svgWrap(inner,label){return '<svg viewBox="0 0 300 380" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+label+'"><rect width="300" height="380" fill="'+ATMOG[S.atmo].bg+'"/>'+inner+'</svg>'}
+function artSunburst(r){
+  const G=ATMOG[S.atmo].gold,W=S.gilt,nR=Math.round(16*S.den);
+  let s="",st={rays:nR,arcs:4};
+  for(let i=0;i<=nR;i++){const a=Math.PI-i/nR*Math.PI;
+    s+='<line x1="150" y1="330" x2="'+(150+Math.cos(a)*210).toFixed(1)+'" y2="'+(330-Math.sin(a)*210).toFixed(1)+'" stroke="'+G+'" stroke-width="'+W+'" opacity=".8"/>'}
+  [70,110,150,190].forEach((rad,i)=>{s+='<path d="M'+(150-rad)+' 330 A'+rad+' '+rad+' 0 0 1 '+(150+rad)+' 330" fill="none" stroke="'+G+'" stroke-width="'+((1.4-i*.3)*W).toFixed(2)+'"/>'});
+  s+='<circle cx="150" cy="330" r="34" fill="'+G+'"/>';
+  let x=30;const hs=[40,64,52,88,72,100,80,60,92,56,44];
+  hs.forEach(h=>{const hh=h*(0.85+r()*.35);s+='<rect x="'+x+'" y="'+(380-hh-50).toFixed(1)+'" width="14" height="'+(hh+50).toFixed(1)+'" fill="none" stroke="'+G+'" stroke-width="'+W+'"/>';x+=24});
+  return{html:s,stats:[["光束",nR+" 道"],["同心弧","4 重"],["描金",(1.1*W).toFixed(1)+" pt"]]};
 }
-function artRay(){
+function artRay(r){
+  const G=ATMOG[S.atmo].gold,IV=ATMOG[S.atmo].ivory,W=S.gilt,nR=Math.round(36*S.den);
   let s="";
-  for(let i=0;i<36;i++){const a=i/36*Math.PI*2;
-    s+=`<line x1="150" y1="190" x2="${150+Math.cos(a)*150}" y2="${190+Math.sin(a)*150}" stroke="${G}" stroke-width="${i%3?.7:1.4}" opacity=".85"/>`}
-  [40,80,120,150].forEach(r=>{s+=`<circle cx="150" cy="190" r="${r}" fill="none" stroke="${G}" stroke-width=".8" opacity=".7"/>`});
-  s+=`<circle cx="150" cy="190" r="24" fill="${IV}"/><circle cx="150" cy="190" r="24" fill="none" stroke="${G}" stroke-width="2"/>`;
-  return s;
+  for(let i=0;i<nR;i++){const a=i/nR*Math.PI*2;
+    s+='<line x1="150" y1="190" x2="'+(150+Math.cos(a)*150).toFixed(1)+'" y2="'+(190+Math.sin(a)*150).toFixed(1)+'" stroke="'+G+'" stroke-width="'+((i%3?.7:1.4)*W).toFixed(2)+'" opacity=".85"/>'}
+  [40,80,120,150].forEach(rad=>{s+='<circle cx="150" cy="190" r="'+rad+'" fill="none" stroke="'+G+'" stroke-width="'+(0.8*W).toFixed(2)+'" opacity=".7"/>'});
+  s+='<circle cx="150" cy="190" r="24" fill="'+IV+'"/><circle cx="150" cy="190" r="24" fill="none" stroke="'+G+'" stroke-width="'+(2*W).toFixed(2)+'"/>';
+  return{html:s,stats:[["光芒",nR+" 道"],["同心环","4 重"],["描金",(1.2*W).toFixed(1)+" pt"]]};
 }
-function artFan(){
+function artFan(r){
+  const G=ATMOG[S.atmo].gold,W=S.gilt,cx=150,cy=330,nB=Math.round(10*S.den);
   let s="";
-  const cx=150,cy=330;
-  for(let i=0;i<=10;i++){
-    const a=-Math.PI/2+(i-5)*.24,r=250*(i%2?1:.9);
-    s+=`<line x1="${cx}" y1="${cy}" x2="${cx+Math.cos(a)*r}" y2="${cy+Math.sin(a)*r}" stroke="${G}" stroke-width="1.1"/>`}
-  [60,120,180,240].forEach(r=>{s+=`<path d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="${G}" stroke-width="1.2"/>`});
-  [35,75,115].forEach(r=>{s+=`<path d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy} Z" fill="${G}" opacity=".12"/>`});
-  s+=`<circle cx="${cx}" cy="${cy}" r="14" fill="${G}"/>`;
-  return s;
+  for(let i=0;i<=nB;i++){
+    const a=-Math.PI/2+(i-nB/2)*.24,rad=250*(i%2?1:.9)*(0.94+r()*.1);
+    s+='<line x1="'+cx+'" y1="'+cy+'" x2="'+(cx+Math.cos(a)*rad).toFixed(1)+'" y2="'+(cy+Math.sin(a)*rad).toFixed(1)+'" stroke="'+G+'" stroke-width="'+(1.1*W).toFixed(2)+'"/>'}
+  [60,120,180,240].forEach(rad=>{s+='<path d="M'+(cx-rad)+' '+cy+' A'+rad+' '+rad+' 0 0 1 '+(cx+rad)+' '+cy+'" fill="none" stroke="'+G+'" stroke-width="'+(1.2*W).toFixed(2)+'"/>'});
+  [35,75,115].forEach(rad=>{s+='<path d="M'+(cx-rad)+' '+cy+' A'+rad+' '+rad+' 0 0 1 '+(cx+rad)+' '+cy+' Z" fill="'+G+'" opacity=".12"/>'});
+  s+='<circle cx="'+cx+'" cy="'+cy+'" r="14" fill="'+G+'"/>';
+  return{html:s,stats:[["扇骨",(nB+1)+" 根"],["弧梁","4 重"],["描金",(1.2*W).toFixed(1)+" pt"]]};
 }
-function artFountain(){
+function artFountain(r){
+  const G=ATMOG[S.atmo].gold,IV=ATMOG[S.atmo].ivory,W=S.gilt,nA=Math.round(7*S.den);
   let s="";
-  for(let i=0;i<7;i++){const w=40+i*34,h=150+i*26;
-    s+=`<path d="M${150-w} 330 Q150 ${330-h} ${150+w} 330" fill="none" stroke="${G}" stroke-width="${1.5-i*.15}" opacity="${1-i*.1}"/>`}
-  s+=`<line x1="150" y1="330" x2="150" y2="80" stroke="${G}" stroke-width="1.2"/>`;
-  for(let i=0;i<5;i++){s+=`<circle cx="150" cy="${96+i*22}" r="${3.5-i*.5}" fill="${IV}" opacity="${.9-i*.15}"/>`}
-  s+=`<rect x="90" y="330" width="120" height="8" fill="none" stroke="${G}"/><rect x="110" y="338" width="80" height="8" fill="none" stroke="${G}"/>`;
-  return s;
+  for(let i=0;i<nA;i++){const w2=40+i*34*(.92+r()*.16),h=150+i*26*(.92+r()*.16);
+    s+='<path d="M'+(150-w2).toFixed(1)+' 330 Q150 '+(330-h).toFixed(1)+' '+(150+w2).toFixed(1)+' 330" fill="none" stroke="'+G+'" stroke-width="'+((1.5-i*.15)*W).toFixed(2)+'" opacity="'+(1-i*.1).toFixed(2)+'"/>'}
+  s+='<line x1="150" y1="330" x2="150" y2="80" stroke="'+G+'" stroke-width="'+(1.2*W).toFixed(2)+'"/>';
+  for(let i=0;i<5;i++){s+='<circle cx="150" cy="'+(96+i*22)+'" r="'+(3.5-i*.5)+'" fill="'+IV+'" opacity="'+(0.9-i*.15)+'"/>'}
+  s+='<rect x="90" y="330" width="120" height="8" fill="none" stroke="'+G+'" stroke-width="'+W+'"/><rect x="110" y="338" width="80" height="8" fill="none" stroke="'+G+'" stroke-width="'+W+'"/>';
+  return{html:s,stats:[["水弧",nA+" 重"],["溅珠","5 粒"],["描金",(1.3*W).toFixed(1)+" pt"]]};
 }
-function artZigzag(){
+function artZigzag(r){
+  const G=ATMOG[S.atmo].gold,GD=ATMOG[S.atmo].gold,W=S.gilt,nC=Math.round(6*S.den);
   let s="";
-  for(let c=0;c<6;c++){const x=30+c*44,ph=c%2?20:0;
-    let d=`M${x} ${340-ph}`;
-    for(let i=0;i<6;i++){d+=` L${x+16} ${310-i*38-ph} L${x+32} ${340-i*38-ph}`}
-    s+=`<path d="${d}" fill="none" stroke="${G}" stroke-width="1.2"/>`}
-  s+=`<rect x="20" y="40" width="260" height="300" fill="none" stroke="${G}" stroke-width="1.4"/>`;
-  s+=`<rect x="28" y="48" width="244" height="284" fill="none" stroke="${GD}" stroke-width=".8"/>`;
-  return s;
+  for(let c=0;c<nC;c++){const x=30+c*(250/Math.max(2,nC)),ph=c%2?20:0;
+    let d='M'+x.toFixed(1)+' '+(340-ph);
+    for(let i=0;i<6;i++){d+=' L'+(x+16).toFixed(1)+' '+(310-i*38-ph)+' L'+(x+32).toFixed(1)+' '+(340-i*38-ph)}
+    s+='<path d="'+d+'" fill="none" stroke="'+G+'" stroke-width="'+(1.2*W).toFixed(2)+'"/>'}
+  s+='<rect x="20" y="40" width="260" height="300" fill="none" stroke="'+G+'" stroke-width="'+(1.4*W).toFixed(2)+'"/>';
+  s+='<rect x="28" y="48" width="244" height="284" fill="none" stroke="'+GD+'" stroke-width="'+(0.8*W).toFixed(2)+'" opacity=".45"/>';
+  return{html:s,stats:[["锯齿",nC+" 列"],["折峰","6 折"],["描金",(1.2*W).toFixed(1)+" pt"]]};
 }
-function artArch(){
+function artArch(r){
+  const G=ATMOG[S.atmo].gold,W=S.gilt,nA=Math.round(6*S.den);
   let s="";
-  for(let i=0;i<6;i++){const w=130-i*18,y=340-i*0;
-    s+=`<path d="M${150-w} 340 L${150-w} ${200-i*24} Q150 ${170-i*26} ${150+w} ${200-i*24} L${150+w} 340" fill="none" stroke="${G}" stroke-width="${1.6-i*.2}"/>`}
-  s+=`<circle cx="150" cy="110" r="26" fill="none" stroke="${G}" stroke-width="1.4"/><circle cx="150" cy="110" r="14" fill="${G}"/>`;
-  for(let i=0;i<9;i++){const a=Math.PI/4+i/9*Math.PI/2;
-    s+=`<line x1="${150+Math.cos(a)*34}" y1="${110-Math.sin(a)*34}" x2="${150+Math.cos(a)*52}" y2="${110-Math.sin(a)*52}" stroke="${G}" stroke-width="1"/>`}
-  s+=`<line x1="40" y1="340" x2="260" y2="340" stroke="${G}" stroke-width="1.6"/>`;
-  return s;
+  for(let i=0;i<nA;i++){const w2=130-i*18;
+    s+='<path d="M'+(150-w2)+' 340 L'+(150-w2)+' '+(200-i*24)+' Q150 '+(170-i*26)+' '+(150+w2)+' '+(200-i*24)+' L'+(150+w2)+' 340" fill="none" stroke="'+G+'" stroke-width="'+((1.6-i*.2)*W).toFixed(2)+'"/>'}
+  s+='<circle cx="150" cy="110" r="26" fill="none" stroke="'+G+'" stroke-width="'+(1.4*W).toFixed(2)+'"/><circle cx="150" cy="110" r="14" fill="'+G+'"/>';
+  const nR=9;
+  for(let i=0;i<nR;i++){const a=Math.PI/4+i/nR*Math.PI/2;
+    s+='<line x1="'+(150+Math.cos(a)*34).toFixed(1)+'" y1="'+(110-Math.sin(a)*34).toFixed(1)+'" x2="'+(150+Math.cos(a)*52).toFixed(1)+'" y2="'+(110-Math.sin(a)*52).toFixed(1)+'" stroke="'+G+'" stroke-width="'+W+'"/>'}
+  s+='<line x1="40" y1="340" x2="260" y2="340" stroke="'+G+'" stroke-width="'+(1.6*W).toFixed(2)+'"/>';
+  return{html:s,stats:[["拱门",nA+" 重"],["光芒",nR+" 道"],["描金",(1.4*W).toFixed(1)+" pt"]]};
 }
-function artTowers(){
+function artTowers(r){
+  const G=ATMOG[S.atmo].gold,IV=ATMOG[S.atmo].ivory,W=S.gilt;
   let s="";
-  [[70,1],[230,-1]].forEach(([cx,flip])=>{
-    for(let i=0;i<5;i++){const w=44-i*8;
-      s+=`<rect x="${cx-w}" y="${300-i*44}" width="${w*2}" height="44" fill="none" stroke="${G}" stroke-width="1.2"/>`}
-    s+=`<line x1="${cx}" y1="80" x2="${cx}" y2="56" stroke="${G}" stroke-width="1.4"/><circle cx="${cx}" cy="50" r="4" fill="${IV}"/>`;
-    for(let w2=0;w2<3;w2++)for(let r=0;r<4;r++)
-      s+=`<rect x="${cx-26+w2*18}" y="${316-r*44}" width="6" height="10" fill="${G}" opacity=".8"/>`;
+  [[70,1],[230,-1]].forEach(([cx])=>{
+    for(let i=0;i<5;i++){const w2=44-i*8;
+      s+='<rect x="'+(cx-w2)+'" y="'+(300-i*44)+'" width="'+(w2*2)+'" height="44" fill="none" stroke="'+G+'" stroke-width="'+(1.2*W).toFixed(2)+'"/>'}
+    s+='<line x1="'+cx+'" y1="80" x2="'+cx+'" y2="56" stroke="'+G+'" stroke-width="'+(1.4*W).toFixed(2)+'"/><circle cx="'+cx+'" cy="50" r="4" fill="'+IV+'"/>';
+    for(let wc=0;wc<3;wc++)for(let rc=0;rc<4;rc++){
+      if(r()<.85)s+='<rect x="'+(cx-26+wc*18)+'" y="'+(316-rc*44)+'" width="6" height="10" fill="'+G+'" opacity=".8"/>'}
   });
-  s+=`<line x1="40" y1="344" x2="260" y2="344" stroke="${G}" stroke-width="1.6"/>`;
-  s+=`<circle cx="150" cy="150" r="30" fill="none" stroke="${G}"/><circle cx="150" cy="150" r="18" fill="${G}" opacity=".85"/>`;
-  return s;
+  s+='<line x1="40" y1="344" x2="260" y2="344" stroke="'+G+'" stroke-width="'+(1.6*W).toFixed(2)+'"/>';
+  s+='<circle cx="150" cy="150" r="30" fill="none" stroke="'+G+'" stroke-width="'+W+'"/><circle cx="150" cy="150" r="18" fill="'+G+'" opacity=".85"/>';
+  return{html:s,stats:[["退台","5 层 ×2"],["窗格","24 扇"],["描金",(1.3*W).toFixed(1)+" pt"]]};
 }
-function artEclipse(){
-  let s=`<circle cx="150" cy="170" r="80" fill="${G}"/><circle cx="172" cy="156" r="70" fill="${BG}"/>`;
-  for(let i=0;i<24;i++){const a=i/24*Math.PI*2,r1=96,r2=i%2?112:130;
-    s+=`<line x1="${150+Math.cos(a)*r1}" y1="${170+Math.sin(a)*r1}" x2="${150+Math.cos(a)*r2}" y2="${170+Math.sin(a)*r2}" stroke="${G}" stroke-width="${i%2?.8:1.4}"/>`}
-  [150,190].forEach(r=>{s+=`<circle cx="150" cy="170" r="${r}" fill="none" stroke="${GD}" stroke-width=".8"/>`});
-  s+=`<rect x="60" y="300" width="180" height="1.6" fill="${G}"/><rect x="90" y="312" width="120" height="1" fill="${GD}"/>`;
-  return s;
+function artEclipse(r){
+  const G=ATMOG[S.atmo].gold,GD=ATMOG[S.atmo].gold,bg=ATMOG[S.atmo].bg,W=S.gilt,nR=Math.round(24*S.den);
+  const off=18+r()*10;
+  let s='<circle cx="150" cy="170" r="80" fill="'+G+'"/><circle cx="'+(150+off)+'" cy="'+(170-off*.8)+'" r="70" fill="'+bg+'"/>';
+  for(let i=0;i<nR;i++){const a=i/nR*Math.PI*2,r1=96,r2=i%2?112:130;
+    s+='<line x1="'+(150+Math.cos(a)*r1).toFixed(1)+'" y1="'+(170+Math.sin(a)*r1).toFixed(1)+'" x2="'+(150+Math.cos(a)*r2).toFixed(1)+'" y2="'+(170+Math.sin(a)*r2).toFixed(1)+'" stroke="'+G+'" stroke-width="'+((i%2?.8:1.4)*W).toFixed(2)+'"/>'}
+  [150,190].forEach(rad=>{s+='<circle cx="150" cy="170" r="'+rad+'" fill="none" stroke="'+GD+'" stroke-width="'+(0.8*W).toFixed(2)+'" opacity=".45"/>'});
+  s+='<rect x="60" y="300" width="180" height="1.6" fill="'+G+'"/><rect x="90" y="312" width="120" height="1" fill="'+GD+'" opacity=".45"/>';
+  return{html:s,stats:[["冕芒",nR+" 道"],["蚀偏",off.toFixed(0)+" 分"],["描金",(1.1*W).toFixed(1)+" pt"]]};
 }
 
-/* ---------------- exhibition data ---------------- */
+/* ================= 展览数据 ================= */
 const ROOMS=[
  {id:"room1",n:"I",name:"日轮厅",sub:"HALL OF THE SUNBURST · 晨光与天际线",alt:false,works:[
   {t:"日出之城",en:"CITY AT DAYBREAK",who:"艾琳·沃恩",year:"1927",med:"纸本描金",art:artSunburst,
-   d:"旭日从阶梯状的天际线后升起，十六道光线用量角器般的精确排开。画家说：「城市醒来时，连光都是按图纸施工的。」"},
+   d:"旭日从阶梯状的天际线后升起，光线用量角器般的精确排开。画家说：「城市醒来时，连光都是按图纸施工的。」"},
   {t:"放射",en:"RAYONNEMENT",who:"M. 德维尔",year:"1931",med:"绢本设色",art:artRay,
-   d:"三十六道光芒自一枚象牙色圆心迸发。这幅作品曾挂在远洋邮轮的大厅正壁，据说晕船的旅客看着它会平静下来。"}]},
+   d:"光芒自一枚象牙色圆心迸发。这幅作品曾挂在远洋邮轮的大厅正壁，据说晕船的旅客看着它会平静下来。"}]},
  {id:"room2",n:"II",name:"扇形厅",sub:"HALL OF THE FAN · 展开的秩序",alt:true,works:[
   {t:"羽扇",en:"THE PLUME FAN",who:"石川镏金",year:"1929",med:"漆面板贴金",art:artFan,
    d:"一把永远停在半开状态的扇。扇骨的长短交替是画家从孔雀尾羽上量下来的比例——自然早就是装饰艺术的老师。"},
@@ -272,9 +454,9 @@ const ROOMS=[
    d:"为巴黎博览会展馆所作的喷泉立面稿。水被画成同心圆弧，一滴也没有飞溅——那个年代的优雅，是不许失态的。"}]},
  {id:"room3",n:"III",name:"折线厅",sub:"HALL OF THE ZIGZAG · 电气的节奏",alt:false,works:[
   {t:"锯齿交响曲",en:"ZIGZAG SYMPHONY",who:"卡尔·维登",year:"1928",med:"布面油画",art:artZigzag,
-   d:"六列锯齿像爵士乐的切分音。画家在芝加哥住过三年，他说摩天楼夜里的灯一格一格亮起来，就是这首曲子的谱。"},
+   d:"锯齿像爵士乐的切分音。画家在芝加哥住过三年，他说摩天楼夜里的灯一格一格亮起来，就是这首曲子的谱。"},
   {t:"梯级拱门",en:"STEPPED ARCH",who:"M. 德维尔",year:"1930",med:"石膏描金浮雕稿",art:artArch,
-   d:"六重拱门一层退后一层，像走进去的回声。顶端的小太阳有九道光芒，对应当时展馆的九根门柱。"}]},
+   d:"拱门一层退后一层，像走进去的回声。顶端的小太阳有九道光芒，对应当时展馆的九根门柱。"}]},
  {id:"room4",n:"IV",name:"镜像厅",sub:"HALL OF MIRRORS · 对称的终章",alt:true,works:[
   {t:"双塔",en:"TWIN TOWERS",who:"卡尔·维登",year:"1935",med:"纸本石版画",art:artTowers,
    d:"两座一模一样的塔，共享一轮悬在中间的金日。对称在这里不是手法，而是信仰——世界应当左右各半，各安其位。"},
@@ -282,69 +464,210 @@ const ROOMS=[
    d:"展览年代的最后一件作品。金日正在被阴影合拢——画家两年后封笔。装饰艺术的时代，在这幅画里自己落下了幕。"}]}
 ];
 
-/* ---------------- render rooms ---------------- */
+/* ================= 渲染：长廊 ================= */
 const roomsEl=document.getElementById("rooms");
-roomsEl.innerHTML=ROOMS.map(r=>`
- <section class="room${r.alt?" alt":""}" id="${r.id}">
-   <div class="room-head">
-     <div class="rn"><span>${r.n}</span></div>
-     <h2>${r.name}</h2><p>${r.sub}</p>
-   </div>
-   <div class="works">${r.works.map((w,i)=>`
-     <figure class="piece" data-room="${r.id}" data-idx="${i}" tabindex="0" role="button" aria-label="查看展品《${w.t}》">
-       <div class="frame">${svgWrap(w.art(),w.t)}<span class="shine"></span></div>
-       <figcaption class="label"><h4>《${w.t}》</h4><p>${w.who} · ${w.year} · ${w.med}</p></figcaption>
-     </figure>`).join("")}
-   </div>
-   <div class="chev"><i></i><i></i><i></i></div>
- </section>`).join("");
+function genPiece(roomId,idx){
+  const r=ROOMS.find(x=>x.id===roomId),w=r.works[idx];
+  const g=w.art(rngFor(roomId+"·"+idx));
+  return{svg:svgWrap(g.html,w.t),inner:g.html,stats:g.stats,room:r,w};
+}
+function paintRooms(){
+  roomsEl.innerHTML=ROOMS.map(r=>
+   '<section class="room'+(r.alt?" alt":"")+'" id="'+r.id+'">'+
+     '<div class="room-head"><div class="rn"><span>'+r.n+'</span></div>'+
+     '<h2>'+r.name+'</h2><p>'+r.sub+'</p></div>'+
+     '<div class="works">'+r.works.map((w,i)=>{const p=genPiece(r.id,i);p.w._svg=p.svg;p.w._inner=p.inner;p.w._stats=p.stats;
+       return '<figure class="piece" data-room="'+r.id+'" data-idx="'+i+'" tabindex="0" role="button" aria-label="查看展品《'+w.t+'》">'+
+         '<div class="frame">'+p.svg+'<span class="shine"></span><div class="loupe"><svg viewBox="0 0 300 380">'+p.inner+'</svg></div></div>'+
+         '<figcaption class="label"><h4>《'+w.t+'》</h4><p>'+w.who+' · '+w.year+' · '+w.med+'</p></figcaption>'+
+       '</figure>'}).join("")+
+     '</div><div class="chev"><i></i><i></i><i></i></div></section>').join("");
+  observePieces();bindLoupe();
+}
 
-/* ---------------- scroll progress + spy ---------------- */
+/* ================= 渲染：平面图 ================= */
+const planSvg=document.getElementById("planSvg"),planWorks=document.getElementById("planWorks");
+let planRoom="room1";
+function paintPlan(){
+  const P={room1:[40,40,280,160],room2:[360,40,280,160],room3:[40,240,280,140],room4:[360,240,280,140]};
+  let s='<rect x="20" y="20" width="640" height="380" fill="none" stroke="'+ATMOG[S.atmo].gold+'" stroke-width="1.6"/>'+
+        '<rect x="28" y="28" width="624" height="364" fill="none" stroke="'+ATMOG[S.atmo].gold+'" stroke-width=".7" opacity=".5"/>'+
+        '<line x1="330" y1="210" x2="350" y2="210" stroke="'+ATMOG[S.atmo].gold+'"/>'+
+        '<text x="340" y="410" text-anchor="middle" font-family="SF Mono,Menlo,monospace" font-size="10" letter-spacing="4" fill="'+ATMOG[S.atmo].gold+'" opacity=".7">ENTRANCE · 楼梯厅</text>';
+  ROOMS.forEach(rm=>{const[x,y,w,h]=P[rm.id];
+    s+='<g class="rm'+(rm.id===planRoom?" on":"")+'" data-r="'+rm.id+'">'+
+       '<rect class="rm-body" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="rgba(201,162,39,.05)" stroke="'+ATMOG[S.atmo].gold+'" stroke-width="1.2"/>'+
+       '<text x="'+(x+w/2)+'" y="'+(y+h/2-6)+'" text-anchor="middle" font-family="Didot,Georgia,serif" font-size="22" letter-spacing="8" fill="'+ATMOG[S.atmo].gold+'">'+rm.n+'</text>'+
+       '<text x="'+(x+w/2)+'" y="'+(y+h/2+20)+'" text-anchor="middle" font-family="SF Mono,Menlo,monospace" font-size="11" letter-spacing="6" fill="'+ATMOG[S.atmo].gold+'" opacity=".75">'+rm.name+'</text></g>'});
+  planSvg.innerHTML=s;
+  paintPlanRoom();
+}
+function paintPlanRoom(){
+  const r=ROOMS.find(x=>x.id===planRoom);
+  planWorks.innerHTML='<div class="works">'+r.works.map((w,i)=>{
+    const p=genPiece(r.id,i);w._svg=p.svg;w._inner=p.inner;w._stats=p.stats;
+    return '<figure class="piece in" data-room="'+r.id+'" data-idx="'+i+'" tabindex="0" role="button" aria-label="查看展品《'+w.t+'》">'+
+      '<div class="frame">'+p.svg+'<span class="shine"></span><div class="loupe"><svg viewBox="0 0 300 380">'+p.inner+'</svg></div></div>'+
+      '<figcaption class="label"><h4>《'+w.t+'》</h4><p>'+w.who+' · '+w.year+' · '+w.med+'</p></figcaption></figure>'}).join("")+'</div>';
+  bindLoupe();
+}
+planSvg.addEventListener("click",e=>{const g=e.target.closest(".rm");if(g){planRoom=g.dataset.r;paintPlan()}});
+
+/* ================= 放大镜 ================= */
+function bindLoupe(){
+  document.querySelectorAll(".piece").forEach(p=>{
+    const frame=p.querySelector(".frame"),loupe=p.querySelector(".loupe"),lsvg=loupe.querySelector("svg");
+    frame.addEventListener("pointermove",e=>{
+      const rc=frame.getBoundingClientRect();
+      const fx=(e.clientX-rc.left)/rc.width,fy=(e.clientY-rc.top)/rc.height;
+      if(fx<0||fx>1||fy<0||fy>1){loupe.style.display="none";return}
+      loupe.style.display="block";
+      loupe.style.left=Math.min(rc.width-170,Math.max(6,e.clientX-rc.left-80))+"px";
+      loupe.style.top=Math.min(rc.height-170,Math.max(6,e.clientY-rc.top-80))+"px";
+      const vw=120,vh=152;
+      lsvg.setAttribute("viewBox",(fx*300-vw/2).toFixed(1)+" "+(fy*380-vh/2).toFixed(1)+" "+vw+" "+vh);
+    });
+    frame.addEventListener("pointerleave",()=>loupe.style.display="none");
+  });
+}
+
+/* ================= 滚动进度与侦察 ================= */
 const pbar=document.getElementById("pbar");
 function onScroll(){
   const h=document.documentElement;
-  const p=h.scrollTop/(h.scrollHeight-h.clientHeight);
-  pbar.style.width=(p*100)+"%";
+  pbar.style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+"%";
 }
 document.addEventListener("scroll",onScroll,{passive:true});onScroll();
 const tourLinks=[...document.querySelectorAll(".tour a")];
 const spy=new IntersectionObserver(es=>{
-  es.forEach(e=>{
-    if(e.isIntersecting){
-      tourLinks.forEach(a=>a.classList.toggle("on",a.dataset.r===e.target.id));
-    }
-  });
+  es.forEach(e=>{if(e.isIntersecting)tourLinks.forEach(a=>a.classList.toggle("on",a.dataset.r===e.target.id))});
 },{rootMargin:"-42% 0px -50% 0px"});
-ROOMS.forEach(r=>spy.observe(document.getElementById(r.id)));
-/* reveal artworks */
-const rev=new IntersectionObserver(es=>{
-  es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");rev.unobserve(e.target)}});
-},{threshold:.2});
-document.querySelectorAll(".piece").forEach(p=>rev.observe(p));
+function observePieces(){
+  ROOMS.forEach(r=>{const el=document.getElementById(r.id);if(el)spy.observe(el)});
+  const rev=new IntersectionObserver(es=>{
+    es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");rev.unobserve(e.target)}});
+  },{threshold:.2});
+  document.querySelectorAll("#rooms .piece").forEach(p=>rev.observe(p));
+}
 
-/* ---------------- modal ---------------- */
+/* ================= modal ================= */
 const modal=document.getElementById("modal"),mcols=document.getElementById("mcols");
+let lastPiece=null;
 function openPiece(roomId,idx){
   const r=ROOMS.find(x=>x.id===roomId),w=r.works[idx];
-  mcols.innerHTML=`
-   <div class="art">${svgWrap(w.art(),w.t)}</div>
-   <div class="txt">
-     <div class="kick">${r.n} ${r.name} · 展品 ${idx+1} / ${r.works.length}</div>
-     <h2>《${w.t}》</h2><div class="who">${w.en} — ${w.who}</div>
-     <div class="mrow"><span>年代</span><b>${w.year}</b></div>
-     <div class="mrow"><span>媒材</span><b>${w.med}</b></div>
-     <div class="mrow"><span>藏地</span><b>本馆四层 · ${r.name}常设</b></div>
-     <p class="mtxt">${w.d}</p>
-     <div class="mfoot">此展品图形由 SVG 实时绘制 · 分辨率无损</div>
-   </div>`;
+  lastPiece={roomId,idx,t:w.t};
+  const stats=(w._stats||[]).map(st=>'<div class="mrow"><span>'+st[0]+'</span><b>'+st[1]+'</b></div>').join("");
+  mcols.innerHTML=
+   '<div class="art">'+(w._svg||genPiece(roomId,idx).svg)+'</div>'+
+   '<div class="txt">'+
+     '<div class="kick">'+r.n+' '+r.name+' · 展品 '+(idx+1)+' / '+r.works.length+'</div>'+
+     '<h2>《'+w.t+'》</h2><div class="who">'+w.en+' — '+w.who+'</div>'+
+     '<div class="mrow"><span>年代</span><b>'+w.year+'</b></div>'+
+     '<div class="mrow"><span>媒材</span><b>'+w.med+'</b></div>'+
+     '<div class="mrow"><span>藏地</span><b>本馆四层 · '+r.name+'常设</b></div>'+
+     '<div class="mrow"><span>种子</span><b>#'+SEED+' · 本届策展</b></div>'+stats+
+     '<p class="mtxt">'+w.d+'</p>'+
+     '<div class="mfoot"><span>SVG 实时描金 · 分辨率无损</span><button id="dlArt">展品卡 PNG</button></div>'+
+   '</div>';
   modal.classList.add("open");document.body.style.overflow="hidden";
+  document.getElementById("dlArt").onclick=()=>downloadArt(roomId,idx);
 }
 function closeModal(){modal.classList.remove("open");document.body.style.overflow=""}
-roomsEl.addEventListener("click",e=>{const p=e.target.closest(".piece");if(p)openPiece(p.dataset.room,+p.dataset.idx)});
-roomsEl.addEventListener("keydown",e=>{if(e.key==="Enter"){const p=e.target.closest(".piece");if(p)openPiece(p.dataset.room,+p.dataset.idx)}});
+document.addEventListener("click",e=>{
+  const p=e.target.closest(".piece");
+  if(p)openPiece(p.dataset.room,+p.dataset.idx);
+});
+document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target.closest){const p=e.target.closest(".piece");if(p)openPiece(p.dataset.room,+p.dataset.idx)}});
 document.getElementById("mclose").onclick=closeModal;
 modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
+
+/* ================= 输出：展品卡 PNG ================= */
+function downloadArt(roomId,idx){
+  const r=ROOMS.find(x=>x.id===roomId),w=r.works[idx];
+  const svg=(w._svg||genPiece(roomId,idx).svg);
+  const blob=new Blob([svg],{type:"image/svg+xml;charset=utf-8"});
+  const url=URL.createObjectURL(blob),img=new Image();
+  img.onload=()=>{
+    const c=document.createElement("canvas");c.width=900;c.height=1140;
+    const x=c.getContext("2d");x.drawImage(img,0,0,900,1140);URL.revokeObjectURL(url);
+    x.fillStyle=ATMOG[S.atmo].gold;x.font="26px Didot,Georgia,serif";
+    x.fillText("《"+w.t+"》 "+w.who+" · "+w.year,40,1108);
+    x.font="15px SF Mono,Menlo,monospace";x.globalAlpha=.75;
+    x.fillText("PALAIS 1987 · ÉTUDE N°51 · SEED #"+SEED,620,1108);x.globalAlpha=1;
+    const a=document.createElement("a");a.download="palais1987-"+w.en.toLowerCase().replace(/[^a-z]+/g,"-")+"-"+SEED+".png";
+    a.href=c.toDataURL("image/png");a.click();
+  };
+  img.src=url;
+}
+
+/* ================= 氛围 / 模式 / 参数 ================= */
+function paintAll(){paintRooms();paintPlan();onScroll()}
+const atmoSeg=document.getElementById("atmoSeg"),modeSeg=document.getElementById("modeSeg");
+function setAtmo(a){S.atmo=a;document.body.dataset.atmo=a;
+  atmoSeg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.a===a));paintAll()}
+function setMode(m){S.mode=m;document.body.dataset.mode=m;
+  modeSeg.querySelectorAll("button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));
+  if(m==="plan")paintPlan()}
+atmoSeg.addEventListener("click",e=>{const b=e.target.closest("button");if(b)setAtmo(b.dataset.a)});
+modeSeg.addEventListener("click",e=>{const b=e.target.closest("button");if(b)setMode(b.dataset.m)});
+function bindRange(id,out,fmt,fn){const el=document.getElementById(id),o=document.getElementById(out);
+  el.addEventListener("input",()=>{fn(+el.value);o.textContent=fmt(+el.value)})}
+bindRange("pGilt","oGilt",v=>"×"+(v/100).toFixed(1),v=>{S.gilt=v/100;paintAll()});
+bindRange("pDen","oDen",v=>"×"+(v/100).toFixed(1),v=>{S.den=v/100;paintAll()});
+bindRange("pGlow","oGlow",v=>v+"%",v=>{S.glow=v/100;document.documentElement.style.setProperty("--glowO",S.glow)});
+bindRange("pGrain","oGrain",v=>v+"%",v=>{S.grain=v/100;document.documentElement.style.setProperty("--grainO",S.grain)});
+
+/* ================= 动作 ================= */
+document.getElementById("btnRegen").onclick=()=>setSeed(seed4());
+document.getElementById("btnShare").onclick=async e=>{
+  const b=e.currentTarget;try{await navigator.clipboard.writeText(location.href);
+    b.textContent="已复制 ✓";setTimeout(()=>b.textContent="复制链接",1600)}
+  catch{prompt("复制此画室的链接",location.href)}};
+document.getElementById("btnPng").onclick=()=>{
+  const p=lastPiece||{roomId:"room1",idx:0};downloadArt(p.roomId,p.idx)};
+
+/* ================= 键盘 ================= */
+document.addEventListener("keydown",e=>{
+  if(e.target.closest("input,select,textarea,[contenteditable]"))return;
+  const k=e.key;
+  if(k==="Escape")return closeModal();
+  if(k>="1"&&k<="4")setAtmo(["morning","noon","dusk","night"][+k-1]);
+  else if(k==="m"||k==="M")setMode(S.mode==="gallery"?"plan":"gallery");
+  else if(k==="n"||k==="N")setSeed(seed4());
+});
+
+/* ================= 彩蛋：闲置 30 秒，闭馆 ================= */
+let idleT=null;
+function armIdle(){clearTimeout(idleT);document.body.classList.remove("doze");
+  idleT=setTimeout(()=>document.body.classList.add("doze"),30000)}
+["pointermove","pointerdown","keydown","wheel"].forEach(ev=>document.addEventListener(ev,armIdle,{passive:true}));
+armIdle();
+
+/* ================= 启动 ================= */
+document.getElementById("coloSeed").textContent="#"+SEED;
+paintAll();
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="museum-1987" data-num="51" style="--lab-a:#C9A227;--lab-b:#F2EBDC"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 51 · WEB-DESIGN</small><strong>Palais 1987</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

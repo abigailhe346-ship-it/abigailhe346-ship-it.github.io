@@ -3,32 +3,68 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NUIT 夜航 — 香水沙龙</title>
+<title>NUIT 夜航 — ÉTUDE N°56 · Atelier MIRA</title>
 <style>
   :root{
-    --noir:#191219; --noir2:#211A22; --gold:#C9A86A; --blush:#D9A0A8; --mist:#6E5A7E;
+    --noir:#221722; --noir2:#2B1F2B; --cream:#EFE6DA; --gold:#D9A45C; --blush:#D9A0A8; --mist:#6E5A7E;
+    --c90:color-mix(in srgb,var(--cream) 90%,transparent);
+    --c75:color-mix(in srgb,var(--cream) 75%,transparent);
+    --c60:color-mix(in srgb,var(--cream) 60%,transparent);
+    --c45:color-mix(in srgb,var(--cream) 45%,transparent);
+    --c30:color-mix(in srgb,var(--cream) 30%,transparent);
+    --c15:color-mix(in srgb,var(--cream) 15%,transparent);
+    --grain-op:.4; --wash-op:.65;
     --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
     --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
     --mono:"SF Mono",Menlo,monospace;
     --ease:cubic-bezier(.22,1,.36,1);
   }
+  body[data-phase="cruise"]{--noir:#141320;--noir2:#1C1A2B;--cream:#EDE8DC;--gold:#C9A86A;--blush:#C79BB0;--mist:#6E5A8E;}
+  body[data-phase="predawn"]{--noir:#101823;--noir2:#182230;--cream:#E4E8E2;--gold:#B08D68;--blush:#A8B8C8;--mist:#5A6E8E;}
+  body[data-phase="dawn"]{--noir:#2A1E20;--noir2:#35262A;--cream:#F2E8DA;--gold:#E0B07C;--blush:#E0A8A0;--mist:#8E6A7E;}
   *{margin:0;padding:0;box-sizing:border-box;}
   html{scroll-behavior:smooth;}
-  body{background:var(--noir);color:#EFE6DA;font-family:var(--sans);overflow-x:hidden;}
+  body{background:var(--noir);color:var(--cream);font-family:var(--sans);overflow-x:hidden;
+    transition:background 1.4s ease,color 1.4s ease;}
   ::selection{background:var(--gold);color:var(--noir);}
   input,button{font-family:inherit;}
 
   #trail{position:fixed;inset:0;z-index:1;pointer-events:none;}
   .content{position:relative;z-index:2;}
+  #wash{position:fixed;inset:-12%;z-index:3;pointer-events:none;mix-blend-mode:soft-light;opacity:var(--wash-op);
+    transition:opacity 1.4s ease;animation:washdrift 40s ease-in-out infinite alternate;}
+  @keyframes washdrift{from{transform:translate(-2%,-1.5%) rotate(-1deg);}to{transform:translate(2%,1.8%) rotate(1.2deg);}}
+  #grain{position:fixed;inset:0;z-index:4;pointer-events:none;mix-blend-mode:overlay;opacity:var(--grain-op);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .47 0 0 0 0 .44 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E");}
+  #vig{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(120% 95% at 50% 42%,transparent 58%,rgba(0,0,0,.45) 100%);}
 
   header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:flex-start;
-    padding:18px 3.5vw;}
-  .sig{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.8;color:#EFE6DA;}
-  .sig .no{color:var(--gold);font-weight:700;}
+    padding:16px 3.5vw;pointer-events:none;}
+  header>*{pointer-events:auto;}
+  .brand{display:flex;gap:13px;align-items:center;text-decoration:none;color:var(--cream);}
+  .seal{width:50px;height:50px;flex:none;}
+  .brand .et{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.9;}
+  .brand .et b{font-weight:700;color:var(--gold);}
+  .brand .et span{display:block;color:var(--c60);}
+  .hright{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
   nav{display:flex;gap:26px;}
-  nav a{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-decoration:none;color:#EFE6DA;opacity:.75;transition:.3s;}
+  nav a{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-decoration:none;color:var(--cream);opacity:.75;transition:.3s;}
   nav a:hover{opacity:1;color:var(--gold);}
   @media(max-width:640px){nav{display:none;}}
+  .phase-sw{display:flex;border:1px solid var(--c30);background:color-mix(in srgb,var(--noir) 70%,transparent);backdrop-filter:blur(6px);}
+  .phase-sw button{border:none;background:transparent;color:var(--c60);font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;padding:8px 11px;transition:.3s;border-right:1px solid var(--c15);}
+  .phase-sw button:last-child{border-right:none;}
+  .phase-sw button:hover{color:var(--gold);}
+  .phase-sw button.on{background:var(--gold);color:var(--noir);}
+  @media(max-width:640px){
+    .phase-sw{position:fixed;left:12px;bottom:12px;z-index:60;}
+    .phase-sw button{padding:8px 10px;}
+    .seal{width:40px;height:40px;}
+    .brand .et{font-size:9px;}
+    .brand .et span{display:none;}
+  }
 
   .deco-rule{display:flex;align-items:center;gap:14px;color:var(--gold);}
   .deco-rule::before,.deco-rule::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold));}
@@ -38,87 +74,138 @@
   /* ---------- hero ---------- */
   .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
     position:relative;padding:0 6vw;}
+  #stars{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
   .sunburst{position:absolute;top:50%;left:50%;transform:translate(-50%,-54%);width:min(80vw,760px);opacity:.5;
     animation:slowspin 90s linear infinite;pointer-events:none;}
   @keyframes slowspin{to{transform:translate(-50%,-54%) rotate(360deg);}}
-  .hero .est{font-family:var(--mono);font-size:10px;letter-spacing:.6em;color:var(--gold);margin-bottom:3vh;text-indent:.6em;}
+  .hero .est{font-family:var(--mono);font-size:10px;letter-spacing:.6em;color:var(--gold);margin-bottom:3vh;text-indent:.6em;position:relative;}
   .hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(66px,13vw,200px);letter-spacing:.16em;line-height:1;text-indent:.16em;
-    background:linear-gradient(180deg,#F3E7C9 20%,var(--gold) 65%,#8a6f3e);-webkit-background-clip:text;background-clip:text;color:transparent;}
-  .hero .cn{margin-top:2vh;font-family:var(--serif);font-size:clamp(20px,2.6vw,34px);letter-spacing:1.1em;text-indent:1.1em;color:rgba(239,230,218,.85);}
-  .hero .tag{margin-top:4.5vh;font-size:13.5px;line-height:2.3;color:rgba(239,230,218,.6);max-width:44ch;}
-  .hero .hint{margin-top:6vh;font-family:var(--mono);font-size:9px;letter-spacing:.4em;color:rgba(201,168,106,.7);animation:hint 2.6s infinite;}
+    background:linear-gradient(180deg,var(--cream) 20%,var(--gold) 65%,color-mix(in srgb,var(--gold) 55%,#000));-webkit-background-clip:text;background-clip:text;color:transparent;position:relative;}
+  .hero .cn{margin-top:2vh;font-family:var(--serif);font-size:clamp(20px,2.6vw,34px);letter-spacing:1.1em;text-indent:1.1em;color:var(--c90);position:relative;}
+  .hero .tag{margin-top:4.5vh;font-size:13.5px;line-height:2.3;color:var(--c60);max-width:44ch;position:relative;}
+  .hero .route{margin-top:3.5vh;font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--c45);position:relative;}
+  .hero .route b{color:var(--gold);font-weight:600;}
+  .hero .hint{margin-top:4vh;font-family:var(--mono);font-size:9px;letter-spacing:.4em;color:color-mix(in srgb,var(--gold) 70%,transparent);animation:hint 2.6s infinite;position:relative;}
   @keyframes hint{50%{opacity:.3;}}
+  .hero-actions{margin-top:3vh;display:flex;gap:10px;position:relative;flex-wrap:wrap;justify-content:center;}
+  .abtn{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;padding:10px 15px;border:1px solid var(--c30);
+    background:transparent;color:var(--c75);transition:.3s;cursor:pointer;}
+  .abtn:hover{border-color:var(--gold);color:var(--gold);}
 
   /* ---------- sections ---------- */
   section{padding:12vh 6vw;max-width:1240px;margin:0 auto;position:relative;}
   .sec-title{text-align:center;margin-bottom:8vh;}
   .sec-title h2{font-family:var(--serif);font-weight:400;font-size:clamp(30px,4vw,56px);letter-spacing:.3em;text-indent:.3em;margin:3vh 0 2vh;}
-  .sec-title .en{font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:rgba(239,230,218,.45);}
+  .sec-title .en{font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:var(--c45);}
 
   /* ---------- pyramid ---------- */
   .pyr-wrap{display:grid;grid-template-columns:1fr 1fr;gap:5vw;align-items:center;}
   @media(max-width:880px){.pyr-wrap{grid-template-columns:1fr;}}
   #pyrSVG{width:100%;max-width:520px;display:block;margin:0 auto;}
   .tier{cursor:pointer;}
-  .tier polygon{transition:.35s;fill:rgba(201,168,106,.05);stroke:var(--gold);stroke-width:1;}
-  .tier text{fill:rgba(239,230,218,.75);font-family:var(--serif);letter-spacing:.35em;transition:.3s;pointer-events:none;}
+  .tier polygon{transition:.35s;fill:color-mix(in srgb,var(--gold) 5%,transparent);stroke:var(--gold);stroke-width:1;}
+  .tier text{fill:var(--c75);font-family:var(--serif);letter-spacing:.35em;transition:.3s;pointer-events:none;}
   .tier .tno{fill:var(--gold);font-family:var(--mono);letter-spacing:0;}
-  .tier:hover polygon{fill:rgba(201,168,106,.14);}
-  .tier.on polygon{fill:rgba(201,168,106,.22);}
-  .tier.on text{fill:#F3E7C9;}
-  .note-panel{border:1px solid rgba(201,168,106,.35);padding:44px 40px;background:rgba(33,26,34,.6);position:relative;}
-  .note-panel::before{content:"";position:absolute;inset:6px;border:1px solid rgba(201,168,106,.18);pointer-events:none;}
+  .tier:hover polygon{fill:color-mix(in srgb,var(--gold) 14%,transparent);}
+  .tier.on polygon{fill:color-mix(in srgb,var(--gold) 22%,transparent);}
+  .tier.on text{fill:var(--cream);}
+  .note-panel{border:1px solid color-mix(in srgb,var(--gold) 35%,transparent);padding:44px 40px;background:color-mix(in srgb,var(--noir2) 60%,transparent);position:relative;}
+  .note-panel::before{content:"";position:absolute;inset:6px;border:1px solid color-mix(in srgb,var(--gold) 18%,transparent);pointer-events:none;}
   .note-panel .nstage{font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:var(--gold);}
   .note-panel h3{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3vw,40px);letter-spacing:.14em;margin:2vh 0;}
-  .note-panel .ndur{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(239,230,218,.5);margin-bottom:3vh;}
-  .note-panel p{font-size:14px;line-height:2.3;color:rgba(239,230,218,.78);}
+  .note-panel .ndur{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--c60);margin-bottom:3vh;}
+  .note-panel p{font-size:14px;line-height:2.3;color:var(--c75);}
   .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:3.5vh;}
-  .chip{border:1px solid rgba(201,168,106,.5);color:var(--gold);font-family:var(--serif);font-size:13px;
+  .chip{border:1px solid color-mix(in srgb,var(--gold) 50%,transparent);color:var(--gold);font-family:var(--serif);font-size:13px;
     letter-spacing:.16em;padding:9px 18px;transition:.25s;cursor:default;}
   .chip:hover{background:var(--gold);color:var(--noir);}
 
-  /* ---------- atelier (mixer) ---------- */
-  .atelier{display:grid;grid-template-columns:.9fr 1.1fr;gap:5vw;align-items:center;}
+  /* ---------- atelier (console) ---------- */
+  .atelier{display:grid;grid-template-columns:.9fr 1.1fr;gap:5vw;align-items:start;}
   @media(max-width:880px){.atelier{grid-template-columns:1fr;}}
-  .mixer .mrow{margin-bottom:4.5vh;}
-  .mixer label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.26em;margin-bottom:14px;color:rgba(239,230,218,.75);}
+  .mixer .mrow{margin-bottom:4vh;}
+  .mixer label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.26em;margin-bottom:14px;color:var(--c75);}
   .mixer label b{color:var(--gold);font-weight:600;}
-  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:rgba(201,168,106,.45);outline:none;}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;background:var(--noir);
-    border:1.5px solid var(--gold);transform:rotate(45deg);cursor:pointer;transition:.2s;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:linear-gradient(90deg,var(--gold) var(--fill,50%),color-mix(in srgb,var(--gold) 40%,transparent) var(--fill,50%));}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:15px;height:15px;margin-top:-7px;background:var(--noir);
+    border:1.5px solid var(--gold);transform:rotate(45deg);transition:.2s;}
   input[type=range]::-webkit-slider-thumb:hover{background:var(--gold);}
-  input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--noir);border:1.5px solid var(--gold);transform:rotate(45deg);cursor:pointer;}
-  .curve-box{border:1px solid rgba(201,168,106,.35);background:rgba(33,26,34,.6);padding:26px 26px 12px;position:relative;}
-  .curve-box::before{content:"";position:absolute;inset:6px;border:1px solid rgba(201,168,106,.15);pointer-events:none;}
-  #curve{width:100%;display:block;}
-  .poem{margin-top:2vh;font-family:var(--serif);font-style:italic;font-size:15px;line-height:2.3;color:rgba(239,230,218,.8);
+  input[type=range]::-moz-range-track{height:1px;background:color-mix(in srgb,var(--gold) 40%,transparent);}
+  input[type=range]::-moz-range-progress{height:1px;background:var(--gold);}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:0;background:var(--noir);border:1.5px solid var(--gold);transform:rotate(45deg);}
+  .mode-sw{display:flex;border:1px solid var(--c30);width:fit-content;margin-bottom:3vh;}
+  .mode-sw button{border:none;background:transparent;color:var(--c60);font-family:var(--mono);font-size:10px;
+    letter-spacing:.18em;padding:9px 16px;transition:.3s;border-right:1px solid var(--c15);}
+  .mode-sw button:last-child{border-right:none;}
+  .mode-sw button.on{background:var(--gold);color:var(--noir);}
+  .curve-box{border:1px solid color-mix(in srgb,var(--gold) 35%,transparent);background:color-mix(in srgb,var(--noir2) 60%,transparent);padding:26px 26px 12px;position:relative;}
+  .curve-box::before{content:"";position:absolute;inset:6px;border:1px solid color-mix(in srgb,var(--gold) 15%,transparent);pointer-events:none;}
+  #curve{width:100%;display:block;cursor:crosshair;}
+  .read-chip{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--gold);padding:8px 6px 0;min-height:22px;}
+  .poem{margin-top:1.5vh;font-family:var(--serif);font-style:italic;font-size:15px;line-height:2.3;color:var(--c75);
     min-height:5.5em;padding:0 6px 14px;}
-  .curve-cap{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:rgba(239,230,218,.4);padding:0 6px 12px;}
+  .curve-cap{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--c45);padding:0 6px 12px;}
+  .autopilot{display:none;font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--blush);margin-top:2vh;}
+  .autopilot.on{display:block;animation:hint 2s infinite;}
 
-  footer{padding:10vh 6vw 8vh;text-align:center;}
+  footer{padding:10vh 6vw 7vh;text-align:center;position:relative;}
   footer .fbig{font-family:var(--serif);font-size:clamp(24px,3vw,42px);letter-spacing:.24em;margin:4vh 0;}
   footer .fbig em{font-style:italic;color:var(--gold);}
-  footer .fine{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:rgba(239,230,218,.4);line-height:2.4;}
+  .keys{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--c45);line-height:2.4;}
+  .keys b{color:var(--c75);font-weight:600;border:1px solid var(--c30);padding:1px 5px;margin:0 1px;}
+  .colophon{margin-top:4vh;padding-top:16px;border-top:1px dashed var(--c15);font-family:var(--mono);
+    font-size:9.5px;letter-spacing:.16em;color:var(--c45);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;max-width:1240px;margin-left:auto;margin-right:auto;text-align:left;}
 </style>
 </head>
-<body>
+<body data-phase="dusk">
 
 <canvas id="trail"></canvas>
+<div id="wash"></div>
+<div id="vig"></div>
+<div id="grain"></div>
 
 <div class="content">
 <header>
-  <div class="sig"><span class="no">№ 10</span> · <b>NUIT 夜航</b><br>WEB DESIGN / MAISON DE PARFUM</div>
-  <nav><a href="#pyramid">香调结构 PYRAMID</a><a href="#atelier">调香室 ATELIER</a></nav>
+  <a class="brand" href="#top">
+    <svg class="seal" viewBox="0 0 104 104" aria-hidden="true">
+      <defs><path id="ringPath56" d="M52 14 a38 38 0 1 1 -0.01 0"/></defs>
+      <circle cx="52" cy="52" r="49" fill="none" stroke="var(--gold)" stroke-width="1.4"/>
+      <circle cx="52" cy="52" r="30" fill="none" stroke="var(--gold)" stroke-width=".8" opacity=".55"/>
+      <text font-family="SF Mono,Menlo,monospace" font-size="10.5" letter-spacing="3.2" fill="var(--gold)">
+        <textPath href="#ringPath56" startOffset="2">ATELIER MIRA · ÉTUDE · ATELIER MIRA ·</textPath>
+      </text>
+      <path d="M37 66 C37 55 37 46 39 37 C43 44 47 51 51 57 C54 49 57 42 61 35 C64 45 66 55 67 66"
+        fill="none" stroke="var(--gold)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="et"><b>ÉTUDE N°56/100</b> · NUIT 夜航<span>WEB DESIGN / MAISON DE PARFUM</span></span>
+  </a>
+  <div class="hright">
+    <div class="phase-sw" id="phaseSw" role="group" aria-label="航段氛围">
+      <button data-p="dusk" class="on">起飞</button>
+      <button data-p="cruise">巡航</button>
+      <button data-p="predawn">黎明前</button>
+      <button data-p="dawn">着陆</button>
+    </div>
+    <nav><a href="#pyramid">香调结构 PYRAMID</a><a href="#atelier">调香室 ATELIER</a></nav>
+  </div>
 </header>
 
 <!-- hero -->
-<div class="hero">
+<div class="hero" id="top">
+  <canvas id="stars"></canvas>
   <svg class="sunburst" viewBox="0 0 600 600" id="burstSVG"></svg>
   <div class="est">MAISON FONDÉE · 1927 · GRASSE</div>
   <h1>NUIT</h1>
   <div class="cn">夜 航</div>
-  <p class="tag">一支为午夜飞行而作的香水。前调是起飞时的风，中调是云层之上的月光，尾调落在黎明前最安静的那一分钟。</p>
-  <div class="hint">移动指针 · 香气会跟随你</div>
+  <p class="tag">一支为午夜飞行而作的香水。前调是起飞时的风，中调是云层之上的月光，尾调落在黎明前最安静的那一分钟。按住画面积蓄压力，松手即是一场喷洒。</p>
+  <div class="route" id="routeLine">航路 <b>CDG → HKG</b> · FL390 · SEED <b id="routeSeed">#0000</b></div>
+  <div class="hero-actions">
+    <button class="abtn" id="reseed">再生香方 ↻</button>
+    <button class="abtn" id="shareBtn">复制分享链接</button>
+    <button class="abtn" id="saveBtn">下载调香卡 PNG</button>
+  </div>
+  <div class="hint">移动指针 · 香气会跟随你 · 按住 = 蓄压喷洒</div>
 </div>
 
 <!-- pyramid -->
@@ -145,10 +232,14 @@
   <div class="sec-title">
     <div class="deco-rule"><span>ATELIER</span></div>
     <h2>调香室</h2>
-    <div class="en">拖动滑杆 · 重写这支香水的八小时</div>
+    <div class="en">五枚参数 · 重写这支香水的八小时</div>
   </div>
   <div class="atelier">
     <div class="mixer">
+      <div class="mode-sw" id="modeSw">
+        <button data-m="graph" class="on">曲线 GRAPH</button>
+        <button data-m="wheel">花轮 WHEEL</button>
+      </div>
       <div class="mrow">
         <label><span>前调 HEAD · 风与果皮</span><b id="vHead">60</b></label>
         <input type="range" id="sHead" min="0" max="100" value="60">
@@ -161,11 +252,21 @@
         <label><span>后调 BASE · 大地与琥珀</span><b id="vBase">50</b></label>
         <input type="range" id="sBase" min="0" max="100" value="50">
       </div>
+      <div class="mrow">
+        <label><span>挥发速率 VOLATILITY</span><b id="vVola">× 1.00</b></label>
+        <input type="range" id="sVola" min="50" max="180" value="100" step="5">
+      </div>
+      <div class="mrow">
+        <label><span>飞行高度 ALTITUDE</span><b id="vAlt">10.6 km</b></label>
+        <input type="range" id="sAlt" min="0" max="120" value="106" step="2">
+      </div>
+      <div class="autopilot" id="autopilot">AUTOPILOT · 香气在自己演化 — 任意输入即可接管</div>
     </div>
     <div class="curve-box">
       <canvas id="curve"></canvas>
+      <div class="read-chip" id="readChip"> </div>
       <p class="poem" id="poem"></p>
-      <div class="curve-cap">VOLATILITY CURVE · 横轴为时间（0 — 8h）· 纵轴为扩散力</div>
+      <div class="curve-cap" id="curveCap">VOLATILITY CURVE · 横轴为时间（0 — 8h）· 纵轴为扩散力 · 悬停读数</div>
     </div>
   </div>
 </section>
@@ -173,46 +274,124 @@
 <footer>
   <div class="deco-rule"><span>NUIT · 1927</span></div>
   <div class="fbig">香气是<em>看不见</em>的航迹。</div>
-  <div class="fine">NUIT 夜航 © 2026 · EAU DE PARFUM 50ML<br>作品 № 10 / WEB DESIGN</div>
+  <div class="keys">
+    <b>1</b>–<b>3</b> 香层 · <b>P</b> 航段 · <b>G</b> 曲线/花轮 · <b>R</b> 再生 · <b>D</b> 存卡 · <b>K</b> 复制链接<br>
+    按住喷洒 · 闲置 30 秒 = 自动驾驶接管
+  </div>
+  <div class="colophon">
+    <span>Canvas 2D · SVG · CSS — 星图与香雾皆为程序所绘</span>
+    <span id="colophSeed">seed #0000 · Painted with code, plein air</span>
+  </div>
 </footer>
 </div>
 
 <script>
+"use strict";
+/* ================= utils & seed ================= */
+function mulberry(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619);}return h>>>0;}
 const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let seed=(()=>{const m=location.hash.match(/seed=([A-Za-z0-9_-]+)/);if(!m)return Math.floor(Math.random()*100000);return /^\d+$/.test(m[1])?parseInt(m[1],10)%100000:hashStr(m[1])%100000;})();
+function seedLabel(){return "#"+String(seed).padStart(4,"0");}
+function setSeedHash(){const h="#seed="+seed;if(location.hash!==h)history.replaceState(null,"",h);}
+setSeedHash();
+const DPR=Math.min(devicePixelRatio||1,2);
 
-/* ================= art deco sunburst ================= */
-(()=> {
+/* ================= flight phase atmosphere ================= */
+const PHASES={
+  dusk:{name:"起飞 TAKEOFF",wash:"radial-gradient(60% 50% at 50% 100%,rgba(217,140,70,.7),transparent 72%),radial-gradient(50% 45% at 85% 0%,rgba(110,90,126,.5),transparent 70%)",trail:["217,164,92","217,160,168","110,90,126"],starN:.5},
+  cruise:{name:"巡航 CRUISE",wash:"radial-gradient(55% 45% at 70% 0%,rgba(120,130,190,.5),transparent 72%),radial-gradient(50% 45% at 15% 95%,rgba(60,50,90,.55),transparent 75%)",trail:["201,168,106","199,155,176","110,90,142"],starN:1},
+  predawn:{name:"黎明前 PREDAWN",wash:"radial-gradient(60% 50% at 50% 100%,rgba(90,110,142,.55),transparent 74%),radial-gradient(45% 40% at 80% 0%,rgba(70,90,120,.4),transparent 70%)",trail:["176,141,104","168,184,200","90,110,142"],starN:.7},
+  dawn:{name:"着陆 LANDING",wash:"radial-gradient(65% 55% at 50% 100%,rgba(224,168,140,.65),transparent 74%),radial-gradient(50% 45% at 80% 0%,rgba(224,176,124,.4),transparent 70%)",trail:["224,176,124","224,168,160","142,106,126"],starN:.25}
+};
+const PHASE_ORDER=["dusk","cruise","predawn","dawn"];
+let phase="dusk";
+function applyPhase(p){
+  phase=p;document.body.dataset.phase=p;
+  $("wash").style.background=PHASES[p].wash;
+  document.querySelectorAll("#phaseSw button").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
+  drawStars();
+}
+document.querySelectorAll("#phaseSw button").forEach(b=>b.addEventListener("click",()=>applyPhase(b.dataset.p)));
+
+/* ================= seeded star map ================= */
+const stc=$("stars"),stx=stc.getContext("2d");
+let SW2,SH2;
+function starSize(){const r=stc.parentElement.getBoundingClientRect();SW2=r.width;SH2=r.height;stc.width=SW2*DPR;stc.height=SH2*DPR;stx.setTransform(DPR,0,0,DPR,0,0);}
+starSize();addEventListener("resize",()=>{starSize();drawStars();});
+function drawStars(){
+  const r=mulberry(seed^0x57A2);
+  stx.clearRect(0,0,SW2,SH2);
+  const density=PHASES[phase].starN;
+  const n=Math.floor(90*density);
+  const pts=[];
+  for(let i=0;i<n;i++){
+    const x=r()*SW2,y=r()*SH2*.85,rad=.4+r()*1.4;
+    pts.push({x,y});
+    stx.globalAlpha=(.15+r()*.5)*density;
+    stx.fillStyle="#EFE6DA";stx.beginPath();stx.arc(x,y,rad,0,7);stx.fill();
+  }
+  // constellation lines
+  if(density>.3){
+    stx.strokeStyle="rgba(239,230,218,.16)";stx.lineWidth=.7;
+    for(let i=0;i<6;i++){
+      const a=pts[Math.floor(r()*pts.length)],b=pts[Math.floor(r()*pts.length)];
+      if(a&&b){stx.beginPath();stx.moveTo(a.x,a.y);stx.lineTo(b.x,b.y);stx.stroke();
+        stx.globalAlpha=.7;stx.fillStyle="#EFE6DA";stx.beginPath();stx.arc(a.x,a.y,1.6,0,7);stx.fill();stx.globalAlpha=1;}
+    }
+  }
+  stx.globalAlpha=1;
+}
+
+/* ================= seeded deco sunburst ================= */
+function drawBurst(){
+  const r=mulberry(seed^0xB025);
   let s="";
   for(let i=0;i<72;i++){
-    const a=i*Math.PI/36, r1=120, r2=i%2?300:340;
-    s+=`<line x1="${300+r1*Math.cos(a)}" y1="${300+r1*Math.sin(a)}" x2="${300+r2*Math.cos(a)}" y2="${300+r2*Math.sin(a)}" stroke="#C9A86A" stroke-width="${i%2?.5:1}" opacity="${i%2?.25:.45}"/>`;
+    const a=i*Math.PI/36,r1=120,r2=(i%2?300:340)*(0.85+r()*.3);
+    s+=`<line x1="${300+r1*Math.cos(a)}" y1="${300+r1*Math.sin(a)}" x2="${300+r2*Math.cos(a)}" y2="${300+r2*Math.sin(a)}" stroke="var(--gold)" stroke-width="${i%2?.5:1}" opacity="${(i%2?.25:.45)*(0.7+r()*.6)}"/>`;
   }
-  s+=`<circle cx="300" cy="300" r="120" fill="none" stroke="#C9A86A" stroke-width="1.2"/><circle cx="300" cy="300" r="112" fill="none" stroke="#C9A86A" stroke-width=".6" opacity=".6"/>`;
+  s+=`<circle cx="300" cy="300" r="120" fill="none" stroke="var(--gold)" stroke-width="1.2"/><circle cx="300" cy="300" r="112" fill="none" stroke="var(--gold)" stroke-width=".6" opacity=".6"/>`;
   $("burstSVG").innerHTML=s;
-})();
+}
 
 /* ================= scent trail canvas ================= */
 const tc=$("trail"),tx=tc.getContext("2d");
-let TW,TH,DPR=Math.min(devicePixelRatio||1,2);
+let TW,TH;
 function tsize(){TW=innerWidth;TH=innerHeight;tc.width=TW*DPR;tc.height=TH*DPR;tc.style.width=TW+"px";tc.style.height=TH+"px";tx.setTransform(DPR,0,0,DPR,0,0);}
 tsize();addEventListener("resize",tsize);
-const COLORS=["201,168,106","217,160,168","110,90,126"];
-let drops=[],mx=innerWidth/2,my=innerHeight/2,pmx=mx,pmy=my;
+let drops=[],mx=innerWidth/2,my=innerHeight/2,pmx=mx,pmy=my,press=0,pressing=false;
 addEventListener("pointermove",e=>{mx=e.clientX;my=e.clientY;});
-function addDrop(x,y,big){
-  drops.push({x,y,vx:(Math.random()-.5)*.5,vy:-.25-Math.random()*.5,r:(big?3:1.5)+Math.random()*(big?7:4),
-    life:0,max:110+Math.random()*90,c:COLORS[Math.floor(Math.random()*COLORS.length)],sway:Math.random()*Math.PI*2});
+addEventListener("pointerdown",e=>{if(e.target.closest("button,a,input,select,textarea,.tier,.dish,.chip"))return;pressing=true;});
+addEventListener("pointerup",()=>{
+  if(pressing&&press>0.15){
+    const n=Math.floor(10+press*38);
+    for(let i=0;i<n;i++)addDrop(mx+(Math.random()-.5)*30,my+(Math.random()-.5)*30,true,press);
+  }
+  pressing=false;press=0;
+});
+function altBoost(){return .6+(+$("sAlt").value)/120*.9;}
+function addDrop(x,y,big,pw){
+  drops.push({x,y,vx:(Math.random()-.5)*(.5+(pw||0)*2.4),vy:-.25-Math.random()*(.5+(pw||0)*1.6)*altBoost(),
+    r:(big?3:1.5)+Math.random()*(big?7:4),life:0,max:110+Math.random()*90,
+    c:PHASES[phase].trail[Math.floor(Math.random()*3)],sway:Math.random()*Math.PI*2});
 }
 function trailTick(){
   tx.clearRect(0,0,TW,TH);
+  if(pressing)press=Math.min(press+.012,1);
+  // pressure ring
+  if(press>0.02){
+    tx.beginPath();tx.arc(mx,my,14+press*46,0,7);
+    tx.strokeStyle=`rgba(${PHASES[phase].trail[0]},${.5*press})`;tx.lineWidth=1.2;tx.stroke();
+  }
   const dx=mx-pmx,dy=my-pmy,dist=Math.hypot(dx,dy);
   if(dist>3){
     const n=Math.min(Math.floor(dist/9),4);
-    for(let i=0;i<n;i++)addDrop(pmx+dx*i/n,pmy+dy*i/n,dist>26);
+    for(let i=0;i<n;i++)addDrop(pmx+dx*i/n,pmy+dy*i/n,dist>26,0);
   }
   pmx+=(mx-pmx)*.5;pmy+=(my-pmy)*.5;
-  // idle wisps
-  if(Math.random()<.05)addDrop(Math.random()*TW,TH*.6+Math.random()*TH*.4,false);
+  if(Math.random()<.05)addDrop(Math.random()*TW,TH*.6+Math.random()*TH*.4,false,0);
   for(let i=drops.length-1;i>=0;i--){
     const d=drops[i];d.life++;
     d.sway+=.02;d.x+=d.vx+Math.sin(d.sway)*.3;d.y+=d.vy;d.r+=.03;
@@ -237,19 +416,17 @@ const TIERS=[
    chips:["晚香玉","鸢尾","茉莉","月见草"]},
   {k:"BASE NOTES",n:"后调 · 黎明之前",dur:"余韵 6 — 8 小时",acc:"base",
    d:"降落之前的最后一小时，琥珀、香根草与一点檀木贴着皮肤收拢。不是结束，是降落灯亮起的温柔提示：天快亮了，而香气替你记得整段航程。",
-   chips:["琥珀","香根草","檀木","白麝香"]},
+   chips:["琥珀","香根草","檀木","白麝香"]}
 ];
 (()=>{
   const W=520,H=460,apex={x:260,y:30},baseY=H-40;
-  // tier boundaries along the triangle edges
   const fr=[0,0.34,0.66,1];
   let s="";
-  const X=f=>apex.x+(W/2-40)*f, Y=f=>apex.y+(baseY-apex.y)*f;
-  // three tier polygons: apex triangle + two trapezoids
+  const X=f=>(W/2-40)*f, Y=f=>apex.y+(baseY-apex.y)*f;
   const poly=t=>{
     const f0=fr[t],f1=fr[t+1];
-    if(t===0)return `${apex.x},${apex.y} ${apex.x-X(f1)+260},${Y(f1)} ${apex.x+X(f1)-260},${Y(f1)}`;
-    return `${apex.x-X(f0)+260},${Y(f0)} ${apex.x-X(f1)+260},${Y(f1)} ${apex.x+X(f1)-260},${Y(f1)} ${apex.x+X(f0)-260},${Y(f0)}`;
+    if(t===0)return `${apex.x},${apex.y} ${apex.x-X(f1)},${Y(f1)} ${apex.x+X(f1)},${Y(f1)}`;
+    return `${apex.x-X(f0)},${Y(f0)} ${apex.x-X(f1)},${Y(f1)} ${apex.x+X(f1)},${Y(f1)} ${apex.x+X(f0)},${Y(f0)}`;
   };
   const labels=["I","II","III"];
   for(let t=0;t<3;t++){
@@ -260,18 +437,19 @@ const TIERS=[
       <text class="tno" x="${apex.x}" y="${Y(fm)-14}" text-anchor="middle" font-size="10">${labels[t]} · ${TIERS[t].k}</text>
     </g>`;
   }
-  // deco base line & rays
-  s+=`<line x1="60" y1="${baseY+14}" x2="460" y2="${baseY+14}" stroke="#C9A86A" stroke-width="1" opacity=".6"/>`;
+  s+=`<line x1="60" y1="${baseY+14}" x2="460" y2="${baseY+14}" stroke="var(--gold)" stroke-width="1" opacity=".6"/>`;
   for(let i=0;i<7;i++){
     const x=130+i*43;
-    s+=`<line x1="${x}" y1="${baseY+14}" x2="${x}" y2="${baseY+22+(i%2?0:6)}" stroke="#C9A86A" stroke-width="1" opacity=".5"/>`;
+    s+=`<line x1="${x}" y1="${baseY+14}" x2="${x}" y2="${baseY+22+(i%2?0:6)}" stroke="var(--gold)" stroke-width="1" opacity=".5"/>`;
   }
   $("pyrSVG").innerHTML=s;
   document.querySelectorAll(".tier").forEach(g=>{
     g.addEventListener("click",()=>selectTier(+g.dataset.t));
   });
 })();
+let curTier=0;
 function selectTier(t){
+  curTier=t;
   document.querySelectorAll(".tier").forEach((g,i)=>g.classList.toggle("on",i===t));
   const d=TIERS[t];
   $("nStage").textContent=d.k;$("nTitle").textContent=d.n;$("nDur").textContent=d.dur;
@@ -280,56 +458,256 @@ function selectTier(t){
 }
 selectTier(0);
 
-/* ================= volatility curve mixer ================= */
-const cv=$("curve"),cx=cv.getContext("2d");
+/* ================= mixer: graph & wheel ================= */
+const cv=$("curve"),cx2=cv.getContext("2d");
+let mode="graph",hoverX=-1;
 const POEMS={
   head:"这是一支属于出发的香水：风很大，果皮飞溅，旅程刚开始就值得纪念——至于降落，谁在乎呢。",
   heart:"月光成了主角。花香一层压过一层，像长时间巡航时舷窗外不变的云海，温柔得让人忘记时间。",
   base:"它几乎放弃了开场白，直接走向黎明前的大地：琥珀与香根草慢慢收拢，适合不想被世界听见的日子。",
   bal:"三段航程势均力敌：起飞有风，巡航有月，降落有灯。这是一支完整意义上的夜航——从头到尾，被妥善照顾。"};
-function drawCurve(){
-  const head=+$("sHead").value,heart=+$("sHeart").value,base=+$("sBase").value;
-  $("vHead").textContent=head;$("vHeart").textContent=heart;$("vBase").textContent=base;
-  const W=cv.clientWidth||600,Hh=300;
-  cv.width=W*DPR;cv.height=Hh*DPR;cv.style.height=Hh+"px";cx.setTransform(DPR,0,0,DPR,0,0);
-  cx.clearRect(0,0,W,Hh);
-  const pad=30,pw=W-pad*2,ph=Hh-70,baseY=40+ph;
-  // grid
-  cx.strokeStyle="rgba(201,168,106,.15)";cx.lineWidth=1;
-  for(let i=0;i<=8;i++){const x=pad+pw*i/8;cx.beginPath();cx.moveTo(x,30);cx.lineTo(x,baseY);cx.stroke();
-    cx.fillStyle="rgba(239,230,218,.4)";cx.font="9px Menlo";cx.textAlign="center";cx.fillText(i+"h",x,baseY+18);}
-  for(let i=0;i<=4;i++){const y=30+ph*i/4;cx.beginPath();cx.moveTo(pad,y);cx.lineTo(W-pad,y);cx.stroke();}
-  const gauss=(t,mu,si,amp)=>amp*Math.exp(-((t-mu)**2)/(2*si*si));
-  const curve=(mu,si,amp,color)=>{
-    cx.beginPath();
-    for(let i=0;i<=100;i++){
-      const t=i/100*8,v=gauss(t,mu,si,amp/100);
-      const x=pad+pw*i/100,y=baseY-v*ph;
-      i?cx.lineTo(x,y):cx.moveTo(x,y);
-    }
-    cx.strokeStyle=color;cx.lineWidth=1.6;cx.stroke();
-    cx.lineTo(pad+pw,baseY);cx.lineTo(pad,baseY);cx.closePath();
-    cx.fillStyle=color.replace(")",",.08)").replace("rgb","rgba");cx.fill();
-  };
-  curve(0.9,1.0,head,"rgb(217,160,168)");
-  curve(3.2,1.5,heart,"rgb(201,168,106)");
-  curve(6.2,1.7,base,"rgb(150,124,170)");
-  // total silhouette
-  cx.beginPath();
-  for(let i=0;i<=100;i++){
-    const t=i/100*8;
-    const v=gauss(t,.9,1,head/100)+gauss(t,3.2,1.5,heart/100)+gauss(t,6.2,1.7,base/100);
-    const x=pad+pw*i/100,y=baseY-Math.min(v,1)*ph;
-    i?cx.lineTo(x,y):cx.moveTo(x,y);
-  }
-  cx.strokeStyle="rgba(239,230,218,.65)";cx.lineWidth=1;cx.setLineDash([4,5]);cx.stroke();cx.setLineDash([]);
-  // poem
-  const m=Math.max(head,heart,base),mn=Math.min(head,heart,base);
-  $("poem").textContent="「"+((m-mn<18)?POEMS.bal:m===head?POEMS.head:m===heart?POEMS.heart:POEMS.base)+"」";
+function vals(){
+  return{head:+$("sHead").value,heart:+$("sHeart").value,base:+$("sBase").value,
+    vola:+$("sVola").value/100,alt:+$("sAlt").value/12};
 }
-["sHead","sHeart","sBase"].forEach(id=>$(id).addEventListener("input",drawCurve));
-addEventListener("resize",drawCurve);
-drawCurve();
+function gauss(t,mu,si,amp){return amp*Math.exp(-((t-mu)**2)/(2*si*si));}
+function css(v){return getComputedStyle(document.body).getPropertyValue(v).trim();}
+function paintRange(el){const pc=(el.value-el.min)/(el.max-el.min)*100;el.style.setProperty("--fill",pc+"%");}
+function draw(){
+  const v=vals();
+  $("vHead").textContent=v.head;$("vHeart").textContent=v.heart;$("vBase").textContent=v.base;
+  $("vVola").textContent="× "+v.vola.toFixed(2);$("vAlt").textContent=(v.alt).toFixed(1)+" km";
+  const W=cv.clientWidth||600,Hh=300;
+  cv.width=W*DPR;cv.height=Hh*DPR;cv.style.height=Hh+"px";cx2.setTransform(DPR,0,0,DPR,0,0);
+  cx2.clearRect(0,0,W,Hh);
+  if(mode==="graph")drawGraph(W,Hh,v);else drawWheel(W,Hh,v);
+  const m=Math.max(v.head,v.heart,v.base),mn=Math.min(v.head,v.heart,v.base);
+  $("poem").textContent="「"+((m-mn<18)?POEMS.bal:m===v.head?POEMS.head:m===v.heart?POEMS.heart:POEMS.base)+"」";
+}
+function drawGraph(W,Hh,v){
+  const pad=30,pw=W-pad*2,ph=Hh-70,baseY=40+ph;
+  const cream=css("--cream"),gold=css("--gold"),blush=css("--blush"),mist=css("--mist");
+  const rgba=(hex,a)=>{
+    if(hex.startsWith("#")){
+      const n=parseInt(hex.slice(1),16);
+      const b=n&255,g=(n>>8)&255,r2=(n>>16)&255;
+      return `rgba(${r2},${g},${b},${a})`;
+    }
+    return hex.replace("rgb(","rgba(").replace(")",`,${a})`);
+  };
+  cx2.strokeStyle=gold;cx2.globalAlpha=.15;cx2.lineWidth=1;
+  for(let i=0;i<=8;i++){const x=pad+pw*i/8;cx2.beginPath();cx2.moveTo(x,30);cx2.lineTo(x,baseY);cx2.stroke();
+    cx2.globalAlpha=.4;cx2.fillStyle=cream;cx2.font="9px Menlo";cx2.textAlign="center";cx2.fillText(i+"h",x,baseY+18);cx2.globalAlpha=.15;}
+  for(let i=0;i<=4;i++){const y=30+ph*i/4;cx2.beginPath();cx2.moveTo(pad,y);cx2.lineTo(W-pad,y);cx2.stroke();}
+  cx2.globalAlpha=1;
+  const sig=v.vola;
+  const total=t=>gauss(t,.9,1*sig,v.head/100)+gauss(t,3.2,1.5*sig,v.heart/100)+gauss(t,6.2,1.7*sig,v.base/100);
+  const curve=(mu,si,amp,color)=>{
+    cx2.beginPath();
+    for(let i=0;i<=100;i++){
+      const t=i/100*8,val=gauss(t,mu,si,amp/100);
+      const x=pad+pw*i/100,y=baseY-val*ph;
+      i?cx2.lineTo(x,y):cx2.moveTo(x,y);
+    }
+    cx2.strokeStyle=color;cx2.lineWidth=1.6;cx2.stroke();
+    cx2.lineTo(pad+pw,baseY);cx2.lineTo(pad,baseY);cx2.closePath();
+    cx2.fillStyle=rgba(color,.09);cx2.fill();
+  };
+  curve(0.9,1*sig,v.head,blush);
+  curve(3.2,1.5*sig,v.heart,gold);
+  curve(6.2,1.7*sig,v.base,mist);
+  cx2.beginPath();
+  for(let i=0;i<=100;i++){
+    const t=i/100*8,val=total(t);
+    const x=pad+pw*i/100,y=baseY-Math.min(val,1)*ph;
+    i?cx2.lineTo(x,y):cx2.moveTo(x,y);
+  }
+  cx2.strokeStyle=cream;cx2.globalAlpha=.65;cx2.lineWidth=1;cx2.setLineDash([4,5]);cx2.stroke();cx2.setLineDash([]);cx2.globalAlpha=1;
+  // hover crosshair
+  if(hoverX>=0){
+    const t=clamp((hoverX-pad)/pw,0,1)*8;
+    const x=pad+pw*t/8;
+    cx2.strokeStyle=gold;cx2.globalAlpha=.5;cx2.beginPath();cx2.moveTo(x,30);cx2.lineTo(x,baseY);cx2.stroke();cx2.globalAlpha=1;
+    const tv=total(t);
+    const dom=gauss(t,.9,1*sig,v.head/100)>gauss(t,3.2,1.5*sig,v.heart/100)&&gauss(t,.9,1*sig,v.head/100)>gauss(t,6.2,1.7*sig,v.base/100)?"前调主导":gauss(t,3.2,1.5*sig,v.heart/100)>gauss(t,6.2,1.7*sig,v.base/100)?"中调主导":"后调主导";
+    const hh=Math.floor(t),mm=Math.round((t-hh)*60);
+    $("readChip").textContent=`T+${hh}h${String(mm).padStart(2,"0")}m · ${dom} · 扩散 ${(Math.min(tv,1)*100).toFixed(0)}% · ${PHASES[phase].name}`;
+  }else $("readChip").textContent=" ";
+}
+function drawWheel(W,Hh,v){
+  const cream=css("--cream"),gold=css("--gold"),blush=css("--blush"),mist=css("--mist");
+  const cxp=W/2,cyp=Hh/2+6,R=Math.min(W,Hh)/2-46;
+  const r=mulberry(seed^0x9EE1);
+  const notes=[["风 WIND",v.head/100],["果皮 PEEL",v.head/100*(.6+r()*.4)],["月光 MOON",v.heart/100],["花束 FLORA",v.heart/100*(.6+r()*.4)],["大地 EARTH",v.base/100],["琥珀 AMBER",v.base/100*(.6+r()*.4)]];
+  const N=notes.length;
+  cx2.strokeStyle=cream;cx2.globalAlpha=.18;
+  for(let ring=1;ring<=4;ring++){
+    cx2.beginPath();
+    for(let i=0;i<=N;i++){
+      const a=-Math.PI/2+i/N*Math.PI*2,rr=R*ring/4;
+      i?cx2.lineTo(cxp+rr*Math.cos(a),cyp+rr*Math.sin(a)):cx2.moveTo(cxp+rr*Math.cos(a),cyp+rr*Math.sin(a));
+    }
+    cx2.stroke();
+  }
+  cx2.globalAlpha=1;
+  // axis labels + spokes
+  cx2.font="9px Menlo";cx2.textAlign="center";
+  notes.forEach(([nm],i)=>{
+    const a=-Math.PI/2+i/N*Math.PI*2;
+    cx2.strokeStyle=cream;cx2.globalAlpha=.25;
+    cx2.beginPath();cx2.moveTo(cxp,cyp);cx2.lineTo(cxp+R*Math.cos(a),cyp+R*Math.sin(a));cx2.stroke();
+    cx2.globalAlpha=.75;cx2.fillStyle=cream;
+    cx2.fillText(nm,cxp+(R+24)*Math.cos(a),cyp+(R+24)*Math.sin(a)+3);
+    cx2.globalAlpha=1;
+  });
+  // value polygon
+  cx2.beginPath();
+  notes.forEach(([,val],i)=>{
+    const a=-Math.PI/2+i/N*Math.PI*2,rr=R*clamp(val,0.04,1);
+    i?cx2.lineTo(cxp+rr*Math.cos(a),cyp+rr*Math.sin(a)):cx2.moveTo(cxp+rr*Math.cos(a),cyp+rr*Math.sin(a));
+  });
+  cx2.closePath();
+  cx2.fillStyle="rgba(201,168,106,.16)";cx2.fill();
+  cx2.strokeStyle=gold;cx2.lineWidth=1.6;cx2.stroke();
+  // petals (impressionist dabs)
+  notes.forEach(([,val],i)=>{
+    const a=-Math.PI/2+i/N*Math.PI*2;
+    const nn=Math.floor(val*7)+1;
+    for(let k=0;k<nn;k++){
+      const rr=R*val*(.55+k*.09),jx=(r()-.5)*8,jy=(r()-.5)*8;
+      cx2.fillStyle=[gold,blush,mist][i%3];cx2.globalAlpha=.3+r()*.4;
+      cx2.beginPath();cx2.arc(cxp+rr*Math.cos(a)+jx,cyp+rr*Math.sin(a)+jy,1.6+r()*2.6,0,7);cx2.fill();
+    }
+  });
+  cx2.globalAlpha=1;
+  cx2.fillStyle=gold;cx2.font="10px Menlo";
+  cx2.fillText("FORMULA "+seedLabel(),cxp,cyp+R+24);
+  $("readChip").textContent=" ";
+}
+cv.addEventListener("pointermove",e=>{
+  const rc=cv.getBoundingClientRect();hoverX=e.clientX-rc.left;
+  if(mode==="graph")draw();
+});
+cv.addEventListener("pointerleave",()=>{hoverX=-1;if(mode==="graph")draw();});
+$("modeSw").addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  mode=b.dataset.m;
+  document.querySelectorAll("#modeSw button").forEach(x=>x.classList.toggle("on",x===b));
+  $("curveCap").textContent=mode==="graph"?"VOLATILITY CURVE · 横轴为时间（0 — 8h）· 纵轴为扩散力 · 悬停读数":"SCENT WHEEL · 六轴香材强度 · 色点为手绘笔触";
+  hoverX=-1;draw();
+});
+["sHead","sHeart","sBase","sVola","sAlt"].forEach(id=>{
+  const el=$(id);el.addEventListener("input",()=>{paintRange(el);draw();poke();});paintRange(el);
+});
+addEventListener("resize",draw);
+draw();
+
+/* ================= autopilot (idle egg) ================= */
+let idleT=0,auto=false;
+function poke(){idleT=0;if(auto){auto=false;$("autopilot").classList.remove("on");}}
+["pointermove","pointerdown","keydown","wheel","touchstart"].forEach(ev=>addEventListener(ev,poke,{passive:true}));
+setInterval(()=>{
+  idleT+=1;
+  if(idleT>=30&&!auto){
+    auto=true;$("autopilot").classList.add("on");
+  }
+  if(auto){
+    const t=performance.now()*.00022;
+    const set=(id,v)=>{const el=$(id);el.value=Math.round(v);paintRange(el);};
+    set("sHead",50+Math.sin(t*1.7)*42);
+    set("sHeart",55+Math.sin(t*1.1+2)*40);
+    set("sBase",50+Math.sin(t*0.7+4)*42);
+    draw();
+  }
+},1000);
+
+/* ================= route & seed actions ================= */
+const ROUTES=[["CDG","HKG"],["NRT","SFO"],["PVG","CDG"],["LHR","NRT"],["HKG","LHR"],["SIN","CDG"]];
+function syncSeedLabels(){
+  const r=mulberry(seed^0xB07E);
+  const [a,b]=ROUTES[Math.floor(r()*ROUTES.length)];
+  $("routeLine").innerHTML=`航路 <b>${a} → ${b}</b> · FL${370+Math.floor(r()*40)} · SEED <b>${seedLabel()}</b>`;
+  $("colophSeed").textContent="seed "+seedLabel()+" · Painted with code, plein air";
+}
+function reseed(){
+  seed=Math.floor(Math.random()*100000);setSeedHash();
+  drawBurst();drawStars();syncSeedLabels();draw();
+}
+syncSeedLabels();drawBurst();applyPhase("dusk");
+$("reseed").addEventListener("click",reseed);
+$("shareBtn").addEventListener("click",async()=>{
+  try{await navigator.clipboard.writeText(location.href);$("shareBtn").textContent="已复制 ✓ 链接含种子";}
+  catch{prompt("复制此链接（含种子）",location.href);}
+  setTimeout(()=>$("shareBtn").textContent="复制分享链接",2200);
+});
+
+/* ================= formula card PNG ================= */
+$("saveBtn").addEventListener("click",()=>{
+  const v=vals();
+  const W=1000,H=1260,c=document.createElement("canvas");c.width=W;c.height=H;
+  const x=c.getContext("2d");
+  x.fillStyle=css("--noir");x.fillRect(0,0,W,H);
+  const r=mulberry(seed^0xCA2D);
+  for(let i=0;i<420;i++){x.fillStyle="#EFE6DA";x.globalAlpha=.04+r()*.16;x.fillRect(r()*W,r()*H,1.3,1.3);}
+  x.globalAlpha=1;
+  x.strokeStyle=css("--gold");x.lineWidth=1.6;x.strokeRect(44,44,W-88,H-88);
+  x.lineWidth=.7;x.strokeRect(58,58,W-116,H-116);
+  x.strokeStyle=css("--gold");x.lineWidth=2.2;
+  x.beginPath();x.arc(W/2,150,42,0,7);x.stroke();
+  x.beginPath();x.moveTo(W/2-13,170);x.bezierCurveTo(W/2-13,155,W/2-13,143,W/2-11,132);
+  x.bezierCurveTo(W/2-7,140,W/2-4,147,W/2,153);x.bezierCurveTo(W/2+3,146,W/2+6,138,W/2+9,131);
+  x.bezierCurveTo(W/2+12,140,W/2+13,152,W/2+14,170);x.stroke();
+  x.fillStyle=css("--cream");x.textAlign="center";
+  x.font="10.5px Menlo,monospace";x.globalAlpha=.7;x.fillText("A T E L I E R   M I R A",W/2,220);x.globalAlpha=1;
+  x.font="400 76px Didot,serif";x.fillText("N U I T",W/2,308);
+  x.font="italic 20px Didot,serif";x.fillStyle=css("--gold");
+  x.fillText("调香卡 — Formula Card · "+PHASES[phase].name,W/2,350);
+  // wheel
+  const cxp=W/2,cyp=580,R=190;
+  const notes=[["风",v.head/100],["果皮",v.head/100*.8],["月光",v.heart/100],["花束",v.heart/100*.8],["大地",v.base/100],["琥珀",v.base/100*.8]];
+  const N=notes.length;
+  x.strokeStyle="rgba(239,230,218,.25)";
+  for(let ring=1;ring<=4;ring++){
+    x.beginPath();
+    for(let i=0;i<=N;i++){const a=-Math.PI/2+i/N*Math.PI*2,rr=R*ring/4;
+      i?x.lineTo(cxp+rr*Math.cos(a),cyp+rr*Math.sin(a)):x.moveTo(cxp+rr*Math.cos(a),cyp+rr*Math.sin(a));}
+    x.stroke();
+  }
+  x.font="13px Menlo,monospace";x.fillStyle=css("--cream");
+  notes.forEach(([nm],i)=>{const a=-Math.PI/2+i/N*Math.PI*2;
+    x.fillText(nm,cxp+(R+30)*Math.cos(a),cyp+(R+30)*Math.sin(a)+4);});
+  x.beginPath();
+  notes.forEach(([,val],i)=>{const a=-Math.PI/2+i/N*Math.PI*2,rr=R*clamp(val,0.04,1);
+    i?x.lineTo(cxp+rr*Math.cos(a),cyp+rr*Math.sin(a)):x.moveTo(cxp+rr*Math.cos(a),cyp+rr*Math.sin(a));});
+  x.closePath();x.fillStyle="rgba(201,168,106,.2)";x.fill();x.strokeStyle=css("--gold");x.lineWidth=2;x.stroke();
+  // formula rows
+  const rows=[["前调 HEAD",v.head],["中调 HEART",v.heart],["后调 BASE",v.base],["挥发 VOLA","× "+v.vola.toFixed(2)],["高度 ALT",v.alt.toFixed(1)+" km"]];
+  x.font="12.5px Menlo,monospace";
+  rows.forEach(([k,val],i)=>{
+    const y=830+i*50;
+    x.fillStyle=css("--cream");x.globalAlpha=.6;x.textAlign="left";x.fillText(k,150,y);
+    x.globalAlpha=1;x.textAlign="right";x.fillStyle=css("--gold");x.fillText(String(val),W-150,y);
+    x.strokeStyle=css("--cream");x.globalAlpha=.18;x.beginPath();x.moveTo(150,y+14);x.lineTo(W-150,y+14);x.stroke();x.globalAlpha=1;
+  });
+  x.fillStyle=css("--cream");x.textAlign="center";x.font="italic 15px Didot,'Songti SC',serif";x.globalAlpha=.75;
+  const m=Math.max(v.head,v.heart,v.base),mn=Math.min(v.head,v.heart,v.base);
+  x.fillText("「"+((m-mn<18)?POEMS.bal:m===v.head?POEMS.head:m===v.heart?POEMS.heart:POEMS.base).slice(0,34)+"…」",W/2,H-118);
+  x.globalAlpha=.6;x.font="11px Menlo,monospace";
+  x.fillText(`${$("routeLine").textContent} · ${new Date().toISOString().slice(0,10)}`,W/2,H-88);
+  x.fillText("Painted with code, plein air — ÉTUDE N°56/100",W/2,H-64);
+  x.globalAlpha=1;
+  const a=document.createElement("a");a.download=`nuit-formula-${seed}.png`;a.href=c.toDataURL("image/png");a.click();
+});
+
+/* ================= keyboard ================= */
+document.addEventListener("keydown",e=>{
+  if(["INPUT","TEXTAREA","SELECT"].includes(document.activeElement?.tagName))return;
+  const k=e.key.toLowerCase();
+  if(k==="1")selectTier(0);if(k==="2")selectTier(1);if(k==="3")selectTier(2);
+  if(k==="p"){const i=PHASE_ORDER.indexOf(phase);applyPhase(PHASE_ORDER[(i+1)%4]);}
+  if(k==="g")$("modeSw").querySelector(mode==="graph"?"[data-m=wheel]":"[data-m=graph]").click();
+  if(k==="r")reseed();if(k==="d")$("saveBtn").click();if(k==="k")$("shareBtn").click();
+});
 </script>
 </body>
 </html>

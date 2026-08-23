@@ -3,19 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RETRY DEBUGGER — 失败重试自愈台</title>
+<title>RETRY DEBUGGER — 失败重试自愈台 · ÉTUDE N°75</title>
 <style>
   :root{
     --bg:#16100A; --panel:#1E160D; --panel2:#261C10; --line:#3A2C17; --line2:#54401F;
     --amber:#FFB000; --amber-dim:#7A5A1E; --amber-ghost:#4A3818;
     --red:#FF4A2E; --green:#57E389; --ink:#F0DCA8; --dim:#9C7E46;
+    --accent:#FFB000;
     --mono:"SF Mono",Menlo,Consolas,monospace;
     --ease:cubic-bezier(.22,1,.36,1);
   }
+  /* 同一台仪器在一天里的四种光 */
+  body[data-atmo=aube]{--bg:#1C150C;--panel:#261C10;--panel2:#2E2214;--line:#42311A;--line2:#5C4622;
+    --amber:#FFAE1F;--dim:#A8864C}
+  body[data-atmo=soir]{--bg:#1E1006;--panel:#281608;--panel2:#301C0A;--line:#46290E;--line2:#5E3812;
+    --amber:#FF9A1A;--amber-dim:#8A5A14;--dim:#A87838}
+  body[data-atmo=nuit]{--bg:#0C0906;--panel:#131009;--panel2:#1A140B;--line:#2C2210;--line2:#463617;
+    --amber:#FFC22E;--amber-dim:#6A4E16;--dim:#8A7040}
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{height:100%;overflow-x:clip}
   body{background:var(--bg);color:var(--ink);font-family:var(--mono);
-    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh}
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;
+    transition:background 1.2s var(--ease)}
   ::selection{background:rgba(255,176,0,.3)}
 
   /* CRT scanlines + vignette over everything */
@@ -24,14 +33,30 @@
     mix-blend-mode:multiply}
   body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:98;
     background:radial-gradient(ellipse at 50% 42%,transparent 62%,rgba(8,5,2,.38) 100%)}
+  #mira-light{position:fixed;inset:0;z-index:94;pointer-events:none;mix-blend-mode:soft-light;width:100%;height:100%}
+  #mira-grain{position:fixed;inset:0;z-index:95;pointer-events:none;mix-blend-mode:overlay;opacity:.4}
 
-  header{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:12px 22px;
-    border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
-  .brand{display:flex;align-items:baseline;gap:11px;white-space:nowrap}
-  .brand .no{font-size:10px;letter-spacing:.14em;color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.6)}
-  .brand .name{font-size:13px;font-weight:700;letter-spacing:.26em}
-  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.1em}
+  header{flex:0 0 auto;display:flex;align-items:center;gap:13px;padding:11px 22px;
+    border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;transition:background 1.2s}
+  .brand{display:flex;align-items:center;gap:11px;white-space:nowrap;cursor:pointer}
+  .seal{width:44px;height:44px;flex:0 0 auto;transition:transform .5s var(--ease)}
+  .brand:hover .seal{transform:rotate(-8deg)}
+  .brand .txt{display:flex;flex-direction:column;gap:2px}
+  .brand .etude{font-size:9px;letter-spacing:.18em;color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.6)}
+  .brand .name{font-size:12.5px;font-weight:700;letter-spacing:.22em;line-height:1}
+  .brand .sub{font-size:9.5px;color:var(--dim);letter-spacing:.1em}
   .spacer{flex:1}
+  .atmo{display:flex;border:1px solid var(--line2)}
+  .atmo button{font-family:var(--mono);font-size:9.5px;padding:6px 9px;border:none;
+    border-right:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;transition:all .18s}
+  .atmo button:last-child{border-right:none}
+  .atmo button:hover{color:var(--ink)}
+  .atmo button.on{background:var(--amber);color:#1A0B06}
+  .seedbox{display:flex;align-items:center;gap:7px;font-size:9.5px;letter-spacing:.1em;color:var(--dim)}
+  .seedbox b{color:var(--amber)}
+  .seedbox .mini{font-family:var(--mono);font-size:9px;letter-spacing:.08em;padding:5px 8px;cursor:pointer;
+    border:1px solid var(--line2);background:transparent;color:var(--dim);transition:all .14s}
+  .seedbox .mini:hover{border-color:var(--amber);color:var(--amber)}
   .state-lamp{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.22em}
   .lamp{width:10px;height:10px;border-radius:50%;background:var(--amber-ghost);
     border:1px solid var(--line2);transition:all .3s}
@@ -46,11 +71,11 @@
   #stateword.ok{color:var(--green);text-shadow:0 0 8px rgba(87,227,137,.5)}
   #stateword.dead{color:var(--red);text-shadow:0 0 8px rgba(255,74,46,.6)}
 
-  main{flex:1;display:grid;grid-template-columns:292px minmax(0,1fr);min-height:0}
+  main{flex:1;display:grid;grid-template-columns:296px minmax(0,1fr);min-height:0}
 
   /* ---- control rack ---- */
   .rack{border-right:1px solid var(--line);background:var(--panel);padding:18px;
-    display:flex;flex-direction:column;gap:17px;overflow-y:auto}
+    display:flex;flex-direction:column;gap:16px;overflow-y:auto;transition:background 1.2s}
   .rk-label{font-size:9px;letter-spacing:.3em;color:var(--dim);border-bottom:1px solid var(--line);
     padding-bottom:7px}
   .ctl{display:flex;flex-direction:column;gap:8px}
@@ -77,6 +102,18 @@
     background:var(--amber-ghost);transition:all .2s var(--ease)}
   .toggle.on .twin{border-color:var(--amber)}
   .toggle.on .twin::after{left:18px;background:var(--amber);box-shadow:0 0 8px rgba(255,176,0,.6)}
+  /* 熔断器 */
+  .breaker{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);
+    background:var(--panel2);padding:9px 10px}
+  .breaker .bl-label{font-size:9px;letter-spacing:.18em;color:var(--dim)}
+  .breaker .bl-state{font-size:10px;letter-spacing:.14em;color:var(--green);text-shadow:0 0 7px rgba(87,227,137,.5)}
+  .breaker.half .bl-state{color:var(--amber);text-shadow:0 0 7px rgba(255,176,0,.6)}
+  .breaker.open .bl-state{color:var(--red);text-shadow:0 0 7px rgba(255,74,46,.6);animation:blink .6s steps(2) infinite}
+  .bl-dots{display:flex;gap:5px}
+  .bl-dots i{width:8px;height:8px;border-radius:50%;border:1px solid var(--line2);background:var(--panel)}
+  .breaker .bl-dots i.c{background:var(--green);box-shadow:0 0 6px rgba(87,227,137,.6)}
+  .breaker.half .bl-dots i.h{background:var(--amber);box-shadow:0 0 6px rgba(255,176,0,.7)}
+  .breaker.open .bl-dots i.o{background:var(--red);box-shadow:0 0 8px rgba(255,74,46,.8)}
   .bigbtns{display:flex;flex-direction:column;gap:7px;margin-top:2px}
   .gbtn{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;padding:13px 10px;cursor:pointer;
     border:1px solid var(--amber);background:transparent;color:var(--amber);transition:all .18s var(--ease);
@@ -86,27 +123,40 @@
   .gbtn.danger{border-color:var(--red);color:var(--red);text-shadow:0 0 6px rgba(255,74,46,.4)}
   .gbtn.danger:hover{background:rgba(255,74,46,.1);box-shadow:0 0 16px rgba(255,74,46,.2)}
   .gbtn.danger.armed{background:var(--red);color:#1A0B06;text-shadow:none;animation:blink .6s steps(2) infinite}
+  .gbtn.danger.storm{background:var(--red);color:#1A0B06;text-shadow:none;box-shadow:0 0 22px rgba(255,74,46,.7)}
   .gbtn.ghost{border-color:var(--line2);color:var(--dim);text-shadow:none}
   .gbtn.ghost:hover{color:var(--ink);border-color:var(--dim);background:var(--panel2)}
+  .session{border-top:1px dashed var(--line);padding-top:11px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .session .sv{font-size:16px;color:var(--amber);text-shadow:0 0 7px rgba(255,176,0,.4)}
+  .session .sv.g{color:var(--green)} .session .sv.r{color:var(--red)}
+  .session .sk{font-size:7.5px;letter-spacing:.16em;color:var(--dim);margin-top:3px}
 
   /* ---- scope + right side ---- */
   .deck{display:flex;flex-direction:column;min-width:0;min-height:0}
   .scope-wrap{position:relative;padding:16px 18px 6px}
   .scope-frame{position:relative;border:1px solid var(--line2);background:#100B06;
     box-shadow:inset 0 0 40px rgba(0,0,0,.7),0 0 0 4px #1B130B,0 0 0 5px var(--line)}
+  .scope-frame.shake{animation:shk .1s 6}
+  @keyframes shk{25%{transform:translate(2px,-1px)}50%{transform:translate(-2px,1px)}75%{transform:translate(1px,2px)}}
   .scope-frame .corner{position:absolute;font-size:8px;letter-spacing:.24em;color:var(--amber-dim);z-index:3}
   .corner.tl{top:7px;left:10px}
   .corner.tr{top:7px;right:10px}
   .corner.bl{bottom:7px;left:10px}
   .corner.br{bottom:7px;right:10px;color:var(--amber)}
-  #scope{display:block;width:100%;height:300px;cursor:crosshair}
+  .vtab{position:absolute;top:5px;left:50%;transform:translateX(-50%);z-index:4;display:flex;gap:4px}
+  .vtab button{font-family:var(--mono);font-size:8px;letter-spacing:.14em;padding:3px 8px;cursor:pointer;
+    background:rgba(22,14,5,.85);border:1px solid var(--line2);color:var(--dim);transition:all .15s}
+  .vtab button.on{border-color:var(--amber);color:var(--amber)}
+  #scope{display:block;width:100%;height:300px;cursor:crosshair;touch-action:none}
   #scopetip{position:absolute;pointer-events:none;font-size:9.5px;color:var(--amber);
     background:rgba(22,14,5,.92);border:1px solid var(--line2);padding:4px 8px;display:none;
     white-space:nowrap;z-index:5;letter-spacing:.06em}
+  #dragread{position:absolute;right:10px;top:26px;font-size:9px;color:var(--green);z-index:4;
+    letter-spacing:.1em;display:none;text-shadow:0 0 7px rgba(87,227,137,.6)}
 
   .lower{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:0;gap:0}
   .tline-wrap{border-top:1px solid var(--line);border-right:1px solid var(--line);
-    padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--panel)}
+    padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--panel);transition:background 1.2s}
   .tl-label{font-size:9px;letter-spacing:.3em;color:var(--dim)}
   #timeline{display:flex;align-items:center;gap:0;min-height:56px;overflow-x:auto;padding:6px 0}
   .tl-node{position:relative;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
@@ -115,6 +165,7 @@
   .tl-node .lb{font-size:8px;letter-spacing:.1em;color:var(--dim)}
   .tl-node.fail .dot{border-color:var(--red);background:rgba(255,74,46,.25);box-shadow:0 0 9px rgba(255,74,46,.5)}
   .tl-node.ok .dot{border-color:var(--green);background:rgba(87,227,137,.3);box-shadow:0 0 9px rgba(87,227,137,.55)}
+  .tl-node.probe .dot{border-style:dashed}
   .tl-node.sel .dot{outline:1px solid var(--amber);outline-offset:2px}
   .tl-link{flex:0 0 34px;height:1px;background:var(--line2);margin-bottom:17px;position:relative;overflow:hidden}
   .tl-link i{position:absolute;inset:0;background:var(--amber);transform:translateX(-100%)}
@@ -134,28 +185,69 @@
   #console .okg{color:var(--green)}
   #console .amb{color:var(--amber)}
 
-  footer{flex:0 0 auto;display:flex;gap:20px;align-items:center;padding:9px 22px;
-    border-top:1px solid var(--line);font-size:8.5px;letter-spacing:.16em;color:var(--dim);background:var(--panel)}
-  .sq{width:6px;height:6px;background:var(--amber);box-shadow:0 0 7px rgba(255,176,0,.7)}
+  footer{flex:0 0 auto;display:flex;gap:16px;align-items:center;padding:9px 22px;flex-wrap:wrap;
+    border-top:1px solid var(--line);font-size:8.5px;letter-spacing:.16em;color:var(--dim);background:var(--panel);
+    transition:background 1.2s}
+  footer .keys b{color:var(--amber);font-weight:400}
+  footer .colo{margin-left:auto;display:flex;gap:14px;white-space:nowrap}
+  footer .colo .sd{color:var(--amber)}
 
   @media (max-width:900px){
     main{grid-template-columns:1fr}
     .rack{border-right:none;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;gap:14px}
-    .rack>.ctl,.rack>.rk-label,.rack>.bigbtns{flex:1 1 200px}
+    .rack>.ctl,.rack>.rk-label,.rack>.bigbtns,.rack>.breaker,.rack>.session{flex:1 1 200px}
     .rk-label{width:100%}
     .lower{grid-template-columns:1fr}
     .tline-wrap{border-right:none}
     #scope{height:230px}
+    footer .colo{margin-left:0;flex-wrap:wrap}
   }
 </style>
-</head>
-<body>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
+<body data-atmo="midi" data-scope="curve">
+
+<canvas id="mira-light" aria-hidden="true"></canvas>
+<div id="mira-grain" aria-hidden="true"></div>
 
 <header>
-  <div class="brand">
-    <span class="no">A·07</span>
-    <span class="name">RETRY DEBUGGER</span>
-    <span class="sub">失败重试 / 自愈流程台</span>
+  <div class="brand" id="brand" title="双击印章:上光一变">
+    <svg class="seal" viewBox="0 0 64 64" role="img" aria-label="Atelier MIRA 印章">
+      <circle cx="32" cy="32" r="29" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+      <circle cx="32" cy="32" r="17.5" fill="none" stroke="var(--accent)" stroke-width=".9" opacity=".55"/>
+      <defs><path id="seal-ring" d="M32 32 m-23 0 a23 23 0 1 1 46 0 a23 23 0 1 1 -46 0"/></defs>
+      <text font-family="SF Mono,Menlo,monospace" font-size="6.2" letter-spacing="2.1" fill="var(--accent)">
+        <textPath href="#seal-ring" startOffset="2">ATELIER MIRA&#160;&#160;&#183;&#160;&#160;PLEIN AIR</textPath>
+      </text>
+      <path d="M23.5 42.5 C22.8 35.5 23.2 28.5 24.2 22.5 C26.8 27.5 29.4 32.5 31.6 37.5 C33.9 32 36.3 27 39 22 C40 29 40.6 35.8 39.8 42.2"
+        fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="txt">
+      <span class="etude">ÉTUDE N°75/100</span>
+      <span class="name">RETRY DEBUGGER</span>
+      <span class="sub">失败重试 / 自愈流程台</span>
+    </div>
+  </div>
+  <div class="atmo" id="atmo" title="时刻光色习作 [T]">
+    <button data-a="aube">晨</button>
+    <button data-a="midi" class="on">午</button>
+    <button data-a="soir">昏</button>
+    <button data-a="nuit">夜</button>
+  </div>
+  <div class="seedbox">
+    SEED <b id="seed-read">—</b>
+    <button class="mini" id="reseed" title="换一盘故障带 [N]">再生 ↻</button>
+    <button class="mini" id="share" title="复制可复现链接">复制链接</button>
   </div>
   <div class="spacer"></div>
   <div class="state-lamp">
@@ -191,29 +283,44 @@
     <div class="toggle on" id="tgl-jitter">
       <span>抖动 JITTER</span><span class="twin"></span>
     </div>
+    <div class="breaker" id="breaker">
+      <span class="bl-label">CIRCUIT<br>BREAKER</span>
+      <span class="bl-dots"><i class="c"></i><i class="h"></i><i class="o"></i></span>
+      <span class="bl-state" id="bl-state">CLOSED</span>
+    </div>
     <div class="bigbtns">
       <button class="gbtn" id="btn-run">发起请求 RUN</button>
       <button class="gbtn danger" id="btn-inject">注入失败 INJECT</button>
       <button class="gbtn ghost" id="btn-reset">重置 RESET</button>
     </div>
+    <div class="session">
+      <div><div class="sv" id="ss-runs">0</div><div class="sk">RUNS</div></div>
+      <div><div class="sv g" id="ss-heal">0</div><div class="sk">HEALED</div></div>
+      <div><div class="sv r" id="ss-open">0</div><div class="sk">TRIPPED</div></div>
+    </div>
   </aside>
 
   <section class="deck">
     <div class="scope-wrap">
-      <div class="scope-frame">
+      <div class="scope-frame" id="scope-frame">
         <span class="corner tl">CH-1 · BACKOFF SCOPE</span>
         <span class="corner tr">EXP ×2^N</span>
-        <span class="corner bl">DELAY ms / ATTEMPT</span>
+        <span class="corner bl">拖动波形:纵向 CHAOS · 横向 BASE</span>
         <span class="corner br" id="scope-read">—</span>
+        <div class="vtab">
+          <button data-s="curve" class="on">曲线 CURVE</button>
+          <button data-s="fall">瀑布 FALL</button>
+        </div>
         <canvas id="scope"></canvas>
         <div id="scopetip"></div>
+        <div id="dragread"></div>
       </div>
     </div>
     <div class="lower">
       <div class="tline-wrap">
         <div class="tl-label">REPAIR TIMELINE — 修复时间线</div>
         <div id="timeline"></div>
-        <div id="tl-detail">点击时间线节点查看单次尝试详情。绿色为成功，红色为失败。</div>
+        <div id="tl-detail">点击时间线节点查看单次尝试详情。绿色为成功,红色为失败,虚线为半开探针。</div>
       </div>
       <div class="console-wrap">
         <div class="tl-label">EVENT LOG — 事件日志</div>
@@ -224,16 +331,138 @@
 </main>
 
 <footer>
-  <span class="sq"></span>
-  <span>RETRY DEBUGGER — A·07 — AGENT DEMOS</span>
-  <span>指数退避 + 抖动 · 模拟演示</span>
+  <div class="keys"><b>R</b> 请求 · <b>I</b> 注入 · <b>J</b> 抖动 · <b>V</b> 示波 · <b>1-4</b> 故障 · <b>T</b> 光色 · <b>N</b> 种子 · <b>P</b> 导出</div>
+  <div class="colo">
+    <span>Canvas 2D · 指数退避 + 抖动 · 熔断半开自愈</span>
+    <span class="sd" id="colo-seed">seed —</span>
+    <span id="colo-atmo">午 MIDI</span>
+    <span>Painted with code, plein air</span>
+  </div>
 </footer>
 
 <script>
+'use strict';
+/* ============================================================
+   ATELIER MIRA · 共用画室层(种子 / 光色 / 纸纹)
+   ============================================================ */
+const MIRA = (()=>{
+  const ATMOS = {
+    aube:{label:'晨 AUBE',  blobs:['#F5C9A4','#E9B4C0','#C7D2E6','#F8E3BE'], lamp:'#F7B04A', dust:'rgba(150,110,70,.30)', alpha:.55},
+    midi:{label:'午 MIDI',  blobs:['#FFF0C8','#E4EBD4','#D4E0E8','#FFFFFF'], lamp:'#FFE9A0', dust:'rgba(120,110,90,.24)', alpha:.4},
+    soir:{label:'昏 SOIR',  blobs:['#F09A58','#C9768B','#7E6AA8','#F4BE78'], lamp:'#FF9C38', dust:'rgba(90,50,30,.34)',  alpha:.7},
+    nuit:{label:'夜 NUIT',  blobs:['#22304E','#121C34','#33445F','#0D1526'], lamp:'#FFB03E', dust:'rgba(200,180,140,.22)', alpha:.9}
+  };
+  const ORDER = ['aube','midi','soir','nuit'];
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+  const parse=()=>{
+    const hs=location.hash, sm=hs.match(/seed=(\d+)/), am=hs.match(/atmo=(aube|midi|soir|nuit)/);
+    return {seed: sm?+sm[1]:(Math.floor(Math.random()*89999)+10000), atmo: am?am[1]:'midi'};
+  };
+  const st = parse();
+  let rng = mulberry32(st.seed);
+  let onchangeCb = null;
+  const cv = document.getElementById('mira-light');
+  const ctx = cv.getContext('2d');
+  let W=0,H=0, blobs=[], dabs=[];
+  function resize(){
+    W = Math.ceil(innerWidth/2); H = Math.ceil(innerHeight/2);
+    cv.width=W; cv.height=H; buildField();
+  }
+  function buildField(){
+    const r = mulberry32(st.seed*7+13);
+    blobs = [];
+    for(let i=0;i<5;i++){
+      blobs.push({bx:r(),by:r(),rad:.28+r()*.3,sp:.000016+r()*.00002,ph:r()*6.28,ph2:r()*6.28,ci:i%4});
+    }
+    dabs = [];
+    const n = Math.floor(W*H/5200);
+    for(let i=0;i<n;i++) dabs.push({x:r()*W,y:r()*H,vx:.05+r()*.16,ph:r()*6.28,sz:1+r()*2.2,tw:.4+r()*.6});
+  }
+  function paintGrain(){
+    const g = document.createElement('canvas'); g.width=g.height=168;
+    const gg = g.getContext('2d'), r = mulberry32(st.seed*3+7);
+    const im = gg.createImageData(168,168);
+    for(let i=0;i<im.data.length;i+=4){
+      const v = 190+r()*65;
+      im.data[i]=im.data[i+1]=im.data[i+2]=v;
+      im.data[i+3]=r()*34;
+    }
+    gg.putImageData(im,0,0);
+    gg.globalAlpha=.05; gg.strokeStyle='#5a5348';
+    for(let i=0;i<26;i++){
+      const y=r()*168; gg.beginPath(); gg.moveTo(0,y);
+      gg.bezierCurveTo(56,y+r()*4-2,112,y+r()*4-2,168,y+r()*3-1.5); gg.stroke();
+    }
+    document.getElementById('mira-grain').style.background='url('+g.toDataURL()+')';
+  }
+  function frame(t){
+    const A = ATMOS[st.atmo];
+    ctx.clearRect(0,0,W,H);
+    ctx.globalAlpha = A.alpha;
+    blobs.forEach(b=>{
+      const x = (b.bx + Math.sin(t*b.sp*60+b.ph)*.22)*W;
+      const y = (b.by + Math.cos(t*b.sp*47+b.ph2)*.18)*H;
+      const rad = b.rad*Math.max(W,H);
+      const g = ctx.createRadialGradient(x,y,0,x,y,rad);
+      g.addColorStop(0,A.blobs[b.ci]); g.addColorStop(1,'rgba(255,255,255,0)');
+      ctx.fillStyle=g; ctx.fillRect(x-rad,y-rad,rad*2,rad*2);
+    });
+    if(st.atmo==='nuit'){
+      const lx = W*.78 + Math.sin(t*.00005)*W*.05, ly = H*.2;
+      const g = ctx.createRadialGradient(lx,ly,0,lx,ly,H*.7);
+      g.addColorStop(0,'rgba(255,176,62,.8)'); g.addColorStop(1,'rgba(255,176,62,0)');
+      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    }
+    ctx.fillStyle = A.dust;
+    dabs.forEach(d=>{
+      d.x += d.vx; if(d.x>W+4) d.x=-4;
+      const tw = .35 + .65*Math.abs(Math.sin(t*.0006*d.tw+d.ph));
+      ctx.globalAlpha = A.alpha * tw * .8;
+      ctx.fillRect(d.x, d.y + Math.sin(t*.0004+d.ph)*3, d.sz, d.sz*.7);
+    });
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(frame);
+  }
+  function apply(){
+    document.body.dataset.atmo = st.atmo;
+    document.querySelectorAll('#atmo button').forEach(b=>b.classList.toggle('on', b.dataset.a===st.atmo));
+    document.getElementById('seed-read').textContent = st.seed;
+    document.getElementById('colo-seed').textContent = 'seed '+st.seed;
+    document.getElementById('colo-atmo').textContent = ATMOS[st.atmo].label;
+    history.replaceState(null,'','#seed='+st.seed+'&atmo='+st.atmo);
+    paintGrain(); buildField();
+    if(onchangeCb) onchangeCb(st);
+  }
+  const api = {
+    get seed(){return st.seed}, get atmo(){return st.atmo},
+    rng:()=>rng,
+    set onchange(fn){ onchangeCb = fn; },
+    setAtmo(a){ st.atmo=a; apply(); },
+    cycleAtmo(){ st.atmo = ORDER[(ORDER.indexOf(st.atmo)+1)%4]; apply(); },
+    regen(){ st.seed = (st.seed*1664525+1013904223)%90000+10000; rng = mulberry32(st.seed); apply(); },
+    share(){
+      const url = location.href;
+      const done = ()=>{ const b=document.getElementById('share'); b.textContent='已复制 ✓'; setTimeout(()=>b.textContent='复制链接',1600); };
+      if(navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(()=>prompt('复制此链接',url));
+      else prompt('复制此链接',url);
+    },
+    ATMOS, mulberry32
+  };
+  window.addEventListener('resize', resize);
+  resize(); apply();
+  requestAnimationFrame(frame);
+  return api;
+})();
+
+/* ============================================================
+   RETRY DEBUGGER 本体
+   ============================================================ */
 (function(){
-  "use strict";
   var P = { base:400, att:6, chaos:0.35, jitter:true, fmode:"TIMEOUT" };
-  var S = { state:"IDLE", attempt:0, armed:false, running:false, history:[], waitEnd:0, waitDur:0, sendEnd:0, sendDur:0, willFail:false };
+  var S = { state:"IDLE", attempt:0, armed:false, storm:0, running:false, probe:false,
+    history:[], waitEnd:0, waitDur:0, sendEnd:0, sendDur:0, willFail:false,
+    breaker:"CLOSED", coolEnd:0, runCount:0 };
+  var SESS = { runs:0, heal:0, open:0 };
 
   var lamp = document.getElementById("lamp");
   var stateword = document.getElementById("stateword");
@@ -243,31 +472,42 @@
   var scopeRead = document.getElementById("scope-read");
   var btnRun = document.getElementById("btn-run");
   var btnInject = document.getElementById("btn-inject");
+  var breakerEl = document.getElementById("breaker");
+  var blState = document.getElementById("bl-state");
+  var scopeFrame = document.getElementById("scope-frame");
+  var runRng = MIRA.mulberry32(MIRA.seed);
 
   /* ---------- controls ---------- */
-  function bindRange(id, key, fmt, label){
+  function bindRange(id, key, fmt, scale){
     var el = document.getElementById("r-" + id), out = document.getElementById("v-" + id);
     el.addEventListener("input", function(){
-      P[key] = +el.value;
+      wake();
+      P[key] = scale ? +el.value/scale : +el.value;
       out.textContent = fmt(P[key]);
-      if (key === "chaos") P[key] = P[key] / 100;
     });
     out.textContent = fmt(P[key]);
   }
   bindRange("base", "base", function(v){ return v + "ms"; });
   bindRange("att", "att", function(v){ return String(v); });
-  bindRange("chaos", "chaos", function(v){ return Math.round(v * 100) + "%"; });
-  document.getElementById("r-chaos").addEventListener("input", function(){
-    document.getElementById("v-chaos").textContent = this.value + "%";
-  });
-
+  bindRange("chaos", "chaos", function(v){ return Math.round(v * 100) + "%"; }, 100);
+  function syncControls(){
+    document.getElementById("r-base").value = P.base;
+    document.getElementById("v-base").textContent = P.base + "ms";
+    document.getElementById("r-chaos").value = Math.round(P.chaos*100);
+    document.getElementById("v-chaos").textContent = Math.round(P.chaos*100) + "%";
+  }
+  function setFmode(f, btn){
+    P.fmode = f;
+    document.querySelectorAll(".fmode").forEach(function(x){ x.classList.toggle("on", x.dataset.f === f); });
+  }
   document.getElementById("fmodes").addEventListener("click", function(e){
     var b = e.target.closest(".fmode");
     if (!b) return;
-    document.querySelectorAll(".fmode").forEach(function(x){ x.classList.toggle("on", x === b); });
-    P.fmode = b.dataset.f;
+    wake();
+    setFmode(b.dataset.f, b);
   });
   document.getElementById("tgl-jitter").addEventListener("click", function(){
+    wake();
     this.classList.toggle("on");
     P.jitter = this.classList.contains("on");
   });
@@ -293,60 +533,132 @@
     stateword.textContent = word;
     stateword.className = cls === "ok" ? "ok" : cls === "dead" ? "dead" : "";
   }
+  function setBreaker(b){
+    S.breaker = b;
+    breakerEl.className = "breaker" + (b==="OPEN" ? " open" : b==="HALF" ? " half" : "");
+    blState.textContent = b==="OPEN" ? "OPEN" : b==="HALF" ? "HALF-OPEN" : "CLOSED";
+  }
+  function renderSess(){
+    document.getElementById("ss-runs").textContent = SESS.runs;
+    document.getElementById("ss-heal").textContent = SESS.heal;
+    document.getElementById("ss-open").textContent = SESS.open;
+  }
 
   function delayFor(n){
     var d = P.base * Math.pow(2, n - 1);
-    if (P.jitter) d = d * (0.6 + Math.random() * 0.8);
+    if (P.jitter) d = d * (0.6 + runRng() * 0.8);
     return Math.round(d);
   }
   function curveDelay(n){ return P.base * Math.pow(2, n - 1); }
 
   function reset(){
-    S.running = false; S.attempt = 0; S.armed = false; S.history = [];
-    timelineEl.innerHTML = "";
-    btnInject.classList.remove("armed");
+    wake();
+    S.running = false; S.attempt = 0; S.armed = false; S.storm = 0; S.probe = false; S.history = [];
+    timelineEl.innerHTML = ""; tlNodes = [];
+    btnInject.classList.remove("armed","storm");
     btnInject.textContent = "注入失败 INJECT";
     btnRun.disabled = false;
+    btnRun.textContent = "发起请求 RUN";
+    setBreaker("CLOSED");
     setState("IDLE", "IDLE 待机", "idle");
-    log("inf", "系统复位，等待指令。");
+    log("inf", "系统复位,等待指令。");
   }
 
   btnRun.addEventListener("click", function(){
+    wake();
     if (S.running) return;
+    if (S.breaker === "OPEN"){
+      if (performance.now() < S.coolEnd){
+        log("err", "×× 熔断器仍打开,冷却 " + Math.ceil((S.coolEnd - performance.now())/1000) + "s — 拒绝请求");
+        return;
+      }
+      /* 半开探针 */
+      setBreaker("HALF");
+      S.probe = true;
+      S.running = true; S.history = []; S.attempt = 0;
+      timelineEl.innerHTML = ""; tlNodes = [];
+      btnRun.disabled = true;
+      log("amb", ">>> 熔断冷却完毕 — 放出半开探针 HALF-OPEN PROBE");
+      startAttempt();
+      return;
+    }
+    S.probe = false;
     S.running = true; S.history = []; S.attempt = 0;
-    timelineEl.innerHTML = "";
+    timelineEl.innerHTML = ""; tlNodes = [];
     btnRun.disabled = true;
-    log("amb", ">>> 发起请求 run #" + Math.floor(Math.random() * 9000 + 1000) + " — 目标 tool:web.fetch");
+    S.runCount++;
+    runRng = MIRA.mulberry32(MIRA.seed*7919 + S.runCount*104729);
+    log("amb", ">>> 发起请求 run #" + S.runCount + " — 目标 tool:web.fetch · 故障带 tape " + MIRA.seed + "-" + S.runCount);
     startAttempt();
   });
 
-  btnInject.addEventListener("click", function(){
-    if (S.armed) return;
+  /* 注入:单击武装一次;按住 600ms 武装风暴(4 连击) */
+  var injectHold = null;
+  btnInject.addEventListener("pointerdown", function(){
+    wake();
+    injectHold = setTimeout(function(){
+      injectHold = "fired";
+      S.storm = 4; S.armed = false;
+      btnInject.classList.remove("armed");
+      btnInject.classList.add("storm");
+      btnInject.textContent = "风暴武装 STORM×4";
+      scopeFrame.classList.add("shake");
+      setTimeout(function(){ scopeFrame.classList.remove("shake"); }, 700);
+      log("err", "!! 风暴注入器武装 — 接下来 4 次尝试连续失败 (STORM SURGE)");
+    }, 600);
+  });
+  function injectRelease(){
+    if (injectHold === "fired"){ injectHold = null; return; }
+    clearTimeout(injectHold); injectHold = null;
+    if (S.armed || S.storm) return;
     S.armed = true;
     btnInject.classList.add("armed");
     btnInject.textContent = "故障已武装 ARMED";
     log("err", "!! 故障注入器已武装 — 下一次尝试必定失败 (" + P.fmode + ")");
-  });
+  }
+  btnInject.addEventListener("pointerup", injectRelease);
+  btnInject.addEventListener("pointerleave", function(){ if(injectHold && injectHold!=="fired"){ clearTimeout(injectHold); injectHold=null; } });
   document.getElementById("btn-reset").addEventListener("click", reset);
 
   function startAttempt(){
     S.attempt++;
-    S.sendDur = 500 + Math.random() * 500;
+    S.sendDur = 500 + runRng() * 500;
     S.sendEnd = performance.now() + S.sendDur;
-    S.willFail = S.armed || Math.random() < P.chaos;
+    S.willFail = S.armed || S.storm > 0 || runRng() < P.chaos;
+    if (S.storm > 0) S.storm--;
+    if (S.storm === 0){ btnInject.classList.remove("storm"); if(!S.armed) btnInject.textContent = "注入失败 INJECT"; }
     S.armed = false;
-    btnInject.classList.remove("armed");
-    btnInject.textContent = "注入失败 INJECT";
-    setState("SENDING", "SENDING 尝试 #" + S.attempt, "busy");
-    log("inf", "attempt " + S.attempt + "/" + P.att + " — 发送中…");
+    if (!btnInject.classList.contains("storm")){ btnInject.classList.remove("armed"); btnInject.textContent = "注入失败 INJECT"; }
+    setState("SENDING", (S.probe ? "PROBE 探针 #" : "SENDING 尝试 #") + S.attempt, "busy");
+    log("inf", "attempt " + S.attempt + "/" + (S.probe ? 1 : P.att) + " — 发送中…");
   }
 
   function finishAttempt(){
     var ok = !S.willFail;
-    S.history.push({ n:S.attempt, ok:ok, dur:Math.round(S.sendDur), fmode:ok ? null : P.fmode, wait:0 });
-    addTimelineNode(S.attempt, ok);
+    S.history.push({ n:S.attempt, ok:ok, dur:Math.round(S.sendDur), fmode:ok ? null : P.fmode, wait:0, probe:S.probe });
+    addTimelineNode(S.attempt, ok, S.probe);
+    if (S.probe){
+      /* 半开探针:一击定生死 */
+      if (ok){
+        setBreaker("CLOSED");
+        SESS.heal++; renderSess();
+        setState("HEALED", "CLOSED 熔断复位", "ok");
+        log("okg", "++ 探针成功 (" + Math.round(S.sendDur) + "ms) — 熔断器复位,流量恢复");
+        scopeRead.textContent = "CLOSED";
+      } else {
+        setBreaker("OPEN");
+        S.coolEnd = performance.now() + 4000;
+        setState("CIRCUIT", "RE-OPEN 再熔断", "dead");
+        log("err", "×× 探针失败 — 熔断器再次打开,冷却 4s");
+        scopeRead.textContent = "RE-OPEN";
+      }
+      S.probe = false;
+      S.running = false; btnRun.disabled = false;
+      return;
+    }
     if (ok){
       setState("HEALED", "HEALED 已自愈", "ok");
+      SESS.heal++; renderSess();
       log("okg", "++ attempt " + S.attempt + " 成功 (" + Math.round(S.sendDur) + "ms) — 流程自愈完成");
       S.running = false; btnRun.disabled = false;
       scopeRead.textContent = "OK@" + S.attempt;
@@ -354,7 +666,11 @@
       log("err", "-- attempt " + S.attempt + " 失败 — " + P.fmode);
       if (S.attempt >= P.att){
         setState("CIRCUIT", "CIRCUIT OPEN 熔断", "dead");
-        log("err", "×× 尝试耗尽，熔断器打开。人工介入或调参后重试。");
+        setBreaker("OPEN");
+        SESS.open++; renderSess();
+        S.coolEnd = performance.now() + 4000;
+        log("err", "×× 尝试耗尽,熔断器打开。冷却 4s 后 RUN 放出半开探针。");
+        btnRun.textContent = "半开探针 PROBE";
         S.running = false; btnRun.disabled = false;
         scopeRead.textContent = "OPEN";
       } else {
@@ -370,7 +686,7 @@
 
   /* ---------- timeline ---------- */
   var tlNodes = [];
-  function addTimelineNode(n, ok){
+  function addTimelineNode(n, ok, probe){
     if (tlNodes.length){
       var link = document.createElement("div");
       link.className = "tl-link";
@@ -379,14 +695,14 @@
       requestAnimationFrame(function(){ requestAnimationFrame(function(){ link.classList.add("fill"); }); });
     }
     var node = document.createElement("div");
-    node.className = "tl-node " + (ok ? "ok" : "fail");
-    node.innerHTML = '<span class="dot"></span><span class="lb">#' + n + "</span>";
+    node.className = "tl-node " + (ok ? "ok" : "fail") + (probe ? " probe" : "");
+    node.innerHTML = '<span class="dot"></span><span class="lb">' + (probe ? "P" : "#" + n) + "</span>";
     node.addEventListener("click", function(){
       document.querySelectorAll(".tl-node").forEach(function(x){ x.classList.remove("sel"); });
       node.classList.add("sel");
       var h = S.history[n - 1];
       if (!h) return;
-      tlDetail.innerHTML = "<b>ATTEMPT #" + h.n + "</b> — " +
+      tlDetail.innerHTML = "<b>" + (h.probe ? "PROBE 探针" : "ATTEMPT #" + h.n) + "</b> — " +
         (h.ok ? '<span style="color:var(--green)">SUCCESS</span>' : '<span class="e">FAIL · ' + h.fmode + "</span>") +
         " · 耗时 " + h.dur + "ms" + (h.wait ? " · 随后退避 " + h.wait + "ms" : "");
     });
@@ -399,8 +715,11 @@
   var cv = document.getElementById("scope");
   var ctx = cv.getContext("2d");
   var tip = document.getElementById("scopetip");
+  var dragRead = document.getElementById("dragread");
   var W = 0, H = 0, DPR = 1;
   var pointHits = [];
+  var scopeMode = "curve";
+  var dragging = false;
 
   function resize(){
     DPR = Math.min(window.devicePixelRatio || 1, 2);
@@ -412,7 +731,25 @@
   window.addEventListener("resize", resize);
   resize();
 
-  cv.addEventListener("mousemove", function(e){
+  document.querySelectorAll(".vtab button").forEach(function(b){
+    b.addEventListener("click", function(){
+      wake();
+      scopeMode = b.dataset.s;
+      document.body.dataset.scope = scopeMode;
+      document.querySelectorAll(".vtab button").forEach(function(x){ x.classList.toggle("on", x===b); });
+      document.querySelector(".corner.tl").textContent = scopeMode==="curve" ? "CH-1 · BACKOFF SCOPE" : "CH-2 · TIME WATERFALL";
+      document.querySelector(".corner.tr").textContent = scopeMode==="curve" ? "EXP ×2^N" : "ms →";
+    });
+  });
+
+  cv.addEventListener("pointerdown", function(e){
+    wake();
+    dragging = true;
+    cv.setPointerCapture(e.pointerId);
+    dragApply(e);
+  });
+  cv.addEventListener("pointermove", function(e){
+    if (dragging){ dragApply(e); return; }
     var r = cv.getBoundingClientRect();
     var mx = e.clientX - r.left, my = e.clientY - r.top;
     var best = null, bd = 14;
@@ -427,6 +764,19 @@
       tip.textContent = best.label;
     } else tip.style.display = "none";
   });
+  function dragApply(e){
+    var r = cv.getBoundingClientRect();
+    var fx = Math.min(1, Math.max(0, (e.clientX - r.left)/r.width));
+    var fy = Math.min(1, Math.max(0, (e.clientY - r.top)/r.height));
+    P.chaos = Math.round((1-fy)*90)/100;
+    P.base = Math.round((100 + fx*1900)/50)*50;
+    syncControls();
+    dragRead.style.display = "block";
+    dragRead.textContent = "CHAOS " + Math.round(P.chaos*100) + "% · BASE " + P.base + "ms";
+    tip.style.display = "none";
+  }
+  cv.addEventListener("pointerup", function(){ dragging = false; dragRead.style.display = "none"; });
+  cv.addEventListener("pointercancel", function(){ dragging = false; dragRead.style.display = "none"; });
   cv.addEventListener("mouseleave", function(){ tip.style.display = "none"; });
 
   var PADL = 46, PADR = 20, PADT = 30, PADB = 30;
@@ -438,25 +788,24 @@
     function Y(d){ return PADT + ph - Math.min(d / maxD, 1) * ph; }
     return {X:X, Y:Y, maxD:maxD, pw:pw, ph:ph};
   }
-
-  function draw(now){
-    ctx.clearRect(0, 0, W, H);
-    var pl = plot(), i, n;
-
-    /* graticule */
+  function graticule(pw, ph){
     ctx.strokeStyle = "rgba(84,64,31,.35)";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (i = 0; i <= 8; i++){
-      var gx = PADL + pl.pw * i / 8;
-      ctx.moveTo(gx, PADT); ctx.lineTo(gx, PADT + pl.ph);
+    for (var i = 0; i <= 8; i++){
+      var gx = PADL + pw * i / 8;
+      ctx.moveTo(gx, PADT); ctx.lineTo(gx, PADT + ph);
     }
     for (i = 0; i <= 4; i++){
-      var gy = PADT + pl.ph * i / 4;
-      ctx.moveTo(PADL, gy); ctx.lineTo(PADL + pl.pw, gy);
+      var gy = PADT + ph * i / 4;
+      ctx.moveTo(PADL, gy); ctx.lineTo(PADL + pw, gy);
     }
     ctx.stroke();
-    /* y labels */
+  }
+
+  function drawCurve(now){
+    var pl = plot(), i, n;
+    graticule(pl.pw, pl.ph);
     ctx.fillStyle = "rgba(156,126,70,.8)";
     ctx.font = "8.5px 'SF Mono',Menlo,monospace";
     ctx.textAlign = "right";
@@ -467,7 +816,7 @@
     ctx.textAlign = "center";
     for (n = 1; n <= P.att; n++) ctx.fillText("#" + n, pl.X(n), PADT + pl.ph + 16);
 
-    /* theoretical backoff curve */
+    /* 理论曲线 */
     ctx.strokeStyle = "rgba(255,176,0,.32)";
     ctx.setLineDash([3, 4]);
     ctx.lineWidth = 1.2;
@@ -479,7 +828,6 @@
     ctx.stroke();
     ctx.setLineDash([]);
 
-    /* ghost points on curve */
     pointHits = [];
     for (n = 1; n <= P.att; n++){
       var gx2 = pl.X(n), gy2 = pl.Y(curveDelay(n));
@@ -488,7 +836,6 @@
       ctx.beginPath(); ctx.arc(gx2, gy2, 3, 0, 7); ctx.fill();
     }
 
-    /* executed attempts */
     S.history.forEach(function(h, idx){
       var x = pl.X(h.n), y = pl.Y(h.wait || 0);
       if (!h.ok){
@@ -500,7 +847,7 @@
         ctx.strokeStyle = "rgba(255,74,46,.5)";
         ctx.beginPath(); ctx.moveTo(x - 8, y - 8); ctx.lineTo(x + 8, y + 8);
         ctx.moveTo(x + 8, y - 8); ctx.lineTo(x - 8, y + 8); ctx.stroke();
-        if (h.wait && idx < S.history.length){
+        if (h.wait){
           var nx = pl.X(h.n + 1);
           ctx.strokeStyle = "rgba(255,176,0,.55)";
           ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, y); ctx.stroke();
@@ -517,7 +864,7 @@
     /* in-flight pulse */
     if (S.state === "SENDING"){
       var t = 1 - (S.sendEnd - now) / S.sendDur;
-      var px = pl.X(S.attempt), py = PADT + pl.ph * (1 - Math.min(Math.max(t, 0), 1)) ;
+      var px = pl.X(S.attempt), py = PADT + pl.ph * (1 - Math.min(Math.max(t, 0), 1));
       ctx.strokeStyle = "rgba(255,176,0,.7)";
       ctx.beginPath(); ctx.moveTo(px, PADT + pl.ph); ctx.lineTo(px, py); ctx.stroke();
       ctx.fillStyle = "#FFB000";
@@ -526,7 +873,6 @@
       ctx.shadowBlur = 0;
       scopeRead.textContent = "TX#" + S.attempt + " " + Math.round(t * 100) + "%";
     }
-    /* backoff countdown sweep */
     if (S.state === "WAITING"){
       var last = S.history[S.history.length - 1];
       var t2 = 1 - (S.waitEnd - now) / S.waitDur;
@@ -544,9 +890,118 @@
     }
   }
 
+  function drawFall(now){
+    /* 瀑布:每次尝试一行,[退避虚线][发送实条][结果] */
+    var rows = Math.max(P.att, S.history.length, 1);
+    var pw = W - PADL - PADR, ph = H - PADT - PADB;
+    graticule(pw, ph);
+    var totalMs = 0;
+    S.history.forEach(function(h){ totalMs += h.dur + (h.wait||0); });
+    totalMs = Math.max(totalMs, S.sendDur + 400, 1200);
+    var rowH = Math.min(26, ph/rows);
+    function TX(ms){ return PADL + ms/totalMs*pw; }
+    ctx.font = "8.5px 'SF Mono',Menlo,monospace";
+    ctx.textAlign = "right";
+    ctx.fillStyle = "rgba(156,126,70,.8)";
+    for (var i = 0; i <= 4; i++){
+      ctx.textAlign = "center";
+      ctx.fillText(Math.round(totalMs*i/4) + "", PADL + pw*i/4, PADT + ph + 16);
+    }
+    pointHits = [];
+    var cursor = 0;
+    S.history.forEach(function(h, idx){
+      var y = PADT + idx*rowH + rowH/2;
+      /* 退避间隙(这次尝试之前的等待,画在前一次之后) */
+      var sx0 = TX(cursor);
+      cursor += h.dur;
+      var sx1 = TX(cursor);
+      ctx.strokeStyle = h.ok ? "rgba(87,227,137,.9)" : "rgba(255,74,46,.9)";
+      ctx.lineWidth = rowH*.42;
+      ctx.beginPath(); ctx.moveTo(sx0, y); ctx.lineTo(sx1, y); ctx.stroke();
+      pointHits.push({x:(sx0+sx1)/2, y:y, label:"#" + h.n + " " + (h.ok?"成功":"失败 "+h.fmode) + " · 耗时 " + h.dur + "ms"});
+      /* 结果帽 */
+      ctx.fillStyle = h.ok ? "#57E389" : "#FF4A2E";
+      ctx.shadowColor = h.ok ? "rgba(87,227,137,.9)" : "rgba(255,74,46,.9)";
+      ctx.shadowBlur = 8;
+      ctx.fillRect(sx1-1.5, y-rowH*.42, 3, rowH*.84);
+      ctx.shadowBlur = 0;
+      ctx.textAlign = "right";
+      ctx.fillStyle = "rgba(156,126,70,.9)";
+      ctx.fillText(h.probe ? "P" : "#" + h.n, PADL - 8, y + 3);
+      if (h.wait){
+        var wx0 = TX(cursor);
+        cursor += h.wait;
+        var wx1 = TX(cursor);
+        ctx.strokeStyle = "rgba(255,176,0,.55)";
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([3,3]);
+        ctx.beginPath(); ctx.moveTo(wx0, y); ctx.lineTo(wx1, y); ctx.stroke();
+        ctx.setLineDash([]);
+        pointHits.push({x:(wx0+wx1)/2, y:y, label:"#" + h.n + " 之后退避 " + h.wait + "ms"});
+      }
+    });
+    /* in-flight */
+    if (S.state === "SENDING"){
+      var t = 1 - (S.sendEnd - now)/S.sendDur;
+      var y2 = PADT + S.history.length*rowH + rowH/2;
+      var ex = TX(cursor + S.sendDur*Math.min(Math.max(t,0),1));
+      ctx.strokeStyle = "rgba(255,176,0,.9)";
+      ctx.lineWidth = rowH*.42;
+      ctx.beginPath(); ctx.moveTo(TX(cursor), y2); ctx.lineTo(ex, y2); ctx.stroke();
+      ctx.fillStyle = "#FFB000";
+      ctx.shadowColor = "rgba(255,176,0,1)"; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(ex, y2, 4, 0, 7); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.textAlign = "right"; ctx.fillStyle = "rgba(255,176,0,.9)";
+      ctx.fillText("#" + S.attempt, PADL - 8, y2 + 3);
+      scopeRead.textContent = "TX#" + S.attempt + " " + Math.round(t*100) + "%";
+    }
+    if (S.state === "WAITING"){
+      var t3 = 1 - (S.waitEnd - now)/S.waitDur;
+      var y3 = PADT + (S.history.length-1)*rowH + rowH/2;
+      var bx0 = TX(cursor - S.waitDur), bx1 = TX(cursor - S.waitDur + S.waitDur*Math.min(Math.max(t3,0),1));
+      ctx.strokeStyle = "rgba(255,176,0,.9)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(bx0, y3); ctx.lineTo(bx1, y3); ctx.stroke();
+      scopeRead.textContent = "WAIT " + Math.max(0, Math.round(S.waitEnd - now)) + "ms";
+    }
+    if (!S.history.length && S.state !== "SENDING"){
+      ctx.textAlign = "center";
+      ctx.fillStyle = "rgba(156,126,70,.7)";
+      ctx.font = "9.5px 'SF Mono',Menlo,monospace";
+      ctx.fillText("— RUN 一次,瀑布自会流下 —", PADL + pw/2, PADT + ph/2);
+    }
+  }
+
+  /* 风暴静电噪点 */
+  function drawStatic(){
+    if (!btnInject.classList.contains("storm")) return;
+    for (var i = 0; i < 90; i++){
+      ctx.fillStyle = "rgba(255,74,46," + (Math.random()*.25) + ")";
+      ctx.fillRect(Math.random()*W, Math.random()*H, 2, 2);
+    }
+  }
+
+  function draw(now){
+    ctx.clearRect(0, 0, W, H);
+    if (scopeMode === "curve") drawCurve(now); else drawFall(now);
+    drawStatic();
+    /* 熔断冷却倒计时弧 */
+    if (S.breaker === "OPEN" && S.coolEnd > now){
+      var left = (S.coolEnd - now)/4000;
+      ctx.strokeStyle = "rgba(255,74,46,.8)";
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(W-34, H-30, 14, -Math.PI/2, -Math.PI/2 + (1-left)*Math.PI*2); ctx.stroke();
+      ctx.fillStyle = "rgba(255,74,46,.9)";
+      ctx.font = "8px 'SF Mono',Menlo,monospace";
+      ctx.textAlign = "center";
+      ctx.fillText(Math.ceil((S.coolEnd-now)/1000) + "s", W-34, H-27);
+    }
+  }
+
   /* ---------- main loop ---------- */
-  var last = 0;
-  function frame(now){
+  function frame(){
+    var now = performance.now();
     if (S.state === "SENDING" && now >= S.sendEnd) finishAttempt();
     if (S.state === "WAITING" && now >= S.waitEnd) startAttempt();
     draw(now);
@@ -554,9 +1009,134 @@
   }
   requestAnimationFrame(frame);
 
+  /* ---------- 闲置彩蛋:自动演示 ---------- */
+  var idleTimer=null, demoing=false, demoTimer=null;
+  window.wake = function(){
+    if (demoing){ demoing=false; clearInterval(demoTimer); }
+    clearTimeout(idleTimer);
+    idleTimer=setTimeout(startDemo, 30000);
+  };
+  function startDemo(){
+    if (S.running) { window.wake(); return; }
+    demoing = true;
+    log("inf", "… 闲置 30s,进入自巡检 — 任意操作接管");
+    demoTimer = setInterval(function(){
+      if (S.running) return;
+      if (S.breaker === "OPEN" && performance.now() < S.coolEnd) return;
+      btnRun.click();
+    }, 5200);
+  }
+  ["pointerdown","pointermove","keydown","wheel"].forEach(function(ev){
+    document.addEventListener(ev, window.wake, {passive:true});
+  });
+  window.wake();
+
+  /* ---------- 键盘 ---------- */
+  document.addEventListener("keydown", function(e){
+    if (["INPUT","TEXTAREA","SELECT"].includes(document.activeElement && document.activeElement.tagName)) return;
+    var k = e.key.toLowerCase();
+    if (k==="r") btnRun.click();
+    else if (k==="i") injectRelease();
+    else if (k==="j") document.getElementById("tgl-jitter").click();
+    else if (k==="v"){ var nx = scopeMode==="curve" ? "fall" : "curve";
+      document.querySelector('.vtab button[data-s="'+nx+'"]').click(); }
+    else if (k==="1") setFmode("TIMEOUT");
+    else if (k==="2") setFmode("429 RATE_LIMIT");
+    else if (k==="3") setFmode("502 BAD_GATEWAY");
+    else if (k==="4") setFmode("PARSE_ERROR");
+    else if (k==="t") MIRA.cycleAtmo();
+    else if (k==="n") MIRA.regen();
+    else if (k==="p") exportPNG();
+  });
+
+  MIRA.onchange = function(st){
+    runRng = MIRA.mulberry32(st.seed*7919 + S.runCount*104729);
+    log("amb", "◷ 更换故障带 — 新 tape " + st.seed + " · 光色 " + MIRA.ATMOS[st.atmo].label);
+  };
+
+  /* ---------- PNG 输出 ---------- */
+  window.exportPNG = function(){
+    var c = document.createElement("canvas"); c.width=1200; c.height=800;
+    var x = c.getContext("2d");
+    x.fillStyle = "#100B06"; x.fillRect(0,0,1200,800);
+    var r = MIRA.rng();
+    var A = MIRA.ATMOS[MIRA.atmo];
+    A.blobs.forEach(function(col){
+      var bx=r()*1200, by=r()*800, rad=240+r()*220;
+      var g=x.createRadialGradient(bx,by,0,bx,by,rad);
+      g.addColorStop(0,col); g.addColorStop(1,"rgba(0,0,0,0)");
+      x.globalAlpha=.3; x.fillStyle=g; x.fillRect(bx-rad,by-rad,rad*2,rad*2);
+    });
+    x.globalAlpha=1;
+    for (var i=0;i<2000;i++){
+      x.fillStyle="rgba(240,220,168,"+(r()*.06)+")";
+      x.fillRect(r()*1200, r()*800, 1.4, 1.4);
+    }
+    x.strokeStyle = "#FFB000"; x.lineWidth=2.5; x.strokeRect(36,36,1128,728);
+    x.save(); x.translate(110,118); x.strokeStyle="#FFB000"; x.lineWidth=2.4;
+    x.beginPath(); x.arc(0,0,44,0,7); x.stroke();
+    x.lineWidth=3.4; x.lineCap="round";
+    x.beginPath(); x.moveTo(-13,16); x.lineTo(-12,-14); x.lineTo(0,6); x.lineTo(12,-14); x.lineTo(13,16); x.stroke();
+    x.restore();
+    x.fillStyle = "#F0DCA8"; x.textAlign="left";
+    x.font="700 32px 'SF Mono',Menlo,monospace";
+    x.fillText("RETRY DEBUGGER", 180, 106);
+    x.font="600 15px 'SF Mono',Menlo,monospace"; x.fillStyle="#FFB000";
+    x.fillText("ÉTUDE N°75/100 · 失败重试自愈台", 180, 134);
+    x.fillStyle = "#9C7E46";
+    x.fillText(A.label+" · seed "+MIRA.seed+" · base "+P.base+"ms · att "+P.att+" · chaos "+Math.round(P.chaos*100)+"% · "+P.fmode+(P.jitter?" · jitter":""), 180, 160);
+    /* 内嵌示波器快照 */
+    x.save();
+    x.translate(90, 210);
+    var dw=1020, dh=380;
+    x.drawImage(cv, 0,0,cv.width,cv.height, 0,0,dw,dh);
+    x.strokeStyle="#54401F"; x.lineWidth=2; x.strokeRect(0,0,dw,dh);
+    x.restore();
+    /* 时间线节点 */
+    var tx = 100, ty = 660;
+    x.font="700 13px 'SF Mono',Menlo,monospace"; x.fillStyle="#9C7E46";
+    x.fillText("TIMELINE", 90, ty-30);
+    S.history.forEach(function(h){
+      x.beginPath(); x.arc(tx, ty, 9, 0, 7);
+      x.fillStyle = h.ok ? "#57E389" : "#FF4A2E"; x.fill();
+      if (h.probe){ x.strokeStyle="#FFB000"; x.setLineDash([2,2]); x.beginPath(); x.arc(tx,ty,13,0,7); x.stroke(); x.setLineDash([]); }
+      x.fillStyle="#9C7E46"; x.font="600 10px 'SF Mono',Menlo,monospace"; x.textAlign="center";
+      x.fillText(h.probe?"P":"#"+h.n, tx, ty+26);
+      tx += 46;
+    });
+    x.textAlign="right"; x.font="600 13px 'SF Mono',Menlo,monospace"; x.fillStyle="#9C7E46";
+    x.fillText("BREAKER "+S.breaker+" · RUNS "+SESS.runs+" HEALED "+SESS.heal+" TRIPPED "+SESS.open, 1130, 640);
+    x.fillText("Canvas 2D · Painted with code, plein air · ATELIER MIRA 2026", 1130, 736);
+    var a=document.createElement("a");
+    a.download="retry-debugger_N75_seed"+MIRA.seed+"_"+MIRA.atmo+".png";
+    a.href=c.toDataURL("image/png"); a.click();
+  };
+
   log("inf", "RETRY DEBUGGER 就绪。调节参数或直接 RUN。");
-  log("inf", "提示：先 RUN 再 INJECT，可观察确定的失败-退避-自愈链路。");
+  log("inf", "提示:先 RUN 再 INJECT;按住 INJECT 0.6s 触发四连风暴。故障带由 seed 决定,可复现。");
 })();
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="retry-debugger" data-num="75" style="--lab-a:#FFB000;--lab-b:#FF4A2E"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 75 · AGENT-DEMOS</small><strong>Retry Debugger</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

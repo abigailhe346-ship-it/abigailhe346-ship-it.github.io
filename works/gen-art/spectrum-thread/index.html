@@ -3,464 +3,576 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SPECTRUM THREAD — 光谱线画生成器</title>
+<title>Spectrum Thread — 睡莲池的线 · Atelier MIRA</title>
 <style>
   :root{
-    --paper:#f5f4ef; --panel:#efeee7; --line:#d8d5c9;
-    --ink:#141414; --dim:#8b8b84;
-    --red:#e30613;
+    /* 家族③ 睡莲 Nymphéas —— 冷中带暖斑 */
+    --water:#F2EFE6; --ripple:#DCE4DA; --willow:#A9BFAD; --pond:#5F7D6E; --sky:#7C8FA6; --lotus:#C9A6B4;
+    --paper:#EDEBE0; --panel:#F2F0E6; --line:#CFD2C2;
+    --ink:#3C4A42; --dim:#8A938A;
     --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
     --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{
-    background:var(--paper);color:var(--ink);font-family:var(--sans);
-    -webkit-font-smoothing:antialiased;overflow-x:hidden;
-  }
-  ::selection{background:var(--red);color:#fff}
+  html,body{background:var(--paper)}
+  body{color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--pond);color:var(--water)}
 
   header{
-    display:grid;grid-template-columns:1fr auto;align-items:end;
-    padding:26px 32px 0;gap:12px;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;
+    padding:20px clamp(18px,4vw,44px) 14px;
   }
-  .sig h1{
-    font-size:clamp(26px,4.4vw,52px);font-weight:800;letter-spacing:-.02em;
-    line-height:.95;text-transform:uppercase;
-  }
-  .sig h1 em{font-style:normal;color:var(--red)}
-  .sig .sub{
-    margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--dim);
-    letter-spacing:.2em;text-transform:uppercase;
-  }
-  .sig .sub b{color:var(--red);font-weight:400}
-  header .meta{
-    font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.16em;
-    text-transform:uppercase;text-align:right;line-height:2;
-  }
-  .rule{
-    margin:18px 32px 0;border-top:2px solid var(--ink);position:relative;
-  }
-  .rule::after{
-    content:"";position:absolute;right:0;top:-6px;width:12px;height:12px;background:var(--red);
-  }
+  .brand{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .back{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:color .4s var(--ease)}
+  .back:hover{color:var(--ink)}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.4vw,40px);letter-spacing:-.01em;line-height:1}
+  h1 em{font-style:italic;color:var(--pond)}
+  .epig{font-family:var(--serif);font-style:italic;font-size:14.5px;color:#6E7C72;max-width:340px;line-height:1.5}
+  .idx{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
 
-  main{
-    display:grid;grid-template-columns:1fr 300px;gap:28px;
-    padding:26px 32px 48px;max-width:1360px;margin:0 auto;
+  .stage-wrap{padding:0 clamp(18px,4vw,44px) 26px}
+  .stage{
+    position:relative;height:min(76vh,720px);min-height:430px;border-radius:3px;overflow:hidden;
+    background:var(--water);box-shadow:0 1px 0 var(--line),0 18px 50px -30px rgba(95,125,110,.5);
+    cursor:crosshair;
   }
-  @media (max-width:920px){main{grid-template-columns:1fr}}
+  canvas{display:block;width:100%;height:100%}
 
-  .plate{position:relative}
-  .frame{
-    position:relative;background:#fbfaf6;border:1px solid var(--ink);
-    overflow:hidden;
+  .etudes{position:absolute;top:14px;left:14px;right:64px;display:flex;gap:8px;flex-wrap:wrap;z-index:4;transition:opacity .5s var(--ease)}
+  .etudes button{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink);
+    background:rgba(242,239,230,.72);border:1px solid rgba(60,74,66,.28);border-radius:2px;
+    padding:7px 12px;cursor:pointer;backdrop-filter:blur(3px);
+    transition:all .45s var(--ease);
   }
-  .frame canvas{display:block;width:100%;height:auto;cursor:crosshair}
-  .reg{position:absolute;width:14px;height:14px;pointer-events:none}
-  .reg::before,.reg::after{content:"";position:absolute;background:var(--ink)}
-  .reg::before{left:50%;top:0;width:1px;height:100%}
-  .reg::after{top:50%;left:0;height:1px;width:100%}
-  .reg.tl{left:8px;top:8px}.reg.tr{right:8px;top:8px}
-  .reg.bl{left:8px;bottom:8px}.reg.br{right:8px;bottom:8px}
-  .fig{
-    display:flex;justify-content:space-between;margin-top:10px;
-    font-family:var(--mono);font-size:10px;color:var(--dim);
-    letter-spacing:.18em;text-transform:uppercase;
-  }
-  .fig b{color:var(--red);font-weight:400}
+  .etudes button:hover{background:rgba(242,239,230,.95);transform:translateY(-1px)}
+  .etudes button.on{background:var(--pond);color:var(--water);border-color:var(--pond)}
 
-  .dock{
-    border-top:2px solid var(--ink);padding-top:16px;
-    display:flex;flex-direction:column;gap:20px;align-self:start;
-    position:sticky;top:20px;
+  .sndbtn{
+    position:absolute;top:14px;right:14px;z-index:4;width:34px;height:34px;border-radius:2px;
+    border:1px solid rgba(60,74,66,.28);background:rgba(242,239,230,.72);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .45s var(--ease);
   }
-  @media (max-width:920px){.dock{position:static}}
-  .dock h2{
-    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
-    letter-spacing:.24em;text-transform:uppercase;
-    display:flex;justify-content:space-between;
-  }
-  .dock h2 i{font-style:normal;color:var(--red)}
-  .ctl{display:flex;flex-direction:column;gap:8px}
-  .ctl .lab{
-    display:flex;justify-content:space-between;font-family:var(--mono);
-    font-size:11px;letter-spacing:.1em;text-transform:uppercase;
-  }
-  .ctl .lab output{color:var(--red)}
+  .sndbtn:hover{background:rgba(242,239,230,.95)}
+  .sndbtn svg{width:17px;height:17px;stroke:var(--ink);fill:none;stroke-width:1.5;stroke-linecap:round}
+  .sndbtn .waves{opacity:0;transition:opacity .4s}
+  .sndbtn.on .waves{opacity:1}
+  .sndbtn.on .slash{opacity:0}
+  .sndbtn .slash{transition:opacity .4s}
 
-  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
-  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
-  input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-6px;
-    background:var(--red);border:1px solid var(--ink);border-radius:0;
-    transition:transform .15s var(--ease);
+  .sig{
+    position:absolute;left:14px;bottom:52px;z-index:4;display:flex;align-items:center;gap:9px;
+    opacity:.68;cursor:default;user-select:none;
   }
-  input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.25)}
-  input[type=range]::-moz-range-track{height:2px;background:var(--ink)}
-  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--red);border:1px solid var(--ink);border-radius:0}
+  .sig svg{width:20px;height:13px}
+  .sig span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink)}
 
-  .seg{display:flex;flex-direction:column;border:1px solid var(--ink)}
-  .seg button{
-    display:flex;justify-content:space-between;align-items:center;
-    background:transparent;border:0;color:var(--dim);font-family:var(--mono);
-    font-size:11px;letter-spacing:.1em;padding:12px 14px;cursor:pointer;
-    text-transform:uppercase;transition:all .2s var(--ease);
+  .note{
+    position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(8px);z-index:5;
+    font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink);
+    background:rgba(242,240,230,.92);border:1px solid var(--line);border-radius:2px;
+    padding:12px 20px;opacity:0;pointer-events:none;transition:all .8s var(--ease);
+    max-width:82%;text-align:center;
   }
-  .seg button + button{border-top:1px solid var(--ink)}
-  .seg button .idx{font-size:9px;color:var(--dim)}
-  .seg button.on{background:var(--ink);color:var(--paper)}
-  .seg button.on .idx{color:var(--red)}
-  .seg button:not(.on):hover{color:var(--ink);background:rgba(20,20,20,.05)}
+  .note.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-  .btns{display:flex;gap:10px}
-  .btn{
-    flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-    padding:13px 8px;cursor:pointer;background:transparent;color:var(--ink);
-    border:1px solid var(--ink);border-radius:0;transition:all .2s var(--ease);
+  .lume{
+    position:absolute;left:0;right:0;bottom:0;z-index:4;height:40px;
+    display:flex;align-items:center;gap:12px;padding:0 16px;
+    background:linear-gradient(to top,rgba(242,239,230,.9),rgba(242,239,230,0));
+    transition:opacity .5s var(--ease);
   }
-  .btn:hover{background:var(--ink);color:var(--paper)}
-  .btn:active{transform:translateY(2px)}
-  .btn.pri{background:var(--red);border-color:var(--red);color:#fff;font-weight:700}
-  .btn.pri:hover{background:#b8050f;border-color:#b8050f}
-
-  .stat{
-    display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);
-    border:1px solid var(--line);
+  .lume .lab{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);white-space:nowrap}
+  .lume .track{position:relative;flex:1;height:22px;cursor:ew-resize;touch-action:none}
+  .lume .track::before{
+    content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
+    background:linear-gradient(90deg,#9AA7B8,#C9CDD6,#E8E6DF,#F4E3C2,#E8B96F,#8E7BA8,#4E4A6B);
+    border-radius:1px;opacity:.65;
   }
-  .stat div{background:var(--panel);padding:10px 12px}
-  .stat .k{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.2em;text-transform:uppercase}
-  .stat .v{font-family:var(--mono);font-size:15px;margin-top:4px}
-  .stat .v em{font-style:normal;color:var(--red)}
+  .lume .thumb{
+    position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#F4E3C2,#D98E4A);
+    border:1.5px solid rgba(60,74,66,.5);transform:translate(-50%,-50%);
+    box-shadow:0 2px 8px rgba(60,74,66,.3);pointer-events:none;
+    transition:box-shadow .4s;
+  }
+  .lume .heure{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink);min-width:52px;text-align:right}
+  .hideme .etudes,.hideme .lume,.hideme .sig{opacity:0;pointer-events:none}
 
-  footer{
-    margin:0 32px 30px;padding-top:14px;border-top:1px solid var(--line);
-    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
-    font-family:var(--mono);font-size:10px;color:var(--dim);
-    letter-spacing:.18em;text-transform:uppercase;
+  footer{padding:0 clamp(18px,4vw,44px) 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer p{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  @media (max-width:640px){
+    .stage{height:66vh;min-height:400px}
+    .epig{max-width:100%}
+    .sig{bottom:56px}
   }
 </style>
 </head>
 <body>
+
 <header>
-  <div class="sig">
-    <h1>Spectrum<br>Th<em>r</em>ead 线画</h1>
-    <div class="sub">N°<b>11</b> — GEN-ART / 极坐标线画生成器</div>
+  <div class="brand">
+    <a class="back" href="../../../index.html#work">← Archive</a>
+    <h1>Spectrum <em>Thread</em></h1>
   </div>
-  <div class="meta">
-    Polar Thread Plot<br>
-    Chord Density Study<br>
-    Raster 1 : 1
-  </div>
+  <p class="epig">「一千根线落在水面上，密的地方就开出花。」</p>
+  <span class="idx">Gen-Art · N°17</span>
 </header>
-<div class="rule"></div>
 
-<main>
-  <section class="plate">
-    <div class="frame" id="frame">
-      <canvas id="cv"></canvas>
-      <span class="reg tl"></span><span class="reg tr"></span>
-      <span class="reg bl"></span><span class="reg br"></span>
-    </div>
-    <div class="fig">
-      <span>FIG.06 — <b id="figMode">PORTRAIT</b>, THREAD PLOT</span>
-      <span id="figCount">0 THREADS</span>
-    </div>
-  </section>
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
 
-  <aside class="dock">
-    <h2>控制参数 <i>●</i> PARAMETERS</h2>
-
-    <div class="ctl">
-      <div class="lab"><span>线束密度 DENSITY</span><output id="oDen">2600</output></div>
-      <input type="range" id="rDen" min="400" max="6000" value="2600" step="100">
-    </div>
-    <div class="ctl">
-      <div class="lab"><span>弦张力 TENSION</span><output id="oTen">0.30</output></div>
-      <input type="range" id="rTen" min="0" max="100" value="30" step="1">
+    <div class="etudes" id="etudes">
+      <button data-m="nenuphar" class="on">莲 · Nénuphar</button>
+      <button data-m="reflet">影 · Reflet</button>
+      <button data-m="derive">散 · Dérive</button>
+      <button data-m="__regen">再生 ↻</button>
+      <button data-m="__save">PNG ↓</button>
     </div>
 
-    <div class="ctl">
-      <div class="lab"><span>明暗场 STRUCTURE</span></div>
-      <div class="seg" id="segMode">
-        <button data-m="portrait" class="on"><span>肖像 Portrait</span><span class="idx">S-01</span></button>
-        <button data-m="figure"><span>形体 Figure</span><span class="idx">S-02</span></button>
-        <button data-m="scatter"><span>散场 Scatter</span><span class="idx">S-03</span></button>
-      </div>
+    <button class="sndbtn" id="snd" aria-label="声景开关" title="声景（默认关闭）">
+      <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="waves" d="M16.5 8.5c1.6 1.8 1.6 5.2 0 7M19 6.5c2.6 3 2.6 8 0 11"/><path class="slash" d="M17 9l5 6M22 9l-5 6"/></svg>
+    </button>
+
+    <div class="sig" id="sig">
+      <svg viewBox="0 0 64 40" fill="#3C4A42" aria-hidden="true">
+        <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+                 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+                 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+                 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+                 C 35 17, 33 17, 32 20 Z"/>
+      </svg>
+      <span>Atelier MIRA · N°017 · Nymphéas</span>
     </div>
 
-    <div class="stat">
-      <div><div class="k">Threads</div><div class="v" id="sThreads">0</div></div>
-      <div><div class="k">Anchors</div><div class="v"><em>280</em></div></div>
-      <div><div class="k">Field</div><div class="v" id="sField">—</div></div>
-      <div><div class="k">Seed</div><div class="v" id="sSeed">—</div></div>
-    </div>
+    <div class="note" id="note">吉维尼的下午。线放到第一千四百根的时候，水面忽然认出了自己的样子。</div>
 
-    <div class="btns">
-      <button class="btn pri" id="bRegen">随机再生 ↻</button>
-      <button class="btn" id="bSave">下载 PNG</button>
+    <div class="lume">
+      <span class="lab">光 · HEURE</span>
+      <div class="track" id="lume"><div class="thumb" id="thumb"></div></div>
+      <span class="heure" id="heureOut">—</span>
     </div>
-  </aside>
-</main>
+  </div>
+</div>
 
 <footer>
-  <span>SPECTRUM THREAD — POLAR CHORD STUDY</span>
-  <span>MOVE CURSOR TO ROTATE · 移动光标微转视角</span>
+  <p>线密之处显影 · 点击落下涟漪，移动光标微转视角</p>
+  <p id="stats">Canvas 2D · polar chord · ——</p>
 </footer>
 
 <script>
+(function(){
 "use strict";
-/* ============ SPECTRUM THREAD — polar thread plot ============ */
-const cv = document.getElementById("cv");
-const ctx = cv.getContext("2d");
-const N_ANCHORS = 280;
-
-const state = {
-  density: 2600,
-  tension: 0.30,
-  mode: "portrait",
-  seed: Math.floor(Math.random() * 1e6),
-  rot: 0, rotTarget: 0,
-  anchors: [],
-  blobs: [],
-  threads: [],      // {ax,ay,bx,by,cx,cy}
-  drawing: false
+/* ---------- palette: Nymphéas 睡莲（冷中带暖斑，莲粉 ≤8% 点状） ---------- */
+const PAL={
+  water:[242,239,230], ripple:[220,228,218], willow:[169,191,173],
+  pond:[95,125,110], sky:[124,143,166], lotus:[201,166,180]
 };
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const stage=document.getElementById('stage');
+let W=0,H=0,DPR=1;
+const N_ANCHORS=280;
 
-function mulberry32(a){
-  return function(){
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ---------- heure 时间系统（签名） ---------- */
+let heure=new Date().getHours()+new Date().getMinutes()/60;
+const hash=location.hash.match(/h=([\d.]+)/);if(hash)heure=parseFloat(hash[1])%24;
+const KEYS=[
+  [0,  [78,74,107],.34,[142,123,168],.05,.16],
+  [5,  [154,167,184],.24,[220,228,218],.10,.40],
+  [8,  [201,205,214],.10,[242,239,230],.06,.72],
+  [12, [242,239,230],.04,[244,240,228],.05,1.0],
+  [16, [220,228,218],.08,[244,227,194],.10,.86],
+  [18.5,[217,142,74],.18,[232,185,111],.20,.62],
+  [20.5,[95,125,110],.30,[169,191,173],.08,.32],
+  [24, [78,74,107],.34,[142,123,168],.05,.16]
+];
+function lightAt(h){
+  h=((h%24)+24)%24;
+  let i=0;while(i<KEYS.length-2&&KEYS[i+1][0]<h)i++;
+  const a=KEYS[i],b=KEYS[i+1],t=Math.min(1,Math.max(0,(h-a[0])/(b[0]-a[0]||1)));
+  const L=(x,y)=>x+(y-x)*t, mix3=(u,v)=>[L(u[0],v[0]),L(u[1],v[1]),L(u[2],v[2])];
+  return {tint:mix3(a[1],b[1]),tintA:L(a[2],b[2]),warm:mix3(a[3],b[3]),warmA:L(a[4],b[4]),light:L(a[5],b[5])};
 }
 
-/* ---- anchors on the unit circle ---- */
+/* ---------- 线画引擎（沿用原作：圆周锚点 + 明暗场 + 拒绝采样） ---------- */
+const state={
+  density:2600, tension:.30, mode:"nenuphar",
+  seed:Math.floor(Math.random()*1e6),
+  rot:0, rotTarget:0,
+  anchors:[], blobs:[], threads:[], lotuses:[], drawing:false
+};
 function buildAnchors(){
-  const rng = mulberry32(state.seed);
-  state.anchors = [];
-  for (let i = 0; i < N_ANCHORS; i++){
-    const a = (i / N_ANCHORS) * Math.PI * 2 + (rng() - 0.5) * 0.02;
-    const r = 1 + (rng() - 0.5) * 0.015;
-    state.anchors.push([Math.cos(a) * r, Math.sin(a) * r]);
+  const rng=mulberry32(state.seed);
+  state.anchors=[];
+  for(let i=0;i<N_ANCHORS;i++){
+    const a=(i/N_ANCHORS)*Math.PI*2+(rng()-.5)*.02;
+    const r=1+(rng()-.5)*.015;
+    state.anchors.push([Math.cos(a)*r,Math.sin(a)*r]);
   }
 }
-
-/* ---- brightness field: gaussian blob arrangements ---- */
 function buildField(){
-  const rng = mulberry32(state.seed ^ 0xBEEF);
-  const B = [];
-  const blob = (x, y, s, w) => B.push([x, y, s, w]);
-  if (state.mode === "portrait"){
-    blob(0, -0.22, 0.40, 1.00);            // head mass
-    blob(-0.14, -0.28, 0.10, 0.65);        // eye shadow
-    blob(0.15, -0.27, 0.10, 0.60);
-    blob(0.02, -0.10, 0.09, 0.45);         // nose ridge
-    blob(0, 0.16, 0.16, 0.40);             // neck
-    blob(0, 0.62, 0.46, 0.85);             // shoulders
-  } else if (state.mode === "figure"){
-    blob(0, -0.52, 0.18, 0.70);            // head
-    blob(0, -0.05, 0.28, 0.95);            // torso
-    blob(-0.22, 0.18, 0.16, 0.55);         // arm
-    blob(0.20, 0.30, 0.18, 0.60);
-    blob(0, 0.62, 0.40, 0.80);             // base
-  } else {
-    for (let i = 0; i < 7; i++){
-      blob((rng() - 0.5) * 1.1, (rng() - 0.5) * 1.1,
-           0.12 + rng() * 0.30, 0.35 + rng() * 0.65);
+  const rng=mulberry32(state.seed^0xBEEF);
+  const B=[];
+  const blob=(x,y,s,w)=>B.push([x,y,s,w]);
+  if(state.mode==="nenuphar"){
+    /* 一丛莲：中心花 + 环绕叶盘 */
+    blob(0,-.05,.30,1.0);
+    const n=5+((rng()*3)|0);
+    for(let i=0;i<n;i++){
+      const a=(i/n)*Math.PI*2+rng()*.6;
+      const rr=.42+rng()*.3;
+      blob(Math.cos(a)*rr,Math.sin(a)*rr-.05,.12+rng()*.14,.4+rng()*.4);
+    }
+  }else if(state.mode==="reflet"){
+    /* 倒影：一棵水中树影 */
+    blob(0,-.55,.16,.7);
+    blob(0,-.1,.24,.95);
+    blob(-.16,.2,.14,.55);
+    blob(.18,.28,.16,.6);
+    blob(0,.55,.4,.8);
+  }else{
+    for(let i=0;i<7;i++){
+      blob((rng()-.5)*1.1,(rng()-.5)*1.1,.12+rng()*.3,.35+rng()*.65);
     }
   }
-  /* grain: small random texture blobs */
-  for (let i = 0; i < 14; i++){
-    blob((rng() - 0.5) * 1.3, (rng() - 0.5) * 1.3,
-         0.05 + rng() * 0.09, 0.10 + rng() * 0.22);
+  for(let i=0;i<14;i++){
+    blob((rng()-.5)*1.3,(rng()-.5)*1.3,.05+rng()*.09,.10+rng()*.22);
   }
-  state.blobs = B;
+  state.blobs=B;
 }
-function field(x, y){
-  let f = 0;
-  for (const [bx, by, s, w] of state.blobs){
-    const d2 = (x - bx) * (x - bx) + (y - by) * (y - by);
-    f += w * Math.exp(-d2 / (2 * s * s));
+function field(x,y){
+  let f=0;
+  for(const b of state.blobs){
+    const d2=(x-b[0])*(x-b[0])+(y-b[1])*(y-b[1]);
+    f+=b[3]*Math.exp(-d2/(2*b[2]*b[2]));
   }
-  return Math.min(1, f);
+  return Math.min(1,f);
 }
-
-/* ---- rejection-sampled chord generation ---- */
 function makeThread(rng){
-  const A = state.anchors;
-  const a = A[Math.floor(rng() * N_ANCHORS)];
-  let b = null;
-  for (let t = 0; t < 14; t++){
-    const c = A[Math.floor(rng() * N_ANCHORS)];
-    const mx = (a[0] + c[0]) / 2, my = (a[1] + c[1]) / 2;
-    if (rng() < Math.pow(field(mx, my), 1.25)){ b = c; break; }
+  const A=state.anchors;
+  const a=A[(rng()*N_ANCHORS)|0];
+  let b=null;
+  for(let t=0;t<14;t++){
+    const c=A[(rng()*N_ANCHORS)|0];
+    const mx=(a[0]+c[0])/2,my=(a[1]+c[1])/2;
+    if(rng()<Math.pow(field(mx,my),1.25)){b=c;break}
   }
-  if (!b) b = A[Math.floor(rng() * N_ANCHORS)];
-  if (b === a) return null;
-  /* quadratic control pulled toward center by tension */
-  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
-  const k = state.tension * 0.9;
-  return { ax: a[0], ay: a[1], bx: b[0], by: b[1],
-           cx: mx * (1 - k), cy: my * (1 - k) };
+  if(!b)b=A[(rng()*N_ANCHORS)|0];
+  if(b===a)return null;
+  const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+  const k=state.tension*.9;
+  const fm=field(mx,my);
+  return {ax:a[0],ay:a[1],bx:b[0],by:b[1],cx:mx*(1-k),cy:my*(1-k),
+          ci:(rng()*3)|0, // 三色点彩：深塘/柳绿/天光
+          fa:fm<.3?0:fm<.62?1:2}; // 三档墨量：线密之处色深
+}
+/* 莲的位置：场上最密的三处 */
+function findLotuses(){
+  const spots=[];
+  for(let gy=-4;gy<=4;gy++)for(let gx=-4;gx<=4;gx++){
+    const x=gx/5,y=gy/5,f=field(x,y);
+    if(f>.62)spots.push({x,y,f});
+  }
+  spots.sort((a,b)=>b.f-a.f);
+  const keep=[];
+  for(const s of spots){
+    if(keep.length>=3)break;
+    if(keep.every(k=>(k.x-s.x)*(k.x-s.x)+(k.y-s.y)*(k.y-s.y)>.16))keep.push(s);
+  }
+  state.lotuses=keep;
 }
 
-/* ---- sizing ---- */
-let dpr = 1, size = 0;
-function resize(){
-  dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const frame = document.getElementById("frame");
-  size = frame.clientWidth;
-  cv.width = Math.round(size * dpr);
-  cv.height = Math.round(size * dpr);
-  render();
+/* ---------- 池水背景（碎色笔触） ---------- */
+let bgC=null;
+function mix3(a,b,t){return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t]}
+function jit(c,amt,r){const j=(r()-.5)*2*amt;return [c[0]+j*.9,c[1]+j,c[2]+j*1.1]}
+function buildBG(){
+  const r=mulberry32(4400);
+  bgC=document.createElement('canvas');bgC.width=W*DPR;bgC.height=H*DPR;
+  const g=bgC.getContext('2d');g.scale(DPR,DPR);
+  g.fillStyle=`rgb(${mix3(PAL.water,PAL.ripple,.45).map(v=>v|0)})`;g.fillRect(0,0,W,H);
+  g.lineCap='round';
+  for(let i=0;i<1600;i++){
+    const x=r()*W,y=r()*H;
+    const pick=r();
+    const base=pick<.5?PAL.ripple:pick<.78?PAL.willow:PAL.sky;
+    const c=jit(mix3(PAL.water,base,.6+r()*.35),7,r);
+    g.strokeStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${(.3+r()*.3).toFixed(2)})`;
+    g.lineWidth=1+r()*2;
+    const len=5+r()*14;
+    g.beginPath();g.moveTo(x,y);g.lineTo(x+len,y+(r()-.5)*4);g.stroke();
+  }
 }
 
-/* ---- render all threads ---- */
-function render(){
-  const s = size, c = s / 2;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.fillStyle = "#fbfaf6";
-  ctx.fillRect(0, 0, s, s);
-
-  ctx.save();
-  ctx.translate(c, c);
-  ctx.rotate(state.rot);
-  const R = s * 0.44;
-
-  /* faint guide circle + red center mark */
-  ctx.strokeStyle = "rgba(20,20,20,.14)";
-  ctx.lineWidth = 1;
-  ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.stroke();
-  ctx.strokeStyle = "#e30613";
-  ctx.beginPath();
-  ctx.moveTo(-5, 0); ctx.lineTo(5, 0);
-  ctx.moveTo(0, -5); ctx.lineTo(0, 5);
-  ctx.stroke();
-
-  ctx.strokeStyle = "rgba(20,20,20,.075)";
-  ctx.lineWidth = 0.6;
-  ctx.beginPath();
-  for (const t of state.threads){
-    ctx.moveTo(t.ax * R, t.ay * R);
-    ctx.quadraticCurveTo(t.cx * R, t.cy * R, t.bx * R, t.by * R);
+/* ---------- 纸纹 + 颗粒 ---------- */
+let paperC=null;
+function makePaper(){
+  paperC=document.createElement('canvas');paperC.width=Math.max(2,W*DPR/2);paperC.height=Math.max(2,H*DPR/2);
+  const p=paperC.getContext('2d');p.scale(DPR/2,DPR/2);
+  const r=mulberry32(80);
+  for(let i=0;i<4200;i++){
+    p.fillStyle=`rgba(${r()<.5?'60,74,66':'255,253,246'},${(.02+r()*.04).toFixed(3)})`;
+    p.fillRect(r()*W,r()*H,1+r()*1.6,1+r()*1.2);
   }
-  ctx.stroke();
+}
+const grainC=document.createElement('canvas');grainC.width=grainC.height=128;
+function makeGrain(){
+  const g=grainC.getContext('2d');const im=g.createImageData(128,128);
+  for(let i=0;i<im.data.length;i+=4){const v=110+Math.random()*40;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=14}
+  g.putImageData(im,0,0);
+}
+makeGrain();setInterval(makeGrain,83);
 
-  /* anchors */
-  ctx.fillStyle = "rgba(20,20,20,.5)";
-  for (const [x, y] of state.anchors){
-    ctx.fillRect(x * R - 0.6, y * R - 0.6, 1.2, 1.2);
+/* ---------- 涟漪（L1.5 点击压力波，线会散开再回弹） ---------- */
+let ripples=[];
+stage.addEventListener('pointerdown',e=>{
+  const r=stage.getBoundingClientRect();
+  ripples.push({x:e.clientX-r.left,y:e.clientY-r.top,r:0,a:1});
+  if(sound.on)sound.drop();
+});
+
+/* ---------- 指针微转视角（阻尼） ---------- */
+cv.addEventListener('pointermove',e=>{
+  const r=cv.getBoundingClientRect();
+  state.rotTarget=((e.clientX-r.left)/r.width-.5)*.10;
+});
+cv.addEventListener('pointerleave',()=>{state.rotTarget=0});
+
+/* ---------- 声景（L5，默认 OFF）：风 + 水滴 ---------- */
+const sound={on:false,ctx:null,master:null,
+  init(){ if(this.ctx)return;
+    const C=this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const M=this.master=C.createGain();M.gain.value=0;M.connect(C.destination);
+    const len=2*C.sampleRate,buf=C.createBuffer(1,len,C.sampleRate),d=buf.getChannelData(0);
+    let l=0;for(let i=0;i<len;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.2}
+    const src=C.createBufferSource();src.buffer=buf;src.loop=true;
+    const bp=C.createBiquadFilter();bp.type='bandpass';bp.frequency.value=380;bp.Q.value=1;
+    const wg=C.createGain();wg.gain.value=.1;src.connect(bp);bp.connect(wg);wg.connect(M);src.start();
+    this.scheduleDrop();
+  },
+  scheduleDrop(){ if(!this.ctx)return;
+    setTimeout(()=>{ if(this.on)this.drop(true); this.scheduleDrop(); },4000+Math.random()*8000);
+  },
+  drop(far){ const C=this.ctx;if(!C)return;const t=C.currentTime;
+    const o=C.createOscillator(),g=C.createGain();
+    o.frequency.setValueAtTime(1800,t);
+    o.frequency.exponentialRampToValueAtTime(600,t+.04);
+    g.gain.setValueAtTime(far?.02:.05,t);
+    g.gain.exponentialRampToValueAtTime(.0001,t+.09);
+    o.connect(g);g.connect(this.master);o.start(t);o.stop(t+.1);
+  },
+  toggle(){ this.on=!this.on;
+    if(this.on){this.init();this.ctx.resume();const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.setValueAtTime(0,t);
+      this.master.gain.linearRampToValueAtTime(1,t+1.5);}
+    else if(this.ctx){const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.linearRampToValueAtTime(0,t+.6);}
+    localStorage.setItem('mira-sound',this.on?'1':'0');
+    document.getElementById('snd').classList.toggle('on',this.on);
   }
-  ctx.restore();
+};
+document.getElementById('snd').addEventListener('click',e=>{e.stopPropagation();sound.toggle()});
+if(localStorage.getItem('mira-sound')==='1'){
+  const arm=()=>{sound.toggle();removeEventListener('pointerdown',arm)};addEventListener('pointerdown',arm);}
+
+/* ---------- lume 时间轴 ---------- */
+const lume=document.getElementById('lume'),thumb=document.getElementById('thumb'),heureOut=document.getElementById('heureOut');
+let lumeDrag=false;
+function lumeSet(e){const r=lume.getBoundingClientRect();
+  heure=Math.min(24,Math.max(0,(e.clientX-r.left)/r.width*24));
+  history.replaceState(null,'',`#h=${heure.toFixed(1)}`);}
+lume.addEventListener('pointerdown',e=>{lumeDrag=true;lume.setPointerCapture(e.pointerId);lumeSet(e);e.stopPropagation()});
+lume.addEventListener('pointermove',e=>{if(lumeDrag)lumeSet(e)});
+lume.addEventListener('pointerup',()=>lumeDrag=false);
+
+/* ---------- études ---------- */
+document.getElementById('etudes').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  const m=b.dataset.m;
+  if(m==='__regen'){regen(true);return}
+  if(m==='__save'){download();return}
+  state.mode=m;
+  document.querySelectorAll('.etudes button[data-m]').forEach(x=>{
+    if(!x.dataset.m.startsWith('__'))x.classList.toggle('on',x.dataset.m===m)});
+  regen(false);
+});
+function download(){
+  const a=document.createElement('a');
+  a.download="spectrum-thread-"+state.seed+".png";
+  a.href=cv.toDataURL("image/png");a.click();
+}
+function stats(){
+  document.getElementById('stats').textContent=
+    "Canvas 2D · "+state.mode.toUpperCase()+" · "+state.threads.length+" threads · seed "+
+    (state.seed%65536).toString(16).toUpperCase().padStart(4,"0");
 }
 
-/* ---- progressive thread drawing ---- */
-let pumpGen = 0;
+/* ---------- 渐进放线 ---------- */
+let pumpGen=0;
 function pump(gen){
-  if (gen !== pumpGen) return;
-  if (state.threads.length < state.density){
-    const rng = mulberry32(state.seed ^ (state.threads.length * 7919 + 13));
-    const batch = Math.min(70, state.density - state.threads.length);
-    for (let i = 0; i < batch; i++){
-      const t = makeThread(rng);
-      if (t) state.threads.push(t);
+  if(gen!==pumpGen)return;
+  if(state.threads.length<state.density){
+    const rng=mulberry32(state.seed^(state.threads.length*7919+13));
+    const batch=Math.min(200,state.density-state.threads.length);
+    for(let i=0;i<batch;i++){
+      const t=makeThread(rng);
+      if(t)state.threads.push(t);
     }
-    updateStats();
-    render();
-    requestAnimationFrame(() => pump(gen));
-  } else {
-    state.drawing = false;
+    stats();
+    requestAnimationFrame(()=>pump(gen));
+  }else{
+    state.drawing=false;
+    bloomTarget=1; // 线放完了：莲开（wow 显影）
   }
 }
-function restart(){
-  state.threads = [];
-  state.drawing = true;
-  pumpGen++;
-  pump(pumpGen);
+function regen(newSeed){
+  if(newSeed)state.seed=Math.floor(Math.random()*1e6);
+  buildAnchors();buildField();findLotuses();
+  state.threads=[];state.drawing=true;bloom=0;bloomTarget=0;
+  pumpGen++;pump(pumpGen);stats();
 }
 
-/* ---- regenerate ---- */
-function regenerate(newSeed){
-  if (newSeed) state.seed = Math.floor(Math.random() * 1e6);
-  buildAnchors();
-  buildField();
-  restart();
-  document.getElementById("sSeed").textContent =
-    (state.seed % 65536).toString(16).toUpperCase().padStart(4, "0");
-  document.getElementById("sField").textContent = state.mode.toUpperCase();
-  document.getElementById("figMode").textContent = state.mode.toUpperCase();
-}
+/* ---------- 显影：莲开脉冲 ---------- */
+let bloom=0,bloomTarget=0;
 
-function updateStats(){
-  document.getElementById("sThreads").textContent = state.threads.length;
-  document.getElementById("figCount").textContent = state.threads.length + " THREADS";
-}
-
-/* ---- mouse rotation ---- */
-let lastMX = 0.5;
-cv.addEventListener("mousemove", (e) => {
-  const r = cv.getBoundingClientRect();
-  lastMX = (e.clientX - r.left) / r.width;
-  state.rotTarget = (lastMX - 0.5) * 0.10;
+/* ---------- 隐藏题记（落款连点 3 次） ---------- */
+let sigClicks=0,sigTimer=null;
+document.getElementById('sig').addEventListener('click',()=>{
+  sigClicks++;clearTimeout(sigTimer);sigTimer=setTimeout(()=>sigClicks=0,900);
+  if(sigClicks>=3){sigClicks=0;const n=document.getElementById('note');
+    n.classList.add('show');setTimeout(()=>n.classList.remove('show'),5200);}
 });
-cv.addEventListener("mouseleave", () => { state.rotTarget = 0; });
-(function rotLoop(){
-  const d = state.rotTarget - state.rot;
-  if (Math.abs(d) > 0.0004){
-    state.rot += d * 0.08;
-    render();
+
+/* ---------- H 键收起 / R 再生 ---------- */
+addEventListener('keydown',e=>{
+  if(e.key==='h'||e.key==='H')stage.classList.toggle('hideme');
+  if(e.key==='r'||e.key==='R')regen(true);
+});
+
+/* ---------- resize ---------- */
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  W=stage.clientWidth;H=stage.clientHeight;
+  cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  makePaper();buildBG();
+}
+addEventListener('resize',resize);
+
+/* ---------- 主循环 ---------- */
+let t=0;
+const THREAD_C=[[52,72,62],[110,142,118],[88,112,136]];
+function frame(){
+  t+=.016;
+  state.rot+=(state.rotTarget-state.rot)*.08;
+  bloom+=(bloomTarget-bloom)*.02; // 缓慢的显影
+
+  const L=lightAt(heure);
+  ctx.drawImage(bgC,0,0,W,H);
+
+  const cx0=W*.44, cy0=H*.52, R=Math.min(W,H)*.36;
+  // 导引圆 + 锚点
+  ctx.save();
+  ctx.translate(cx0,cy0);ctx.rotate(state.rot);
+  ctx.strokeStyle=`rgba(${PAL.pond},.25)`;ctx.lineWidth=1;
+  ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.stroke();
+
+  // 线（涟漪位移：控制点沿径向偏移；三档墨量让明暗场显影）
+  const rip=ripples.map(w=>({x:(w.x-cx0)/R,y:(w.y-cy0)/R,r:w.r/R,a:w.a}));
+  ctx.lineWidth=.6;
+  const buckets=[[[],[],[]],[[],[],[]],[[],[],[]]];
+  for(const th of state.threads)buckets[th.ci][th.fa].push(th);
+  const FA=[.05,.13,.30];
+  for(let ci=0;ci<3;ci++){
+    const c=THREAD_C[ci];
+    for(let fa=0;fa<3;fa++){
+      ctx.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},${FA[fa]})`;
+      ctx.beginPath();
+      for(const th of buckets[ci][fa]){
+      let ox=0,oy=0;
+      for(const w of rip){
+        const dx=th.cx-w.x,dy=th.cy-w.y,d=Math.hypot(dx,dy);
+        if(d>.01){
+          const g=Math.exp(-((d-w.r)*(d-w.r))/(2*.06))*.05*w.a;
+          ox+=dx/d*g;oy+=dy/d*g;
+        }
+      }
+      ctx.moveTo(th.ax*R,th.ay*R);
+      ctx.quadraticCurveTo((th.cx+ox)*R,(th.cy+oy)*R,th.bx*R,th.by*R);
+      }
+      ctx.stroke();
+    }
   }
-  requestAnimationFrame(rotLoop);
+  // 锚点
+  ctx.fillStyle=`rgba(${PAL.pond},.5)`;
+  for(const a of state.anchors)ctx.fillRect(a[0]*R-.6,a[1]*R-.6,1.2,1.2);
+  ctx.restore();
+
+  // 莲：线放满后显影（莲粉 ≤8%，只点状）
+  if(bloom>.02){
+    const br=mulberry32(state.seed^0x107);
+    const lotusDeep=[184,138,158];
+    for(const lo of state.lotuses){
+      const x=cx0+lo.x*R, y=cy0+lo.y*R;
+      const n=Math.round(22*bloom)+6;
+      for(let k=0;k<n;k++){
+        const a=br()*Math.PI*2, rr=br()*R*.11*bloom;
+        const c=jit(br()<.7?lotusDeep:PAL.lotus,8,br);
+        ctx.fillStyle=`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${(bloom*(.55+br()*.4)).toFixed(2)})`;
+        ctx.beginPath();ctx.arc(x+Math.cos(a)*rr,y+Math.sin(a)*rr*.8,1.2+br()*2.6,0,7);ctx.fill();
+      }
+      // 一两点叶心水光
+      ctx.fillStyle=`rgba(${PAL.water},${(bloom*.85).toFixed(2)})`;
+      ctx.beginPath();ctx.arc(x,y,1.6,0,7);ctx.fill();
+    }
+  }
+  // 涟漪圈
+  for(const w of ripples){
+    ctx.strokeStyle=`rgba(${PAL.sky},${(w.a*.4).toFixed(2)})`;
+    ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(w.x,w.y,w.r,0,7);ctx.stroke();
+  }
+
+  // 光：全局色温 + 暮光暖带
+  ctx.globalCompositeOperation='multiply';
+  ctx.fillStyle=`rgba(${L.tint[0]|0},${L.tint[1]|0},${L.tint[2]|0},${(L.tintA*.7).toFixed(3)})`;
+  ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='overlay';
+  if(L.warmA>.03){
+    const sunX=W*(heure<12?.24:.78),sunY=H*.18;
+    const g=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,Math.max(W,H)*.7);
+    g.addColorStop(0,`rgba(${L.warm[0]|0},${L.warm[1]|0},${L.warm[2]|0},${(L.warmA*1.5).toFixed(3)})`);
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  ctx.globalCompositeOperation='source-over';
+  const dark=(1-L.light)*.28;
+  if(dark>.02){ctx.fillStyle=`rgba(63,84,74,${dark.toFixed(3)})`;ctx.fillRect(0,0,W,H)} // 夜塘不是黑
+
+  // 纸纹 + 颗粒
+  ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.85;
+  ctx.drawImage(paperC,0,0,W,H);
+  ctx.globalCompositeOperation='overlay';ctx.globalAlpha=.05;
+  ctx.drawImage(grainC,0,0,W,H);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+
+  for(const w of ripples){w.r+=3.4;w.a*=.94}
+  ripples=ripples.filter(w=>w.a>.03);
+
+  thumb.style.left=(heure/24*100)+'%';
+  const hh=Math.floor(heure),mm=Math.floor((heure-hh)*60);
+  heureOut.textContent=`H ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+
+  requestAnimationFrame(frame);
+}
+buildAnchors();buildField();findLotuses();
+resize();regen(false);
+requestAnimationFrame(frame);
 })();
-
-/* ---- ui wiring ---- */
-const rDen = document.getElementById("rDen");
-const rTen = document.getElementById("rTen");
-rDen.addEventListener("input", () => {
-  state.density = +rDen.value;
-  document.getElementById("oDen").textContent = state.density;
-  if (state.threads.length > state.density){
-    state.threads.length = state.density;
-    updateStats(); render();
-  } else if (!state.drawing){
-    state.drawing = true; pumpGen++; pump(pumpGen);
-  }
-});
-rTen.addEventListener("input", () => {
-  state.tension = +rTen.value / 100;
-  document.getElementById("oTen").textContent = state.tension.toFixed(2);
-  /* recompute control points only — keep chord pairing */
-  for (const t of state.threads){
-    const mx = (t.ax + t.bx) / 2, my = (t.ay + t.by) / 2;
-    const k = state.tension * 0.9;
-    t.cx = mx * (1 - k); t.cy = my * (1 - k);
-  }
-  render();
-});
-
-const seg = document.getElementById("segMode");
-seg.addEventListener("click", (e) => {
-  const b = e.target.closest("button");
-  if (!b) return;
-  seg.querySelectorAll("button").forEach((x) => x.classList.remove("on"));
-  b.classList.add("on");
-  state.mode = b.dataset.m;
-  regenerate(false);
-});
-
-document.getElementById("bRegen").addEventListener("click", () => regenerate(true));
-document.getElementById("bSave").addEventListener("click", () => {
-  const a = document.createElement("a");
-  a.download = "spectrum-thread-" + state.seed + ".png";
-  a.href = cv.toDataURL("image/png");
-  a.click();
-});
-
-window.addEventListener("resize", resize);
-resize();
-regenerate(false);
 </script>
 </body>
 </html>

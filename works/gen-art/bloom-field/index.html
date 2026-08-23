@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BLOOM FIELD 滋生标本 — 差分生长研究所</title>
+<title>BLOOM FIELD 滋生标本 — Étude N°08 · 滋生标本</title>
 <style>
   :root{
     --paper:#ece7d9; --panel:#e3ddcc; --line:#c9c1a8;
@@ -14,37 +14,52 @@
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden;transition:background 1.4s var(--ease)}
   ::selection{background:var(--coral);color:#fff}
 
-  header{display:flex;justify-content:space-between;align-items:flex-end;padding:26px 30px 0;gap:20px;flex-wrap:wrap}
-  .sig{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
-  .sig h1{font-family:var(--serif);font-size:27px;font-weight:700;letter-spacing:.03em;line-height:1}
-  .sig h1 em{font-style:italic;color:var(--moss)}
-  .sig .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em;padding-bottom:3px}
-  .sig .no b{color:var(--coral);font-weight:400}
+  /* ---------- herbarium paper grain over the whole page ---------- */
+  .pagegrain{
+    position:fixed;inset:0;z-index:60;pointer-events:none;
+    mix-blend-mode:multiply;opacity:.5;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='260' height='260' viewBox='0 0 260 260'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)' opacity='.30'/%3E%3C/svg%3E");
+  }
+
+  header{display:flex;justify-content:space-between;align-items:center;padding:26px 30px 0;gap:20px;flex-wrap:wrap}
+  .sig{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .seal{width:54px;height:54px;flex:none;color:var(--coral);transition:color 1.4s var(--ease)}
+  .seal .ring{animation:sealspin 72s linear infinite;transform-origin:32px 32px}
+  @keyframes sealspin{to{transform:rotate(360deg)}}
+  .sig .tt h1{font-family:var(--serif);font-size:27px;font-weight:700;letter-spacing:.03em;line-height:1}
+  .sig .tt h1 em{font-style:italic;color:var(--moss);transition:color 1.4s var(--ease)}
+  .sig .tt .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em;margin-top:6px}
+  .sig .tt .no b{color:var(--coral);font-weight:400}
   header p.tag{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.14em;text-align:right;text-transform:uppercase;line-height:1.9}
+  header p.tag b{color:var(--ink);font-weight:400}
   .rule{margin:16px 30px 0;border-top:1px solid var(--ink);position:relative}
   .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
 
-  main{display:grid;grid-template-columns:1fr 292px;gap:26px;padding:24px 30px 48px;max-width:1460px;margin:0 auto}
+  main{display:grid;grid-template-columns:1fr 296px;gap:26px;padding:24px 30px 48px;max-width:1460px;margin:0 auto}
   @media (max-width:960px){main{grid-template-columns:1fr}}
 
   .stage{
     position:relative;background:#f0ebdd;border:1px solid var(--ink);
-    box-shadow:7px 7px 0 rgba(43,42,36,.10);overflow:hidden;
+    box-shadow:7px 7px 0 rgba(43,42,36,.10);overflow:hidden;transition:background 1.4s var(--ease);
   }
   .stage::before{content:"";display:block;padding-top:75%}
   .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
   #hud{pointer-events:none}
-  #bio{cursor:crosshair}
+  #bio{cursor:crosshair;touch-action:none}
   .stamp{position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink);border:1px solid var(--ink);padding:4px 9px;background:rgba(236,231,217,.88);pointer-events:none;text-transform:uppercase}
   .hint{position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:rgba(43,42,36,.55);pointer-events:none;text-transform:uppercase}
+  .wx{position:absolute;left:12px;top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(43,42,36,.6);pointer-events:none;text-transform:uppercase}
+  .wx b{color:var(--coral);font-weight:400}
 
-  .dock{border:1px solid var(--ink);background:var(--panel);padding:22px 20px;display:flex;flex-direction:column;gap:20px;align-self:start;position:sticky;top:20px}
+  .dock{border:1px solid var(--ink);background:var(--panel);padding:22px 20px;display:flex;flex-direction:column;gap:18px;align-self:start;position:sticky;top:20px;transition:background 1.4s var(--ease)}
   @media (max-width:960px){.dock{position:static}}
   .dock h2{font-family:var(--serif);font-size:14px;font-weight:700;letter-spacing:.26em;border-bottom:1px solid var(--ink);padding-bottom:12px;display:flex;justify-content:space-between;align-items:baseline}
   .dock h2 span{font-family:var(--mono);font-size:9px;font-weight:400;color:var(--dim);letter-spacing:.18em}
+  .grp{display:flex;flex-direction:column;gap:8px}
+  .grp>.gt{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase}
   .ctl{display:flex;flex-direction:column;gap:8px}
   .ctl label{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.12em;color:var(--ink)}
   .ctl label output{font-family:var(--mono);font-size:10px;color:var(--coral)}
@@ -55,27 +70,65 @@
   input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
   input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--coral);border:1px solid var(--ink);border-radius:50%}
 
+  .seg{display:flex;border:1px solid var(--ink)}
+  .seg button{
+    flex:1;background:transparent;border:0;color:var(--ink);
+    font-family:var(--serif);font-size:13px;letter-spacing:.06em;
+    padding:8px 0;cursor:pointer;transition:all .25s var(--ease);
+  }
+  .seg button + button{border-left:1px solid var(--ink)}
+  .seg button.on{background:var(--moss);color:var(--paper)}
+  .seg button:not(.on):hover{background:rgba(39,64,53,.08)}
+  .seg.mode button{font-family:var(--mono);font-size:10px;letter-spacing:.08em}
+
   .btns{display:flex;flex-direction:column;gap:10px}
-  button{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;padding:12px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:all .25s var(--ease)}
-  button:hover{background:var(--moss);border-color:var(--moss);color:var(--paper)}
-  button.primary{background:var(--moss);border-color:var(--moss);color:var(--paper)}
-  button.primary:hover{background:var(--coral);border-color:var(--coral);color:#fff}
-  button:active{transform:translateY(1px)}
+  .btns button{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;padding:12px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:all .25s var(--ease)}
+  .btns button:hover{background:var(--moss);border-color:var(--moss);color:var(--paper)}
+  .btns button.primary{background:var(--moss);border-color:var(--moss);color:var(--paper)}
+  .btns button.primary:hover{background:var(--coral);border-color:var(--coral);color:#fff}
+  .btns button:active{transform:translateY(1px)}
+
+  .keys{border-top:1px solid var(--line);padding-top:12px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em;line-height:2.1}
+  .keys b{display:inline-block;min-width:16px;text-align:center;color:var(--ink);border:1px solid var(--line);padding:1px 4px;margin-right:4px;font-weight:400}
 
   .note{font-size:11px;line-height:2;color:#54503f;border-top:1px solid var(--line);padding-top:14px;letter-spacing:.03em}
   .note b{color:var(--moss)}
 
   footer{padding:0 30px 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+  footer b{color:var(--coral);font-weight:400}
 </style>
-</head>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
 <body>
+
+<div class="pagegrain" aria-hidden="true"></div>
 
 <header>
   <div class="sig">
-    <h1>BLOOM <em>FIELD</em></h1>
-    <span class="no">N°<b>07</b> — GEN-ART / 差分生长有机形态</span>
+    <svg class="seal" viewBox="0 0 64 64" aria-hidden="true">
+      <defs><path id="sealRing" d="M32,32 m-23.5,0 a23.5,23.5 0 1,1 47,0 a23.5,23.5 0 1,1 -47,0"/></defs>
+      <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <circle cx="32" cy="32" r="16.5" fill="none" stroke="currentColor" stroke-width=".9"/>
+      <g class="ring"><text font-family="SF Mono,Menlo,monospace" font-size="6.4" letter-spacing="2.4" fill="currentColor"><textPath href="#sealRing">ATELIER MIRA · ATELIER MIRA ·</textPath></text></g>
+      <path d="M23.5 42.2 C24.2 36.4 25.1 29.2 26.3 23.4 L31.7 33.9 C33.5 30.1 35.4 26.6 37.9 23.2 C38.7 29.6 39.6 36.2 40.3 41.6"
+            fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div class="tt">
+      <h1>BLOOM <em>FIELD</em></h1>
+      <div class="no">ÉTUDE <b>N°08/100</b> · BLOOM FIELD · 滋生标本</div>
+    </div>
   </div>
-  <p class="tag">Differential growth · specimen archive<br>差分生长 × 珊瑚地衣 × 活体标本</p>
+  <p class="tag">Differential growth · specimen archive<br><b>差分生长 × 趋光培养 × 四时天光</b></p>
 </header>
 <div class="rule"></div>
 
@@ -84,30 +137,62 @@
     <canvas id="bio"></canvas>
     <canvas id="hud"></canvas>
     <div class="stamp">Specimen · Live</div>
-    <div class="hint">Click to seed · 点击播种 / Space 暂停</div>
+    <div class="wx" id="wxTag">NOON <b>午</b></div>
+    <div class="hint">Click 播种 · 按住拖动 = 趋光 · Double-click 催生</div>
   </div>
 
   <aside class="dock">
-    <h2>培养皿 <span>CULTURE</span></h2>
+    <h2>培养皿 <span>SEED <i id="dockSeed" style="font-style:normal">—</i></span></h2>
+
+    <div class="grp">
+      <div class="gt">天光 LIGHT · 1-4</div>
+      <div class="seg" id="segWx">
+        <button data-v="dawn">晨</button>
+        <button data-v="day" class="on">午</button>
+        <button data-v="dusk">昏</button>
+        <button data-v="night">夜</button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="gt">研究法 METHOD · C</div>
+      <div class="seg mode" id="segMode">
+        <button data-v="petri" class="on">培养皿</button>
+        <button data-v="specimen">标本框</button>
+      </div>
+    </div>
+
     <div class="ctl">
-      <label>生长速度 <output id="oSpeed">4</output></label>
+      <label>生长速度 <output id="oSpeed">4 代/f</output></label>
       <input type="range" id="rSpeed" min="1" max="10" value="4">
     </div>
     <div class="ctl">
-      <label>曲折度 <output id="oRuff">55</output></label>
+      <label>曲折度 <output id="oRuff">55 %</output></label>
       <input type="range" id="rRuff" min="10" max="100" value="55">
     </div>
+    <div class="ctl">
+      <label>养分 <output id="oNutr">60 %</output></label>
+      <input type="range" id="rNutr" min="20" max="100" value="60">
+    </div>
+
     <div class="btns">
       <button class="primary" id="bRegen">随机再生 · Reseed</button>
+      <button id="bShare">复制分享链接 · Share</button>
       <button id="bPause">暂停 · Pause</button>
       <button id="bSave">下载 PNG · Download</button>
     </div>
-    <p class="note">每条闭合曲线是一株<b>活体标本</b>：节点相互排斥、向邻点均值收拢，边长超限即分裂——珊瑚与地衣由此成形。旧轮廓以极淡的墨色层层积存，像树木年轮。</p>
+
+    <div class="keys">
+      <b>SPACE</b>暂停 <b>N</b>再生 <b>1-4</b>天光 <b>C</b>研究法 <b>D</b>下载<br>
+      <b>V</b>节点 · 悬停标本看读数 · 闲置 30s 孢子自落
+    </div>
+
+    <p class="note">每条闭合曲线是一株<b>活体标本</b>：节点相互排斥、向邻点均值收拢，边长超限即分裂——珊瑚与地衣由此成形。旧轮廓以极淡的墨色层层积存，像树木年轮。按住拖动把<b>光</b>移到哪儿，生长就偏向哪儿。</p>
   </aside>
 </main>
 
 <footer>
-  <span>Bloom Field — Differential Growth Study</span>
+  <span>Bloom Field — Canvas 2D · SEED <b id="fSeed">—</b> · Painted with code, plein air</span>
   <span id="stats">NODES 0000 · SP 00</span>
 </footer>
 
@@ -117,19 +202,31 @@
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
-var PAPER="#ece7d9", MOSS="#274035", CORAL="#cf6b4d";
+var MOSS="#274035", CORAL="#cf6b4d";
 var NAMES=["LICHEN","CORAL","MOSS","FUNGUS","ALGAE","LICHEN","CORAL","FUNGUS","MOSS","ALGAE"];
-var FILLS=["39,64,53","96,110,60","39,64,53","120,96,52","39,64,53","96,110,60"];
+
+/* ---------- atmosphere: same culture, four lights ---------- */
+var ATMOS={
+  dawn:{tag:'DAWN <b>晨</b>',  page:'#e9ebe2', panel:'#e0e4d6', bio:'#eef0e6', veil:'rgba(190,204,196,.10)', fills:["39,64,53","96,110,60","60,84,70","110,100,58"], front:'rgba(207,107,77,.65)', glow:false},
+  day: {tag:'NOON <b>午</b>',  page:'#ece7d9', panel:'#e3ddcc', bio:'#f0ebdd', veil:null,                     fills:["39,64,53","96,110,60","39,64,53","120,96,52"], front:'rgba(207,107,77,.65)', glow:false},
+  dusk:{tag:'DUSK <b>昏</b>',  page:'#ece0cc', panel:'#e5d8bf', bio:'#f0e6d2', veil:'rgba(214,150,84,.12)', fills:["120,80,44","150,90,52","96,90,50","39,64,53"],  front:'rgba(190,80,60,.7)',  glow:false},
+  night:{tag:'NIGHT <b>夜</b>',page:'#252a23', panel:'#2c322a', bio:'#2a3026', veil:'rgba(16,22,16,.30)',   fills:["150,170,140","180,175,140","130,150,120","170,150,110"], front:'rgba(190,230,170,.85)', glow:true}
+};
 
 var bio=document.getElementById("bio"), bg=bio.getContext("2d");
 var hud=document.getElementById("hud"), hg=hud.getContext("2d");
 var stage=document.getElementById("stage");
 
 var W=0,H=0,dpr=1;
-var seed=Math.floor(Math.random()*1e9);
-var P={speed:4,ruff:55};
+var seed=0;
+var P={speed:4,ruff:55,nutr:60};
+var wx="day", mode="petri";
 var organisms=[], running=true, tickCount=0, frameCount=0;
-var MAXNODES=5200, MAXSP=10;
+var MAXNODES=6200, MAXSP=10;
+var lightBrush=null;      // phototropism: pointer-held light position
+var hover=null;           // hover readout target
+var showNodes=false, boost=0, growBoost=1;
+var lastInteract=performance.now(), lastSpore=0;
 
 function resize(){
   dpr=Math.min(window.devicePixelRatio||1,2);
@@ -142,55 +239,82 @@ function resize(){
 }
 window.addEventListener("resize",resize);
 
-/* ---------------- organisms ---------------- */
+/* ---------- seed <-> hash ---------- */
+function seedFromHash(){var m=/[#&]seed=(\d+)/.exec(location.hash||"");return m?(parseInt(m[1],10)>>>0):0}
+function setSeed(n,rebuild){
+  seed=n>>>0;
+  try{history.replaceState(null,"","#seed="+seed)}catch(e){}
+  document.getElementById("fSeed").textContent=String(seed).padStart(10,"0");
+  document.getElementById("dockSeed").textContent=String(seed%100000).padStart(5,"0");
+  if(rebuild)seedScene();
+}
+
+/* ---------- organisms ---------- */
 function spawn(rand,x,y,idx){
   var n=14, nodes=[];
-  var r0=10+rand()*8;
+  var r0=(mode==="specimen"?16:10)+rand()*8;
   for(var i=0;i<n;i++){
     var a=i/n*Math.PI*2;
     nodes.push({x:x+Math.cos(a)*r0, y:y+Math.sin(a)*r0});
   }
-  return {nodes:nodes, cx:x, cy:y, idx:idx, fill:FILLS[idx%FILLS.length],
-    name:NAMES[idx%NAMES.length], mature:false};
+  var fills=ATMOS[wx].fills;
+  return {nodes:nodes, cx:x, cy:y, idx:idx, fill:fills[idx%fills.length],
+    name:NAMES[idx%NAMES.length], mature:false, born:tickCount,
+    cap:1500, lifespan:24000+Math.floor(rand()*12000)};
 }
 
 function seedScene(){
   var rand=mulberry32(seed);
   organisms=[];
-  var n=3+Math.floor(rand()*2);
-  for(var i=0;i<n;i++){
-    var x=W*(.18+rand()*.64), y=H*(.2+rand()*.6);
-    organisms.push(spawn(rand,x,y,i));
+  if(mode==="specimen"){
+    organisms.push(spawn(rand,W/2,H/2,0));
+  }else{
+    var n=3+Math.floor(rand()*2);
+    for(var i=0;i<n;i++){
+      var x=W*(.18+rand()*.64), y=H*(.2+rand()*.6);
+      organisms.push(spawn(rand,x,y,i));
+    }
   }
   // paper base
-  bg.fillStyle="#f0ebdd"; bg.fillRect(0,0,W,H);
+  bg.fillStyle=ATMOS[wx].bio; bg.fillRect(0,0,W,H);
   for(var k=0;k<2400;k++){
     bg.fillStyle="rgba(90,84,60,"+(rand()*.05)+")";
     bg.fillRect(rand()*W,rand()*H,1+rand()*1.4,1+rand()*1.4);
   }
   tickCount=0;
+  // pre-grow at 10x pace: the sheet was cultured overnight, opens half-written
+  growBoost=10;
+  var pre=(mode==="specimen"?320:180);
+  for(var g=0;g<pre;g++){tick();if(g%3===0)trace()}
+  growBoost=1;
 }
 
-/* one growth tick for all organisms */
+/* one growth tick for all organisms
+   力学：邻接弹簧(rest 5px) + 远距排斥(repR 24-36px) + 法向外压(grow)
+   —— 曲线长度抗拒拉伸而面积持续膨胀，于是起皱分裂，即差分生长 */
 function tick(){
-  var repR=4.2+P.ruff/100*5.5;        // repulsion radius
+  var nutr=P.nutr/100;
+  var repR=24+P.ruff/100*12;          // fold clearance
   var repR2=repR*repR;
-  var align=0.32;
-  var maxEdge=repR*1.05;
+  var align=.06, spring=.4, repMul=.5;
+  var maxEdge=7, rest=5;
+  var grow=(.012+nutr*.03)*growBoost; // outward pressure, px/tick
+  var brown=.1+P.ruff/100*.25;        // raggedness
   var grid=new Map(), cell=repR;
-  var key=function(x,y){return Math.floor(x/cell)+Math.floor(y/cell)*4096};
   var all=[];
-  organisms.forEach(function(o){o.nodes.forEach(function(p){all.push(p)})});
+  organisms.forEach(function(o){o.nodes.forEach(function(p){all.push(p)})});  // mature = inert obstacles
   all.forEach(function(p){
-    var k=key(p.x,p.y);
+    var k=Math.floor(p.x/cell)+Math.floor(p.y/cell)*4096;
     var arr=grid.get(k); if(!arr){arr=[];grid.set(k,arr)}
     arr.push(p);
   });
-  var brown=.12;
+  var total=0;
+  organisms.forEach(function(oo){total+=oo.nodes.length});
   organisms.forEach(function(o){
     if(o.mature)return;
+    if(tickCount-o.born>o.lifespan){o.mature=true;return}
     var ns=o.nodes, m=ns.length;
-    // repulsion
+    // repulsion + outward normal pressure + phototropism
     for(var i=0;i<m;i++){
       var p=ns[i], fx=0, fy=0;
       var gx=Math.floor(p.x/cell), gy=Math.floor(p.y/cell);
@@ -207,28 +331,47 @@ function tick(){
           }
         }
       }
-      p.x+=fx*.5+(Math.random()-.5)*brown;
-      p.y+=fy*.5+(Math.random()-.5)*brown;
+      // outward along local normal of the curve
+      var pv=ns[(i-1+m)%m], nx=ns[(i+1)%m];
+      var ndx=nx.x-pv.x, ndy=nx.y-pv.y, nl=Math.sqrt(ndx*ndx+ndy*ndy);
+      if(nl>1e-6){fx+=ndy/nl*grow; fy+=-ndx/nl*grow}
+      // light brush: growth leans toward held pointer
+      if(lightBrush){
+        var lx=lightBrush.x-p.x, ly=lightBrush.y-p.y;
+        var ld=Math.sqrt(lx*lx+ly*ly);
+        if(ld<180&&ld>1){
+          var pull=(1-ld/180)*.25;
+          fx+=lx/ld*pull; fy+=ly/ld*pull;
+        }
+      }
+      p.x+=fx+(Math.random()-.5)*brown;
+      p.y+=fy+(Math.random()-.5)*brown;
     }
-    // alignment toward neighbor midpoint
+    // edge springs: resist stretching beyond rest length
+    for(i=0;i<m;i++){
+      var a=ns[i], b=ns[(i+1)%m];
+      var sx2=b.x-a.x, sy2=b.y-a.y, sd=Math.sqrt(sx2*sx2+sy2*sy2);
+      if(sd>rest&&sd>1e-6){
+        var sp=(sd-rest)/sd*spring*.5;
+        a.x+=sx2*sp; a.y+=sy2*sp; b.x-=sx2*sp; b.y-=sy2*sp;
+      }
+    }
+    // gentle curvature smoothing
     for(i=0;i<m;i++){
       var prev=ns[(i-1+m)%m], next=ns[(i+1)%m], cur=ns[i];
       cur.x+=((prev.x+next.x)/2-cur.x)*align;
       cur.y+=((prev.y+next.y)/2-cur.y)*align;
     }
     // split long edges
-    var total=0;
-    organisms.forEach(function(oo){total+=oo.nodes.length});
-    if(total<MAXNODES){
+    if(ns.length<o.cap&&total<MAXNODES){
       for(i=ns.length-1;i>=0;i--){
-        var a=ns[i], b=ns[(i+1)%ns.length];
-        var dx=b.x-a.x, dy=b.y-a.y;
-        if(dx*dx+dy*dy>maxEdge*maxEdge){
-          ns.splice(i+1,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+        var a2=ns[i], b2=ns[(i+1)%ns.length];
+        var ex=b2.x-a2.x, ey=b2.y-a2.y;
+        if(ex*ex+ey*ey>maxEdge*maxEdge){
+          ns.splice(i+1,0,{x:(a2.x+b2.x)/2,y:(a2.y+b2.y)/2});
         }
       }
     }
-    // keep recent center for labels
     var sx=0,sy=0;
     ns.forEach(function(p){sx+=p.x;sy+=p.y});
     o.cx=sx/ns.length; o.cy=sy/ns.length;
@@ -256,8 +399,11 @@ function trace(){
 }
 
 /* ---------------- hud layer ---------------- */
-function drawHud(){
+function drawHud(now){
+  var A=ATMOS[wx];
   hg.clearRect(0,0,W,H);
+  // atmosphere veil over the herbarium sheet
+  if(A.veil){hg.fillStyle=A.veil;hg.fillRect(0,0,W,H)}
   var total=0;
   organisms.forEach(function(o){
     total+=o.nodes.length;
@@ -267,71 +413,171 @@ function drawHud(){
     hg.moveTo(ns[0].x,ns[0].y);
     for(var i=1;i<m;i++)hg.lineTo(ns[i].x,ns[i].y);
     hg.closePath();
-    hg.strokeStyle=o.mature?"rgba(43,42,36,.25)":"rgba(207,107,77,.65)";
+    hg.strokeStyle=o.mature?"rgba(43,42,36,.25)":A.front;
+    if(A.glow&&!o.mature){hg.shadowColor="rgba(190,230,170,.8)";hg.shadowBlur=7}
     hg.lineWidth=1.1;
     hg.stroke();
-    // label
+    hg.shadowBlur=0;
+    // node dots (V)
+    if(showNodes){
+      hg.fillStyle=A.glow?"rgba(220,240,200,.5)":"rgba(43,42,36,.35)";
+      for(i=0;i<m;i+=2)hg.fillRect(ns[i].x-.6,ns[i].y-.6,1.2,1.2);
+    }
+    // label with leader line
     var lx=o.cx+40, ly=o.cy-40;
-    lx=Math.min(Math.max(lx,64),W-120); ly=Math.min(Math.max(ly,26),H-20);
-    hg.strokeStyle="rgba(43,42,36,.45)"; hg.lineWidth=.8;
+    lx=Math.min(Math.max(lx,64),W-150); ly=Math.min(Math.max(ly,26),H-20);
+    hg.strokeStyle=A.glow?"rgba(220,235,205,.5)":"rgba(43,42,36,.45)"; hg.lineWidth=.8;
     hg.beginPath(); hg.moveTo(o.cx,o.cy); hg.lineTo(lx,ly); hg.stroke();
-    hg.fillStyle="rgba(43,42,36,.85)";
+    hg.fillStyle=A.glow?"rgba(226,236,214,.92)":"rgba(43,42,36,.85)";
     hg.font="400 10px 'SF Mono',Menlo,monospace";
     hg.textAlign="left";
     hg.fillText("SP."+("0"+(o.idx+1)).slice(-2)+" · "+o.name, lx+4, ly+3);
     hg.fillStyle=CORAL;
     hg.beginPath(); hg.arc(lx,ly,2,0,7); hg.fill();
+    // specimen mode: measurements plate
+    if(mode==="specimen"){
+      var maxR=0;
+      for(i=0;i<m;i++){var dd=Math.hypot(ns[i].x-o.cx,ns[i].y-o.cy);if(dd>maxR)maxR=dd}
+      hg.strokeStyle=A.glow?"rgba(220,235,205,.4)":"rgba(43,42,36,.35)";
+      hg.strokeRect(14.5,14.5,W-29,H-29);
+      hg.fillStyle=A.glow?"rgba(226,236,214,.85)":"rgba(43,42,36,.8)";
+      hg.fillText("SPECIMEN SHEET — R "+maxR.toFixed(1)+" mm · NODES "+m+" · GEN "+(tickCount-o.born), 26, 34);
+      hg.beginPath();hg.moveTo(o.cx-6,o.cy);hg.lineTo(o.cx+6,o.cy);hg.moveTo(o.cx,o.cy-6);hg.lineTo(o.cx,o.cy+6);hg.stroke();
+    }
+    // hover readout
+    if(hover&&hover.o===o){
+      hg.strokeStyle=CORAL;hg.lineWidth=1;
+      hg.beginPath();hg.arc(o.cx,o.cy,26,0,7);hg.stroke();
+      hg.fillStyle=CORAL;
+      hg.fillText("R "+hover.maxR.toFixed(0)+" · N "+o.nodes.length+" · GEN "+(tickCount-o.born)+(o.mature?" · MATURE":""), lx+4, ly+16);
+    }
   });
+  // light brush indicator
+  if(lightBrush){
+    hg.strokeStyle="rgba(207,107,77,.7)";hg.lineWidth=1;
+    hg.beginPath();hg.arc(lightBrush.x,lightBrush.y,180,0,7);hg.stroke();
+    hg.fillStyle="rgba(207,107,77,.9)";
+    hg.fillText("LIGHT", lightBrush.x+8, lightBrush.y-8);
+  }
   if(!running){
-    hg.fillStyle="rgba(43,42,36,.6)";
+    hg.fillStyle=A.glow?"rgba(226,236,214,.7)":"rgba(43,42,36,.6)";
     hg.font="400 11px 'SF Mono',Menlo,monospace";
     hg.textAlign="center";
     hg.fillText("— PAUSED / 已暂停 —", W/2, 26);
   }
+  var matureAll=organisms.length>0&&organisms.every(function(o){return o.mature});
   document.getElementById("stats").textContent=
-    "NODES "+("0000"+total).slice(-4)+" · SP "+("0"+organisms.length).slice(-2)+" · GEN "+tickCount;
+    "NODES "+("0000"+total).slice(-4)+" · SP "+("0"+organisms.length).slice(-2)+" · GEN "+tickCount+(matureAll?" · SHEET COMPLETE":"");
 }
 
 /* ---------------- main loop ---------------- */
-function frame(){
+function frame(now){
   if(running){
-    for(var s=0;s<P.speed;s++)tick();
+    var steps=P.speed+(boost>0?8:0);
+    for(var s=0;s<steps;s++)tick();
+    if(boost>0)boost--;
     trace();
   }
-  drawHud();
+  // idle: spores drift in by themselves
+  if(now-lastInteract>30000&&now-lastSpore>8000&&organisms.length<MAXSP&&mode==="petri"){
+    lastSpore=now;
+    organisms.push(spawn(Math.random,W*(.15+Math.random()*.7),H*(.15+Math.random()*.7),organisms.length));
+  }
+  drawHud(now);
   frameCount++;
   requestAnimationFrame(frame);
 }
 
 /* ---------------- events ---------------- */
+function poke(){lastInteract=performance.now()}
+function ptr(e){var r=stage.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}}
 bio.addEventListener("pointerdown",function(e){
-  if(organisms.length>=MAXSP)return;
-  var r=stage.getBoundingClientRect();
-  var x=e.clientX-r.left, y=e.clientY-r.top;
-  organisms.push(spawn(Math.random,x,y,organisms.length));
+  poke();
+  var p=ptr(e);
+  if(organisms.length<MAXSP&&mode==="petri"){
+    organisms.push(spawn(Math.random,p.x,p.y,organisms.length));
+  }
+  lightBrush=p;
 });
+bio.addEventListener("pointermove",function(e){
+  poke();
+  var p=ptr(e);
+  if(e.buttons)lightBrush=p;
+  // hover: nearest organism within reach
+  hover=null;
+  var best=1e9;
+  organisms.forEach(function(o){
+    var d=Math.hypot(o.cx-p.x,o.cy-p.y);
+    if(d<best){best=d;hover={o:o,maxR:0}}
+  });
+  if(hover){
+    if(best>120)hover=null;
+    else{
+      var o=hover.o,maxR=0;
+      o.nodes.forEach(function(n){var d=Math.hypot(n.x-o.cx,n.y-o.cy);if(d>maxR)maxR=d});
+      hover.maxR=maxR;
+    }
+  }
+});
+window.addEventListener("pointerup",function(){lightBrush=null});
+bio.addEventListener("pointerleave",function(){lightBrush=null;hover=null});
+bio.addEventListener("dblclick",function(){boost=40;poke()});   // 催生 growth burst
 
 document.getElementById("rSpeed").addEventListener("input",function(){
-  P.speed=+this.value; document.getElementById("oSpeed").textContent=this.value;
+  P.speed=+this.value;document.getElementById("oSpeed").textContent=this.value+" 代/f";poke();
 });
 document.getElementById("rRuff").addEventListener("input",function(){
-  P.ruff=+this.value; document.getElementById("oRuff").textContent=this.value;
+  P.ruff=+this.value;document.getElementById("oRuff").textContent=this.value+" %";poke();
 });
-document.getElementById("bRegen").addEventListener("click",function(){
-  seed=Math.floor(Math.random()*1e9); running=true;
-  document.getElementById("bPause").textContent="暂停 · Pause";
+document.getElementById("rNutr").addEventListener("input",function(){
+  P.nutr=+this.value;document.getElementById("oNutr").textContent=this.value+" %";poke();
+});
+
+/* atmosphere + method */
+function setWx(k){
+  wx=k;
+  var seg=document.getElementById("segWx");
+  for(var i=0;i<seg.children.length;i++)seg.children[i].classList.toggle("on",seg.children[i].dataset.v===k);
+  document.getElementById("wxTag").innerHTML=ATMOS[k].tag;
+  document.documentElement.style.setProperty("--paper",ATMOS[k].page);
+  document.documentElement.style.setProperty("--panel",ATMOS[k].panel);
+  // re-tint living organisms to the new light; keep the accumulated trace
+  organisms.forEach(function(o){o.fill=ATMOS[k].fills[o.idx%ATMOS[k].fills.length]});
+}
+document.getElementById("segWx").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  setWx(b.dataset.v);poke();
+});
+var MODEKEYS=["petri","specimen"];
+function setMode(k){
+  mode=k;
+  var seg=document.getElementById("segMode");
+  for(var i=0;i<seg.children.length;i++)seg.children[i].classList.toggle("on",seg.children[i].dataset.v===k);
   seedScene();
+}
+document.getElementById("segMode").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  setMode(b.dataset.v);poke();
+});
+
+document.getElementById("bRegen").addEventListener("click",function(){
+  setSeed((Math.random()*1e9)>>>0,true);
+  running=true;document.getElementById("bPause").textContent="暂停 · Pause";poke();
+});
+document.getElementById("bShare").addEventListener("click",async function(e){
+  poke();
+  var btn=e.currentTarget,url=location.href,ok=false;
+  try{await navigator.clipboard.writeText(url);ok=true}catch(err){prompt("复制此链接 / Copy link",url)}
+  if(ok){var old=btn.textContent;btn.textContent="已复制 · Copied";setTimeout(function(){btn.textContent=old},1400)}
 });
 var bPause=document.getElementById("bPause");
 function togglePause(){
   running=!running;
   bPause.textContent=running?"暂停 · Pause":"继续 · Resume";
 }
-bPause.addEventListener("click",togglePause);
-window.addEventListener("keydown",function(e){
-  if(e.code==="Space"&&e.target===document.body){e.preventDefault();togglePause();}
-});
+bPause.addEventListener("click",function(){togglePause();poke()});
 document.getElementById("bSave").addEventListener("click",function(){
+  poke();
   var ex=document.createElement("canvas");
   ex.width=Math.round(W*dpr); ex.height=Math.round(H*dpr);
   var eg=ex.getContext("2d");
@@ -342,9 +588,46 @@ document.getElementById("bSave").addEventListener("click",function(){
   a.click();
 });
 
+/* keyboard: Space pause · N reseed · 1-4 light · C method · D download · V nodes */
+window.addEventListener("keydown",function(e){
+  var tag=document.activeElement&&document.activeElement.tagName;
+  if(tag==="INPUT"||tag==="TEXTAREA"||tag==="SELECT")return;
+  if(e.code==="Space"&&e.target===document.body){e.preventDefault();togglePause()}
+  else if(e.key==="n"||e.key==="N"){setSeed((Math.random()*1e9)>>>0,true);running=true;bPause.textContent="暂停 · Pause"}
+  else if(e.key>="1"&&e.key<="4")setWx(["dawn","day","dusk","night"][+e.key-1]);
+  else if(e.key==="c"||e.key==="C")setMode(MODEKEYS[(MODEKEYS.indexOf(mode)+1)%MODEKEYS.length]);
+  else if(e.key==="d"||e.key==="D")document.getElementById("bSave").click();
+  else if(e.key==="v"||e.key==="V")showNodes=!showNodes;
+  poke();
+});
+
+/* ---------- boot ---------- */
+setSeed(seedFromHash()||((Math.random()*1e9)>>>0),false);
 resize();
 requestAnimationFrame(frame);
 })();
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="bloom-field" data-num="08" style="--lab-a:#274035;--lab-b:#cf6b4d"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 08 · GEN-ART</small><strong>Bloom Field</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>

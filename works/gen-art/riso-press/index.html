@@ -3,204 +3,333 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RISO PRESS 孔版印刷所 — Riso 海报生成器</title>
+<title>Riso Press — 金色时刻印刷所 · Atelier MIRA</title>
 <style>
   :root{
-    --paper:#f2f0eb; --ink:#141412; --dim:#7a766c;
-    --acc:#ff48b0;
+    /* 家族② 金色时刻 Heure Dorée —— ≈3200K，阴影走蓝紫，不用黑 */
+    --honey:#F4E3C2; --gold:#E8B96F; --amber:#D98E4A; --ochre:#A85B3C; --shade:#5E6E7E;
+    --paper:#EFE3CC; --panel:#F3EAD6; --line:#D9C9A8;
+    --ink:#4A3B2C; --dim:#9A8A6E;
     --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
     --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
-    --heavy:"Helvetica Neue",-apple-system,"PingFang SC",sans-serif;
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
-  ::selection{background:var(--acc);color:#fff}
+  html,body{background:var(--paper)}
+  body{color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--amber);color:var(--honey)}
 
   header{
-    display:flex;justify-content:space-between;align-items:flex-end;
-    padding:26px 30px 0;gap:20px;flex-wrap:wrap;
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;
+    padding:20px clamp(18px,4vw,44px) 14px;
   }
-  .sig{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
-  .sig h1{
-    font-family:var(--heavy);font-size:30px;font-weight:900;letter-spacing:-.02em;
-    line-height:.95;text-transform:uppercase;
-  }
-  .sig h1 em{font-style:normal;color:var(--acc)}
-  .sig .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em;padding-bottom:4px}
-  .sig .no b{color:var(--acc);font-weight:400}
-  header p.tag{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.14em;text-align:right;text-transform:uppercase;line-height:1.9}
-  .rule{margin:16px 30px 0;border-top:3px solid var(--ink);position:relative}
-  .rule::after{content:"";position:absolute;left:0;top:4px;width:64px;border-top:3px solid var(--acc)}
+  .brand{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .seal{width:48px;height:48px;flex:none;color:var(--amber)}
+  .seal .ring{animation:sealspin 66s linear infinite;transform-origin:32px 32px}
+  @keyframes sealspin{to{transform:rotate(360deg)}}
+  .back{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:color .4s var(--ease)}
+  .back:hover{color:var(--ink)}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.4vw,40px);letter-spacing:-.01em;line-height:1}
+  h1 em{font-style:italic;color:var(--ochre)}
+  .epig{font-family:var(--serif);font-style:italic;font-size:14.5px;color:#8A7A5E;max-width:340px;line-height:1.5}
+  .idx{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+  .idx b{color:var(--amber);font-weight:400}
 
-  main{
-    display:grid;grid-template-columns:1fr 300px;gap:26px;
-    padding:24px 30px 48px;max-width:1460px;margin:0 auto;
-  }
-  @media (max-width:960px){main{grid-template-columns:1fr}}
-
+  .stage-wrap{padding:0 clamp(18px,4vw,44px) 18px}
   .stage{
-    position:relative;background:#e4e1da;border:1px solid var(--ink);
-    box-shadow:8px 8px 0 rgba(20,20,18,.12);overflow:hidden;
-    display:flex;align-items:center;justify-content:center;
-    min-height:420px;padding:22px;
+    position:relative;height:min(76vh,720px);min-height:430px;border-radius:3px;overflow:hidden;
+    background:var(--honey);box-shadow:0 1px 0 var(--line),0 18px 50px -30px rgba(168,91,60,.5);
+    cursor:grab;touch-action:pan-y;
   }
-  .stage canvas{
-    display:block;height:100%;max-height:76vh;width:auto;max-width:100%;
-    box-shadow:0 2px 14px rgba(20,20,18,.22);background:#fff;
-  }
-  @media (max-width:960px){.stage canvas{width:100%;height:auto}}
-  .stamp{
-    position:absolute;left:12px;top:10px;font-family:var(--mono);font-size:10px;
-    letter-spacing:.2em;color:var(--ink);border:1px solid var(--ink);
-    padding:4px 9px;background:rgba(242,240,235,.9);pointer-events:none;text-transform:uppercase;
-  }
-  .hint{
-    position:absolute;right:12px;bottom:10px;font-family:var(--mono);font-size:10px;
-    letter-spacing:.16em;color:rgba(20,20,18,.55);pointer-events:none;text-transform:uppercase;
-  }
+  .stage.peeling{cursor:grabbing}
+  canvas{display:block;width:100%;height:100%}
 
-  .dock{
-    border:1px solid var(--ink);background:#fff;padding:0;display:flex;flex-direction:column;
-    align-self:start;position:sticky;top:20px;
+  .etudes{position:absolute;top:14px;left:14px;right:64px;display:flex;gap:8px;flex-wrap:wrap;z-index:4;transition:opacity .5s var(--ease)}
+  .etudes button{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink);
+    background:rgba(244,227,194,.72);border:1px solid rgba(74,59,44,.28);border-radius:2px;
+    padding:7px 12px;cursor:pointer;backdrop-filter:blur(3px);
+    transition:all .45s var(--ease);display:flex;align-items:center;gap:7px;
   }
-  @media (max-width:960px){.dock{position:static}}
-  .dock section{padding:18px 20px;border-bottom:1px solid #d8d4ca;display:flex;flex-direction:column;gap:12px}
-  .dock section:last-child{border-bottom:none}
-  .dock h2{
-    font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);
-    letter-spacing:.24em;text-transform:uppercase;display:flex;justify-content:space-between;
+  .etudes button:hover{background:rgba(244,227,194,.95);transform:translateY(-1px)}
+  .etudes button.on{background:var(--ochre);color:var(--honey);border-color:var(--ochre)}
+  .etudes .dots{display:flex;gap:3px}
+  .etudes .dots i{width:9px;height:9px;border-radius:50%;border:1px solid rgba(74,59,44,.3);display:block}
+
+  .sndbtn{
+    position:absolute;top:14px;right:14px;z-index:4;width:34px;height:34px;border-radius:2px;
+    border:1px solid rgba(74,59,44,.28);background:rgba(244,227,194,.72);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .45s var(--ease);
   }
-  .dock h2 span{color:var(--acc)}
+  .sndbtn:hover{background:rgba(244,227,194,.95)}
+  .sndbtn svg{width:17px;height:17px;stroke:var(--ink);fill:none;stroke-width:1.5;stroke-linecap:round}
+  .sndbtn .waves{opacity:0;transition:opacity .4s}
+  .sndbtn.on .waves{opacity:1}
+  .sndbtn.on .slash{opacity:0}
+  .sndbtn .slash{transition:opacity .4s}
 
-  .swatches{display:flex;flex-direction:column;gap:8px}
-  .sw{
-    display:flex;align-items:center;gap:12px;padding:9px 10px;border:1px solid #d8d4ca;
-    cursor:pointer;background:transparent;transition:all .2s var(--ease);text-align:left;
+  .sig{
+    position:absolute;left:14px;bottom:52px;z-index:4;display:flex;align-items:center;gap:9px;
+    opacity:.68;cursor:default;user-select:none;
   }
-  .sw:hover{border-color:var(--ink)}
-  .sw.on{border:1px solid var(--ink);background:var(--ink);color:#fff}
-  .sw .dots{display:flex;gap:4px}
-  .sw .dots i{width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.25);display:block}
-  .sw .nm{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase}
-  .sw.on .nm{color:#fff}
+  .sig svg{width:20px;height:13px}
+  .sig span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink)}
 
-  .ctl{display:flex;flex-direction:column;gap:8px}
-  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink)}
-  .ctl label output{color:var(--acc)}
+  .note{
+    position:absolute;left:50%;bottom:96px;transform:translateX(-50%) translateY(8px);z-index:5;
+    font-family:var(--serif);font-style:italic;font-size:15px;color:var(--ink);
+    background:rgba(243,234,214,.92);border:1px solid var(--line);border-radius:2px;
+    padding:12px 20px;opacity:0;pointer-events:none;transition:all .8s var(--ease);
+    max-width:82%;text-align:center;
+  }
+  .note.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+  .lume{
+    position:absolute;left:0;right:0;bottom:0;z-index:4;height:40px;
+    display:flex;align-items:center;gap:12px;padding:0 16px;
+    background:linear-gradient(to top,rgba(244,227,194,.9),rgba(244,227,194,0));
+    transition:opacity .5s var(--ease);
+  }
+  .lume .lab{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);white-space:nowrap}
+  .lume .track{position:relative;flex:1;height:22px;cursor:ew-resize;touch-action:none}
+  .lume .track::before{
+    content:"";position:absolute;left:0;right:0;top:50%;height:2px;transform:translateY(-50%);
+    background:linear-gradient(90deg,#9AA7B8,#C9CDD6,#E8E6DF,#F4E3C2,#E8B96F,#8E7BA8,#4E4A6B);
+    border-radius:1px;opacity:.65;
+  }
+  .lume .thumb{
+    position:absolute;top:50%;width:14px;height:14px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#F4E3C2,#D98E4A);
+    border:1.5px solid rgba(74,59,44,.5);transform:translate(-50%,-50%);
+    box-shadow:0 2px 8px rgba(74,59,44,.3);pointer-events:none;
+    transition:box-shadow .4s;
+  }
+  .lume .heure{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink);min-width:52px;text-align:right}
+  .hideme .etudes,.hideme .lume,.hideme .sig{opacity:0;pointer-events:none}
+
+  /* ---------- 印刷机参数台（PRESS desk） ---------- */
+  .press-wrap{padding:0 clamp(18px,4vw,44px) 26px}
+  .press{
+    border:1px solid var(--line);border-radius:3px;background:var(--panel);
+    display:grid;grid-template-columns:auto 1fr 1fr 1fr auto;gap:22px;align-items:end;
+    padding:16px 20px 18px;
+  }
+  .pgrp{display:flex;flex-direction:column;gap:9px}
+  .plab{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+  .seg{display:flex;border:1px solid rgba(74,59,44,.4);border-radius:2px}
+  .seg button{
+    flex:1;background:transparent;border:0;color:#7A6A50;
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    padding:8px 10px;cursor:pointer;transition:all .35s var(--ease);white-space:nowrap;
+  }
+  .seg button + button{border-left:1px solid rgba(74,59,44,.4)}
+  .seg button.on{background:var(--ochre);color:var(--honey)}
+  .seg button:not(.on):hover{background:rgba(232,185,111,.25)}
+  .pctl{display:flex;flex-direction:column;gap:8px}
+  .pctl label{
+    display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:10px;letter-spacing:.16em;color:var(--ink);text-transform:uppercase;
+  }
+  .pctl label output{color:var(--ochre)}
   input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
-  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-6px;background:var(--acc);border:2px solid var(--ink);border-radius:0}
-  input[type=range]::-moz-range-track{height:2px;background:var(--ink)}
-  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--acc);border:2px solid var(--ink);border-radius:0}
-
-  .btns{display:flex;flex-direction:column;gap:10px}
-  .dock button.act{
-    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
-    padding:13px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);
-    cursor:pointer;transition:all .2s var(--ease);
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:rgba(74,59,44,.4)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-5.5px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#F4E3C2,#D98E4A);border:1.5px solid rgba(74,59,44,.6);
+    box-shadow:0 2px 6px rgba(74,59,44,.3);
   }
-  .dock button.act:hover{background:var(--ink);color:#fff}
-  .dock button.act.primary{background:var(--ink);color:#fff}
-  .dock button.act.primary:hover{background:var(--acc);border-color:var(--acc)}
-  .dock button.act:active{transform:translateY(1px)}
+  input[type=range]::-moz-range-track{height:2px;background:rgba(74,59,44,.4)}
+  input[type=range]::-moz-range-thumb{
+    width:11px;height:11px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%,#F4E3C2,#D98E4A);border:1.5px solid rgba(74,59,44,.6);
+  }
+  .pbtn{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    padding:9px 14px;border:1px solid rgba(74,59,44,.4);border-radius:2px;background:transparent;
+    color:var(--ink);cursor:pointer;transition:all .35s var(--ease);white-space:nowrap;
+  }
+  .pbtn:hover{background:var(--ochre);border-color:var(--ochre);color:var(--honey)}
+  @media (max-width:1080px){.press{grid-template-columns:1fr 1fr;gap:16px}}
+  @media (max-width:560px){.press{grid-template-columns:1fr}}
 
-  .note{font-size:11px;line-height:1.95;color:#57544c;letter-spacing:.03em}
-  .note b{color:var(--acc)}
-
-  footer{padding:0 30px 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+  footer{padding:0 clamp(18px,4vw,44px) 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer p{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+  footer p b{color:var(--ochre);font-weight:400}
+  @media (max-width:640px){
+    .stage{height:66vh;min-height:400px}
+    .epig{max-width:100%}
+    .sig{bottom:56px}
+  }
 </style>
-</head>
+<style id="mira-lab-style">
+:root{--lab-a:#b84b31;--lab-b:#c8dc72;--lab-bg:#171a12;--lab-paper:#e9e2d4;--lab-line:rgba(233,226,212,.22);--lab-grain:.12}
+#mira-lab{position:fixed;inset:0;z-index:2147483000;pointer-events:none;font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.08em;color:var(--lab-paper);line-height:1.35}
+#mira-lab *{box-sizing:border-box}#lab-launch{pointer-events:auto;position:fixed;right:20px;bottom:20px;border:1px solid var(--lab-paper);background:var(--lab-bg);color:var(--lab-paper);padding:10px 13px;font:10px inherit;letter-spacing:.1em;box-shadow:5px 5px 0 var(--lab-a);cursor:pointer;transition:transform .18s,background .18s;color .18s}#lab-launch:hover{transform:translate(-3px,-3px);background:var(--lab-a)}#lab-launch b{color:var(--lab-b);font-weight:400}
+#lab-panel{pointer-events:auto;position:fixed;right:20px;bottom:66px;width:min(360px,calc(100vw - 28px));max-height:min(690px,calc(100vh - 92px));overflow:auto;background:rgba(23,32,24,.97);border:1px solid var(--lab-paper);box-shadow:10px 10px 0 var(--lab-a);padding:18px;display:none}#lab-panel.open{display:block;animation:lab-in .2s ease-out}@keyframes lab-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.lab-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--lab-line);padding-bottom:14px;margin-bottom:15px}.lab-head small{display:block;color:rgba(233,226,212,.5);font-size:8px;letter-spacing:.14em;margin-bottom:5px}.lab-head strong{display:block;font:400 19px/1.05 Didot,"Bodoni MT",Georgia,serif;letter-spacing:-.02em}.lab-close{background:transparent;color:var(--lab-paper);border:0;font:18px/1 monospace;padding:0;cursor:pointer}.lab-status{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.lab-status span{color:rgba(233,226,212,.5);font-size:8px}.lab-status b{color:var(--lab-b);font-weight:400;font-size:9px}.lab-pulse{display:inline-block;width:6px;height:6px;margin-right:6px;background:var(--lab-b);box-shadow:0 0 0 3px rgba(200,220,114,.15)}
+.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--lab-line);border-bottom:1px solid var(--lab-line);padding:14px 0;margin-bottom:14px}.lab-control label{display:flex;justify-content:space-between;color:rgba(233,226,212,.62);font-size:8px;margin-bottom:6px}.lab-control output{color:var(--lab-paper)}.lab-control input{width:100%;accent-color:var(--lab-a);height:18px}.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:0 0 18px}.lab-actions button{border:1px solid var(--lab-line);background:transparent;color:var(--lab-paper);padding:9px 8px;font:9px inherit;letter-spacing:.06em;cursor:pointer;transition:all .18s}.lab-actions button:hover,.lab-actions button.active{background:var(--lab-a);border-color:var(--lab-a);color:#fff}.lab-actions button.primary{background:var(--lab-b);border-color:var(--lab-b);color:var(--lab-bg)}
+.lab-label{font-size:8px;color:rgba(233,226,212,.48);letter-spacing:.15em;margin-bottom:8px}.lab-phases{display:grid;gap:5px}.lab-phase{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:8px;border:1px solid transparent;padding:7px 8px;color:rgba(233,226,212,.57);cursor:pointer;transition:all .18s}.lab-phase:hover,.lab-phase.active{border-color:var(--lab-line);background:rgba(233,226,212,.055);color:var(--lab-paper)}.lab-phase i{font-style:normal;color:var(--lab-a);font-size:8px}.lab-phase b{font-weight:400;font-size:9px}.lab-phase span{font-size:8px;color:rgba(233,226,212,.45)}.lab-log{margin-top:14px;border-top:1px solid var(--lab-line);padding-top:12px;color:rgba(233,226,212,.56);font-size:8px;line-height:1.75;min-height:42px}.lab-log b{font-weight:400;color:var(--lab-b)}
+#lab-cursor{position:fixed;left:0;top:0;width:26px;height:26px;border:1px solid var(--lab-a);transform:translate(-50%,-50%);pointer-events:none;opacity:0;mix-blend-mode:difference;transition:opacity .2s,width .15s,height .15s}.lab-active #lab-cursor{opacity:.8}.lab-active #lab-cursor:after{content:"";position:absolute;left:50%;top:-7px;width:1px;height:40px;background:var(--lab-a);transform:translateX(-50%)}.lab-active #lab-cursor:before{content:"";position:absolute;top:50%;left:-7px;width:40px;height:1px;background:var(--lab-a);transform:translateY(-50%)}
+#lab-grain{position:fixed;inset:0;opacity:var(--lab-grain);pointer-events:none;mix-blend-mode:multiply;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180' viewBox='0 0 180 180'%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.78' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23f)' opacity='.8'/%3E%3C/svg%3E")}.lab-outline *{outline:1px solid rgba(184,75,49,.22)!important}.lab-outline canvas{outline:2px solid var(--lab-a)!important}
+@media(max-width:520px){#lab-launch{right:12px;bottom:12px}.lab-panel{right:12px!important;bottom:55px!important}}
+</style></head>
 <body>
 
 <header>
-  <div class="sig">
-    <h1>RISO <em>PRESS</em></h1>
-    <span class="no">N°<b>06</b> — GEN-ART / Riso 孔版印刷海报生成器</span>
+  <div class="brand">
+    <svg class="seal" viewBox="0 0 64 64" aria-hidden="true">
+      <defs><path id="sealRing" d="M32,32 m-23.5,0 a23.5,23.5 0 1,1 47,0 a23.5,23.5 0 1,1 -47,0"/></defs>
+      <circle cx="32" cy="32" r="30" fill="none" stroke="currentColor" stroke-width="1.4"/>
+      <circle cx="32" cy="32" r="16.5" fill="none" stroke="currentColor" stroke-width=".9"/>
+      <g class="ring"><text font-family="SF Mono,Menlo,monospace" font-size="6.4" letter-spacing="2.4" fill="currentColor"><textPath href="#sealRing">ATELIER MIRA · ATELIER MIRA ·</textPath></text></g>
+      <path d="M23.5 42.2 C24.2 36.4 25.1 29.2 26.3 23.4 L31.7 33.9 C33.5 30.1 35.4 26.6 37.9 23.2 C38.7 29.6 39.6 36.2 40.3 41.6"
+            fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <div>
+      <h1>Riso <em>Press</em></h1>
+      <div class="idx" style="margin-top:7px">ÉTUDE <b>N°07/100</b> · GEN-ART · <a class="back" href="../../../index.html#work" style="padding:0">← Archive</a></div>
+    </div>
   </div>
-  <p class="tag">Spot color overprint · misregistration · grain<br>专色叠印 × 套准错位 × 颗粒噪点</p>
+  <p class="epig">« L'encre sèche dans la lumière de cinq heures. »</p>
+  <span class="idx">HEURE DORÉE · 金色时刻印刷所</span>
 </header>
-<div class="rule"></div>
 
-<main>
+<div class="stage-wrap">
   <div class="stage" id="stage">
-    <canvas id="c"></canvas>
-    <div class="stamp">Stencil · 3 Colors</div>
-    <div class="hint">Regenerate to re-press · 再生即重新落版</div>
-  </div>
+    <canvas id="cv"></canvas>
 
-  <aside class="dock">
-    <section>
-      <h2>色组 <span>INK SET</span></h2>
-      <div class="swatches" id="swatches"></div>
-    </section>
-    <section>
-      <h2>印刷机 <span>PRESS</span></h2>
-      <div class="ctl">
-        <label>套准错位 <output id="oReg">45</output></label>
-        <input type="range" id="rReg" min="0" max="100" value="45">
+    <div class="etudes" id="etudes"></div>
+
+    <button class="sndbtn" id="snd" aria-label="声景开关" title="声景（默认关闭）">
+      <svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="waves" d="M16.5 8.5c1.6 1.8 1.6 5.2 0 7M19 6.5c2.6 3 2.6 8 0 11"/><path class="slash" d="M17 9l5 6M22 9l-5 6"/></svg>
+    </button>
+
+    <div class="sig" id="sig">
+      <svg viewBox="0 0 64 40" fill="#4A3B2C" aria-hidden="true">
+        <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+                 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+                 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+                 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+                 C 35 17, 33 17, 32 20 Z"/>
+      </svg>
+      <span>Atelier MIRA · N°007 · Heure Dorée</span>
+    </div>
+
+    <div class="note" id="note">八月九日。第三块版总是歪一点，师傅说那就让它歪着——错位是孔版的签名。</div>
+
+    <div class="lume">
+      <span class="lab">光 · HEURE</span>
+      <div class="track" id="lume"><div class="thumb" id="thumb"></div></div>
+      <span class="heure" id="heureOut">—</span>
+    </div>
+  </div>
+</div>
+
+<div class="press-wrap">
+  <div class="press">
+    <div class="pgrp">
+      <span class="plab">版式 LAYOUT · C</span>
+      <div class="seg" id="segLayout">
+        <button data-v="0" class="on">日轮</button>
+        <button data-v="1">弧光</button>
+        <button data-v="2">网格</button>
+        <button data-v="3">半月</button>
       </div>
-      <div class="ctl">
-        <label>颗粒噪点 <output id="oGrain">50</output></label>
-        <input type="range" id="rGrain" min="0" max="100" value="50">
-      </div>
-    </section>
-    <section>
-      <div class="btns">
-        <button class="act primary" id="bRegen">随机再生 · Re-press</button>
-        <button class="act" id="bSave">下载 PNG · Download</button>
-      </div>
-    </section>
-    <section>
-      <p class="note">每张海报拆成 <b>三块孔版</b>，以 multiply 模拟油墨叠印；版与版之间保留<b>可调的套准误差</b>，四角规矩线会诚实地露出错位。落版时有一段从偏移到归位的印刷机动效。</p>
-    </section>
-  </aside>
-</main>
+    </div>
+    <div class="pctl">
+      <label>套准错位 REGISTER <output id="oReg">7.2 mm</output></label>
+      <input type="range" id="rReg" min="0" max="100" value="45">
+    </div>
+    <div class="pctl">
+      <label>油墨压力 PRESSURE <output id="oPress">88 %</output></label>
+      <input type="range" id="rPress" min="55" max="100" value="88">
+    </div>
+    <div class="pctl">
+      <label>颗粒噪点 GRAIN <output id="oGrain">50 %</output></label>
+      <input type="range" id="rGrain" min="0" max="100" value="50">
+    </div>
+    <div class="pgrp">
+      <span class="plab">分享 SHARE</span>
+      <button class="pbtn" id="bShare">复制链接</button>
+    </div>
+  </div>
+</div>
 
 <footer>
-  <span>Riso Press — Stencil Duplicator Aesthetics</span>
-  <span>Canvas 2D · Multiply Overprint · No external assets</span>
+  <p>三块孔版，一点错位 · 按住海报左右揭版，松手自动归位 · <b>N</b> 再生 <b>C</b> 版式 <b>D</b> 下载 <b>H</b> 收起 <b>1-4</b> 油墨</p>
+  <p id="stats">Canvas 2D · multiply 叠印 · edition ——</p>
+  <p>SEED <b id="fSeed">—</b> · Painted with code, plein air</p>
 </footer>
 
 <script>
 (function(){
 "use strict";
+/* ---------- palette: Heure Dorée 金色时刻（≈3200K，阴影蓝 #5E6E7E） ---------- */
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const stage=document.getElementById('stage');
+let W=0,H=0,DPR=1;
 
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
-var PW=1200, PH=1800; // poster render resolution (2:3)
-var canvas=document.getElementById("c"), ctx=canvas.getContext("2d");
+/* ---------- seed + heure：都进 URL hash（#seed=…&h=…），刷新可复现 ---------- */
+let heure=new Date().getHours()+new Date().getMinutes()/60;
+const hHash=location.hash.match(/[#&]h=([\d.]+)/);if(hHash)heure=parseFloat(hHash[1])%24;
+const sHash=location.hash.match(/[#&]seed=(\d+)/);
+let seed=sHash?(parseInt(sHash[1],10)>>>0):Math.floor(Math.random()*1e9);
+function writeHash(){try{history.replaceState(null,'','#seed='+seed+'&h='+heure.toFixed(1))}catch(e){}}
+function setSeed(n){
+  seed=n>>>0;writeHash();
+  document.getElementById('fSeed').textContent=String(seed).padStart(10,'0');
+  build();
+}
 
-var PALETTES=[
-  {name:"Fluoro Pop", paper:"#f5f1e6", inks:["#ff48b0","#0078bf","#ffe800"]},
-  {name:"Teal & Orange", paper:"#f4efe4", inks:["#007782","#ff6712","#3a3a34"]},
-  {name:"Sunflower", paper:"#f6f0e2", inks:["#f15060","#ffb511","#007a5e"]},
-  {name:"Midnight Duo", paper:"#eef0ee", inks:["#2e3f8f","#e94f8a","#17a398"]}
+/* ---------- heure 时间系统（签名） ---------- */
+const KEYS=[
+  [0,  [78,74,107],.34,[142,123,168],.05,.18],
+  [5,  [154,167,184],.26,[216,203,184],.10,.42],
+  [8,  [201,205,214],.10,[232,230,223],.06,.72],
+  [12, [244,227,194],.05,[244,240,228],.06,1.0],
+  [16, [232,214,178],.10,[244,227,194],.12,.86],
+  [18.5,[217,142,74],.22,[232,185,111],.24,.62],
+  [20.5,[110,123,140],.28,[201,166,180],.10,.34],
+  [24, [78,74,107],.34,[142,123,168],.05,.18]
 ];
-var palIdx=0;
-var seed=Math.floor(Math.random()*1e9);
-var P={reg:45, grain:50};
-var plates=[], grainC=null, meta={edition:0,word:"",sub:""};
-var pressAnim=1; // 1 -> plates fully settled
-var needDraw=true;
+function lightAt(h){
+  h=((h%24)+24)%24;
+  let i=0;while(i<KEYS.length-2&&KEYS[i+1][0]<h)i++;
+  const a=KEYS[i],b=KEYS[i+1],t=Math.min(1,Math.max(0,(h-a[0])/(b[0]-a[0]||1)));
+  const L=(x,y)=>x+(y-x)*t, mix3=(u,v)=>[L(u[0],v[0]),L(u[1],v[1]),L(u[2],v[2])];
+  return {tint:mix3(a[1],b[1]),tintA:L(a[2],b[2]),warm:mix3(a[3],b[3]),warmA:L(a[4],b[4]),light:L(a[5],b[5])};
+}
 
-function mkCanvas(w,h){var c=document.createElement("canvas");c.width=w;c.height=h;return c}
+/* ---------- 油墨组（全部出自 Heure Dorée 家族） ---------- */
+const INKSETS=[
+  {name:"蜜光 Miel",   paper:"#F4E3C2", inks:["#E8B96F","#A85B3C","#5E6E7E"]},
+  {name:"琥珀 Ambre",  paper:"#F0DDB8", inks:["#D98E4A","#5E6E7E","#A85B3C"]},
+  {name:"影蓝 Ombre",  paper:"#EFE0C4", inks:["#5E6E7E","#E8B96F","#D98E4A"]},
+  {name:"焦赭 Ocre",   paper:"#F2DFC0", inks:["#A85B3C","#E8B96F","#5E6E7E"]}
+];
+let palIdx=0, layout=0;
+const P={reg:45, press:88, grain:50};
+const PW=1200, PH=1800;
+let plates=[], grainC=null, meta={edition:0,word:["",""],sub:""};
+let pressAnim=1;
 
-/* ---------------- poster composition ---------------- */
+/* ---------- poster 构图（沿用孔版引擎） ---------- */
+function mkCanvas(w,h){const c=document.createElement("canvas");c.width=w;c.height=h;return c}
 function build(){
-  var rand=mulberry32(seed);
-  var pal=PALETTES[palIdx];
-  plates=pal.inks.map(function(color,i){
-    var c=mkCanvas(PW,PH);
-    return {color:color, c:c, g:c.getContext("2d"),
-      dx:(rand()*2-1), dy:(rand()*2-1), name:color};
+  const rand=mulberry32(seed);
+  const pal=INKSETS[palIdx];
+  plates=pal.inks.map(function(color){
+    const c=mkCanvas(PW,PH);
+    return {color:color,c:c,g:c.getContext("2d"),dx:(rand()*2-1),dy:(rand()*2-1)};
   });
-  var R=Math.floor(rand()*4); // composition archetype
-  var A=plates[0], B=plates[1], C=plates[2];
-  var words=[["OVER","PRINT"],["孔版","三色"],["MIS","REGISTER"],["叠印","OVERLAY"],["STEN","CIL"],["INK &","GRAIN"]];
-  var subs=["孔版印刷实验室","RISOGRAPH STUDY","专色叠印样本","GRAIN IS GOOD","错位即风格","SOY INK ONLY"];
-  var wi=Math.floor(rand()*words.length);
+  const R=layout;
+  const A=plates[0],B=plates[1],C=plates[2];
+  const words=[["HEURE","DORÉE"],["金色","时刻"],["CINQ","HEURES"],["落日","校样"],["TROIS","PLANCHES"],["傍晚","落版"]];
+  const subs=["金色时刻印刷所","L'ATELIER DU SOIR","专色叠印样本","PROOF AT DUSK","错位即签名","SOY INK ONLY"];
+  const wi=Math.floor(rand()*words.length);
   meta.word=words[wi]; meta.sub=subs[Math.floor(rand()*subs.length)];
   meta.edition=100+Math.floor(rand()*900);
 
@@ -209,11 +338,11 @@ function build(){
   function ring(pl,x,y,r,wd,a){pl.g.globalAlpha=a==null?1:a;pl.g.strokeStyle=pl.color;pl.g.lineWidth=wd;pl.g.beginPath();pl.g.arc(x,y,r,0,7);pl.g.stroke();pl.g.globalAlpha=1}
   function halftone(pl,cx,cy,maxR,cell){
     pl.g.fillStyle=pl.color;
-    for(var y=cy-maxR;y<cy+maxR;y+=cell){
-      for(var x=cx-maxR;x<cx+maxR;x+=cell){
-        var d=Math.sqrt((x-cx)*(x-cx)+(y-cy)*(y-cy));
+    for(let y=cy-maxR;y<cy+maxR;y+=cell){
+      for(let x=cx-maxR;x<cx+maxR;x+=cell){
+        const d=Math.sqrt((x-cx)*(x-cx)+(y-cy)*(y-cy));
         if(d<maxR){
-          var r=(1-d/maxR)*cell*.42;
+          const r=(1-d/maxR)*cell*.42;
           if(r>.6){pl.g.beginPath();pl.g.arc(x,y,r,0,7);pl.g.fill();}
         }
       }
@@ -221,39 +350,38 @@ function build(){
   }
   function bars(pl,x,y,w,h,n,vert){
     pl.g.fillStyle=pl.color;
-    for(var i=0;i<n;i++){
-      var t=rand();
-      if(vert){var bw=6+t*26;pl.g.fillRect(x+i*(w/n),y,bw,h*(.4+t*.6));}
-      else{var bh=6+t*22;pl.g.fillRect(x,y+i*(h/n),w*(.4+t*.6),bh);}
+    for(let i=0;i<n;i++){
+      const t=rand();
+      if(vert){const bw=6+t*26;pl.g.fillRect(x+i*(w/n),y,bw,h*(.4+t*.6));}
+      else{const bh=6+t*22;pl.g.fillRect(x,y+i*(h/n),w*(.4+t*.6),bh);}
     }
   }
   function crosshair(pl,x,y){
-    var g=pl.g;g.strokeStyle=pl.color;g.lineWidth=3;
+    const g=pl.g;g.strokeStyle=pl.color;g.lineWidth=3;
     g.beginPath();g.moveTo(x-22,y);g.lineTo(x+22,y);g.moveTo(x,y-22);g.lineTo(x,y+22);g.stroke();
     g.beginPath();g.arc(x,y,14,0,7);g.stroke();
   }
   function type(pl,txt,x,y,size,align,a){
-    var g=pl.g;g.globalAlpha=a==null?1:a;g.fillStyle=pl.color;
+    const g=pl.g;g.globalAlpha=a==null?1:a;g.fillStyle=pl.color;
     g.font="900 "+size+"px 'Helvetica Neue',-apple-system,'PingFang SC',sans-serif";
     g.textAlign=align||"left";g.textBaseline="alphabetic";
     g.fillText(txt,x,y);g.globalAlpha=1;
   }
   function mono(pl,txt,x,y,size,align){
-    var g=pl.g;g.fillStyle=pl.color;
-    g.font="400 "+size+"px 'SF Mono',Menlo,monospace";
+    const g=pl.g;g.fillStyle=pl.color;
+    g.font="400 "+(size||22)+"px 'SF Mono',Menlo,monospace";
     g.textAlign=align||"left";g.textBaseline="alphabetic";
     g.fillText(txt,x,y);
   }
 
-  /* shared skeleton on every plate: registration marks (fringes reveal offset) */
   plates.forEach(function(pl){
     crosshair(pl,70,70); crosshair(pl,PW-70,70);
     crosshair(pl,70,PH-70); crosshair(pl,PW-70,PH-70);
   });
 
-  var cx=PW/2;
+  const cx=PW/2;
   if(R===0){
-    /* big sun + word across */
+    /* 落日 + 跨版字 */
     circle(A, cx+((rand()-.5)*160), 620, 330);
     circle(A, cx+((rand()-.5)*160), 620, 330, .25);
     halftone(C, cx+(rand()-.5)*300, 1180, 300, 26);
@@ -264,14 +392,13 @@ function build(){
     mono(C,"EDITION "+meta.edition+" / 3-COLOR STENCIL", 120, 1650);
     mono(C,meta.sub, PW-120, 1650, 24, "right");
   }else if(R===1){
-    /* arc + diagonal bars + vertical word */
     ring(A, cx+(rand()-.5)*200, 560, 300, 90);
     ring(B, cx+(rand()-.5)*200, 560, 200, 30, .85);
-    var gB=B.g; gB.save(); gB.translate(cx,1120); gB.rotate(-.35);
+    const gB=B.g; gB.save(); gB.translate(cx,1120); gB.rotate(-.35);
     gB.fillStyle=B.color;
-    for(var i=0;i<10;i++){gB.fillRect(-560+i*120,-320,34,640);}
+    for(let i=0;i<10;i++){gB.fillRect(-560+i*120,-320,34,640);}
     gB.restore();
-    var vy=380;
+    const vy=380;
     meta.word.join("").split("").forEach(function(ch,k){
       if(ch!==" "){type(C,ch, PW-190, vy+k*128, 110, "center");}
     });
@@ -279,24 +406,24 @@ function build(){
     mono(A,"NO."+meta.edition+" — "+meta.sub, 120, 1720);
     rect(A, 120, 300, 180, 180, .9);
   }else if(R===2){
-    /* modular grid */
-    var cols=6, rows=9, gx=90, gy=260, gw=(PW-180)/cols, gh=1180/rows;
-    for(var r2=0;r2<rows;r2++){
-      for(var c2=0;c2<cols;c2++){
-        var pick=rand();
-        var px=gx+c2*gw+gw/2, py=gy+r2*gh+gh/2;
-        if(pick<.18)circle(A,px,py,gw*.33);
-        else if(pick<.34)rect(B,px-gw*.33,py-gh*.33,gw*.66,gh*.66);
-        else if(pick<.44)ring(C,px,py,gw*.3,10);
-        else if(pick<.52)circle(A,px,py,gw*.33,.35);
+    const cols=6, rows=9, gx=90, gy=260, gw=(PW-180)/cols, gh=1180/rows;
+    for(let r2=0;r2<rows;r2++){
+      for(let c2=0;c2<cols;c2++){
+        const pick=rand();
+        const px=gx+c2*gw+gw/2, py=gy+r2*gh+gh/2;
+        if(pick<.26)circle(A,px,py,gw*.33);
+        else if(pick<.46)rect(B,px-gw*.33,py-gh*.33,gw*.66,gh*.66);
+        else if(pick<.58)ring(C,px,py,gw*.3,10);
+        else if(pick<.68)circle(A,px,py,gw*.33,.35);
+        else if(pick<.74)rect(C,px-gw*.3,py-gh*.12,gw*.6,gh*.24,.8);
       }
     }
     rect(B, 0, 1500, PW, 200);
-    type(plates[2], meta.word.join(""), cx, 1660, 120, "center");
+    type(C, meta.word.join(""), cx, 1660, 120, "center");
     mono(A,meta.sub+" — EDITION "+meta.edition, 120, 220);
     mono(C,"RISOGRAPH / SPOT COLOR", PW-120, 220, 24, "right");
   }else{
-    /* halftone moon + solid block + band type */
+    /* 半月网点 + 色块 + 横排字：落日海面 */
     halftone(B, cx, 640, 360, 30);
     rect(A, 140, 480, 380, 380);
     rect(C, 520, 860, 420, 120, .9);
@@ -307,121 +434,392 @@ function build(){
     mono(A,"EDITION "+meta.edition, 140, 1750);
     mono(C,meta.sub, PW-140, 1750, 24, "right");
   }
+  mono(A,"RISO PRESS — L'HEURE DORÉE", 120, 130, 22);
+  mono(A,"3 PLATES / SOY INK", PW-120, 130, 22, "right");
 
-  /* meta strip top on plate A */
-  mono(A,"RISO PRESS — STENCIL DUPLICATOR", 120, 130, 22);
-  mono(A,"3 COLORS / SOY INK", PW-120, 130, 22, "right");
-
-  buildGrain(rand);
+  buildGrain(mulberry32(seed+7),P.grain/100);
   pressAnim=0;
-  needDraw=true;
+  document.getElementById('stats').textContent=
+    "Canvas 2D · multiply 叠印 · edition №"+meta.edition+" · "+INKSETS[palIdx].name;
+  document.getElementById('fSeed').textContent=String(seed).padStart(10,'0');
 }
 
-/* ---------------- grain ---------------- */
-function buildGrain(rand){
-  var amt=P.grain/100;
+function buildGrain(rand,amt){
   grainC=mkCanvas(PW,PH);
-  var g=grainC.getContext("2d");
-  var n=Math.floor(9000*amt),i;
-  // ink starvation: paper specks inside solids
+  const g=grainC.getContext("2d");
+  let i,n;
+  n=Math.floor(10400*amt);
   for(i=0;i<n;i++){
-    g.fillStyle="rgba(244,240,230,"+(0.25+rand()*.5)+")";
+    g.fillStyle="rgba(244,231,194,"+(0.25+rand()*.5)+")";
     g.fillRect(rand()*PW,rand()*PH,1+rand()*2.2,1+rand()*2.2);
   }
-  // dark specks
-  for(i=0;i<n*.4;i++){
-    g.fillStyle="rgba(30,28,24,"+(0.08+rand()*.2)+")";
+  n=Math.floor(4200*amt);
+  for(i=0;i<n;i++){
+    g.fillStyle="rgba(74,59,44,"+(0.08+rand()*.2)+")";
     g.fillRect(rand()*PW,rand()*PH,1+rand()*1.8,1+rand()*1.8);
   }
-  // faint horizontal streaks (drum marks)
-  for(i=0;i<26*amt;i++){
-    g.fillStyle="rgba(244,240,230,"+(0.05+rand()*.12)+")";
+  n=Math.floor(32*amt);
+  for(i=0;i<n;i++){
+    g.fillStyle="rgba(244,231,194,"+(0.05+rand()*.12)+")";
     g.fillRect(0,rand()*PH,PW,1+rand()*2);
   }
 }
 
-/* ---------------- composite ---------------- */
-function composite(g,w,h){
-  var pal=PALETTES[palIdx];
+/* 合成全部版到 g（w×h），sepPx=揭版位移 */
+function compositeAll(g,w,h,sepPx,withShadow,sunDx){
+  const pal=INKSETS[palIdx];
   g.fillStyle=pal.paper; g.fillRect(0,0,w,h);
-  var s=w/PW;
-  var regPx=P.reg/100*16;
-  var ease=1-Math.pow(1-pressAnim,3); // settle-in
-  var settle=1+(1-ease)*2.2;
-  plates.forEach(function(pl){
+  const ease=1-Math.pow(1-pressAnim,3);
+  const settle=1+(1-ease)*2.2;
+  const regPx=(P.reg/100*16)*settle*(w/PW);
+  // 阴影先画（最底层版的影在最下）
+  if(withShadow&&Math.abs(sepPx)>.5){
+    for(let i=plates.length-1;i>=0;i--){
+      const lift=(i-1)*sepPx;
+      if(Math.abs(lift)<.5)continue;
+      g.save();
+      g.globalAlpha=Math.min(.16,Math.abs(lift)/300);
+      g.filter='blur(5px)';
+      g.drawImage(plates[i].c, lift+sunDx+8, 10-Math.abs(lift)*.12, w, h);
+      g.restore();
+    }
+  }
+  plates.forEach(function(pl,i){
+    const lift=(i-1)*sepPx;
     g.save();
     g.globalCompositeOperation="multiply";
-    g.drawImage(pl.c, pl.dx*regPx*settle*s, pl.dy*regPx*settle*s, w, h);
+    g.globalAlpha=P.press/100;
+    g.drawImage(pl.c, pl.dx*regPx+lift, pl.dy*regPx-Math.abs(lift)*.12, w, h);
     g.restore();
   });
-  if(P.grain>0){
-    g.save();
-    g.globalAlpha=.5+P.grain/100*.5;
-    g.drawImage(grainC,0,0,w,h);
-    g.restore();
+  if(grainC&&P.grain>0){
+    g.save();g.globalAlpha=.25+P.grain/100*.6;g.drawImage(grainC,0,0,w,h);g.restore();
   }
-  // trim border
-  g.strokeStyle="#141412"; g.lineWidth=Math.max(1,2*s);
-  g.strokeRect(10*s,10*s,w-20*s,h-20*s);
 }
 
-/* ---------------- display ---------------- */
-var dpr=1,W=0,H=0;
-function resize(){
-  dpr=Math.min(window.devicePixelRatio||1,2);
-  var avail=document.getElementById("stage");
-  var r=avail.getBoundingClientRect();
-  var hh=Math.min(window.innerHeight*.76, (r.width-44)*1.5);
-  H=Math.max(360,hh); W=H*(2/3);
-  canvas.style.height=H+"px"; canvas.style.width=W+"px";
-  canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  needDraw=true;
+/* ---------- 桌面背景（碎色纸纹） ---------- */
+let bgC=null;
+function buildBG(){
+  const r=mulberry32(3100);
+  bgC=mkCanvas(W*DPR,H*DPR);
+  const g=bgC.getContext('2d');g.scale(DPR,DPR);
+  g.fillStyle="#EFE0C2";g.fillRect(0,0,W,H);
+  g.lineCap='round';
+  for(let i=0;i<1400;i++){
+    const x=r()*W,y=r()*H;
+    const warm=r()<.5;
+    const c=warm?[232+((r()-.5)*16)|0,214+((r()-.5)*14)|0,178+((r()-.5)*12)|0]
+               :[240+((r()-.5)*10)|0,227+((r()-.5)*10)|0,196+((r()-.5)*10)|0];
+    g.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},${(.3+r()*.3).toFixed(2)})`;
+    g.lineWidth=1.5+r()*3;
+    const a=(r()-.5)*.5;
+    const len=6+r()*18;
+    g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(a)*len,y+Math.sin(a)*len*.3);g.stroke();
+  }
+  /* 桌上的工作痕迹：右侧试色条、油墨点、铅笔线 */
+  const inks=["#E8B96F","#D98E4A","#A85B3C","#5E6E7E"];
+  const sx0=W*.70, sy0=H*.72;
+  g.save();
+  g.translate(sx0,sy0);g.rotate(-.03);
+  g.fillStyle="rgba(244,236,218,.9)";
+  g.fillRect(-14,-18,W*.24+28,64);
+  g.strokeStyle="rgba(74,59,44,.35)";g.lineWidth=1;
+  g.strokeRect(-14,-18,W*.24+28,64);
+  for(let i=0;i<4;i++){
+    for(let k=0;k<26;k++){
+      g.fillStyle=inks[i]+(k%3?"":"CC");
+      g.globalAlpha=.55+r()*.4;
+      g.fillRect(i*(W*.06)+r()*3, -8+r()*30, W*.045, 8+r()*6);
+    }
+  }
+  g.globalAlpha=1;
+  g.fillStyle="rgba(74,59,44,.55)";
+  g.font="400 10px 'SF Mono',Menlo,monospace";
+  g.fillText("PROOF — "+inks.length+" INKS",-8,58);
+  g.restore();
+  // 油墨点
+  for(let i=0;i<9;i++){
+    const x=W*(.66+r()*.3), y=H*(.12+r()*.5);
+    g.fillStyle=inks[(r()*4)|0];
+    g.globalAlpha=.5+r()*.4;
+    g.beginPath();g.arc(x,y,2+r()*4,0,7);g.fill();
+    g.globalAlpha=.25;
+    g.beginPath();g.arc(x+3,y+2,1.2,0,7);g.fill();
+  }
+  g.globalAlpha=1;
+  // 铅笔辅助线
+  g.strokeStyle="rgba(94,110,126,.3)";g.lineWidth=.8;
+  g.beginPath();g.moveTo(W*.62,H*.2);g.lineTo(W*.95,H*.16);g.stroke();
+  g.beginPath();g.moveTo(W*.64,H*.24);g.lineTo(W*.93,H*.21);g.stroke();
 }
-window.addEventListener("resize",resize);
 
-function frame(){
-  if(pressAnim<1){pressAnim=Math.min(1,pressAnim+.02);needDraw=true;}
-  if(needDraw){composite(ctx,W,H);needDraw=false;}
-  requestAnimationFrame(frame);
+/* ---------- 纸纹 + 颗粒 ---------- */
+let paperC=null;
+function makePaper(){
+  paperC=mkCanvas(Math.max(2,W*DPR/2),Math.max(2,H*DPR/2));
+  const p=paperC.getContext('2d');p.scale(DPR/2,DPR/2);
+  const r=mulberry32(78);
+  for(let i=0;i<4200;i++){
+    p.fillStyle=`rgba(${r()<.5?'74,59,44':'255,250,240'},${(.02+r()*.04).toFixed(3)})`;
+    p.fillRect(r()*W,r()*H,1+r()*1.6,1+r()*1.2);
+  }
 }
+const grainFx=mkCanvas(128,128);
+function makeGrainFx(){
+  const g=grainFx.getContext('2d');const im=g.createImageData(128,128);
+  for(let i=0;i<im.data.length;i+=4){const v=110+Math.random()*40;im.data[i]=im.data[i+1]=im.data[i+2]=v;im.data[i+3]=14}
+  g.putImageData(im,0,0);
+}
+makeGrainFx();setInterval(makeGrainFx,83);
 
-/* ---------------- ui ---------------- */
-var swBox=document.getElementById("swatches");
-PALETTES.forEach(function(p,i){
-  var b=document.createElement("button");
-  b.className="sw"+(i===0?" on":"");
-  b.innerHTML='<span class="dots">'+p.inks.map(function(c){return '<i style="background:'+c+'"></i>'}).join("")+'</span><span class="nm">'+p.name+'</span>';
-  b.addEventListener("click",function(){
+/* ---------- 揭版交互（wow：三块版被逐层掀起） ---------- */
+let sep=0, sepV=0, sepTarget=0;
+let dragging=false, dragX0=0, sep0=0, lastDX=0, dragVel=0;
+stage.addEventListener('pointerdown',e=>{
+  dragging=true;stage.setPointerCapture(e.pointerId);
+  dragX0=e.clientX;sep0=sepTarget;lastDX=0;
+  stage.classList.add('peeling');
+});
+stage.addEventListener('pointermove',e=>{
+  if(!dragging)return;
+  const dx=e.clientX-dragX0;
+  dragVel=dx-lastDX;lastDX=dx;
+  sepTarget=Math.min(1,Math.max(0,sep0+dx/220));
+  if(sound.on&&sound.rustle)sound.rustle.gain.value=Math.min(.09,Math.abs(dragVel)*.006);
+});
+function endDrag(){
+  if(!dragging)return;dragging=false;
+  sepTarget=0;sepV+=dragVel*.004; // 松手惯性
+  stage.classList.remove('peeling');
+  if(sound.on&&sound.rustle)sound.rustle.gain.value=.008;
+  if(Math.abs(sep)>.25&&sound.on)sound.thump();
+}
+stage.addEventListener('pointerup',endDrag);
+stage.addEventListener('pointercancel',endDrag);
+
+/* ---------- 声景（L5，默认 OFF） ---------- */
+const sound={on:false,ctx:null,master:null,
+  init(){ if(this.ctx)return;
+    const C=this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    const M=this.master=C.createGain();M.gain.value=0;M.connect(C.destination);
+    const len=2*C.sampleRate,buf=C.createBuffer(1,len,C.sampleRate),d=buf.getChannelData(0);
+    let l=0;for(let i=0;i<len;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.2}
+    // 车间低风
+    const src=C.createBufferSource();src.buffer=buf;src.loop=true;
+    const bp=C.createBiquadFilter();bp.type='bandpass';bp.frequency.value=420;bp.Q.value=1;
+    const wg=C.createGain();wg.gain.value=.1;src.connect(bp);bp.connect(wg);wg.connect(M);src.start();
+    // 纸张摩擦：高通 noise，默认很轻
+    const src2=C.createBufferSource();src2.buffer=buf;src2.loop=true;src2.playbackRate.value=1.9;
+    const hp=C.createBiquadFilter();hp.type='highpass';hp.frequency.value=2600;
+    const sg=C.createGain();sg.gain.value=.008;src2.connect(hp);hp.connect(sg);sg.connect(M);src2.start();
+    this.rustle=sg;
+  },
+  thump(){ const C=this.ctx;if(!C)return;const t=C.currentTime;
+    const o=C.createOscillator(),g=C.createGain();
+    o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(52,t+.16);
+    g.gain.setValueAtTime(.09,t);g.gain.exponentialRampToValueAtTime(.0001,t+.22);
+    o.connect(g);g.connect(this.master);o.start(t);o.stop(t+.24);
+  },
+  toggle(){ this.on=!this.on;
+    if(this.on){this.init();this.ctx.resume();const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.setValueAtTime(0,t);
+      this.master.gain.linearRampToValueAtTime(1,t+1.5);}
+    else if(this.ctx){const t=this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(t);this.master.gain.linearRampToValueAtTime(0,t+.6);}
+    localStorage.setItem('mira-sound',this.on?'1':'0');
+    document.getElementById('snd').classList.toggle('on',this.on);
+  }
+};
+document.getElementById('snd').addEventListener('click',e=>{e.stopPropagation();sound.toggle()});
+if(localStorage.getItem('mira-sound')==='1'){
+  const arm=()=>{sound.toggle();removeEventListener('pointerdown',arm)};addEventListener('pointerdown',arm);}
+
+/* ---------- lume 时间轴 ---------- */
+const lume=document.getElementById('lume'),thumb=document.getElementById('thumb'),heureOut=document.getElementById('heureOut');
+let lumeDrag=false;
+function lumeSet(e){const r=lume.getBoundingClientRect();
+  heure=Math.min(24,Math.max(0,(e.clientX-r.left)/r.width*24));
+  writeHash();}
+lume.addEventListener('pointerdown',e=>{lumeDrag=true;lume.setPointerCapture(e.pointerId);lumeSet(e);e.stopPropagation()});
+lume.addEventListener('pointermove',e=>{if(lumeDrag)lumeSet(e)});
+lume.addEventListener('pointerup',()=>lumeDrag=false);
+
+/* ---------- études：油墨组 + 再生 + PNG ---------- */
+const etBox=document.getElementById('etudes');
+INKSETS.forEach(function(p,i){
+  const b=document.createElement('button');
+  b.dataset.m=i;
+  if(i===0)b.classList.add('on');
+  b.innerHTML='<span class="dots">'+p.inks.map(c=>'<i style="background:'+c+'"></i>').join('')+'</span>'+p.name;
+  b.addEventListener('click',()=>{
     palIdx=i;
-    swBox.querySelectorAll(".sw").forEach(function(el,k){el.classList.toggle("on",k===i)});
+    etBox.querySelectorAll('button[data-m]').forEach((el,k)=>el.classList.toggle('on',k===i));
     build();
   });
-  swBox.appendChild(b);
+  etBox.appendChild(b);
+});
+function auxBtn(label,fn){
+  const b=document.createElement('button');b.textContent=label;
+  b.addEventListener('click',fn);etBox.appendChild(b);
+}
+auxBtn('再生 ↻',()=>{setSeed((Math.random()*1e9)>>>0);if(sound.on)sound.thump();});
+auxBtn('PNG ↓',()=>{
+  const ex=mkCanvas(PW,PH),eg=ex.getContext('2d');
+  const keep=pressAnim;pressAnim=1;compositeAll(eg,PW,PH,0,false,0);pressAnim=keep;
+  const a=document.createElement('a');
+  a.download="riso-presse-doree-"+meta.edition+".png";
+  a.href=ex.toDataURL("image/png");a.click();
 });
 
-document.getElementById("rReg").addEventListener("input",function(){
-  P.reg=+this.value; document.getElementById("oReg").textContent=this.value; needDraw=true;
+/* ---------- 印刷机参数台 ---------- */
+document.getElementById('rReg').addEventListener('input',function(){
+  P.reg=+this.value;document.getElementById('oReg').textContent=(this.value*.16).toFixed(1)+' mm';
 });
-document.getElementById("rGrain").addEventListener("input",function(){
-  P.grain=+this.value; document.getElementById("oGrain").textContent=this.value;
-  buildGrain(mulberry32(seed+7)); needDraw=true;
+document.getElementById('rPress').addEventListener('input',function(){
+  P.press=+this.value;document.getElementById('oPress').textContent=this.value+' %';
 });
-document.getElementById("bRegen").addEventListener("click",function(){
-  seed=Math.floor(Math.random()*1e9); build();
+document.getElementById('rGrain').addEventListener('input',function(){
+  P.grain=+this.value;document.getElementById('oGrain').textContent=this.value+' %';
+  buildGrain(mulberry32(seed+7),P.grain/100);
 });
-document.getElementById("bSave").addEventListener("click",function(){
-  var ex=mkCanvas(PW,PH),eg=ex.getContext("2d");
-  composite(eg,PW,PH);
-  var a=document.createElement("a");
-  a.download="riso-press-"+seed+".png";
-  a.href=ex.toDataURL("image/png");
-  a.click();
+document.getElementById('segLayout').addEventListener('click',function(e){
+  const b=e.target.closest('button');if(!b)return;
+  layout=+b.dataset.v;
+  for(let i=0;i<this.children.length;i++)this.children[i].classList.toggle('on',this.children[i]===b);
+  build();
+});
+document.getElementById('bShare').addEventListener('click',async function(e){
+  const btn=e.currentTarget,url=location.href;let ok=false;
+  try{await navigator.clipboard.writeText(url);ok=true}catch(err){prompt('复制此链接 / Copy link',url)}
+  if(ok){const old=btn.textContent;btn.textContent='已复制';setTimeout(()=>{btn.textContent=old},1400)}
 });
 
-build(); resize();
+/* ---------- 隐藏题记（落款连点 3 次） ---------- */
+let sigClicks=0,sigTimer=null;
+document.getElementById('sig').addEventListener('click',()=>{
+  sigClicks++;clearTimeout(sigTimer);sigTimer=setTimeout(()=>sigClicks=0,900);
+  if(sigClicks>=3){sigClicks=0;const n=document.getElementById('note');
+    n.classList.add('show');setTimeout(()=>n.classList.remove('show'),5200);}
+});
+
+/* ---------- 键盘：H 收起 / R、N 再生 / C 版式 / D 下载 / 1-4 油墨 ---------- */
+addEventListener('keydown',e=>{
+  const tag=document.activeElement&&document.activeElement.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+  if(e.key==='h'||e.key==='H')stage.classList.toggle('hideme');
+  if(e.key==='r'||e.key==='R'||e.key==='n'||e.key==='N'){setSeed((Math.random()*1e9)>>>0);}
+  if(e.key==='c'||e.key==='C'){
+    layout=(layout+1)%4;
+    const seg=document.getElementById('segLayout');
+    for(let i=0;i<seg.children.length;i++)seg.children[i].classList.toggle('on',i===layout);
+    build();
+  }
+  if(e.key==='d'||e.key==='D'){
+    const btns=etBox.querySelectorAll('button');
+    btns[btns.length-1].click(); // PNG aux button
+  }
+  const k=parseInt(e.key);
+  if(k>=1&&k<=INKSETS.length){
+    palIdx=k-1;
+    etBox.querySelectorAll('button[data-m]').forEach((el,i)=>el.classList.toggle('on',i===palIdx));
+    build();
+  }
+});
+
+/* ---------- resize ---------- */
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  W=stage.clientWidth;H=stage.clientHeight;
+  cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
+  makePaper();buildBG();
+}
+addEventListener('resize',resize);
+
+/* ---------- 主循环 ---------- */
+function frame(){
+  // 揭版弹簧：欠阻尼，松手回弹带一点过冲（L1.2）
+  const k=.09, damp=dragging?.82:.86;
+  sepV+= (sepTarget-sep)*k; sepV*=damp; sep+=sepV;
+  if(pressAnim<1)pressAnim=Math.min(1,pressAnim+.02);
+
+  const L=lightAt(heure);
+  ctx.drawImage(bgC,0,0,W,H);
+
+  // 海报几何：2:3，偏左 40%，揭版向右展开；窄屏时收进页宽
+  const ph=Math.min(H*.9,(W-24)*1.5), pw=ph*(2/3);
+  const px0=Math.min(Math.max(12,W*.40-pw/2),Math.max(12,W-pw-12)), py0=(H-ph)/2;
+  const sunDx=(heure<12?-1:1)*(1-L.light)*30;
+
+  // 桌面上的海报落影（蓝紫影，随 heure 拉长）
+  ctx.save();
+  ctx.filter='blur(10px)';
+  ctx.fillStyle=`rgba(94,110,126,${(.22+(1-L.light)*.2).toFixed(2)})`;
+  const shx=sunDx+14, shy=10+(1-L.light)*16;
+  ctx.fillRect(px0+shx,py0+shy,pw,ph);
+  ctx.restore();
+
+  // 海报本体（先合成进离屏再贴，避免 multiply 串到桌面）
+  if(!frame.pC){frame.pC=mkCanvas(PW/2,PH/2)}
+  const pc=frame.pC,pg=pc.getContext('2d');
+  compositeAll(pg,PW/2,PH/2,sep*44,true,sunDx*.3);
+  ctx.drawImage(pc,px0,py0,pw,ph);
+
+  // 光：全局色温 + 窗光暖带
+  ctx.globalCompositeOperation='multiply';
+  ctx.fillStyle=`rgba(${L.tint[0]|0},${L.tint[1]|0},${L.tint[2]|0},${(L.tintA*.7).toFixed(3)})`;
+  ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='overlay';
+  if(L.warmA>.03){
+    const sunX=W*(heure<12?.2:.82),sunY=H*.16;
+    const g=ctx.createRadialGradient(sunX,sunY,0,sunX,sunY,Math.max(W,H)*.75);
+    g.addColorStop(0,`rgba(${L.warm[0]|0},${L.warm[1]|0},${L.warm[2]|0},${(L.warmA*1.6).toFixed(3)})`);
+    g.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  }
+  ctx.globalCompositeOperation='source-over';
+  const dark=(1-L.light)*.28;
+  if(dark>.02){ctx.fillStyle=`rgba(74,62,58,${dark.toFixed(3)})`;ctx.fillRect(0,0,W,H)}
+
+  // 纸纹 + 颗粒
+  ctx.globalCompositeOperation='multiply';ctx.globalAlpha=.85;
+  ctx.drawImage(paperC,0,0,W,H);
+  ctx.globalCompositeOperation='overlay';ctx.globalAlpha=.05;
+  ctx.drawImage(grainFx,0,0,W,H);
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+
+  thumb.style.left=(heure/24*100)+'%';
+  const hh=Math.floor(heure),mm=Math.floor((heure-hh)*60);
+  heureOut.textContent=`H ${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+
+  requestAnimationFrame(frame);
+}
+build();resize();
+document.getElementById('fSeed').textContent=String(seed).padStart(10,'0');
+writeHash();
 requestAnimationFrame(frame);
 })();
 </script>
-</body>
-</html>
+<div id="mira-lab" data-project="riso-press" data-num="07" style="--lab-a:#D98E4A;--lab-b:#5E6E7E"><button id="lab-launch" aria-label="Open project lab">LAB / <b>OPEN</b> ↗</button><aside id="lab-panel" aria-label="Project lab"><div class="lab-head"><div><small>PROJECT LAB / 07 · GEN-ART</small><strong>Riso Press</strong></div><button class="lab-close" aria-label="Close">×</button></div><div class="lab-status"><span><i class="lab-pulse"></i>LIVE TRACE</span><b id="lab-state">BRIEF</b></div><div class="lab-grid"><div class="lab-control"><label>GRAIN <output id="lab-grain-value">12%</output></label><input id="lab-grain-control" type="range" min="0" max="42" value="12"></div><div class="lab-control"><label>TEMPO <output id="lab-tempo-value">68%</output></label><input id="lab-tempo-control" type="range" min="20" max="120" value="68"></div><div class="lab-control"><label>TENSION <output id="lab-tension-value">24%</output></label><input id="lab-tension-control" type="range" min="0" max="80" value="24"></div></div><div class="lab-actions"><button id="lab-regen" class="primary">REGENERATE ↻</button><button id="lab-save">CAPTURE PNG</button><button id="lab-outline">INSPECT LAYERS</button><button id="lab-full">FULLSCREEN ⛶</button><button id="lab-share">COPY SHARE LINK</button></div><div class="lab-label">PROCESS TRACE / CLICK A PHASE</div><div class="lab-phases"><div class="lab-phase active"><i>01</i><b>BRIEF</b><span>intent</span></div><div class="lab-phase"><i>02</i><b>GENERATE</b><span>variation</span></div><div class="lab-phase"><i>03</i><b>CURATE</b><span>judgement</span></div><div class="lab-phase"><i>04</i><b>SHIP</b><span>artifact</span></div></div><div id="lab-log" class="lab-log"><b>00:00:00</b>  lab / ready for a brief</div></aside><div id="lab-cursor" aria-hidden="true"></div><div id="lab-grain" aria-hidden="true"></div></div><script id="mira-lab-script">
+(()=>{const root=document.getElementById('mira-lab'),panel=document.getElementById('lab-panel'),launch=document.getElementById('lab-launch'),cursor=document.getElementById('lab-cursor'),log=document.getElementById('lab-log'),status=document.getElementById('lab-state'),grain=document.getElementById('lab-grain'),pageKey=root.dataset.project||'project';let seed=Date.now()%100000,phase=0,timer;
+const q=s=>document.querySelector(s),qa=s=>[...document.querySelectorAll(s)];
+function write(message){log.innerHTML='<b>'+String(new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}))+'</b>  '+message}
+function setPhase(i){phase=i;qa('.lab-phase').forEach((el,n)=>el.classList.toggle('active',n===i));const names=['brief / intent is pinned','generate / variation is alive','curate / signal over noise','ship / ready for review'];status.textContent=names[i].split(' / ')[0].toUpperCase();write(names[i]);}
+function open(){panel.classList.add('open');launch.innerHTML='LAB / <b>CLOSE</b> ×';document.body.classList.add('lab-active');setPhase(phase)}
+function close(){panel.classList.remove('open');launch.innerHTML='LAB / <b>OPEN</b> ↗';document.body.classList.remove('lab-active')}
+launch.addEventListener('click',()=>panel.classList.contains('open')?close():open());q('.lab-close').addEventListener('click',close);
+document.addEventListener('pointermove',e=>{cursor.style.left=e.clientX+'px';cursor.style.top=e.clientY+'px';document.documentElement.style.setProperty('--lab-pointer-x',e.clientX+'px');document.documentElement.style.setProperty('--lab-pointer-y',e.clientY+'px')});
+qa('.lab-phase').forEach((el,i)=>el.addEventListener('click',()=>setPhase(i)));
+const grainCtl=q('#lab-grain-control'),tempoCtl=q('#lab-tempo-control'),tensionCtl=q('#lab-tension-control');
+grainCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-grain',(e.target.value/100).toFixed(2));q('#lab-grain-value').textContent=e.target.value+'%';write('surface / grain '+e.target.value+'%')});
+tempoCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tempo',e.target.value);q('#lab-tempo-value').textContent=e.target.value+'%';write('motion / tempo '+e.target.value+'%')});
+tensionCtl.addEventListener('input',e=>{document.documentElement.style.setProperty('--lab-tension',e.target.value);q('#lab-tension-value').textContent=e.target.value+'%';document.body.style.filter='contrast('+(1+e.target.value/520)+') saturate('+(1+e.target.value/400)+')';write('material / tension '+e.target.value+'%')});
+function clickGenerator(){const btn=qa('button').find(b=>/regener|random|再生|生成|new |reset|reseed|regrow|重置|随机|restart/i.test((b.textContent||'').trim())&&!b.closest('#mira-lab'));if(btn){btn.click();return btn.textContent.trim().slice(0,28)}const ev=new Event('change',{bubbles:true});qa('input[type=range]').slice(0,2).forEach(i=>{i.value=+i.value+(Math.random()>.5?1:-1);i.dispatchEvent(ev)});return 'surface seed shifted'}
+q('#lab-regen').addEventListener('click',()=>{seed=(seed*1664525+1013904223)>>>0;root.dataset.seed=seed;const hit=clickGenerator();setPhase(1);write('variation / '+hit+' · seed '+seed)});
+q('#lab-outline').addEventListener('click',e=>{document.body.classList.toggle('lab-outline');e.currentTarget.classList.toggle('active');write(document.body.classList.contains('lab-outline')?'inspection / structure visible':'inspection / structure hidden')});
+q('#lab-full').addEventListener('click',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();write('viewport / fullscreen toggled')});
+q('#lab-share').addEventListener('click',async()=>{const url=location.href;try{await navigator.clipboard.writeText(url);write('share / link copied to clipboard')}catch{prompt('Copy this project URL',url);write('share / url exposed for copying')}});
+q('#lab-save').addEventListener('click',()=>{const canvases=qa('canvas');if(canvases.length){const c=canvases[0];const a=document.createElement('a');a.download=pageKey+'-capture.png';a.href=c.toDataURL('image/png');a.click();write('capture / first canvas exported as PNG')}else{window.print();write('capture / print sheet opened')}});
+document.addEventListener('keydown',e=>{if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;if(e.key.toLowerCase()==='l')open();if(e.key.toLowerCase()==='r')q('#lab-regen').click();if(e.key.toLowerCase()==='f')q('#lab-full').click();if(e.key.toLowerCase()==='s')q('#lab-save').click();if(e.key==='Escape'&&panel.classList.contains('open'))close()});
+setPhase(0);timer=setInterval(()=>{if(panel.classList.contains('open'))setPhase((phase+1)%4)},4200);window.addEventListener('beforeunload',()=>clearInterval(timer));
+})();
+</script></body></html>
