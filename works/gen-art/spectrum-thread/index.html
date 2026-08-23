@@ -101,6 +101,32 @@
   .lume .heure{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink);min-width:52px;text-align:right}
   .hideme .etudes,.hideme .lume,.hideme .sig{opacity:0;pointer-events:none}
 
+  /* N°17 标准印章 + 参数台（补强） */
+  .seal{width:44px;height:44px;flex:none;align-self:center}
+  .seal .ring{fill:none;stroke:var(--pond);stroke-width:1.2}
+  .seal .m{fill:none;stroke:var(--pond);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .seal text{fill:var(--pond);font-family:var(--mono);font-size:6.4px;letter-spacing:1.6px}
+  .etitle{display:flex;gap:12px;align-items:center}
+  .idx b{color:var(--pond);font-weight:400}
+  .params{position:absolute;top:56px;left:14px;z-index:4;display:flex;gap:8px;flex-wrap:wrap;transition:opacity .5s var(--ease)}
+  .hideme .params{opacity:0;pointer-events:none}
+  .param{
+    display:flex;align-items:center;gap:8px;padding:6px 10px;
+    background:rgba(242,239,230,.72);border:1px solid rgba(60,74,66,.28);border-radius:2px;
+    backdrop-filter:blur(3px);
+  }
+  .param label{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--ink);white-space:nowrap}
+  .param output{font-family:var(--mono);font-size:9px;color:var(--pond);min-width:34px;text-align:right}
+  .param input[type=range]{-webkit-appearance:none;appearance:none;width:74px;height:14px;background:transparent;cursor:pointer}
+  .param input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  .param input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:10px;height:10px;margin-top:-4.5px;border-radius:50%;
+    background:var(--pond);border:1px solid rgba(60,74,66,.5);
+  }
+  .param input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  .param input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;background:var(--pond);border:1px solid rgba(60,74,66,.5)}
+  @media (max-width:760px){.params{top:auto;bottom:100px;right:14px}}
+
   footer{padding:0 clamp(18px,4vw,44px) 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
   footer p{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
   @media (max-width:640px){
@@ -115,10 +141,19 @@
 <header>
   <div class="brand">
     <a class="back" href="../../../index.html#work">← Archive</a>
-    <h1>Spectrum <em>Thread</em></h1>
+    <div class="etitle">
+      <svg class="seal" viewBox="0 0 58 58" aria-hidden="true">
+        <circle class="ring" cx="29" cy="29" r="27"/>
+        <circle class="ring" cx="29" cy="29" r="21.5" opacity=".45"/>
+        <path id="sealArc" fill="none" d="M29,29 m-24.2,0 a24.2,24.2 0 1,1 48.4,0 a24.2,24.2 0 1,1 -48.4,0"/>
+        <text><textPath href="#sealArc">ATELIER MIRA · ATELIER MIRA ·</textPath></text>
+        <path class="m" d="M21.5 37.5 L23.2 20.8 L29 31.5 L34.8 20.8 L36.5 37.5"/>
+      </svg>
+      <h1>Spectrum <em>Thread</em></h1>
+    </div>
   </div>
   <p class="epig">「一千根线落在水面上，密的地方就开出花。」</p>
-  <span class="idx">Gen-Art · N°17</span>
+  <span class="idx">Étude <b>N°17</b>/100 · Gen-Art</span>
 </header>
 
 <div class="stage-wrap">
@@ -131,6 +166,12 @@
       <button data-m="derive">散 · Dérive</button>
       <button data-m="__regen">再生 ↻</button>
       <button data-m="__save">PNG ↓</button>
+      <button data-m="__share">链接 ⤴</button>
+    </div>
+
+    <div class="params" id="params">
+      <div class="param"><label>线数 DENSITY</label><input type="range" id="pDen" min="1000" max="8000" value="3600" step="100"><output id="pDenO">3600</output></div>
+      <div class="param"><label>张力 TENSION</label><input type="range" id="pTen" min="0" max="100" value="30" step="1"><output id="pTenO">0.30</output></div>
     </div>
 
     <button class="sndbtn" id="snd" aria-label="声景开关" title="声景（默认关闭）">
@@ -200,11 +241,20 @@ function lightAt(h){
 }
 
 /* ---------- 线画引擎（沿用原作：圆周锚点 + 明暗场 + 拒绝采样） ---------- */
+function seedFromHash(){
+  const m=location.hash.match(/seed=([0-9a-fA-F]{1,4})/);
+  return m?parseInt(m[1],16):Math.floor(Math.random()*65536);
+}
+function seedHex(){return (state.seed%65536).toString(16).toUpperCase().padStart(4,"0")}
+function writeHash(){
+  const hh=(typeof heure==="number")?heure.toFixed(1):"12.0";
+  history.replaceState(null,"","#h="+hh+"&seed="+seedHex());
+}
 const state={
   density:3600, tension:.30, mode:"nenuphar",
-  seed:Math.floor(Math.random()*1e6),
+  seed:seedFromHash(),
   rot:0, rotTarget:0,
-  anchors:[], blobs:[], threads:[], lotuses:[], drawing:false
+  anchors:[], blobs:[], threads:[], lotuses:[], dabs:[], drawing:false
 };
 function buildAnchors(){
   const rng=mulberry32(state.seed);
@@ -404,7 +454,7 @@ const lume=document.getElementById('lume'),thumb=document.getElementById('thumb'
 let lumeDrag=false;
 function lumeSet(e){const r=lume.getBoundingClientRect();
   heure=Math.min(24,Math.max(0,(e.clientX-r.left)/r.width*24));
-  history.replaceState(null,'',`#h=${heure.toFixed(1)}`);}
+  writeHash();}
 lume.addEventListener('pointerdown',e=>{lumeDrag=true;lume.setPointerCapture(e.pointerId);lumeSet(e);e.stopPropagation()});
 lume.addEventListener('pointermove',e=>{if(lumeDrag)lumeSet(e)});
 lume.addEventListener('pointerup',()=>lumeDrag=false);
@@ -415,20 +465,57 @@ document.getElementById('etudes').addEventListener('click',e=>{
   const m=b.dataset.m;
   if(m==='__regen'){regen(true);return}
   if(m==='__save'){download();return}
+  if(m==='__share'){shareLink();return}
   state.mode=m;
   document.querySelectorAll('.etudes button[data-m]').forEach(x=>{
     if(!x.dataset.m.startsWith('__'))x.classList.toggle('on',x.dataset.m===m)});
   regen(false);
 });
+function shareLink(){
+  const url=location.href.split('#')[0]+'#h='+heure.toFixed(1)+'&seed='+seedHex();
+  const done=()=>{const n=document.getElementById('note');
+    const orig=n.dataset.orig||(n.dataset.orig=n.textContent);
+    n.textContent='分享链接已复制 — '+url.split('#')[1];
+    n.classList.add('show');
+    setTimeout(()=>{n.classList.remove('show');n.textContent=orig},2600);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(done).catch(()=>{prompt('Copy this link',url);done()});
+  }else{prompt('Copy this link',url);done()}
+}
 function download(){
   const a=document.createElement('a');
-  a.download="spectrum-thread-"+state.seed+".png";
+  a.download="spectrum-thread-"+seedHex()+".png";
   a.href=cv.toDataURL("image/png");a.click();
 }
+/* ---------- 参数台滑杆（补强） ---------- */
+function syncParams(){
+  document.getElementById('pDen').value=state.density;
+  document.getElementById('pTen').value=Math.round(state.tension*100);
+  document.getElementById('pDenO').textContent=state.density;
+  document.getElementById('pTenO').textContent=state.tension.toFixed(2);
+}
+document.getElementById('pDen').addEventListener('input',e=>{
+  state.density=+e.target.value;
+  document.getElementById('pDenO').textContent=state.density;
+  if(state.threads.length>state.density){
+    state.threads.length=state.density;stats();
+  }else if(!state.drawing){
+    state.drawing=true;bloomTarget=0;pumpGen++;pump(pumpGen);
+  }
+});
+document.getElementById('pTen').addEventListener('input',e=>{
+  state.tension=+e.target.value/100;
+  document.getElementById('pTenO').textContent=state.tension.toFixed(2);
+  const k=state.tension*.9;
+  for(const th of state.threads){
+    const mx=(th.ax+th.bx)/2,my=(th.ay+th.by)/2;
+    th.cx=mx*(1-k);th.cy=my*(1-k);
+  }
+});
 function stats(){
   document.getElementById('stats').textContent=
-    "Canvas 2D · "+state.mode.toUpperCase()+" · "+state.threads.length+" threads · seed "+
-    (state.seed%65536).toString(16).toUpperCase().padStart(4,"0");
+    "Canvas 2D · "+state.mode.toUpperCase()+" · "+state.threads.length+" threads · Seed "+
+    seedHex()+" · Painted with code, plein air";
 }
 
 /* ---------- 渐进放线 ---------- */
@@ -452,7 +539,7 @@ function pump(gen){
   }
 }
 function regen(newSeed){
-  if(newSeed)state.seed=Math.floor(Math.random()*1e6);
+  if(newSeed){state.seed=Math.floor(Math.random()*65536);writeHash();}
   buildAnchors();buildField();findLotuses();buildDabs();
   state.threads=[];state.drawing=true;bloom=0;bloomTarget=0;
   pumpGen++;pump(pumpGen);stats();
@@ -469,10 +556,12 @@ document.getElementById('sig').addEventListener('click',()=>{
     n.classList.add('show');setTimeout(()=>n.classList.remove('show'),5200);}
 });
 
-/* ---------- H 键收起 / R 再生 ---------- */
+/* ---------- H 键收起 / R 再生 / C 链接 / D 存图 ---------- */
 addEventListener('keydown',e=>{
   if(e.key==='h'||e.key==='H')stage.classList.toggle('hideme');
   if(e.key==='r'||e.key==='R')regen(true);
+  if(e.key==='c'||e.key==='C')shareLink();
+  if(e.key==='d'||e.key==='D')download();
 });
 
 /* ---------- resize ---------- */
@@ -591,7 +680,7 @@ function frame(){
   requestAnimationFrame(frame);
 }
 buildAnchors();buildField();findLotuses();
-resize();regen(false);
+resize();syncParams();regen(false);writeHash();
 requestAnimationFrame(frame);
 })();
 </script>

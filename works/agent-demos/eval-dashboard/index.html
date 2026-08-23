@@ -371,7 +371,9 @@ function heightOf(m){
 
 /* ================= 麦捆几何（每 seed 重新布局） ================= */
 let sheaves=[],fieldStrokes=[],clouds=[];
+let growBase=0; /* 生长动画墙钟起点（performance.now，虚拟时间下同样推进） */
 function layoutField(){
+  growBase=performance.now();
   const rng=mulberry32(seed^0xbeef);
   sheaves=MODELS.map((m,i)=>{
     /* 非对称：中部一列 stagger，一捆离群 */
@@ -405,7 +407,7 @@ BENCH.forEach(b=>{
 function setBench(b){
   bench=b;
   document.querySelectorAll("#tabs button").forEach(x=>x.classList.toggle("on",x.dataset.b===b));
-  sheaves.forEach(s=>{s.grow=0});
+  growBase=performance.now();
   renderMatrix();writeHash();
 }
 
@@ -462,7 +464,7 @@ bindSlider("s-n",v=>{nSample=v;$("v-n").textContent=v;renderMatrix();writeHash()
 $("b-ci").addEventListener("click",()=>{showCI=!showCI;$("b-ci").classList.toggle("on",showCI)});
 $("b-norm").addEventListener("click",()=>{
   norm=!norm;$("b-norm").classList.toggle("on",norm);
-  sheaves.forEach(s=>s.grow=0);writeHash();
+  growBase=performance.now();writeHash();
 });
 function regen(){
   seed=(seed*1664525+1013904223)>>>0;seed=1000+seed%9000;
@@ -694,10 +696,10 @@ function draw(now){
   /* --- 麦捆（先画影，后画捆） --- */
   const sunA=Math.atan2(sun.y-horizonY,sun.x-W/2);
   const shDir=sun.x<W/2?1:-1; /* 影子背向太阳 */
-  /* 生长推进（含 stagger 延迟） */
+  /* 生长推进：墙钟 + stagger，缓出 */
   sheaves.forEach(s=>{
-    if(s.growDelay>0){s.growDelay-=1/60}
-    else s.grow=Math.min(1,s.grow+1/55);
+    const k=Math.min(1,Math.max(0,(now-growBase)/1000-s.growDelay)/.9);
+    s.grow=1-Math.pow(1-Math.min(1,Math.max(0,k)),3);
   });
   const order=[...sheaves].sort((a,b)=>a.y-b.y);
   order.forEach(s=>{
