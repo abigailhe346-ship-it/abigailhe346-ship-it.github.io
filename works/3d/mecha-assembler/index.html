@@ -564,10 +564,10 @@ function updateHud(){
 }
 /* ---------------- environment ---------------- */
 function buildPools(){
-  var poolMat=new THREE.MeshStandardMaterial({color:0x7E9399,roughness:0.12,metalness:0.55,transparent:true,opacity:0.85});
-  var spots=[[-2.6,1.9,1.1,0.7],[2.9,-1.6,1.5,0.9],[-1.2,-2.8,0.9,0.55],[3.4,2.6,0.7,0.45]];
+  var spots=[[-2.9,2.4,1.3,0.55],[3.2,-2.2,1.6,0.7],[-0.8,-3.4,1.0,0.45]];
   for(var i=0;i<spots.length;i++){
-    var m=new THREE.Mesh(new THREE.CircleGeometry(1,32),poolMat.clone());
+    var m=new THREE.Mesh(new THREE.CircleGeometry(1,32),
+      new THREE.MeshStandardMaterial({color:0x8FA3AB,roughness:0.1,metalness:0.5,transparent:true,opacity:0.55}));
     m.rotation.x=-Math.PI/2;
     m.position.set(spots[i][0],0.015,spots[i][1]);
     m.scale.set(spots[i][2],spots[i][3],1);
@@ -601,17 +601,17 @@ function buildSea(){
   g.globalCompositeOperation="source-over";
   var tex=new THREE.CanvasTexture(cv);
   var band=new THREE.Mesh(
-    new THREE.CylinderGeometry(13,13,3.6,48,1,true),
+    new THREE.CylinderGeometry(16,16,4.2,48,1,true),
     new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.BackSide,depthWrite:false})
   );
-  band.position.y=0.9;scene.add(band);
+  band.position.y=0.7;scene.add(band);
 }
 function buildGulls(){
   var N=5;
   gullPos=new Float32Array(N*3);
   var g=new THREE.BufferGeometry();
   g.setAttribute("position",new THREE.BufferAttribute(gullPos,3));
-  gulls=new THREE.Points(g,new THREE.PointsMaterial({color:0x2E3A41,size:0.09,transparent:true,opacity:0.8}));
+  gulls=new THREE.Points(g,new THREE.PointsMaterial({color:0x2E3A41,size:0.15,map:softTexture(),transparent:true,opacity:0.8,depthWrite:false}));
   gulls.userData={ph:[],r:[],h:[],sp:[],scatter:0};
   for(var i=0;i<N;i++){
     gulls.userData.ph.push(rng()*Math.PI*2);
@@ -778,11 +778,14 @@ function init(){
   hemi=new THREE.HemisphereLight(0xE2E0D2,0x8A9494,0.85);scene.add(hemi);
   key=new THREE.DirectionalLight(0xFFD9AE,0.85);key.position.set(-5,2.8,3);scene.add(key);
   rim=new THREE.DirectionalLight(0xD97B5A,0.5);rim.position.set(-4,3,-5);scene.add(rim);
-  lamp=new THREE.PointLight(0xFFD9A0,0,13,2);lamp.position.set(2.2,4.4,2.4);scene.add(lamp);
+  lamp=new THREE.PointLight(0xFFD9A0,0,13,2);lamp.position.set(-3.1,4.3,1.6);scene.add(lamp);
   lampBulb=new THREE.Mesh(new THREE.SphereGeometry(0.07,10,10),new THREE.MeshBasicMaterial({color:0xFFD9A0,transparent:true,opacity:0}));
   lampBulb.position.copy(lamp.position);scene.add(lampBulb);
-  var lampPost=new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.045,4.4,8),new THREE.MeshStandardMaterial({color:0x2E3A41,roughness:0.7,metalness:0.4}));
-  lampPost.position.set(2.2,2.2,2.4);scene.add(lampPost);
+  var lampPost=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.04,4.3,8),new THREE.MeshStandardMaterial({color:0x2E3A41,roughness:0.7,metalness:0.4}));
+  lampPost.position.set(-3.1,2.15,1.6);scene.add(lampPost);
+  /* 机身下的软影 */
+  var blob=new THREE.Mesh(new THREE.CircleGeometry(1.7,36),new THREE.MeshBasicMaterial({color:0x4F666E,transparent:true,opacity:0.18}));
+  blob.rotation.x=-Math.PI/2;blob.position.y=0.012;blob.scale.set(1.25,1,1);scene.add(blob);
   var groundMat=new THREE.MeshStandardMaterial({map:sandTexture(),roughness:0.9,metalness:0.05});
   var ground=new THREE.Mesh(new THREE.CircleGeometry(15,56),groundMat);
   ground.rotation.x=-Math.PI/2;scene.add(ground);
