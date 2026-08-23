@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule Orbit — 定时任务轨道图</title>
+<style>
+  :root{
+    --navy:#101820;
+    --navy-2:#16202B;
+    --gold:#C9A227;
+    --gold-dim:rgba(201,162,39,.35);
+    --ivory:#F1EAD8;
+    --ivory-55:rgba(241,234,216,.55);
+    --ivory-25:rgba(241,234,216,.22);
+    --ivory-10:rgba(241,234,216,.08);
+    --teal:#5E8C7B;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --mono:"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--navy);color:var(--ivory);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--gold);color:var(--navy)}
+
+  /* deco double rules */
+  header{
+    border-bottom:4px double var(--gold-dim);
+    padding:18px 30px 14px;display:flex;justify-content:space-between;align-items:baseline;
+  }
+  .brand{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase}
+  .brand b{color:var(--gold);font-weight:700}
+  header .obs{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:var(--ivory-55);text-transform:uppercase}
+
+  .stage{max-width:1280px;margin:0 auto;padding:24px 26px 34px}
+
+  .layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr);gap:26px}
+  @media (max-width:920px){.layout{grid-template-columns:1fr}}
+
+  /* ===== deco frame ===== */
+  .frame{
+    position:relative;border:1px solid var(--gold-dim);background:var(--navy-2);
+  }
+  .frame::before{
+    content:"";position:absolute;inset:5px;border:1px solid var(--ivory-10);pointer-events:none;
+  }
+  .corner{position:absolute;width:14px;height:14px;pointer-events:none}
+  .corner::before{
+    content:"";position:absolute;inset:3px;background:var(--gold);
+    transform:rotate(45deg);transform-origin:center;
+  }
+  .corner.tl{top:-4px;left:-4px}.corner.tr{top:-4px;right:-4px}
+  .corner.bl{bottom:-4px;left:-4px}.corner.br{bottom:-4px;right:-4px}
+
+  .dial-head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:16px 22px 10px;border-bottom:1px solid var(--ivory-10);
+  }
+  .dial-head h1{
+    font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,32px);
+    letter-spacing:.14em;text-transform:uppercase;
+  }
+  .dial-head h1 i{color:var(--gold);font-style:normal}
+  .clock{
+    font-family:var(--serif);font-size:clamp(18px,2.2vw,26px);color:var(--gold);
+    font-variant-numeric:tabular-nums;letter-spacing:.06em;
+  }
+  .clock small{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--ivory-55);display:block;text-align:right;text-transform:uppercase}
+  #orbit{display:block;width:100%;height:520px;cursor:crosshair}
+  @media (max-width:600px){#orbit{height:400px}}
+
+  .dial-foot{
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:12px 22px 14px;border-top:1px solid var(--ivory-10);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ivory-55);
+  }
+  .legend{display:flex;gap:16px}
+  .legend i{display:inline-block;width:8px;height:8px;transform:rotate(45deg);margin-right:6px}
+  .legend .on i{background:var(--gold)} .legend .off i{border:1px solid var(--ivory-55)}
+  .legend .sel i{border:1px solid var(--gold);box-shadow:0 0 0 2px var(--gold-dim)}
+
+  /* ===== registry panel ===== */
+  .panel{display:flex;flex-direction:column;min-width:0}
+  .detail{
+    padding:20px 22px 16px;border-bottom:1px solid var(--ivory-10);position:relative;
+  }
+  .detail .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--ivory-55);text-transform:uppercase}
+  .detail .tname{font-family:var(--serif);font-size:26px;margin:6px 0 2px;letter-spacing:.04em}
+  .detail .cron{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.1em}
+  .detail .desc{font-size:12px;color:var(--ivory-55);margin-top:8px;line-height:1.7}
+  .countdown{
+    margin-top:14px;display:flex;align-items:baseline;gap:12px;
+  }
+  .countdown .cd{
+    font-family:var(--serif);font-size:clamp(34px,4.6vw,52px);line-height:1;color:var(--gold);
+    font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  }
+  .countdown .cd.disabled{color:var(--ivory-25)}
+  .countdown .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--ivory-55);text-transform:uppercase;line-height:1.8}
+  .dt-actions{display:flex;gap:10px;margin-top:16px}
+  .gbtn{
+    appearance:none;background:transparent;border:1px solid var(--gold-dim);color:var(--ivory);
+    font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    padding:9px 16px;cursor:pointer;transition:all .25s var(--ease);position:relative;
+  }
+  .gbtn:hover{border-color:var(--gold);color:var(--gold)}
+  .gbtn.solid{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+  .gbtn.solid:hover{background:var(--ivory);border-color:var(--ivory)}
+
+  .reg-head{
+    padding:12px 22px;border-bottom:1px solid var(--ivory-10);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ivory-55);
+    display:flex;justify-content:space-between;
+  }
+  .reg{list-style:none;overflow-y:auto;max-height:420px;scrollbar-width:thin;scrollbar-color:var(--ivory-25) transparent}
+  .reg::-webkit-scrollbar{width:5px}.reg::-webkit-scrollbar-thumb{background:var(--ivory-25)}
+  .row{
+    display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;
+    padding:11px 22px;border-bottom:1px solid var(--ivory-10);cursor:pointer;
+    transition:background .25s var(--ease);
+  }
+  .row:hover{background:rgba(241,234,216,.04)}
+  .row.sel{background:rgba(201,162,39,.08);box-shadow:inset 2px 0 0 var(--gold)}
+  .row .gem{
+    width:9px;height:9px;transform:rotate(45deg);background:var(--gold);
+    transition:all .3s var(--ease);
+  }
+  .row.off .gem{background:transparent;border:1px solid var(--ivory-55)}
+  .row .rn{font-size:13px;letter-spacing:.04em}
+  .row .rn small{display:block;font-family:var(--mono);font-size:9.5px;color:var(--ivory-55);letter-spacing:.08em;margin-top:2px}
+  .row.off .rn{color:var(--ivory-55)}
+  .row .rcd{font-family:var(--mono);font-size:11px;color:var(--gold);font-variant-numeric:tabular-nums;text-align:right}
+  .row.off .rcd{color:var(--ivory-25)}
+  /* toggle */
+  .tgl{
+    width:34px;height:18px;border:1px solid var(--gold-dim);position:relative;cursor:pointer;flex:none;
+  }
+  .tgl::after{
+    content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+    background:var(--gold);transform:rotate(45deg) scale(.8);transition:all .3s var(--ease);
+  }
+  .row.off .tgl::after{left:17px;background:transparent;border:1px solid var(--ivory-55);transform:rotate(45deg) scale(.6)}
+
+  .firelog{
+    border-top:1px solid var(--ivory-10);padding:10px 22px 12px;
+    font-family:var(--mono);font-size:10px;line-height:1.9;color:var(--ivory-55);
+    min-height:76px;
+  }
+  .firelog .fl b{color:var(--gold);font-weight:600}
+  .firelog .fl .ft{color:var(--ivory-25)}
+
+  footer{
+    border-top:4px double var(--gold-dim);padding:12px 30px;margin-top:8px;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ivory-55);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><b>SO—013</b>&nbsp;&nbsp;SCHEDULE&nbsp;ORBIT</div>
+  <div class="obs">CRON&nbsp;OBSERVATORY&nbsp;·&nbsp;定时任务天文台</div>
+</header>
+
+<div class="stage">
+  <div class="layout">
+
+    <!-- dial -->
+    <div class="frame">
+      <span class="corner tl"></span><span class="corner tr"></span>
+      <span class="corner bl"></span><span class="corner br"></span>
+      <div class="dial-head">
+        <h1>任务轨道<i>仪</i></h1>
+        <div class="clock"><span id="simClock">00:00:00</span><small>观测时钟 · <span id="warpLbl">60×</span></small></div>
+      </div>
+      <canvas id="orbit"></canvas>
+      <div class="dial-foot">
+        <div class="legend">
+          <span class="on"><i></i>运行中</span>
+          <span class="off"><i></i>已停用</span>
+          <span class="sel"><i></i>选中</span>
+        </div>
+        <span>顶点金轨 = 触发线 · 点击星体选中</span>
+      </div>
+    </div>
+
+    <!-- registry -->
+    <div class="frame panel">
+      <span class="corner tl"></span><span class="corner tr"></span>
+      <span class="corner bl"></span><span class="corner br"></span>
+
+      <div class="detail">
+        <div class="k">SELECTED&nbsp;TASK&nbsp;/&nbsp;当前任务</div>
+        <div class="tname" id="dName">—</div>
+        <div class="cron" id="dCron">—</div>
+        <div class="desc" id="dDesc">—</div>
+        <div class="countdown">
+          <div class="cd" id="dCd">--:--:--</div>
+          <div class="lbl">距下次触发<br>NEXT FIRE</div>
+        </div>
+        <div class="dt-actions">
+          <button class="gbtn solid" id="toggleBtn">停用任务</button>
+          <button class="gbtn" id="allBtn">全部暂停</button>
+        </div>
+      </div>
+
+      <div class="reg-head"><span>任务注册表</span><span id="regCount">—</span></div>
+      <ul class="reg" id="reg"></ul>
+      <div class="firelog" id="firelog"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>SO—013 · SCHEDULE ORBIT</span>
+  <span>环形 CRON 轨道 · 触发倒计时 · 任务启停 · 单文件零外链</span>
+  <span>DESIGNED &amp; CODED BY KIMI</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ================= data ================= */
+var MIN=60*1000, HOUR=60*MIN, DAY=24*HOUR;
+var TASKS=[
+ {name:"缓存预热",   cron:"*/5 * * * *",   period:5*MIN,    phase:0.10, desc:"每 5 分钟刷新热点商品缓存，防止穿透。"},
+ {name:"日志归档",   cron:"*/15 * * * *",  period:15*MIN,   phase:0.35, desc:"滚动压缩 Nginx 访问日志并上传冷存储。"},
+ {name:"会话清理",   cron:"*/30 * * * *",  period:30*MIN,   phase:0.60, desc:"回收过期会话与临时令牌。"},
+ {name:"对账快照",   cron:"0 * * * *",     period:HOUR,     phase:0.00, desc:"整点生成交易对账差异快照。"},
+ {name:"向量库重建", cron:"20 */2 * * *",  period:2*HOUR,   phase:0.33, desc:"增量合并 embedding 索引分段。"},
+ {name:"依赖漏洞扫描",cron:"40 */6 * * *", period:6*HOUR,   phase:0.18, desc:"扫描依赖树 CVE，超标则推送告警。"},
+ {name:"模型漂移评估",cron:"0 */12 * * *", period:12*HOUR,  phase:0.50, desc:"对比线上分布与基准集，输出 PSI 报告。"},
+ {name:"周报复盘邮件",cron:"30 9 * * 1",   period:7*DAY,    phase:0.27, desc:"每周一 09:30 汇总指标并发送复盘邮件。"}
+];
+TASKS.forEach(function(t){t.enabled=true;t.fires=0;t.lastFire=-1;t.flash=0;t.px=0;t.py=0;});
+
+var RINGS=[
+ {max:15*MIN,  label:"≤15 MIN"},
+ {max:HOUR,    label:"≤1 HOUR"},
+ {max:6*HOUR,  label:"≤6 HOURS"},
+ {max:DAY,     label:"≤1 DAY"},
+ {max:7*DAY,   label:"≤1 WEEK"}
+];
+function ringOf(t){for(var i=0;i<RINGS.length;i++)if(t.period<=RINGS[i].max)return i;return RINGS.length-1;}
+
+/* ================= sim clock ================= */
+var warp=60;                 // 60x default
+var simNow=Date.UTC(2026,7,23,0,0,0);   // virtual observatory epoch
+var lastReal=performance.now();
+
+/* ================= dom ================= */
+var $=function(id){return document.getElementById(id);};
+var cv=$("orbit"),ctx=cv.getContext("2d");
+var DPR=1,W=0,H=0,cx=0,cy=0,Rmax=0;
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  var r=cv.getBoundingClientRect();
+  W=r.width;H=r.height;cx=W/2;cy=H/2+14;Rmax=Math.min(W,H)/2-52;
+  cv.width=W*DPR;cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener("resize",resize);resize();
+
+/* ================= helpers ================= */
+function progressOf(t,now){return ((now-t.phase*t.period)%t.period+t.period)%t.period/t.period;}
+function nextFire(t,now){
+  var p=t.period,ph=t.phase*p;
+  return (Math.floor((now-ph)/p)+1)*p+ph;
+}
+function fmtDur(ms){
+  if(ms<0)ms=0;
+  var s=Math.floor(ms/1000),d=Math.floor(s/86400);
+  s%=86400;var h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
+  function p(x){return String(x).padStart(2,"0");}
+  return d>0?d+"d "+p(h)+":"+p(m)+":"+p(ss):p(h)+":"+p(m)+":"+p(ss);
+}
+function fmtClock(ms){
+  var d=new Date(ms);
+  function p(x){return String(x).padStart(2,"0");}
+  return p(d.getUTCHours())+":"+p(d.getUTCMinutes())+":"+p(d.getUTCSeconds());
+}
+
+/* ================= selection & log ================= */
+var sel=3; // default: 对账快照
+var fires=[];
+function logFire(t,at){
+  fires.unshift({name:t.name,at:at});
+  if(fires.length>3)fires.pop();
+  var fl=$("firelog");
+  fl.innerHTML=fires.map(function(f){
+    return '<div class="fl"><span class="ft">['+fmtClock(f.at)+']</span> <b>◆</b> '+f.name+' 已触发</div>';
+  }).join("")||'<div class="fl"><span class="ft">[--:--:--]</span> 暂无触发记录</div>';
+}
+
+/* ================= registry ================= */
+var reg=$("reg");
+function buildReg(){
+  reg.innerHTML="";
+  TASKS.forEach(function(t,i){
+    var li=document.createElement("li");
+    li.className="row"+(t.enabled?"":" off")+(i===sel?" sel":"");
+    li.innerHTML='<span class="gem"></span>'+
+      '<span class="rn">'+t.name+'<small>'+t.cron+'</small></span>'+
+      '<span class="rcd" data-cd="'+i+'">--:--:--</span>'+
+      '<span class="tgl" data-tgl="'+i+'"></span>';
+    li.addEventListener("click",function(){sel=i;refreshReg();refreshDetail();});
+    li.querySelector(".tgl").addEventListener("click",function(e){
+      e.stopPropagation();t.enabled=!t.enabled;refreshReg();refreshDetail();
+    });
+    reg.appendChild(li);
+  });
+}
+function refreshReg(){
+  var rows=reg.children;
+  for(var i=0;i<rows.length;i++){
+    var t=TASKS[i];
+    rows[i].className="row"+(t.enabled?"":" off")+(i===sel?" sel":"");
+  }
+  var on=TASKS.filter(function(t){return t.enabled;}).length;
+  $("regCount").textContent=on+"/"+TASKS.length+" ON";
+}
+function refreshDetail(){
+  var t=TASKS[sel];
+  $("dName").textContent=t.name;
+  $("dCron").textContent="CRON  "+t.cron+"  ·  已触发 "+t.fires+" 次";
+  $("dDesc").textContent=t.desc;
+  $("toggleBtn").textContent=t.enabled?"停用任务":"启用任务";
+  $("dCd").classList.toggle("disabled",!t.enabled);
+}
+$("toggleBtn").addEventListener("click",function(){
+  TASKS[sel].enabled=!TASKS[sel].enabled;refreshReg();refreshDetail();
+});
+$("allBtn").addEventListener("click",function(){
+  var anyOn=TASKS.some(function(t){return t.enabled;});
+  TASKS.forEach(function(t){t.enabled=!anyOn;});
+  this.textContent=anyOn?"全部恢复":"全部暂停";
+  refreshReg();refreshDetail();
+});
+
+/* ================= canvas: hit / hover ================= */
+var hover=-1,mouseX=-1,mouseY=-1;
+cv.addEventListener("mousemove",function(e){
+  var r=cv.getBoundingClientRect();mouseX=e.clientX-r.left;mouseY=e.clientY-r.top;
+  hover=-1;
+  for(var i=0;i<TASKS.length;i++){
+    var dx=mouseX-TASKS[i].px,dy=mouseY-TASKS[i].py;
+    if(dx*dx+dy*dy<144){hover=i;break;}
+  }
+  cv.style.cursor=hover>=0?"pointer":"crosshair";
+});
+cv.addEventListener("click",function(){
+  if(hover>=0){sel=hover;refreshReg();refreshDetail();}
+});
+
+/* ================= drawing ================= */
+function ringRadius(i){return Rmax*(0.30+0.175*i);}
+
+function draw(dt){
+  ctx.clearRect(0,0,W,H);
+
+  /* sunburst behind top (deco rays) */
+  var nRays=36, i;
+  ctx.save();ctx.translate(cx,cy);
+  for(i=0;i<nRays;i++){
+    var ang=-Math.PI/2+(i-nRays/2+0.5)*(Math.PI/nRays)*0.9;
+    ctx.strokeStyle=i%2?"rgba(201,162,39,.05)":"rgba(201,162,39,.10)";
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(0,0);
+    ctx.lineTo(Math.cos(ang)*(Rmax+34),Math.sin(ang)*(Rmax+34));ctx.stroke();
+  }
+  ctx.restore();
+
+  /* rings + ticks */
+  for(var ri=0;ri<RINGS.length;ri++){
+    var rr=ringRadius(ri);
+    ctx.strokeStyle="rgba(241,234,216,.16)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(cx,cy,rr,0,Math.PI*2);ctx.stroke();
+    // deco tick marks (12 per ring)
+    for(i=0;i<12;i++){
+      var a=i/12*Math.PI*2-Math.PI/2;
+      var inner=i%3===0?rr-7:rr-4;
+      ctx.strokeStyle="rgba(241,234,216,.28)";
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(a)*inner,cy+Math.sin(a)*inner);
+      ctx.lineTo(cx+Math.cos(a)*(rr+3),cy+Math.sin(a)*(rr+3));
+      ctx.stroke();
+    }
+    // ring label at bottom
+    ctx.fillStyle="rgba(241,234,216,.38)";
+    ctx.font="9px 'SF Mono',Menlo,monospace";ctx.textAlign="center";
+    ctx.fillText(RINGS[ri].label,cx,cy+rr+14);
+  }
+
+  /* center deco sun */
+  ctx.save();ctx.translate(cx,cy);
+  for(i=0;i<12;i++){
+    var a=i/12*Math.PI*2;
+    ctx.strokeStyle="rgba(201,162,39,.5)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(Math.cos(a)*16,Math.sin(a)*16);
+    ctx.lineTo(Math.cos(a)*24,Math.sin(a)*24);ctx.stroke();
+  }
+  ctx.rotate(Math.PI/4);
+  ctx.strokeStyle="#C9A227";
+  ctx.strokeRect(-9,-9,18,18);
+  ctx.rotate(-Math.PI/4);
+  ctx.fillStyle="#C9A227";
+  ctx.fillRect(-3,-3,6,6);
+  ctx.restore();
+
+  /* fire beam at top */
+  var beamFlash=TASKS.reduce(function(m,t){return Math.max(m,t.flash);},0);
+  ctx.save();
+  var grd=ctx.createLinearGradient(cx,cy-Rmax-30,cx,cy);
+  grd.addColorStop(0,"rgba(201,162,39,"+(0.35+beamFlash*0.6)+")");
+  grd.addColorStop(1,"rgba(201,162,39,0)");
+  ctx.strokeStyle=grd;ctx.lineWidth=1.5+beamFlash*2;
+  ctx.beginPath();ctx.moveTo(cx,cy-Rmax-30);ctx.lineTo(cx,cy);ctx.stroke();
+  // beam finial (deco diamond)
+  ctx.translate(cx,cy-Rmax-30);ctx.rotate(Math.PI/4);
+  ctx.fillStyle="#C9A227";
+  var fz=4+beamFlash*3;
+  ctx.fillRect(-fz/2,-fz/2,fz,fz);
+  ctx.restore();
+
+  /* selected: progress arc */
+  var st=TASKS[sel];
+  if(st.enabled){
+    var srr=ringRadius(ringOf(st));
+    var prog=progressOf(st,simNow);
+    ctx.strokeStyle="rgba(201,162,39,.55)";ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(cx,cy,srr,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);
+    ctx.stroke();
+  }
+
+  /* satellites */
+  TASKS.forEach(function(t,i){
+    var rr=ringRadius(ringOf(t));
+    var prog=progressOf(t,simNow);
+    var ang=-Math.PI/2+prog*Math.PI*2;
+    var x=cx+Math.cos(ang)*rr, y=cy+Math.sin(ang)*rr;
+    t.px=x;t.py=y;
+    t.flash=Math.max(0,t.flash-dt/900);
+
+    if(i===sel){
+      ctx.strokeStyle="rgba(201,162,39,.8)";ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(x,y,13+t.flash*8,0,Math.PI*2);ctx.stroke();
+    }
+    if(i===hover&&i!==sel){
+      ctx.strokeStyle="rgba(241,234,216,.5)";ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.stroke();
+    }
+    // diamond satellite
+    ctx.save();ctx.translate(x,y);ctx.rotate(Math.PI/4);
+    var s=6+t.flash*4;
+    if(t.enabled){
+      ctx.fillStyle=t.flash>0?"#F1EAD8":"#C9A227";
+      ctx.shadowColor="#C9A227";ctx.shadowBlur=t.enabled?8+t.flash*20:0;
+      ctx.fillRect(-s/2,-s/2,s,s);
+      ctx.shadowBlur=0;
+    }else{
+      ctx.strokeStyle="rgba(241,234,216,.4)";ctx.lineWidth=1;
+      ctx.strokeRect(-s/2,-s/2,s,s);
+    }
+    ctx.restore();
+  });
+
+  /* hover tooltip */
+  if(hover>=0){
+    var t=TASKS[hover];
+    var txt=t.name+"  ·  "+(t.enabled?("T-"+fmtDur(nextFire(t,simNow)-simNow)):"已停用");
+    ctx.font="11px 'SF Mono',Menlo,monospace";
+    var tw=ctx.measureText(txt).width+18;
+    var tx=Math.min(Math.max(t.px-tw/2,8),W-tw-8), ty=t.py-38;
+    ctx.fillStyle="rgba(16,24,32,.92)";
+    ctx.strokeStyle="rgba(201,162,39,.6)";ctx.lineWidth=1;
+    ctx.fillRect(tx,ty,tw,24);ctx.strokeRect(tx,ty,tw,24);
+    ctx.fillStyle=t.enabled?"#C9A227":"rgba(241,234,216,.5)";
+    ctx.textAlign="center";
+    ctx.fillText(txt,tx+tw/2,ty+16);
+  }
+}
+
+/* ================= tick ================= */
+function updateCounts(){
+  var t=TASKS[sel];
+  $("dCd").textContent=t.enabled?fmtDur(nextFire(t,simNow)-simNow):"已停用";
+  $("simClock").textContent=fmtClock(simNow);
+  for(var i=0;i<TASKS.length;i++){
+    var el=document.querySelector('[data-cd="'+i+'"]');
+    if(el)el.textContent=TASKS[i].enabled?fmtDur(nextFire(TASKS[i],simNow)-simNow):"OFF";
+  }
+}
+
+var prevProg=TASKS.map(function(t){return 0;});
+function loop(now){
+  var dt=Math.min(100,now-lastReal);lastReal=now;
+  simNow+=dt*warp;
+
+  // fire detection (wrap of progress while enabled)
+  TASKS.forEach(function(t,i){
+    var p=progressOf(t,simNow);
+    if(t.enabled&&prevProg[i]>0.9&&p<0.1){
+      t.fires++;t.lastFire=simNow;t.flash=1;
+      logFire(t,simNow);
+      if(i===sel)$("dCron").textContent="CRON  "+t.cron+"  ·  已触发 "+t.fires+" 次";
+    }
+    prevProg[i]=p;
+  });
+
+  draw(dt);
+  updateCounts();
+  requestAnimationFrame(loop);
+}
+
+/* warp control: click clock label cycles speed */
+var warps=[1,60,300,900],wi=1;
+document.querySelector(".clock").addEventListener("click",function(){
+  wi=(wi+1)%warps.length;warp=warps[wi];
+  $("warpLbl").textContent=warp+"×";
+});
+document.querySelector(".clock").style.cursor="pointer";
+document.querySelector(".clock").title="点击切换观测速度";
+
+/* ================= boot ================= */
+buildReg();refreshReg();refreshDetail();
+$("firelog").innerHTML='<div class="fl"><span class="ft">[--:--:--]</span> 观测站就绪，等待首次触发</div>';
+TASKS.forEach(function(t,i){prevProg[i]=progressOf(t,simNow);});
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

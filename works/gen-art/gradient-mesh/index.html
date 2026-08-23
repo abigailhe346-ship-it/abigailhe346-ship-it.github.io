@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MESH/FLOW — 流体渐变网格生成器</title>
+<style>
+  :root{
+    --paper:#f7f5f1; --panel:#ffffff; --line:#e3ded4;
+    --ink:#1c1a16; --dim:#97907f;
+    --acc:#c2552f;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--acc);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px}
+  .sig h1{font-family:var(--serif);font-size:24px;font-weight:400;letter-spacing:.02em}
+  .sig h1 em{font-style:italic;color:var(--acc)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--acc);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.06em}
+  .rule{margin:14px 28px 0;border-top:1px solid var(--ink)}
+
+  main{
+    display:grid;grid-template-columns:1fr 300px;gap:24px;
+    padding:24px 28px 40px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+  main>*,.stage,canvas{min-width:0}
+
+  .stage{
+    position:relative;border:1px solid var(--ink);overflow:hidden;
+    box-shadow:8px 8px 0 rgba(28,26,22,.08);
+    min-height:320px;display:flex;background:#0d1b2a;
+  }
+  .stage canvas{display:block;width:100%;height:auto;cursor:grab}
+  .stage canvas:active{cursor:grabbing}
+  .hud{
+    position:absolute;left:14px;bottom:12px;font-family:var(--mono);
+    font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    pointer-events:none;mix-blend-mode:difference;color:#fff;
+  }
+  .pal-tag{
+    position:absolute;right:14px;top:12px;font-family:var(--serif);font-style:italic;
+    font-size:15px;letter-spacing:.04em;pointer-events:none;
+    mix-blend-mode:difference;color:#fff;
+  }
+
+  .dock{
+    background:var(--panel);border:1px solid var(--line);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+  }
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl .lab{
+    display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:11px;letter-spacing:.1em;
+  }
+  .ctl .lab output{color:var(--acc)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:16px;height:16px;margin-top:-7px;
+    background:#fff;border:2px solid var(--acc);border-radius:50%;
+    transition:transform .2s var(--ease),background .2s var(--ease);
+  }
+  input[type=range]:hover::-webkit-slider-thumb{background:var(--acc);transform:scale(1.15)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:#fff;border:2px solid var(--acc);border-radius:50%}
+
+  .pals{display:flex;flex-direction:column;gap:8px}
+  .pal{
+    display:flex;align-items:center;gap:10px;border:1px solid var(--line);
+    padding:8px 10px;cursor:pointer;background:transparent;
+    transition:all .25s var(--ease);text-align:left;
+  }
+  .pal:hover{border-color:var(--ink)}
+  .pal.on{border-color:var(--ink);box-shadow:3px 3px 0 rgba(28,26,22,.15)}
+  .pal .chips{display:flex;flex:none}
+  .pal .chips i{width:16px;height:16px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.15)}
+  .pal .chips i + i{margin-left:-5px}
+  .pal span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--ink)}
+
+  .tog{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;cursor:pointer;
+    padding:4px 0;user-select:none;
+  }
+  .tog .sw{
+    width:34px;height:18px;border:1px solid var(--ink);border-radius:10px;
+    position:relative;transition:background .25s var(--ease);flex:none;
+  }
+  .tog .sw::after{
+    content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+    border-radius:50%;background:var(--ink);transition:transform .25s var(--ease),background .25s var(--ease);
+  }
+  .tog.on .sw{background:var(--ink)}
+  .tog.on .sw::after{transform:translateX(16px);background:#fff}
+
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    padding:12px 8px;cursor:pointer;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);transition:all .25s var(--ease);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn svg{width:12px;height:12px;flex:none}
+  .btn:hover{background:var(--ink);color:var(--paper);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:700}
+  .btn.primary:hover{background:#a84726;color:#fff}
+  .btn.wide{grid-column:1/-1}
+
+  footer{
+    padding:0 28px 28px;font-family:var(--mono);font-size:10px;color:var(--dim);
+    letter-spacing:.12em;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>Mesh <em>Flow</em></h1>
+    <span class="no">N°<b>04</b> — GEN-ART / 流体渐变网格生成器</span>
+  </div>
+  <p class="tag">色彩在低分辨率场上流动，放大即成流体。反距离加权混合 · 网格位移</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="pal-tag" id="palTag">Aurora 极光</div>
+    <div class="hud">DRAG TO STIR — 拖动搅动色彩</div>
+  </section>
+
+  <aside class="dock">
+    <h2>Color Field</h2>
+
+    <div class="ctl">
+      <div class="lab"><span>色板 PALETTE</span></div>
+      <div class="pals" id="pals"></div>
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>色团数量 BLOBS</span><output id="oBlobs">6</output></div>
+      <input type="range" id="rBlobs" min="3" max="10" value="6">
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>流速 SPEED</span><output id="oSpeed">40</output></div>
+      <input type="range" id="rSpeed" min="0" max="100" value="40">
+    </div>
+
+    <div class="tog" id="tMesh">网格线 MESH LINES<span class="sw"></span></div>
+    <div class="tog on" id="tGrain">颗粒 GRAIN<span class="sw"></span></div>
+
+    <div class="btns">
+      <button class="btn primary" id="bRand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        随机再生
+      </button>
+      <button class="btn" id="bDl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        下载 PNG
+      </button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>MESH FLOW — a gradient, stirred not shaken</span>
+  <span>悬停牵引色团 · 按下拖动搅动</span>
+</footer>
+
+<script>
+"use strict";
+/* ============================================================
+   MESH FLOW — 流体渐变网格生成器
+   色团在正弦流场中漂移；64×40 色彩场反距离加权混合，
+   双线性放大成全屏流体渐变，可选网格位移线与颗粒。
+   ============================================================ */
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const stage = document.getElementById('stage');
+const palTag = document.getElementById('palTag');
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const ASPECT = 16 / 10;
+let W = 0, H = 0;
+
+const PALETTES = [
+  { name: 'Aurora 极光',    bg: '#0d1b2a', colors: ['#ff6a88', '#ffb86b', '#7bdff2', '#b388eb'] },
+  { name: 'Pêche 蜜桃',     bg: '#fff3ec', colors: ['#ff9a8b', '#ff6a88', '#ffc3a0', '#ffafbd'] },
+  { name: 'Matcha 抹茶雾',  bg: '#eef3e6', colors: ['#9db38a', '#d4e2c8', '#6b8f71', '#e8c872'] },
+  { name: 'Néon 午夜霓虹',  bg: '#0a0a14', colors: ['#ff2e63', '#08d9d6', '#7b2ff7', '#f9f002'] }
+];
+
+const S = {
+  pal: 0,
+  blobs: 6,
+  speed: 40,
+  mesh: false,
+  grain: true,
+  seed: Math.random() * 1e9,
+  pointer: { x: .5, y: .5, down: false, inside: false }
+};
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function hexRGB(hex){
+  const n = parseInt(hex.slice(1), 16);
+  return [n >> 16 & 255, n >> 8 & 255, n & 255];
+}
+
+/* ---------- blobs ---------- */
+let blobs = [];
+function seedBlobs(){
+  const R = mulberry32(S.seed);
+  const pal = PALETTES[S.pal];
+  blobs = [];
+  for (let i = 0; i < S.blobs; i++){
+    const c = hexRGB(pal.colors[i % pal.colors.length]);
+    blobs.push({
+      bx: R(), by: R(),               // base anchor 0..1
+      ph1: R() * 6.28, ph2: R() * 6.28,
+      f1: .3 + R() * .5, f2: .2 + R() * .5,
+      amp: .18 + R() * .22,
+      r: c[0], g: c[1], b: c[2],
+      x: 0, y: 0,
+      // stir offset (from pointer), eases back
+      ox: 0, oy: 0
+    });
+  }
+}
+
+/* ---------- color field ---------- */
+const FW = 72, FH = 45;
+const fieldCv = document.createElement('canvas');
+fieldCv.width = FW; fieldCv.height = FH;
+const fctx = fieldCv.getContext('2d');
+const fimg = fctx.createImageData(FW, FH);
+
+let grainPattern = null;
+function makeGrain(){
+  const n = document.createElement('canvas');
+  n.width = 96; n.height = 96;
+  const nc = n.getContext('2d');
+  const im = nc.createImageData(96, 96);
+  for (let i = 0; i < im.data.length; i += 4){
+    const v = Math.random() * 255 | 0;
+    im.data[i] = im.data[i+1] = im.data[i+2] = v;
+    im.data[i+3] = 14;
+  }
+  nc.putImageData(im, 0, 0);
+  grainPattern = ctx.createPattern(n, 'repeat');
+}
+
+let tPrev = performance.now();
+
+function frame(now){
+  const dt = Math.min((now - tPrev) / 1000, .05);
+  tPrev = now;
+  const t = now * .001 * (.2 + S.speed / 60);
+
+  const pal = PALETTES[S.pal];
+  const bgc = hexRGB(pal.bg);
+
+  // update blob positions (sine drift + stir easing)
+  for (const bl of blobs){
+    const x = bl.bx + Math.sin(t * bl.f1 + bl.ph1) * bl.amp;
+    const y = bl.by + Math.cos(t * bl.f2 + bl.ph2) * bl.amp * .8;
+    // pointer interaction: hover pulls, press stirs outward
+    if (S.pointer.inside){
+      const dx = S.pointer.x - x, dy = S.pointer.y - y;
+      const d = Math.hypot(dx, dy) + .001;
+      if (S.pointer.down){
+        bl.ox -= dx / d * dt * .5 / (d * 4 + .5); // push away
+        bl.oy -= dy / d * dt * .5 / (d * 4 + .5);
+      } else {
+        bl.ox += dx / d * dt * .12 / (d * 6 + 1); // gentle pull
+        bl.oy += dy / d * dt * .12 / (d * 6 + 1);
+      }
+    }
+    bl.ox *= (1 - dt * 1.6); bl.oy *= (1 - dt * 1.6);
+    bl.x = x + bl.ox; bl.y = y + bl.oy;
+  }
+
+  // inverse-distance weighted color mixing
+  const d = fimg.data;
+  const eps = .012;
+  for (let fy = 0; fy < FH; fy++){
+    const ny = fy / FH;
+    for (let fx = 0; fx < FW; fx++){
+      const nx = fx / FW;
+      let sw = 0, sr = 0, sg = 0, sb = 0;
+      // background base weight
+      const wb = .18 / eps * .02;
+      sw += wb; sr += wb * bgc[0]; sg += wb * bgc[1]; sb += wb * bgc[2];
+      for (const bl of blobs){
+        const dx = nx - bl.x, dy = (ny - bl.y) * (H / W);
+        const w = 1 / (dx * dx + dy * dy + eps);
+        sw += w; sr += w * bl.r; sg += w * bl.g; sb += w * bl.b;
+      }
+      const i = (fy * FW + fx) * 4;
+      d[i] = sr / sw; d[i+1] = sg / sw; d[i+2] = sb / sw; d[i+3] = 255;
+    }
+  }
+  fctx.putImageData(fimg, 0, 0);
+
+  // upscale → fluid gradient
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(fieldCv, 0, 0, W, H);
+
+  // mesh displacement lines
+  if (S.mesh){
+    ctx.save();
+    ctx.strokeStyle = isDark(bgc) ? 'rgba(255,255,255,.16)' : 'rgba(0,0,0,.14)';
+    ctx.lineWidth = 1 * DPR;
+    const GX = 16, GY = 10;
+    const pt = (gx, gy) => {
+      const nx = gx / GX, ny = gy / GY;
+      let dx = 0, dy = 0;
+      for (const bl of blobs){
+        const ddx = nx - bl.x, ddy = ny - bl.y;
+        const dist2 = ddx * ddx + ddy * ddy + .02;
+        dx += ddx / dist2 * .012;
+        dy += ddy / dist2 * .012;
+      }
+      return [(nx + dx) * W, (ny + dy) * H];
+    };
+    for (let gy = 0; gy <= GY; gy++){
+      ctx.beginPath();
+      for (let gx = 0; gx <= GX; gx++){
+        const [x, y] = pt(gx, gy);
+        gx === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    for (let gx = 0; gx <= GX; gx++){
+      ctx.beginPath();
+      for (let gy = 0; gy <= GY; gy++){
+        const [x, y] = pt(gx, gy);
+        gy === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    // nodes
+    ctx.fillStyle = isDark(bgc) ? 'rgba(255,255,255,.4)' : 'rgba(0,0,0,.3)';
+    for (let gy = 0; gy <= GY; gy += 2)
+      for (let gx = 0; gx <= GX; gx += 2){
+        const [x, y] = pt(gx, gy);
+        ctx.beginPath(); ctx.arc(x, y, 1.5 * DPR, 0, 6.29); ctx.fill();
+      }
+    ctx.restore();
+  }
+
+  // grain
+  if (S.grain && grainPattern){
+    ctx.save();
+    ctx.translate(-(Math.random() * 96 | 0), -(Math.random() * 96 | 0));
+    ctx.fillStyle = grainPattern;
+    ctx.fillRect(0, 0, W + 96, H + 96);
+    ctx.restore();
+  }
+
+  // vignette
+  const vg = ctx.createRadialGradient(W/2, H/2, H * .4, W/2, H/2, H);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, isDark(bgc) ? 'rgba(0,0,0,.35)' : 'rgba(0,0,0,.12)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  requestAnimationFrame(frame);
+}
+
+function isDark([r, g, b]){ return r * .299 + g * .587 + b * .114 < 110; }
+
+/* ============================================================
+   SIZING
+   ============================================================ */
+function resize(){
+  const cw = Math.min(stage.clientWidth, 1200);
+  W = Math.round(cw * DPR);
+  H = Math.round(W / ASPECT);
+  cv.width = W; cv.height = H;
+  makeGrain();
+}
+
+/* ============================================================
+   INTERACTIONS
+   ============================================================ */
+const $ = id => document.getElementById(id);
+
+// palette buttons
+const palsEl = $('pals');
+PALETTES.forEach((p, i) => {
+  const b = document.createElement('button');
+  b.className = 'pal' + (i === 0 ? ' on' : '');
+  b.innerHTML = `<span class="chips">${p.colors.map(c => `<i style="background:${c}"></i>`).join('')}</span><span>${p.name}</span>`;
+  b.addEventListener('click', () => {
+    S.pal = i;
+    for (const [j, x] of [...palsEl.children].entries()) x.classList.toggle('on', j === i);
+    palTag.textContent = p.name;
+    seedBlobs();
+  });
+  palsEl.appendChild(b);
+});
+
+$('rBlobs').addEventListener('input', e => {
+  S.blobs = +e.target.value; $('oBlobs').textContent = e.target.value; seedBlobs();
+});
+$('rSpeed').addEventListener('input', e => {
+  S.speed = +e.target.value; $('oSpeed').textContent = e.target.value;
+});
+
+function togBind(id, key){
+  $(id).addEventListener('click', () => {
+    S[key] = !S[key];
+    $(id).classList.toggle('on', S[key]);
+  });
+}
+togBind('tMesh', 'mesh');
+togBind('tGrain', 'grain');
+
+$('bRand').addEventListener('click', () => {
+  S.seed = Math.random() * 1e9;
+  seedBlobs();
+});
+
+$('bDl').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.download = 'mesh-flow.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+});
+
+stage.addEventListener('pointermove', e => {
+  const r = cv.getBoundingClientRect();
+  S.pointer.x = (e.clientX - r.left) / r.width;
+  S.pointer.y = (e.clientY - r.top) / r.height;
+  S.pointer.inside = true;
+});
+stage.addEventListener('pointerdown', e => {
+  S.pointer.down = true;
+  stage.querySelector('canvas').setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointerup', () => { S.pointer.down = false; });
+stage.addEventListener('pointerleave', () => { S.pointer.inside = false; S.pointer.down = false; });
+
+let rsTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(rsTimer);
+  rsTimer = setTimeout(resize, 150);
+});
+
+/* ---------- boot ---------- */
+seedBlobs();
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

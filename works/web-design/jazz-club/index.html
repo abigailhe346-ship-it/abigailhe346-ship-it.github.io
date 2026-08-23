@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE VELVET NOTE 绒音爵士俱乐部 — Live Every Night</title>
+<style>
+  :root{
+    --ink:#0C0A07;
+    --ink2:#14100B;
+    --gold:#C9A24B;
+    --cream:#F2E8D5;
+    --wine:#7A2E2E;
+    --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--ink);color:var(--cream);font-family:var(--sans);overflow-x:hidden;}
+  ::selection{background:var(--gold);color:var(--ink);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:22px 4vw;mix-blend-mode:difference;pointer-events:none;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.16em;line-height:1.8;color:#fff;}
+  .sig .no{color:var(--gold);}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-align:right;line-height:2;color:#fff;}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden;}
+  #stage{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .hero-inner{position:relative;z-index:2;padding:0 6vw;}
+  .over{font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:var(--gold);margin-bottom:3vh;}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(56px,9vw,150px);line-height:.98;letter-spacing:.01em;}
+  h1 .cn{display:block;font-size:.34em;letter-spacing:.55em;margin-top:2.4vh;color:rgba(242,232,213,.85);}
+  .hero-sub{margin:3.6vh auto 0;font-size:14px;line-height:2.1;color:rgba(242,232,213,.66);max-width:46ch;}
+  .hero-ctas{margin-top:4.5vh;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+  .cta{border:1px solid var(--cream);background:transparent;color:var(--cream);font-family:var(--mono);
+    font-size:11px;letter-spacing:.24em;padding:15px 30px;cursor:pointer;transition:.4s var(--ease);text-decoration:none;}
+  .cta:hover{background:var(--cream);color:var(--ink);}
+  .cta.gold{border-color:var(--gold);color:var(--gold);}
+  .cta.gold:hover{background:var(--gold);color:var(--ink);}
+  .ticker{position:absolute;bottom:0;left:0;right:0;z-index:3;border-top:1px solid rgba(242,232,213,.18);
+    background:rgba(12,10,7,.55);backdrop-filter:blur(6px);overflow:hidden;padding:14px 0;}
+  .ticker-track{display:flex;width:max-content;animation:tick 30s linear infinite;}
+  .ticker-track span{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:rgba(242,232,213,.75);
+    padding:0 3vw;white-space:nowrap;}
+  .ticker-track b{color:var(--gold);font-weight:400;}
+  @keyframes tick{to{transform:translateX(-50%);}}
+
+  /* ---------- sections ---------- */
+  section{padding:14vh 6vw;max-width:1360px;margin:0 auto;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    border-bottom:1px solid rgba(242,232,213,.16);padding-bottom:22px;margin-bottom:8vh;}
+  .sec-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(34px,4.4vw,64px);line-height:1;}
+  .sec-head h2 em{color:var(--gold);font-style:italic;}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(242,232,213,.45);}
+
+  .reveal{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+  .reveal.on{opacity:1;transform:none;}
+
+  /* ---------- lineup ---------- */
+  .lineup{display:grid;grid-template-columns:300px 1fr;gap:6vw;align-items:start;}
+  @media(max-width:860px){.lineup{grid-template-columns:1fr;}}
+  .artist-list{display:flex;flex-direction:column;}
+  .artist-btn{background:none;border:none;border-left:1px solid rgba(242,232,213,.16);color:rgba(242,232,213,.55);
+    text-align:left;padding:22px 26px;cursor:pointer;transition:.4s var(--ease);font-family:var(--sans);}
+  .artist-btn .role{font-family:var(--mono);font-size:10px;letter-spacing:.26em;display:block;margin-bottom:8px;}
+  .artist-btn .name{font-family:var(--serif);font-size:26px;letter-spacing:.02em;color:var(--cream);}
+  .artist-btn:hover{color:var(--cream);}
+  .artist-btn.active{border-left-color:var(--gold);background:linear-gradient(90deg,rgba(201,162,75,.1),transparent);color:var(--gold);}
+  .artist-btn.active .name{color:var(--gold);}
+  .artist-panel{min-height:300px;}
+  .artist-panel .quote{font-family:var(--serif);font-style:italic;font-size:clamp(24px,2.8vw,40px);line-height:1.5;color:var(--cream);}
+  .artist-panel .quote i{color:var(--gold);font-style:italic;}
+  .artist-panel .bio{margin-top:3.5vh;font-size:14px;line-height:2.2;color:rgba(242,232,213,.7);max-width:56ch;}
+  .artist-meta{margin-top:4vh;display:flex;gap:5vw;flex-wrap:wrap;font-family:var(--mono);font-size:10px;
+    letter-spacing:.22em;color:rgba(242,232,213,.5);line-height:2.1;}
+  .artist-meta b{display:block;color:var(--gold);font-weight:400;font-size:13px;letter-spacing:.14em;}
+  .fade-swap{animation:swap .7s var(--ease);}
+  @keyframes swap{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:none;}}
+
+  /* ---------- setlist ---------- */
+  .sets{border-top:1px solid rgba(242,232,213,.16);}
+  .set-row{display:grid;grid-template-columns:120px 1fr auto;gap:3vw;align-items:baseline;padding:26px 8px;
+    border-bottom:1px solid rgba(242,232,213,.16);transition:.4s var(--ease);cursor:default;}
+  .set-row:hover{background:rgba(201,162,75,.06);padding-left:20px;}
+  .set-row .t{font-family:var(--mono);font-size:12px;letter-spacing:.14em;color:var(--gold);}
+  .set-row .n{font-family:var(--serif);font-size:clamp(20px,2.2vw,30px);}
+  .set-row .n small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(242,232,213,.5);margin-top:6px;}
+  .set-row .tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(242,232,213,.5);}
+  .set-row.live .tag{color:var(--gold);}
+  .set-row.live .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--gold);margin-right:8px;animation:pulse 1.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.25;}}
+
+  /* ---------- keys ---------- */
+  .keys-wrap{text-align:center;}
+  .keys-hint{font-family:var(--mono);font-size:11px;letter-spacing:.26em;color:rgba(242,232,213,.55);margin-bottom:5vh;line-height:2;}
+  .keys-hint b{color:var(--gold);font-weight:400;}
+  #piano{position:relative;display:inline-flex;height:220px;user-select:none;touch-action:none;}
+  .wkey{width:56px;height:220px;background:linear-gradient(180deg,#F6EEDC,#E7DCC2);border:1px solid #0C0A07;border-radius:0 0 6px 6px;
+    cursor:pointer;position:relative;transition:background .15s,transform .1s;transform-origin:top;}
+  .wkey.playing{background:linear-gradient(180deg,var(--gold),#A8823A);transform:scaleY(.985);}
+  .bkey{position:absolute;width:34px;height:132px;background:linear-gradient(180deg,#241D14,#0C0A07);border-radius:0 0 5px 5px;
+    z-index:2;cursor:pointer;transition:background .15s;}
+  .bkey.playing{background:linear-gradient(180deg,var(--gold),#7A5C24);}
+  .klabel{position:absolute;bottom:10px;left:0;right:0;font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:rgba(12,10,7,.45);pointer-events:none;}
+  .chord-line{margin-top:4vh;font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:rgba(242,232,213,.6);min-height:18px;}
+  .chord-line b{color:var(--gold);font-weight:400;}
+
+  /* ---------- reserve ---------- */
+  .res-grid{display:grid;grid-template-columns:1fr 1fr;gap:6vw;}
+  @media(max-width:860px){.res-grid{grid-template-columns:1fr;}}
+  .res-note{font-family:var(--serif);font-size:clamp(24px,2.6vw,38px);line-height:1.6;}
+  .res-note em{color:var(--gold);}
+  .res-note p{font-family:var(--sans);font-size:13px;line-height:2.2;color:rgba(242,232,213,.65);margin-top:3vh;max-width:40ch;}
+  .field{margin-bottom:34px;}
+  .field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(242,232,213,.5);margin-bottom:14px;}
+  .nights{display:flex;gap:8px;flex-wrap:wrap;}
+  .night{border:1px solid rgba(242,232,213,.25);background:none;color:var(--cream);font-family:var(--mono);font-size:11px;
+    letter-spacing:.1em;padding:12px 16px;cursor:pointer;transition:.3s;text-align:center;line-height:1.7;}
+  .night small{display:block;font-size:9px;color:rgba(242,232,213,.5);}
+  .night:hover{border-color:var(--gold);}
+  .night.sel{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+  .night.sel small{color:rgba(12,10,7,.6);}
+  .stepper{display:flex;align-items:center;gap:22px;}
+  .stepper button{width:44px;height:44px;border:1px solid rgba(242,232,213,.3);background:none;color:var(--cream);
+    font-size:20px;cursor:pointer;transition:.3s;font-family:var(--mono);}
+  .stepper button:hover{border-color:var(--gold);color:var(--gold);}
+  .stepper .v{font-family:var(--serif);font-size:34px;min-width:56px;text-align:center;}
+  .zones{display:flex;gap:10px;flex-wrap:wrap;}
+  .zone{border:1px solid rgba(242,232,213,.25);background:none;color:rgba(242,232,213,.7);font-family:var(--mono);
+    font-size:10px;letter-spacing:.2em;padding:14px 20px;cursor:pointer;transition:.3s;line-height:1.8;}
+  .zone small{display:block;font-size:9px;color:rgba(242,232,213,.4);}
+  .zone:hover{border-color:var(--gold);}
+  .zone.sel{border-color:var(--gold);color:var(--gold);background:rgba(201,162,75,.08);}
+  .zone.sel small{color:rgba(201,162,75,.6);}
+  #resOut{margin-top:8px;font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--gold);line-height:2.2;min-height:24px;}
+
+  footer{border-top:1px solid rgba(242,232,213,.16);padding:9vh 6vw 6vh;display:flex;justify-content:space-between;
+    gap:6vw;flex-wrap:wrap;max-width:1360px;margin:0 auto;}
+  footer .big{font-family:var(--serif);font-size:clamp(34px,4.5vw,64px);line-height:1.1;}
+  footer .big em{color:var(--gold);}
+  footer .info{font-family:var(--mono);font-size:10px;letter-spacing:.24em;line-height:2.6;color:rgba(242,232,213,.55);}
+  footer .info b{color:var(--cream);font-weight:400;}
+  .copyright{max-width:1360px;margin:0 auto;padding:0 6vw 5vh;font-family:var(--mono);font-size:9px;
+    letter-spacing:.3em;color:rgba(242,232,213,.3);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">Nº 021</span><br>THE VELVET NOTE<br>绒音爵士俱乐部</div>
+  <div class="hright">EST. 1962 — SHANGHAI<br>LIVE EVERY NIGHT 21:30</div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <canvas id="stage"></canvas>
+  <div class="hero-inner">
+    <div class="over">LIVE EVERY NIGHT · 21:30 — 01:00</div>
+    <h1>The Velvet Note<span class="cn">绒 音</span></h1>
+    <p class="hero-sub">一间藏在复兴西路地下室里的爵士俱乐部。六十二年，只换过三次灯泡——音乐却每晚都是新的。</p>
+    <div class="hero-ctas">
+      <a class="cta gold" href="#reserve">预订今晚座位</a>
+      <a class="cta" href="#keys">弹一段钢琴</a>
+    </div>
+  </div>
+  <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
+</div>
+
+<!-- LINEUP -->
+<section id="lineup">
+  <div class="sec-head reveal"><h2>今晚 <em>驻场</em></h2><div class="idx">01 — TONIGHT'S LINEUP</div></div>
+  <div class="lineup">
+    <div class="artist-list reveal" id="artistList"></div>
+    <div class="artist-panel reveal" id="artistPanel"></div>
+  </div>
+</section>
+
+<!-- SETLIST -->
+<section>
+  <div class="sec-head reveal"><h2>今夜 <em>歌单</em></h2><div class="idx">02 — SETLIST, AUG 23</div></div>
+  <div class="sets reveal" id="setlist"></div>
+</section>
+
+<!-- KEYS -->
+<section id="keys">
+  <div class="sec-head reveal"><h2>弹一曲 <em>再走</em></h2><div class="idx">03 — HOUSE PIANO</div></div>
+  <div class="keys-wrap reveal">
+    <div class="keys-hint">点击琴键，或用键盘 <b>A — K</b> 演奏。舞台上的那台贝森朵夫，今晚借你三分钟。</div>
+    <div id="piano"></div>
+    <div class="chord-line" id="chordLine">&nbsp;</div>
+  </div>
+</section>
+
+<!-- RESERVE -->
+<section id="reserve">
+  <div class="sec-head reveal"><h2>订一张 <em>小桌</em></h2><div class="idx">04 — RESERVATION</div></div>
+  <div class="res-grid">
+    <div class="res-note reveal">
+      桌子很小，<br>只放得下<em>两杯威士忌</em><br>和一整晚的音乐。
+      <p>每晚限四十位客人。不接受电话预订，请在这里留下名字——门口的姑娘会记得你。</p>
+    </div>
+    <div class="reveal">
+      <div class="field"><label>选择夜晚 / NIGHT</label><div class="nights" id="nights"></div></div>
+      <div class="field"><label>人数 / PARTY</label>
+        <div class="stepper">
+          <button id="minus" aria-label="减少">−</button>
+          <div class="v" id="partyV">2</div>
+          <button id="plus" aria-label="增加">＋</button>
+        </div>
+      </div>
+      <div class="field"><label>座位 / SEATING</label>
+        <div class="zones">
+          <button class="zone sel" data-z="舞台边">舞台边<small>听得见呼吸</small></button>
+          <button class="zone" data-z="吧台">吧台<small>离威士忌最近</small></button>
+          <button class="zone" data-z="卡座">卡座<small>适合说悄悄话</small></button>
+        </div>
+      </div>
+      <button class="cta gold" id="bookBtn">确认预订</button>
+      <div id="resOut"></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="big">明晚见。<br><em>Bring your own blues.</em></div>
+  <div class="info">
+    <b>THE VELVET NOTE 绒音</b><br>
+    复兴西路 34 号 · 地下室<br>
+    21:30 — 01:00 · 周一休演<br>
+    NO PHOTOS DURING SOLOS
+  </div>
+</footer>
+<div class="copyright">© 1962—2026 THE VELVET NOTE · WEB DESIGN Nº 021 · AI PORTFOLIO</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ hero canvas: spotlights + smoke + grain ============ */
+var cv=document.getElementById('stage'),cx=cv.getContext('2d');
+var W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
+function resize(){
+  W=cv.clientWidth;H=cv.clientHeight;
+  cv.width=W*DPR;cv.height=H*DPR;cx.setTransform(DPR,0,0,DPR,0,0);
+}
+resize();window.addEventListener('resize',resize);
+
+/* grain tile */
+var g=document.createElement('canvas');g.width=g.height=128;
+var gx=g.getContext('2d'),gd=gx.createImageData(128,128);
+for(var i=0;i<gd.data.length;i+=4){var v=Math.random()*255;gd.data[i]=gd.data[i+1]=gd.data[i+2]=v;gd.data[i+3]=22;}
+gx.putImageData(gd,0,0);
+
+/* smoke particles */
+var smoke=[],NSMOKE=26;
+function mkSmoke(init){
+  return{x:Math.random()*W,y:init?Math.random()*H:H+120,r:60+Math.random()*140,
+    vy:-(.12+Math.random()*.3),ph:Math.random()*Math.PI*2,amp:20+Math.random()*50,a:.04+Math.random()*.05};
+}
+for(var s=0;s<NSMOKE;s++)smoke.push(mkSmoke(true));
+
+var mx=.5,my=.5,tmx=.5,tmy=.5;
+window.addEventListener('mousemove',function(e){tmx=e.clientX/window.innerWidth;tmy=e.clientY/window.innerHeight;});
+
+var t0=performance.now();
+function draw(now){
+  var t=(now-t0)/1000;
+  mx+=(tmx-mx)*.04;my+=(tmy-my)*.04;
+  cx.clearRect(0,0,W,H);
+
+  /* room glow floor */
+  var fg=cx.createRadialGradient(W*.5,H*1.05,0,W*.5,H*1.05,H*.9);
+  fg.addColorStop(0,'rgba(122,46,46,.20)');fg.addColorStop(1,'rgba(12,10,7,0)');
+  cx.fillStyle=fg;cx.fillRect(0,0,W,H);
+
+  /* two spotlights, mouse-influenced */
+  cx.globalCompositeOperation='lighter';
+  beam(W*(.22+ (mx-.5)*.08),-40, Math.sin(t*.23)*.35+(mx-.5)*.5, 'rgba(201,162,75,.10)');
+  beam(W*(.80+(mx-.5)*.08),-40, Math.cos(t*.19)*.4-(mx-.5)*.55,'rgba(242,232,213,.07)');
+  beam(W*.5,H+40, Math.PI+Math.sin(t*.15)*.3,'rgba(122,46,46,.08)');
+
+  /* smoke */
+  for(var i=0;i<smoke.length;i++){
+    var p=smoke[i];
+    p.y+=pvy(p);p.ph+=.004;
+    var px=p.x+Math.sin(p.ph+t*.2)*p.amp;
+    if(p.y<-160){smoke[i]=mkSmoke(false);continue;}
+    var rg=cx.createRadialGradient(px,p.y,0,px,p.y,p.r);
+    rg.addColorStop(0,'rgba(242,232,213,'+p.a+')');
+    rg.addColorStop(1,'rgba(242,232,213,0)');
+    cx.fillStyle=rg;cx.beginPath();cx.arc(px,p.y,p.r,0,7);cx.fill();
+  }
+  cx.globalCompositeOperation='source-over';
+
+  /* grain */
+  cx.save();cx.globalAlpha=.5;
+  var ox=(Math.random()*128)|0,oy=(Math.random()*128)|0;
+  for(var y=-oy;y<H;y+=128)for(var x=-ox;x<W;x+=128)cx.drawImage(g,x,y);
+  cx.restore();
+
+  requestAnimationFrame(draw);
+}
+function pvy(p){return p.vy;}
+function beam(x,y,ang,color){
+  var len=H*1.3,spread=.24;
+  var grad=cx.createLinearGradient(x,y,x+Math.sin(ang)*len,y+Math.cos(ang)*len);
+  grad.addColorStop(0,color);grad.addColorStop(1,'rgba(0,0,0,0)');
+  cx.fillStyle=grad;cx.beginPath();
+  cx.moveTo(x,y);
+  cx.lineTo(x+Math.sin(ang-spread)*len,y+Math.cos(ang-spread)*len);
+  cx.lineTo(x+Math.sin(ang+spread)*len,y+Math.cos(ang+spread)*len);
+  cx.closePath();cx.fill();
+}
+requestAnimationFrame(draw);
+
+/* ============ ticker ============ */
+var tickItems='<span><b>TONIGHT</b> 林曦 QUARTET · 21:30</span><span><b>LATE SET</b> MARCUS HALE TRIO · 23:45</span><span><b>周日午后</b> 爵士即兴 JAM · 自带乐器</span><span><b>门票</b> ¥180 · 含一杯单一麦芽</span>';
+document.getElementById('tickerTrack').innerHTML=tickItems+tickItems;
+
+/* ============ artists ============ */
+var artists=[
+ {role:'SAXOPHONE · 萨克斯',name:'林曦 Lin Xi',quote:'“萨克斯不是乐器，是我<i>没说出口的那些话</i>。”',
+  bio:'上海爵士圈最低调的次中音萨克斯手。白天是中学音乐老师，晚上把白天忍住没说的话全部吹出来。偏爱慢拍子，说快的留给年轻人。',
+  time:'21:30 — 22:30',drink:'纯饮 · 格兰菲迪 15',since:'驻场第 11 年'},
+ {role:'PIANO · 钢琴',name:'陈默 Chen Mo',quote:'“钢琴有八十八个键，<i>错的那几个</i>，才是爵士。”',
+  bio:'毕业于古典钢琴系，第一次进绒音是替人顶班，从此再也没回去弹过莫扎特。左手像低音提琴一样稳，右手像醉了一样自由。',
+  time:'22:30 — 23:45',drink:'Old Fashioned · 不加糖',since:'驻场第 7 年'},
+ {role:'VOCAL · 人声',name:'Maya Duval',quote:'“我唱歌的时候，<i>请你们不要鼓掌</i>——用眼睛。”',
+  bio:'来自新奥尔良，嗓音里有密西西比河的潮气。唱 Billie Holiday 之前会先沉默十秒，她说那是给歌留的位置。只唱午夜场。',
+  time:'23:45 — 01:00',drink:'Sazerac · 苦艾一抹',since:'驻场第 3 年'}
+];
+var listEl=document.getElementById('artistList'),panelEl=document.getElementById('artistPanel');
+artists.forEach(function(a,i){
+  var b=document.createElement('button');b.className='artist-btn'+(i===0?' active':'');
+  b.innerHTML='<span class="role">'+a.role+'</span><span class="name">'+a.name+'</span>';
+  b.addEventListener('click',function(){
+    listEl.querySelectorAll('.artist-btn').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active');renderArtist(i);
+  });
+  listEl.appendChild(b);
+});
+function renderArtist(i){
+  var a=artists[i];
+  panelEl.classList.remove('fade-swap');void panelEl.offsetWidth;panelEl.classList.add('fade-swap');
+  panelEl.innerHTML='<div class="quote">'+a.quote+'</div><p class="bio">'+a.bio+'</p>'+
+    '<div class="artist-meta"><div><b>'+a.time+'</b>SET TIME</div><div><b>'+a.drink+'</b>舞台边的酒</div><div><b>'+a.since+'</b>HOUSE YEARS</div></div>';
+}
+renderArtist(0);
+
+/* ============ setlist ============ */
+var sets=[
+ {t:'21:30',n:'In a Sentimental Mood',who:'林曦 QUARTET',tag:'OPENING'},
+ {t:'22:10',n:'夜上海 · Blue Re-arranged',who:'林曦 × 陈默',tag:'HOUSE ORIGINAL'},
+ {t:'22:45',n:'Round Midnight',who:'陈默 SOLO',tag:'PIANO SOLO'},
+ {t:'23:45',n:'Strange Fruit',who:'MAYA DUVAL',tag:'MIDNIGHT SET',live:true},
+ {t:'00:30',n:'Jam — 来者不拒',who:'ALL ON STAGE',tag:'OPEN JAM'}
+];
+var sl=document.getElementById('setlist');
+sets.forEach(function(s){
+  var r=document.createElement('div');r.className='set-row'+(s.live?' live':'');
+  r.innerHTML='<div class="t">'+s.t+'</div><div class="n">'+s.n+'<small>'+s.who+'</small></div>'+
+    '<div class="tag">'+(s.live?'<span class="dot"></span>':'')+s.tag+'</div>';
+  sl.appendChild(r);
+});
+
+/* ============ piano ============ */
+var NOTES=[
+ {n:'C4',k:'A'},{n:'D4',k:'S'},{n:'E4',k:'D'},{n:'F4',k:'F'},{n:'G4',k:'G'},{n:'A4',k:'H'},{n:'B4',k:'J'},{n:'C5',k:'K'}
+];
+function freq(name){
+  var map={C:0,'C#':1,D:2,'D#':3,E:4,F:5,'F#':6,G:7,'G#':8,A:9,'A#':10,B:11};
+  var m=name.match(/^([A-G]#?)(\d)$/),semi=map[m[1]]+(+m[2]+1)*12;
+  return 440*Math.pow(2,(semi-69)/12);
+}
+var piano=document.getElementById('piano'),keyEls={};
+NOTES.forEach(function(nt){
+  var d=document.createElement('div');d.className='wkey';d.dataset.n=nt.n;
+  d.innerHTML='<span class="klabel">'+nt.k+'</span>';
+  piano.appendChild(d);keyEls[nt.n]=d;
+});
+[{after:0,n:'C#4'},{after:1,n:'D#4'},{after:3,n:'F#4'},{after:4,n:'G#4'},{after:5,n:'A#4'}].forEach(function(b){
+  var d=document.createElement('div');d.className='bkey';d.dataset.n=b.n;
+  d.style.left=(b.after*56+56-17)+'px';
+  piano.appendChild(d);keyEls[b.n]=d;
+});
+var actx=null;
+function play(name){
+  if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}}
+  if(actx.state==='suspended')actx.resume();
+  var f=freq(name),t=actx.currentTime;
+  var g1=actx.createGain(),fl=actx.createBiquadFilter();
+  fl.type='lowpass';fl.frequency.value=2600;fl.Q.value=.4;
+  g1.gain.setValueAtTime(0,t);g1.gain.linearRampToValueAtTime(.24,t+.012);
+  g1.gain.exponentialRampToValueAtTime(.0001,t+2.2);
+  [0,1.5].forEach(function(det,i){
+    var o=actx.createOscillator();o.type=i?'sine':'triangle';o.frequency.value=f;o.detune.value=det;
+    var og=actx.createGain();og.gain.value=i?.4:1;
+    o.connect(og);og.connect(fl);o.start(t);o.stop(t+2.3);
+  });
+  fl.connect(g1);g1.connect(actx.destination);
+  var el=keyEls[name];
+  if(el){el.classList.add('playing');setTimeout(function(){el.classList.remove('playing');},260);}
+  document.getElementById('chordLine').innerHTML='♪ <b>'+name+'</b> · '+Math.round(f)+' Hz — 弹得不错';
+}
+piano.addEventListener('pointerdown',function(e){
+  var k=e.target.closest('.wkey,.bkey');if(k)play(k.dataset.n);
+});
+var keyMap={};NOTES.forEach(function(nt){keyMap[nt.k]=nt.n;});
+window.addEventListener('keydown',function(e){
+  var n=keyMap[e.key.toUpperCase()];if(n&&!e.repeat)play(n);
+});
+
+/* ============ reservation ============ */
+var nightsEl=document.getElementById('nights'),selNight=0;
+var wd=['周日','周一','周二','周三','周四','周五','周六'];
+for(var d=0;d<6;d++){
+  (function(d){
+    var dt=new Date();dt.setDate(dt.getDate()+d);
+    var b=document.createElement('button');b.className='night'+(d===0?' sel':'');
+    b.innerHTML=(d===0?'今晚':d===1?'明晚':wd[dt.getDay()])+'<small>'+(dt.getMonth()+1)+'/'+dt.getDate()+'</small>';
+    b.addEventListener('click',function(){
+      nightsEl.querySelectorAll('.night').forEach(function(x){x.classList.remove('sel');});
+      b.classList.add('sel');selNight=d;
+    });
+    nightsEl.appendChild(b);
+  })(d);
+}
+var party=2;
+document.getElementById('minus').addEventListener('click',function(){party=Math.max(1,party-1);upd();});
+document.getElementById('plus').addEventListener('click',function(){party=Math.min(8,party+1);upd();});
+function upd(){document.getElementById('partyV').textContent=party;}
+var zone='舞台边';
+document.querySelectorAll('.zone').forEach(function(z){
+  z.addEventListener('click',function(){
+    document.querySelectorAll('.zone').forEach(function(x){x.classList.remove('sel');});
+    z.classList.add('sel');zone=z.dataset.z;
+  });
+});
+document.getElementById('bookBtn').addEventListener('click',function(){
+  var code='VN-'+Math.random().toString(36).slice(2,6).toUpperCase();
+  var dt=new Date();dt.setDate(dt.getDate()+selNight);
+  document.getElementById('resOut').innerHTML=
+    '已留座 — '+(dt.getMonth()+1)+'月'+dt.getDate()+'日 · '+zone+' · '+party+' 位<br>预订号 <b>'+code+'</b> · 门口报号即可';
+});
+
+/* ============ scroll reveal ============ */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target);}});
+},{threshold:.15});
+document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

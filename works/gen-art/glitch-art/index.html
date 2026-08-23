@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GLITCH SIGNAL — 故障艺术图像处理器</title>
+<style>
+  :root{
+    --bg:#08080d; --panel:#0e0e15; --line:#1d1d2a;
+    --ink:#e8e8ef; --dim:#6a6a80;
+    --mag:#ff2e63; --cyn:#08d9d6; --amb:#ffd166;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--sans);
+    overflow-x:hidden; -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--mag);color:#fff}
+
+  /* ---------- header ---------- */
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0; gap:16px; flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px}
+  .sig h1{
+    font-family:var(--mono);font-size:15px;font-weight:700;
+    letter-spacing:.18em;text-transform:uppercase;
+  }
+  .sig h1 em{font-style:normal;color:var(--mag)}
+  .sig .no{
+    font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em;
+  }
+  .sig .no b{color:var(--cyn);font-weight:400}
+  header p.tag{
+    font-size:12px;color:var(--dim);letter-spacing:.06em;
+  }
+  .rule{
+    margin:16px 28px 0;height:1px;background:var(--line);position:relative;overflow:visible;
+  }
+  .rule::after{
+    content:"";position:absolute;left:0;top:-1px;width:64px;height:3px;
+    background:linear-gradient(90deg,var(--mag),var(--cyn));
+  }
+
+  /* ---------- layout ---------- */
+  main{
+    display:grid;grid-template-columns:1fr 300px;gap:24px;
+    padding:24px 28px 40px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:960px){ main{grid-template-columns:1fr} }
+  main>*,.stage,canvas{min-width:0}
+
+  /* ---------- stage ---------- */
+  .stage{
+    position:relative;background:#000;border:1px solid var(--line);
+    min-height:320px;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;
+  }
+  .stage canvas{display:block;width:100%;height:auto;cursor:crosshair}
+  .hud{
+    position:absolute;left:12px;bottom:10px;font-family:var(--mono);
+    font-size:10px;letter-spacing:.14em;color:rgba(232,232,239,.5);
+    pointer-events:none;text-transform:uppercase;
+  }
+  .hud b{color:var(--cyn);font-weight:400}
+  .rec{
+    position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.18em;color:var(--mag);display:flex;align-items:center;gap:6px;
+    pointer-events:none;
+  }
+  .rec::before{
+    content:"";width:7px;height:7px;border-radius:50%;background:var(--mag);
+    animation:blink 1.2s steps(2) infinite;
+  }
+  @keyframes blink{50%{opacity:.15}}
+
+  /* ---------- control dock ---------- */
+  .dock{
+    background:var(--panel);border:1px solid var(--line);
+    padding:20px 20px 22px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:960px){ .dock{position:static} }
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+  }
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl .lab{
+    display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:11px;letter-spacing:.1em;color:var(--ink);
+  }
+  .ctl .lab output{color:var(--cyn)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:2px;background:var(--line);
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-6px;
+    background:var(--bg);border:2px solid var(--mag);border-radius:0;
+    transform:rotate(45deg);transition:border-color .2s var(--ease),background .2s var(--ease);
+  }
+  input[type=range]:hover::-webkit-slider-thumb{background:var(--mag)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+  input[type=range]::-moz-range-thumb{
+    width:10px;height:10px;background:var(--bg);border:2px solid var(--mag);
+    border-radius:0;transform:rotate(45deg);
+  }
+
+  .seg{display:flex;border:1px solid var(--line)}
+  .seg button{
+    flex:1;background:transparent;border:0;color:var(--dim);
+    font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+    padding:9px 0;cursor:pointer;transition:all .25s var(--ease);
+  }
+  .seg button + button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--mag);color:#0a0a0f;font-weight:700}
+  .seg button:not(.on):hover{color:var(--ink);background:#15151f}
+
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    padding:12px 8px;cursor:pointer;border:1px solid var(--line);
+    background:transparent;color:var(--ink);transition:all .25s var(--ease);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn svg{width:12px;height:12px;flex:none}
+  .btn:hover{border-color:var(--cyn);color:var(--cyn);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.primary{background:var(--mag);border-color:var(--mag);color:#0a0a0f;font-weight:700}
+  .btn.primary:hover{background:#ff4d7d;color:#0a0a0f}
+  .btn.wide{grid-column:1/-1}
+
+  footer{
+    padding:0 28px 28px;font-family:var(--mono);font-size:10px;color:var(--dim);
+    letter-spacing:.12em;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>GLITCH<em>/</em>SIGNAL</h1>
+    <span class="no">N°<b>01</b> — GEN-ART / 故障艺术图像处理器</span>
+  </div>
+  <p class="tag">信号的伤口，即是图案。Databending · Pixel Sorting · RGB Split</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="rec">REC · LIVE FEED</div>
+    <div class="hud" id="hud">CH-SHIFT <b>+00</b> · SLICES <b>000</b> · SORT <b>H</b></div>
+  </section>
+
+  <aside class="dock">
+    <h2>Control Deck</h2>
+
+    <div class="ctl">
+      <div class="lab"><span>通道偏移 RGB SPLIT</span><output id="oShift">12</output></div>
+      <input type="range" id="rShift" min="0" max="60" value="12">
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>切片密度 SLICES</span><output id="oSlice">35</output></div>
+      <input type="range" id="rSlice" min="0" max="100" value="35">
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>排序阈值 SORT THR</span><output id="oThr">90</output></div>
+      <input type="range" id="rThr" min="20" max="200" value="90">
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>像素排序 PIXEL SORT</span></div>
+      <div class="seg" id="segSort">
+        <button data-v="off">关闭</button>
+        <button data-v="h" class="on">横向</button>
+        <button data-v="v">纵向</button>
+      </div>
+    </div>
+
+    <div class="btns">
+      <button class="btn primary" id="bBurst">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        故障脉冲
+      </button>
+      <button class="btn" id="bSource">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        换图源
+      </button>
+      <button class="btn wide" id="bDl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        下载 PNG
+      </button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>GLITCH/SIGNAL — generative source, no image files harmed</span>
+  <span>移动鼠标控制通道分离 · 点击画面触发故障</span>
+</footer>
+
+<script>
+"use strict";
+/* ============================================================
+   GLITCH/SIGNAL — 故障艺术图像处理器
+   图源：程序化生成（合成波日落构图），无任何外部图片
+   管线：像素排序 → RGB 通道分离 → 切片位移 → 扫描线/噪点
+   ============================================================ */
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const stage = document.getElementById('stage');
+const hud = document.getElementById('hud');
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const ASPECT = 3 / 2;
+let W = 0, H = 0;
+
+/* ---------- state ---------- */
+const S = {
+  shift: 12,        // base RGB channel offset (px)
+  sliceDensity: 35, // 0..100
+  sortThr: 90,      // brightness threshold for pixel sort
+  sortMode: 'h',    // off | h | v
+  seed: Math.random() * 1e9,
+  mouseShift: 0,    // cursor-driven extra shift
+  burst: 0          // burst energy 0..1
+};
+
+/* ---------- seeded random ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ============================================================
+   1) SOURCE GENERATOR — synthwave sunset, drawn from scratch
+   ============================================================ */
+const srcCv = document.createElement('canvas');
+const sortCv = document.createElement('canvas');   // pixel-sorted cache
+const chR = document.createElement('canvas');      // red channel
+const chG = document.createElement('canvas');
+const chB = document.createElement('canvas');
+
+function generateSource(){
+  const c = srcCv.getContext('2d');
+  const R = mulberry32(S.seed);
+  const w = srcCv.width, h = srcCv.height;
+
+  // sky
+  const hueBase = 250 + R() * 60; // purple→pink family
+  const sky = c.createLinearGradient(0, 0, 0, h);
+  sky.addColorStop(0, `hsl(${hueBase}, 55%, 8%)`);
+  sky.addColorStop(.55, `hsl(${hueBase + 30}, 70%, 22%)`);
+  sky.addColorStop(.75, `hsl(${hueBase + 70}, 85%, 45%)`);
+  c.fillStyle = sky; c.fillRect(0, 0, w, h);
+
+  // stars
+  c.save();
+  for (let i = 0; i < 160; i++){
+    const y = R() * h * .55;
+    c.fillStyle = `rgba(255,255,255,${.15 + R() * .6})`;
+    const s = R() < .9 ? 1 : 2;
+    c.fillRect(R() * w, y, s * DPR, s * DPR);
+  }
+  c.restore();
+
+  const horizon = h * .68;
+
+  // sun with stripe cuts
+  const sunR = h * (.24 + R() * .08);
+  const sunX = w * (.35 + R() * .3), sunY = horizon - sunR * .35;
+  const sunGrad = c.createLinearGradient(0, sunY - sunR, 0, sunY + sunR);
+  sunGrad.addColorStop(0, '#ffe66d');
+  sunGrad.addColorStop(.55, '#ff2e63');
+  sunGrad.addColorStop(1, '#b5179e');
+  c.save();
+  c.beginPath(); c.arc(sunX, sunY, sunR, 0, Math.PI * 2); c.clip();
+  c.fillStyle = sunGrad; c.fillRect(sunX - sunR, sunY - sunR, sunR * 2, sunR * 2);
+  // horizontal cuts, wider toward bottom
+  c.globalCompositeOperation = 'destination-out';
+  let cy = sunY + sunR * .1, gap = 2;
+  while (cy < sunY + sunR){
+    c.fillRect(sunX - sunR, cy, sunR * 2, gap * DPR);
+    cy += (gap + 6 + R() * 6) * DPR; gap += 1.4;
+  }
+  c.restore();
+
+  // mountains (two layers)
+  for (let layer = 0; layer < 2; layer++){
+    c.beginPath();
+    c.moveTo(0, horizon);
+    let y = horizon - (10 + R() * 30) * DPR * (2 - layer);
+    c.lineTo(0, y);
+    for (let x = 0; x <= w; x += (30 + R() * 70) * DPR){
+      y = horizon - R() * h * (.10 - layer * .035);
+      c.lineTo(x, y);
+    }
+    c.lineTo(w, horizon); c.closePath();
+    c.fillStyle = layer === 0 ? 'rgba(20,8,40,.85)' : 'rgba(8,4,18,.95)';
+    c.fill();
+  }
+
+  // ground
+  const gnd = c.createLinearGradient(0, horizon, 0, h);
+  gnd.addColorStop(0, '#12041f');
+  gnd.addColorStop(1, '#030108');
+  c.fillStyle = gnd; c.fillRect(0, horizon, w, h - horizon);
+
+  // perspective grid
+  c.strokeStyle = 'rgba(8,217,214,.55)';
+  c.lineWidth = 1 * DPR;
+  const vpx = w / 2;
+  for (let i = -10; i <= 10; i++){
+    c.beginPath();
+    c.moveTo(vpx + i * w * .05, horizon);
+    c.lineTo(vpx + i * w * .35, h);
+    c.stroke();
+  }
+  for (let i = 0; i < 12; i++){
+    const t = i / 12, yy = horizon + (h - horizon) * t * t;
+    c.globalAlpha = .25 + t * .6;
+    c.beginPath(); c.moveTo(0, yy); c.lineTo(w, yy); c.stroke();
+  }
+  c.globalAlpha = 1;
+
+  // glow reflection of sun
+  const refl = c.createLinearGradient(0, horizon, 0, h);
+  refl.addColorStop(0, 'rgba(255,46,99,.30)');
+  refl.addColorStop(1, 'rgba(255,46,99,0)');
+  c.fillStyle = refl;
+  c.fillRect(sunX - sunR * .45, horizon, sunR * .9, h - horizon);
+
+  // typographic stamp
+  c.save();
+  c.font = `700 ${Math.round(h * .09)}px "SF Mono", Menlo, monospace`;
+  c.fillStyle = 'rgba(232,232,239,.9)';
+  c.textBaseline = 'top';
+  c.fillText('SIGNAL', w * .055, h * .07);
+  c.font = `400 ${Math.round(h * .028)}px "SF Mono", Menlo, monospace`;
+  c.fillStyle = 'rgba(8,217,214,.9)';
+  c.fillText('// LOST IN TRANSMISSION', w * .058, h * .07 + h * .11);
+  c.restore();
+}
+
+/* ============================================================
+   2) PIXEL SORTER (Kim Asendorf style)
+   ============================================================ */
+function pixelSort(){
+  const w = sortCv.width, h = sortCv.height;
+  const c = sortCv.getContext('2d', { willReadFrequently: true });
+  c.drawImage(srcCv, 0, 0);
+  if (S.sortMode === 'off') return;
+
+  const img = c.getImageData(0, 0, w, h);
+  const d = img.data;
+  const thr = S.sortThr;
+  const R = mulberry32(S.seed ^ 0x9e37);
+  const bright = i => d[i] * .299 + d[i + 1] * .587 + d[i + 2] * .114;
+
+  const sortSpan = (base, step, count) => {
+    // collect indices of a span whose brightness > thr, then sort them
+    let run = [];
+    const flush = () => {
+      if (run.length > 1){
+        const px = run.map(i => [bright(i), i]);
+        px.sort((a, b) => a[0] - b[0]);
+        const vals = px.map(p => [d[p[1]], d[p[1]+1], d[p[1]+2], d[p[1]+3]]);
+        for (let k = 0; k < run.length; k++){
+          const i = run[k], v = vals[k];
+          d[i] = v[0]; d[i+1] = v[1]; d[i+2] = v[2]; d[i+3] = v[3];
+        }
+      }
+      run = [];
+    };
+    for (let k = 0; k < count; k++){
+      const i = base + k * step * 4;
+      if (bright(i) > thr) run.push(i); else flush();
+    }
+    flush();
+  };
+
+  if (S.sortMode === 'h'){
+    for (let y = 0; y < h; y++){
+      if (R() < .18) continue;           // skip some rows for organic feel
+      sortSpan(y * w * 4, 1, w);
+    }
+  } else {
+    for (let x = 0; x < w; x++){
+      if (R() < .18) continue;
+      sortSpan(x * 4, w, h);
+    }
+  }
+  c.putImageData(img, 0, 0);
+}
+
+/* ---------- channel isolation ---------- */
+function buildChannels(){
+  const w = sortCv.width, h = sortCv.height;
+  const sctx = sortCv.getContext('2d');
+  const img = sctx.getImageData(0, 0, w, h);
+  const mk = (cvEl, keep) => {
+    const c = cvEl.getContext('2d');
+    const im = c.createImageData(w, h);
+    const dd = im.data, sd = img.data;
+    for (let i = 0; i < sd.length; i += 4){
+      dd[i]     = keep === 0 ? sd[i] : 0;
+      dd[i + 1] = keep === 1 ? sd[i+1] : 0;
+      dd[i + 2] = keep === 2 ? sd[i+2] : 0;
+      dd[i + 3] = 255;
+    }
+    c.putImageData(im, 0, 0);
+  };
+  mk(chR, 0); mk(chG, 1); mk(chB, 2);
+}
+
+/* ============================================================
+   3) RENDER LOOP — channel split + slices + scanlines + grain
+   ============================================================ */
+const slices = []; // {y,h,dx,ttl,decay}
+let scanPattern, noiseTiles = [];
+
+function makeOverlays(){
+  // scanline pattern: 3px period
+  const p = document.createElement('canvas');
+  p.width = 1; p.height = 3;
+  const pc = p.getContext('2d');
+  pc.fillStyle = 'rgba(0,0,0,.28)'; pc.fillRect(0, 0, 1, 1);
+  scanPattern = ctx.createPattern(p, 'repeat');
+  // noise tiles
+  noiseTiles = [];
+  for (let t = 0; t < 4; t++){
+    const n = document.createElement('canvas');
+    n.width = 128; n.height = 128;
+    const nc = n.getContext('2d');
+    const im = nc.createImageData(128, 128);
+    for (let i = 0; i < im.data.length; i += 4){
+      const v = Math.random() * 255 | 0;
+      im.data[i] = im.data[i+1] = im.data[i+2] = v;
+      im.data[i+3] = 22;
+    }
+    nc.putImageData(im, 0, 0);
+    noiseTiles.push(n);
+  }
+}
+
+let tPrev = performance.now();
+let sortDirty = true, chDirty = true;
+let frameCount = 0, totalShift = 0;
+
+function render(now){
+  const dt = Math.min((now - tPrev) / 1000, .05);
+  tPrev = now;
+  frameCount++;
+
+  if (sortDirty){ pixelSort(); sortDirty = false; chDirty = true; }  if (chDirty){ buildChannels(); chDirty = false; }
+
+  S.burst = Math.max(0, S.burst - dt * 1.4);
+
+  // --- channel split ---
+  const wobble = Math.sin(now * .0016) * .35 + Math.sin(now * .0047) * .15;
+  const effShift = (S.shift + S.mouseShift + S.burst * 46) * (1 + wobble * .3);
+  const sh = Math.round(effShift) * DPR;
+  totalShift = effShift;
+
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, H);
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.drawImage(chR, -sh, 0);
+  ctx.drawImage(chG, 0, S.burst * 6 * DPR * Math.sin(now * .02));
+  ctx.drawImage(chB, sh, 0);
+  ctx.globalCompositeOperation = 'source-over';
+
+  // --- slice spawning ---
+  const spawnP = (S.sliceDensity / 100) * .30 + S.burst * .8;
+  if (Math.random() < spawnP){
+    slices.push({
+      y: Math.random() * H,
+      h: (2 + Math.random() * (8 + S.burst * 40)) * DPR,
+      dx: (Math.random() - .5) * (30 + S.burst * 220) * DPR,
+      ttl: 1,
+      decay: 2.2 + Math.random() * 3
+    });
+  }
+  // apply + age slices (drawImage self-copy: cheap, defined behavior)
+  for (let i = slices.length - 1; i >= 0; i--){
+    const s = slices[i];
+    const sy = Math.max(0, Math.min(s.y | 0, H - 1));
+    const shh = Math.max(1, Math.min(s.h, H - sy) | 0);
+    const dx = Math.round(s.dx * s.ttl);
+    if (dx !== 0){
+      ctx.drawImage(cv, 0, sy, W, shh, dx, sy, W, shh);
+      // black out the vacated edge + chromatic echo
+      ctx.fillStyle = '#000';
+      if (dx > 0) ctx.fillRect(0, sy, Math.min(dx, W), shh);
+      else ctx.fillRect(Math.max(0, W + dx), sy, Math.min(-dx, W), shh);
+      ctx.fillStyle = `rgba(255,46,99,${.12 * s.ttl})`;
+      if (dx > 0) ctx.fillRect(0, sy, Math.min(dx * .4, W), shh);
+      else ctx.fillRect(Math.max(0, W + dx * .4), sy, Math.min(-dx * .4, W), shh);
+    }
+    s.ttl -= dt * s.decay;
+    if (s.ttl <= 0) slices.splice(i, 1);
+  }
+  // cap slice list
+  if (slices.length > 60) slices.splice(0, slices.length - 60);
+
+  // --- scanlines ---
+  ctx.fillStyle = scanPattern;
+  ctx.fillRect(0, 0, W, H);
+
+  // --- grain ---
+  const n = noiseTiles[(frameCount >> 3) % 4];
+  const p = ctx.createPattern(n, 'repeat');
+  ctx.save();
+  ctx.translate(-(Math.random() * 128 | 0), -(Math.random() * 128 | 0));
+  ctx.fillStyle = p;
+  ctx.fillRect(0, 0, W + 128, H + 128);
+  ctx.restore();
+
+  // --- vignette ---
+  const vg = ctx.createRadialGradient(W/2, H/2, H * .35, W/2, H/2, H * .95);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, 'rgba(0,0,0,.5)');
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  // hud
+  if (frameCount % 10 === 0){
+    hud.innerHTML =
+      `CH-SHIFT <b>${(totalShift >= 0 ? '+' : '−') + String(Math.abs(Math.round(totalShift))).padStart(2,'0')}</b>` +
+      ` · SLICES <b>${String(slices.length).padStart(3,'0')}</b>` +
+      ` · SORT <b>${S.sortMode.toUpperCase()}</b>`;
+  }
+
+  requestAnimationFrame(render);
+}
+
+/* ============================================================
+   4) SIZING
+   ============================================================ */
+function resize(){
+  const avail = stage.clientWidth;
+  const cw = Math.min(avail, 1200);
+  W = Math.round(cw * DPR);
+  H = Math.round(W / ASPECT);
+  cv.width = W; cv.height = H;
+  for (const el of [srcCv, sortCv, chR, chG, chB]){ el.width = W; el.height = H; }
+  makeOverlays();
+  generateSource();
+  sortDirty = true;
+}
+
+/* ============================================================
+   5) INTERACTIONS
+   ============================================================ */
+const $ = id => document.getElementById(id);
+function bindSlider(id, out, key, after){
+  const el = $(id);
+  el.addEventListener('input', () => {
+    S[key] = +el.value;
+    $(out).textContent = el.value;
+    if (after) after();
+  });
+}
+let sortTimer = null;
+bindSlider('rShift', 'oShift', 'shift');
+bindSlider('rSlice', 'oSlice', 'sliceDensity');
+bindSlider('rThr', 'oThr', 'sortThr', () => {
+  clearTimeout(sortTimer);
+  sortTimer = setTimeout(() => { sortDirty = true; }, 120);
+});
+
+$('segSort').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  for (const x of $('segSort').children) x.classList.toggle('on', x === b);
+  S.sortMode = b.dataset.v;
+  sortDirty = true;
+});
+
+$('bBurst').addEventListener('click', () => { S.burst = 1; });
+
+$('bSource').addEventListener('click', () => {
+  S.seed = Math.random() * 1e9;
+  generateSource();
+  sortDirty = true;
+});
+
+$('bDl').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.download = 'glitch-signal.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+});
+
+// cursor drives channel separation; click triggers burst
+stage.addEventListener('pointermove', e => {
+  const r = stage.getBoundingClientRect();
+  const nx = (e.clientX - r.left) / r.width - .5;
+  S.mouseShift = nx * 70;
+});
+stage.addEventListener('pointerleave', () => { S.mouseShift = 0; });
+stage.addEventListener('pointerdown', () => { S.burst = 1; });
+
+// keyboard: space = burst, s = new source
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space' && e.target === document.body){ e.preventDefault(); S.burst = 1; }
+  if (e.key === 's' || e.key === 'S'){ S.seed = Math.random() * 1e9; generateSource(); sortDirty = true; }
+});
+
+let rsTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(rsTimer);
+  rsTimer = setTimeout(resize, 150);
+});
+
+/* ---------- boot ---------- */
+resize();
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

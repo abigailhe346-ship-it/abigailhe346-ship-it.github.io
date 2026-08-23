@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CELL TYPE — 细胞字体海报机</title>
+<style>
+  :root{
+    --paper:#f6f1e6; --panel:#efe8d8; --line:#d8cdb4;
+    --ink:#17150f; --dim:#8f8567;
+    --acc:#5b3df5; --teal:#0e8f7a; --rose:#d4497c;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--acc);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .sig h1{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.04em}
+  .sig h1 em{font-style:italic;color:var(--acc)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--acc);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.06em;max-width:400px;text-align:right;line-height:1.7}
+  .rule{margin:14px 28px 0;border-top:1px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{
+    display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;
+    padding:24px 28px 40px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .stage{
+    position:relative;background:#fbf7ec;border:1px solid var(--ink);
+    box-shadow:8px 8px 0 rgba(23,21,15,.10);overflow:hidden;
+  }
+  .stage canvas{display:block;width:100%;height:auto;cursor:crosshair}
+  .stamp{
+    position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.16em;color:var(--ink);border:1px solid var(--ink);
+    padding:4px 8px;background:rgba(246,241,230,.88);pointer-events:none;text-transform:uppercase;
+  }
+  .hint{
+    position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;color:rgba(23,21,15,.5);pointer-events:none;text-transform:uppercase;
+  }
+  .scalebar{
+    position:absolute;left:12px;top:12px;pointer-events:none;
+    font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:rgba(23,21,15,.55);
+  }
+  .scalebar i{display:block;width:56px;height:4px;border:1px solid rgba(23,21,15,.55);border-top:0;margin-bottom:3px}
+
+  .dock{
+    background:var(--panel);border:1px solid var(--ink);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+    display:flex;justify-content:space-between;
+  }
+  .dock h2 span{color:var(--acc)}
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;letter-spacing:.04em;
+  }
+  .ctl label output{font-family:var(--mono);font-size:11px;color:var(--acc)}
+
+  .textin{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--ink);
+    background:#fbf7ec;padding:2px 10px;
+  }
+  .textin svg{flex:none}
+  .textin input{
+    appearance:none;border:0;background:transparent;flex:1;min-width:0;
+    font-family:var(--serif);font-size:18px;color:var(--ink);padding:8px 0;
+    outline:none;letter-spacing:.04em;
+  }
+  .textin input::placeholder{color:var(--dim);font-size:14px}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-6px;
+    background:var(--paper);border:1px solid var(--ink);border-radius:50%;
+    box-shadow:2px 2px 0 var(--acc);transition:transform .15s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;background:var(--paper);border:1px solid var(--ink);
+    border-radius:50%;box-shadow:2px 2px 0 var(--acc);
+  }
+
+  .stains{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .stains button{
+    appearance:none;border:1px solid var(--ink);background:transparent;cursor:pointer;
+    padding:8px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:6px;
+    transition:background .15s var(--ease);
+  }
+  .stains button:hover{background:rgba(91,61,245,.08)}
+  .stains button.on{background:var(--ink);color:var(--paper)}
+  .stains button.on span{color:var(--paper)}
+  .stains i{width:22px;height:22px;border-radius:50%;border:1px solid var(--ink);display:block}
+  .stains span{font-size:11px;letter-spacing:.08em}
+
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:16px;border-top:1px solid var(--line)}
+  .btn{
+    appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    padding:11px 8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    cursor:pointer;text-transform:uppercase;position:relative;overflow:hidden;
+    transition:color .18s var(--ease);
+  }
+  .btn::before{
+    content:"";position:absolute;inset:0;background:var(--ink);
+    transform:translateY(101%);transition:transform .22s var(--ease);z-index:0;
+  }
+  .btn:hover::before{transform:translateY(0)}
+  .btn:hover{color:var(--paper)}
+  .btn span{position:relative;z-index:1}
+  .btn.prime{background:var(--acc);border-color:var(--acc);color:#fff}
+  .btn.prime::before{background:var(--ink)}
+
+  footer{
+    padding:0 28px 26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+  }
+  @media (max-width:640px){
+    header{padding:18px 18px 0}
+    header p.tag{text-align:left;max-width:100%}
+    .rule{margin:12px 18px 0}
+    main{padding:18px 18px 32px}
+    footer{padding:0 18px 22px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>Cell <em>Type</em></h1>
+    <span class="no">N°<b>07</b> — GEN-ART / 细胞字体海报机</span>
+  </div>
+  <p class="tag">每一个笔画,都是一次细胞分裂的现场。字母在这里不是被印刷,而是被培养。</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="cv" width="1400" height="1000"></canvas>
+    <div class="scalebar"><i></i>10 µm</div>
+    <div class="stamp" id="stamp">SPECIMEN — 400×</div>
+    <div class="hint">移动光标驱散细胞 · 点击注入脉冲 — Scatter / Pulse</div>
+  </div>
+
+  <aside class="dock">
+    <h2>培养皿 — Petri Dish <span>LIVE</span></h2>
+
+    <div class="ctl">
+      <label>样本文字 · Specimen</label>
+      <div class="textin">
+        <svg width="16" height="16" viewBox="0 0 16 16"><path d="M2 3h12M8 3v10M5.5 13h5" stroke="#17150f" stroke-width="1.4" fill="none"/></svg>
+        <input id="txt" type="text" value="裂变" maxlength="12" placeholder="输入文字…">
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label>细胞密度 · Density<output id="oDen">1.35</output></label>
+      <input type="range" id="rDen" min="40" max="200" step="1" value="135">
+    </div>
+    <div class="ctl">
+      <label>细胞大小 · Size<output id="oSize">11 px</output></label>
+      <input type="range" id="rSize" min="6" max="20" step="1" value="11">
+    </div>
+    <div class="ctl">
+      <label>躁动度 · Agitation<output id="oAgi">0.45</output></label>
+      <input type="range" id="rAgi" min="0" max="100" step="1" value="45">
+    </div>
+
+    <div class="ctl">
+      <label>染色法 · Staining</label>
+      <div class="stains" id="stains">
+        <button data-stain="violet" class="on"><i style="background:#5b3df5"></i><span>结晶紫</span></button>
+        <button data-stain="teal"><i style="background:#0e8f7a"></i><span>孔雀绿</span></button>
+        <button data-stain="rose"><i style="background:#d4497c"></i><span>藏红花红</span></button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="btnRandom"><span>随机再生</span></button>
+      <button class="btn prime" id="btnSave"><span>下载 PNG</span></button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>Cell Type — 活体排版实验室</span>
+  <span>Typographic Cytology · MMXXVI</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var W = 1400, H = 1000;
+  var cv = document.getElementById("cv");
+  var ctx = cv.getContext("2d");
+  var stamp = document.getElementById("stamp");
+
+  var state = {
+    text: "裂变",
+    density: 1.35,
+    size: 11,
+    agitation: 0.45,
+    stain: "violet"
+  };
+
+  var STAINS = {
+    violet: { cn:"结晶紫",   main:["#5b3df5","#7a63f2"], nucleus:"#2d1a8a", rim:"#3a26a8" },
+    teal:   { cn:"孔雀绿",   main:["#0e8f7a","#3aa88f"], nucleus:"#07473f", rim:"#0a6b5c" },
+    rose:   { cn:"藏红花红", main:["#d4497c","#e0709b"], nucleus:"#7c1f47", rim:"#a43360" }
+  };
+
+  var cells = [];
+  var mouse = { x:-9999, y:-9999 };
+  var pulses = [];           // {x,y,t0}
+  var bgCache = document.createElement("canvas");
+  bgCache.width = W; bgCache.height = H;
+  var bctx = bgCache.getContext("2d");
+  var DPR = 1;
+
+  /* ---------- background plate: paper + grid + ghost letter ---------- */
+  function drawBackground(){
+    bctx.setTransform(1,0,0,1,0,0);
+    bctx.fillStyle = "#fbf7ec";
+    bctx.fillRect(0,0,W,H);
+    /* graph-paper grid */
+    bctx.strokeStyle = "rgba(23,21,15,.055)";
+    bctx.lineWidth = 1;
+    bctx.beginPath();
+    for (var x=40; x<W; x+=40){ bctx.moveTo(x,0); bctx.lineTo(x,H); }
+    for (var y=40; y<H; y+=40){ bctx.moveTo(0,y); bctx.lineTo(W,y); }
+    bctx.stroke();
+    bctx.strokeStyle = "rgba(23,21,15,.10)";
+    bctx.beginPath();
+    for (var X=200; X<W; X+=200){ bctx.moveTo(X,0); bctx.lineTo(X,H); }
+    for (var Y=200; Y<H; Y+=200){ bctx.moveTo(0,Y); bctx.lineTo(W,Y); }
+    bctx.stroke();
+    /* ghost outline of the word */
+    var t = state.text.trim();
+    if (t){
+      var fs = fitFont(t);
+      bctx.font = "700 "+fs+"px Didot, 'Bodoni MT', 'Songti SC', 'PingFang SC', serif";
+      bctx.textAlign = "center"; bctx.textBaseline = "middle";
+      bctx.strokeStyle = "rgba(23,21,15,.13)";
+      bctx.lineWidth = 1.5;
+      bctx.strokeText(t, W/2, H/2 + fs*0.04);
+    }
+    /* vignette */
+    var g = bctx.createRadialGradient(W/2,H/2,H*0.34, W/2,H/2,H*0.78);
+    g.addColorStop(0,"rgba(23,21,15,0)");
+    g.addColorStop(1,"rgba(23,21,15,.10)");
+    bctx.fillStyle = g;
+    bctx.fillRect(0,0,W,H);
+  }
+
+  function fitFont(t){
+    var size = 460;
+    var c = fitFont._c || (fitFont._c = document.createElement("canvas").getContext("2d"));
+    do {
+      c.font = "700 "+size+"px Didot, 'Bodoni MT', 'Songti SC', 'PingFang SC', serif";
+      var w = c.measureText(t).width;
+      if (w <= W*0.84 || size < 60) break;
+      size -= 12;
+    } while (size > 60);
+    return size;
+  }
+
+  /* ---------- sample stroke points from rendered text ---------- */
+  function respawn(){
+    cells = [];
+    pulses = [];
+    drawBackground();
+    var t = state.text.trim();
+    if (!t){ updateStamp(); return; }
+
+    var off = document.createElement("canvas");
+    off.width = W; off.height = H;
+    var octx = off.getContext("2d");
+    var fs = fitFont(t);
+    octx.font = "700 "+fs+"px Didot, 'Bodoni MT', 'Songti SC', 'PingFang SC', serif";
+    octx.textAlign = "center"; octx.textBaseline = "middle";
+    octx.fillStyle = "#000";
+    octx.fillText(t, W/2, H/2 + fs*0.04);
+    var img = octx.getImageData(0,0,W,H).data;
+
+    var stride = Math.max(5, Math.round(state.size * 1.05 / Math.sqrt(state.density)));
+    var stain = STAINS[state.stain];
+    for (var y=0; y<H; y+=stride){
+      for (var x=0; x<W; x+=stride){
+        var a = img[(y*W+x)*4+3];
+        if (a > 110 && Math.random() < state.density*0.75){
+          cells.push({
+            ax: x + (Math.random()-0.5)*stride*0.7,
+            ay: y + (Math.random()-0.5)*stride*0.7,
+            dx:0, dy:0, vx:0, vy:0,
+            r: state.size * (0.72 + Math.random()*0.56),
+            p1: Math.random()*6.28, p2: Math.random()*6.28,
+            w1: 0.5 + Math.random()*0.9, w2: 0.5 + Math.random()*0.9,
+            lobes: 3 + Math.floor(Math.random()*3),
+            col: stain.main[Math.random()<0.72?0:1],
+            na: Math.random()*6.28
+          });
+        }
+      }
+    }
+    updateStamp();
+  }
+
+  function updateStamp(){
+    stamp.textContent = "SPECIMEN — "+STAINS[state.stain].cn+" · "+cells.length+" CELLS";
+  }
+
+  /* ---------- animation ---------- */
+  var last = performance.now();
+  function frame(now){
+    var dt = Math.min(0.05, (now-last)/1000); last = now;
+    var t = now/1000;
+    var stain = STAINS[state.stain];
+    var agi = state.agitation;
+
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.drawImage(bgCache, 0, 0);
+
+    /* pulse list housekeeping */
+    for (var p=pulses.length-1; p>=0; p--){
+      if (t - pulses[p].t0 > 1.4) pulses.splice(p,1);
+    }
+
+    for (var i=0; i<cells.length; i++){
+      var c = cells[i];
+      /* spring back to anchor */
+      c.vx += (-c.dx*26 - c.vx*7.5) * dt;
+      c.vy += (-c.dy*26 - c.vy*7.5) * dt;
+      /* mouse repulsion */
+      var mdx = c.ax+c.dx - mouse.x, mdy = c.ay+c.dy - mouse.y;
+      var md2 = mdx*mdx + mdy*mdy;
+      if (md2 < 25600){ /* 160px */
+        var md = Math.sqrt(md2) || 1;
+        var f = (1 - md/160) * 900;
+        c.vx += mdx/md * f * dt;
+        c.vy += mdy/md * f * dt;
+      }
+      /* pulses */
+      for (var q=0; q<pulses.length; q++){
+        var pu = pulses[q];
+        var age = t - pu.t0;
+        var R = age*620;
+        var pdx = c.ax+c.dx - pu.x, pdy = c.ay+c.dy - pu.y;
+        var pd = Math.sqrt(pdx*pdx+pdy*pdy) || 1;
+        var band = Math.abs(pd - R);
+        if (band < 90){
+          var pf = (1 - band/90) * (1 - age/1.4) * 1400;
+          c.vx += pdx/pd * pf * dt;
+          c.vy += pdy/pd * pf * dt;
+        }
+      }
+      c.dx += c.vx*dt; c.dy += c.vy*dt;
+
+      /* brownian drift */
+      var jx = Math.sin(t*c.w1 + c.p1) * agi * 7;
+      var jy = Math.cos(t*c.w2 + c.p2) * agi * 7;
+      var px = c.ax + c.dx + jx;
+      var py = c.ay + c.dy + jy;
+
+      /* membrane: irregular blob */
+      var breathe = 1 + 0.10*Math.sin(t*c.w1*1.7 + c.p2);
+      ctx.beginPath();
+      var N = 9;
+      for (var k=0; k<=N; k++){
+        var a = k/N * 6.2832;
+        var rr = c.r * breathe * (1 + 0.20*Math.sin(a*c.lobes + c.p1 + t*c.w2*0.8));
+        var vx = px + Math.cos(a)*rr, vy = py + Math.sin(a)*rr;
+        if (k===0) ctx.moveTo(vx,vy); else ctx.lineTo(vx,vy);
+      }
+      ctx.closePath();
+      ctx.globalAlpha = 0.40;
+      ctx.fillStyle = c.col;
+      ctx.fill();
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = stain.rim;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      /* nucleus */
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = stain.nucleus;
+      ctx.beginPath();
+      ctx.arc(px + Math.cos(c.na + t*0.3)*c.r*0.24,
+              py + Math.sin(c.na + t*0.3)*c.r*0.24,
+              c.r*0.26, 0, 6.2832);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    /* pulse rings */
+    for (var r2=0; r2<pulses.length; r2++){
+      var pu2 = pulses[r2];
+      var age2 = t - pu2.t0;
+      ctx.globalAlpha = (1 - age2/1.4)*0.5;
+      ctx.strokeStyle = stain.nucleus;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(pu2.x, pu2.y, age2*620, 0, 6.2832);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- pointer ---------- */
+  function toLocal(e){
+    var r = cv.getBoundingClientRect();
+    return {
+      x: (e.clientX - r.left) / r.width * W,
+      y: (e.clientY - r.top) / r.height * H
+    };
+  }
+  cv.addEventListener("mousemove", function(e){
+    var p = toLocal(e); mouse.x = p.x; mouse.y = p.y;
+  });
+  cv.addEventListener("mouseleave", function(){ mouse.x = -9999; mouse.y = -9999; });
+  cv.addEventListener("click", function(e){
+    var p = toLocal(e);
+    pulses.push({ x:p.x, y:p.y, t0: performance.now()/1000 });
+  });
+  cv.addEventListener("touchmove", function(e){
+    if (e.touches.length){
+      var p = toLocal(e.touches[0]); mouse.x = p.x; mouse.y = p.y;
+    }
+  }, {passive:true});
+  cv.addEventListener("touchend", function(){ mouse.x=-9999; mouse.y=-9999; }, {passive:true});
+
+  /* ---------- controls ---------- */
+  var txt = document.getElementById("txt");
+  var debounce = null;
+  txt.addEventListener("input", function(){
+    state.text = txt.value;
+    clearTimeout(debounce);
+    debounce = setTimeout(respawn, 260);
+  });
+
+  var respawnTimer = null;
+  function queueRespawn(){
+    clearTimeout(respawnTimer);
+    respawnTimer = setTimeout(respawn, 120);
+  }
+  document.getElementById("rDen").addEventListener("input", function(){
+    state.density = parseFloat(this.value)/100;
+    document.getElementById("oDen").textContent = state.density.toFixed(2);
+    queueRespawn();
+  });
+  document.getElementById("rSize").addEventListener("input", function(){
+    state.size = parseFloat(this.value);
+    document.getElementById("oSize").textContent = state.size+" px";
+    queueRespawn();
+  });
+  document.getElementById("rAgi").addEventListener("input", function(){
+    state.agitation = parseFloat(this.value)/100;
+    document.getElementById("oAgi").textContent = state.agitation.toFixed(2);
+  });
+
+  document.getElementById("stains").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll("#stains button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    state.stain = b.dataset.stain;
+    /* re-tint existing cells without losing formation */
+    var stain = STAINS[state.stain];
+    cells.forEach(function(c){
+      c.col = stain.main[Math.random()<0.72?0:1];
+    });
+    updateStamp();
+  });
+
+  document.getElementById("btnRandom").addEventListener("click", function(){
+    var keys = Object.keys(STAINS);
+    state.stain = keys[Math.floor(Math.random()*keys.length)];
+    state.density = 0.6 + Math.random()*1.3;
+    state.size = 7 + Math.floor(Math.random()*12);
+    state.agitation = Math.random()*0.9;
+    document.getElementById("rDen").value = Math.round(state.density*100);
+    document.getElementById("oDen").textContent = state.density.toFixed(2);
+    document.getElementById("rSize").value = state.size;
+    document.getElementById("oSize").textContent = state.size+" px";
+    document.getElementById("rAgi").value = Math.round(state.agitation*100);
+    document.getElementById("oAgi").textContent = state.agitation.toFixed(2);
+    document.querySelectorAll("#stains button").forEach(function(x){
+      x.classList.toggle("on", x.dataset.stain===state.stain);
+    });
+    respawn();
+  });
+
+  document.getElementById("btnSave").addEventListener("click", function(){
+    /* composite current frame onto an export canvas at full res */
+    var a = document.createElement("a");
+    a.download = "cell-type-"+(state.text||"untitled")+".png";
+    a.href = cv.toDataURL("image/png");
+    a.click();
+  });
+
+  /* ---------- boot: handle DPR crisply ---------- */
+  function boot(){
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = W*DPR; cv.height = H*DPR;
+    respawn();
+    requestAnimationFrame(frame);
+  }
+  boot();
+})();
+</script>
+</body>
+</html>

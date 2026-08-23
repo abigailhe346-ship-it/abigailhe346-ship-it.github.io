@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stained Glass — 彩色玻璃 Voronoi 生成器</title>
+<style>
+  :root{
+    --bg:#101014; --lead:#0B0B0E; --ivory:#EDE6D6; --gold:#C9A24B;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--bg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;color:var(--ivory)}
+  canvas{position:fixed;inset:0;display:block}
+
+  header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:28px 34px;pointer-events:none;z-index:5}
+  .brand{display:flex;gap:14px;align-items:baseline}
+  .num{font-family:Didot,"Bodoni MT",Georgia,serif;font-style:italic;font-size:15px;color:rgba(237,230,214,.45)}
+  h1{font-family:Didot,"Bodoni MT",Georgia,serif;font-weight:400;font-size:22px;letter-spacing:.04em}
+  h1 em{font-style:normal;font-size:12px;letter-spacing:.34em;color:rgba(237,230,214,.45);margin-left:10px;vertical-align:2px}
+  .pal{display:flex;gap:8px;padding-top:6px}
+  .pal i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(237,230,214,.3)}
+
+  .dock{position:fixed;left:34px;bottom:32px;z-index:6;display:flex;flex-direction:column;gap:14px;
+    background:rgba(13,13,17,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(237,230,214,.16);padding:20px 22px;max-width:330px;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);
+    animation:rise .9s var(--ease) both .2s}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .row{display:flex;align-items:center;gap:14px}
+  label{font-size:10px;letter-spacing:.22em;color:rgba(237,230,214,.5);width:74px;flex-shrink:0;text-transform:uppercase}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:2px;background:rgba(237,230,214,.3);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--gold);
+    border:none;border-radius:50%;box-shadow:0 0 10px rgba(201,162,75,.7);transition:transform .3s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--gold);border:none;border-radius:50%}
+  input[type=range]::-moz-range-track{height:2px;background:rgba(237,230,214,.3)}
+  .val{font-family:"SF Mono",Menlo,monospace;font-size:11px;width:30px;text-align:right;color:var(--gold)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+  button{font-family:inherit;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    padding:10px 15px;background:transparent;border:1px solid rgba(237,230,214,.35);color:var(--ivory);
+    cursor:pointer;transition:all .35s var(--ease)}
+  button:hover{background:var(--ivory);color:var(--bg);border-color:var(--ivory)}
+  button.accent{border-color:var(--gold);color:var(--gold)}
+  button.accent:hover{background:var(--gold);color:var(--bg)}
+  button.on{background:var(--ivory);border-color:var(--ivory);color:var(--bg)}
+
+  .hint{position:fixed;right:34px;bottom:36px;z-index:5;text-align:right;pointer-events:none;
+    font-size:10px;letter-spacing:.18em;color:rgba(237,230,214,.4);line-height:2;text-transform:uppercase;
+    animation:rise .9s var(--ease) both .35s}
+  .hint b{color:var(--ivory);font-weight:500}
+  @media (max-width:640px){
+    header{padding:18px 20px}
+    h1{font-size:17px}
+    .dock{left:16px;right:16px;bottom:16px;max-width:none;padding:16px}
+    .hint{display:none}
+  }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<header>
+  <div class="brand">
+    <span class="num">N°03</span>
+    <h1>Stained Glass<em>彩色玻璃</em></h1>
+  </div>
+  <div class="pal">
+    <i style="background:#7A1F2B"></i><i style="background:#1E3E6E"></i><i style="background:#C9A24B"></i>
+  </div>
+</header>
+
+<div class="dock">
+  <div class="row">
+    <label>Cells 窗格</label>
+    <input type="range" id="cells" min="24" max="140" value="72">
+    <span class="val" id="cellsVal">72</span>
+  </div>
+  <div class="row">
+    <label>Light 光强</label>
+    <input type="range" id="light" min="20" max="100" value="62">
+    <span class="val" id="lightVal">62</span>
+  </div>
+  <div class="row">
+    <label>Chapel 色系</label>
+    <div class="btns" style="margin:0">
+      <button class="palbtn on" data-p="0">教堂</button>
+      <button class="palbtn" data-p="1">潮汐</button>
+      <button class="palbtn" data-p="2">余烬</button>
+    </div>
+  </div>
+  <div class="btns">
+    <button id="btnRandom" class="accent">随机再生</button>
+    <button id="btnSave">下载 PNG</button>
+  </div>
+</div>
+
+<div class="hint">
+  <b>移动鼠标</b> 牵引窗外光源<br>
+  <b>点击画面</b> 熔入一块新玻璃
+</div>
+
+<script>
+(function(){
+"use strict";
+var canvas=document.getElementById('cv'),ctx=canvas.getContext('2d');
+var off=document.createElement('canvas'),octx=off.getContext('2d');
+var W=0,H=0,DPR=1;
+
+var PALETTES=[
+  [[122,31,43],[30,62,110],[201,162,75],[34,88,66],[86,54,120],[160,84,38]],   /* 教堂 */
+  [[16,74,96],[38,120,140],[90,160,170],[22,46,84],[140,190,180],[54,96,130]], /* 潮汐 */
+  [[150,44,30],[196,92,40],[220,150,60],[110,30,40],[180,60,50],[230,190,90]]  /* 余烬 */
+];
+var palIdx=0,cellCount=72,lightAmt=0.62;
+
+var seed=(Math.random()*1e9)|0;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var rnd=mulberry32(seed);
+
+var seeds=[],cells=[],extraSeeds=[];
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth;H=window.innerHeight;
+  canvas.width=W*DPR;canvas.height=H*DPR;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  build();
+}
+
+function relax(pts){
+  /* one Lloyd iteration: move seed to cell centroid */
+  var sums=pts.map(function(){return{x:0,y:0,n:0};});
+  var step=Math.max(4,Math.floor(Math.sqrt(W*H/pts.length)/6));
+  for(var y=step/2;y<H;y+=step)for(var x=step/2;x<W;x+=step){
+    var bi=0,bd=1e18;
+    for(var i=0;i<pts.length;i++){
+      var dx=pts[i].x-x,dy=pts[i].y-y,d=dx*dx+dy*dy;
+      if(d<bd){bd=d;bi=i;}
+    }
+    sums[bi].x+=x;sums[bi].y+=y;sums[bi].n++;
+  }
+  return pts.map(function(p,i){return sums[i].n?{x:sums[i].x/sums[i].n,y:sums[i].y/sums[i].n,c:p.c}:p;});
+}
+
+/* voronoi cell by half-plane clipping */
+function cellPoly(i,pts){
+  var poly=[[0,0],[W,0],[W,H],[0,H]];
+  var a=pts[i];
+  for(var j=0;j<pts.length;j++){
+    if(j===i||!poly.length)continue;
+    var b=pts[j];
+    var mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    var nx=b.x-a.x,ny=b.y-a.y;
+    var out=[];
+    for(var k=0;k<poly.length;k++){
+      var p1=poly[k],p2=poly[(k+1)%poly.length];
+      var d1=(p1[0]-mx)*nx+(p1[1]-my)*ny;
+      var d2=(p2[0]-mx)*nx+(p2[1]-my)*ny;
+      if(d1<=0)out.push(p1);
+      if(d1<=0!==d2<=0){
+        var t=d1/(d1-d2);
+        out.push([p1[0]+(p2[0]-p1[0])*t,p1[1]+(p2[1]-p1[1])*t]);
+      }
+    }
+    poly=out;
+  }
+  return poly;
+}
+
+function build(){
+  rnd=mulberry32(seed);
+  seeds=[];cells=[];
+  var pal=PALETTES[palIdx];
+  for(var i=0;i<cellCount;i++){
+    seeds.push({x:rnd()*W,y:rnd()*H,c:pal[(rnd()*pal.length)|0],v:0.85+rnd()*0.3});
+  }
+  extraSeeds.forEach(function(e){seeds.push({x:e.x,y:e.y,c:pal[(rnd()*pal.length)|0],v:0.9+rnd()*0.2});});
+  seeds=relax(seeds);seeds=relax(seeds);
+  for(i=0;i<seeds.length;i++){
+    cells.push({poly:cellPoly(i,seeds),c:seeds[i].c,v:seeds[i].v,x:seeds[i].x,y:seeds[i].y});
+  }
+  paintGlass();
+}
+
+/* prerender glass (static) into offscreen */
+function paintGlass(){
+  off.width=W*DPR;off.height=H*DPR;
+  octx.setTransform(DPR,0,0,DPR,0,0);
+  octx.fillStyle='#0B0B0E';octx.fillRect(0,0,W,H);
+  var i;
+  for(i=0;i<cells.length;i++){
+    var c=cells[i];
+    if(!c.poly.length)continue;
+    var g=octx.createRadialGradient(c.x,c.y,2,c.x,c.y,Math.max(W,H)/Math.sqrt(cells.length)*1.15);
+    var r=c.c[0]*c.v,gg=c.c[1]*c.v,b=c.c[2]*c.v;
+    g.addColorStop(0,'rgb('+Math.min(255,r*1.5+40|0)+','+Math.min(255,gg*1.5+40|0)+','+Math.min(255,b*1.5+40|0)+')');
+    g.addColorStop(0.55,'rgb('+(r|0)+','+(gg|0)+','+(b|0)+')');
+    g.addColorStop(1,'rgb('+(r*0.42|0)+','+(gg*0.42|0)+','+(b*0.42|0)+')');
+    octx.beginPath();
+    octx.moveTo(c.poly[0][0],c.poly[0][1]);
+    for(var k=1;k<c.poly.length;k++)octx.lineTo(c.poly[k][0],c.poly[k][1]);
+    octx.closePath();
+    octx.fillStyle=g;octx.fill();
+    /* glass texture streaks */
+    octx.save();octx.clip();
+    octx.globalAlpha=0.07;octx.strokeStyle='#fff';octx.lineWidth=1;
+    var rr=mulberry32(seed+i*77);
+    for(var s=0;s<5;s++){
+      octx.beginPath();
+      var sx=c.x+(rr()-0.5)*120,sy=c.y+(rr()-0.5)*120;
+      octx.moveTo(sx,sy);
+      octx.quadraticCurveTo(sx+40*(rr()-0.5),sy+40*(rr()-0.5),sx+80*(rr()-0.5),sy+80*(rr()-0.5));
+      octx.stroke();
+    }
+    octx.restore();
+  }
+  /* lead came: thick + inner bevel */
+  for(i=0;i<cells.length;i++){
+    var cl=cells[i];if(!cl.poly.length)continue;
+    octx.beginPath();
+    octx.moveTo(cl.poly[0][0],cl.poly[0][1]);
+    for(var k2=1;k2<cl.poly.length;k2++)octx.lineTo(cl.poly[k2][0],cl.poly[k2][1]);
+    octx.closePath();
+    octx.lineJoin='round';octx.lineCap='round';
+    octx.strokeStyle='#08080A';octx.lineWidth=8;octx.stroke();
+    octx.strokeStyle='rgba(60,60,68,0.9)';octx.lineWidth=2.4;octx.stroke();
+    octx.strokeStyle='rgba(150,150,160,0.35)';octx.lineWidth=0.8;octx.stroke();
+  }
+  /* outer frame */
+  octx.strokeStyle='#08080A';octx.lineWidth=18;
+  octx.strokeRect(0,0,W,H);
+  octx.strokeStyle='rgba(160,160,170,0.4)';octx.lineWidth=1.5;
+  octx.strokeRect(9,9,W-18,H-18);
+}
+
+/* ---------- interaction ---------- */
+var mouse={x:W*0.6,y:H*0.35},light={x:W*0.6,y:H*0.35};
+window.addEventListener('mousemove',function(e){mouse.x=e.clientX;mouse.y=e.clientY;});
+window.addEventListener('touchmove',function(e){if(e.touches[0]){mouse.x=e.touches[0].clientX;mouse.y=e.touches[0].clientY;}},{passive:true});
+canvas.addEventListener('pointerdown',function(e){
+  extraSeeds.push({x:e.clientX,y:e.clientY});
+  if(extraSeeds.length>30)extraSeeds.shift();
+  build();
+});
+
+var glints=[];
+function frame(t){
+  light.x+=(mouse.x-light.x)*0.05;
+  light.y+=(mouse.y-light.y)*0.05;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.drawImage(off,0,0,W,H);
+  /* moving light */
+  var R=Math.max(W,H)*(0.45+lightAmt*0.55);
+  var g=ctx.createRadialGradient(light.x,light.y,10,light.x,light.y,R);
+  g.addColorStop(0,'rgba(255,244,214,'+(0.34*lightAmt+0.1)+')');
+  g.addColorStop(0.5,'rgba(255,240,200,'+(0.12*lightAmt)+')');
+  g.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.globalCompositeOperation='overlay';
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.globalCompositeOperation='source-over';
+  /* ambient breathing shadow opposite corner */
+  var amb=0.5+0.5*Math.sin(t/4200);
+  var g2=ctx.createRadialGradient(W-light.x,H-light.y,40,W-light.x,H-light.y,R*1.1);
+  g2.addColorStop(0,'rgba(4,4,10,'+(0.22+0.12*amb)+')');
+  g2.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=g2;ctx.fillRect(0,0,W,H);
+  /* glints: sparkling dust on lead intersections */
+  if(Math.random()<0.06&&cells.length){
+    var c=cells[(Math.random()*cells.length)|0];
+    if(c.poly.length){var v=c.poly[(Math.random()*c.poly.length)|0];
+      glints.push({x:v[0],y:v[1],t:t,life:900+Math.random()*900});}
+  }
+  glints=glints.filter(function(gl){return t-gl.t<gl.life;});
+  glints.forEach(function(gl){
+    var p=(t-gl.t)/gl.life,a=Math.sin(p*Math.PI);
+    ctx.save();ctx.translate(gl.x,gl.y);ctx.rotate(p*1.2);
+    ctx.strokeStyle='rgba(255,250,230,'+(a*0.85)+')';ctx.lineWidth=1;
+    var s=2+6*a;
+    ctx.beginPath();ctx.moveTo(-s,0);ctx.lineTo(s,0);ctx.moveTo(0,-s);ctx.lineTo(0,s);ctx.stroke();
+    ctx.restore();
+  });
+  requestAnimationFrame(frame);
+}
+
+/* ---------- controls ---------- */
+var cEl=document.getElementById('cells'),cV=document.getElementById('cellsVal');
+cEl.addEventListener('input',function(){cellCount=+cEl.value;cV.textContent=cEl.value;extraSeeds=[];build();});
+var lEl=document.getElementById('light'),lV=document.getElementById('lightVal');
+lEl.addEventListener('input',function(){lightAmt=+lEl.value/100;lV.textContent=lEl.value;});
+document.querySelectorAll('.palbtn').forEach(function(b){
+  b.addEventListener('click',function(){
+    palIdx=+b.dataset.p;extraSeeds=[];
+    document.querySelectorAll('.palbtn').forEach(function(x){x.classList.toggle('on',x===b);});
+    build();
+  });
+});
+document.getElementById('btnRandom').addEventListener('click',function(){seed=(Math.random()*1e9)|0;extraSeeds=[];build();});
+document.getElementById('btnSave').addEventListener('click',function(){
+  /* composite current view: glass + light, for a faithful export */
+  canvas.toBlob(function(b){
+    var a=document.createElement('a');a.href=URL.createObjectURL(b);
+    a.download='stained-glass-'+seed+'.png';a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+});
+
+window.addEventListener('resize',function(){extraSeeds=[];resize();});
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cost Ledger — LLM 成本计算器</title>
+<style>
+  :root{
+    --paper:#F5F2EB; --panel:#EDE9DF; --panel2:#E7E2D5;
+    --ink:#17150F; --ink2:#4C483C; --gray:#8C8778; --line:#D8D3C4; --line2:#C6C0AE;
+    --accent:#D9480F; --accent-soft:rgba(217,72,15,.08); --ok:#2F7D4F;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:var(--accent);color:var(--paper)}
+  button{font-family:inherit}
+
+  /* ---------- header ---------- */
+  header{height:58px;display:flex;align-items:stretch;border-bottom:1.5px solid var(--ink)}
+  .brand{display:flex;align-items:center;gap:14px;padding:0 22px;border-right:1px solid var(--line)}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.12em}
+  .brand .name{font-family:var(--serif);font-size:20px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--gray);letter-spacing:.22em;text-transform:uppercase}
+  .hnote{margin-left:auto;display:flex;align-items:center;padding:0 22px;font-family:var(--mono);
+         font-size:10px;color:var(--gray);letter-spacing:.12em}
+  .hnote b{color:var(--accent);font-weight:600}
+
+  /* ---------- layout ---------- */
+  main{display:grid;grid-template-columns:380px 1fr;height:calc(100% - 58px)}
+  .left{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0;
+        overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+  .left::-webkit-scrollbar{width:4px}
+  .left::-webkit-scrollbar-thumb{background:var(--line2)}
+  .right{display:flex;flex-direction:column;min-width:0;min-height:0}
+
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--gray);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ---------- left controls ---------- */
+  .sect{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+  .presets{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .chip{font-family:var(--mono);font-size:11px;padding:10px 8px;border:1px solid var(--line2);
+        color:var(--ink2);cursor:pointer;user-select:none;transition:all .25s var(--ease);
+        background:transparent;letter-spacing:.04em;text-align:center}
+  .chip:hover{border-color:var(--ink)}
+  .chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  .slider-row{display:flex;flex-direction:column;gap:7px}
+  .slider-row .top{display:flex;justify-content:space-between;align-items:baseline}
+  .slider-row .k{font-family:var(--mono);font-size:11px;color:var(--ink2)}
+  .slider-row .v{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600;
+                 font-variant-numeric:tabular-nums}
+  .slider-row .hint{font-size:10px;color:var(--gray)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line2)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-6px;
+      background:var(--paper);border:2.5px solid var(--accent);border-radius:50%;transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--line2)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--paper);
+      border:2.5px solid var(--accent);border-radius:50%}
+
+  .periodrow{display:flex;border:1px solid var(--line2)}
+  .periodrow button{flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.1em;padding:10px 0;
+                    background:transparent;border:0;color:var(--gray);cursor:pointer;transition:all .25s var(--ease)}
+  .periodrow button.on{background:var(--accent);color:var(--paper)}
+  .periodrow button:first-child{border-right:1px solid var(--line2)}
+
+  .note{font-family:var(--mono);font-size:10px;color:var(--gray);line-height:1.8}
+
+  /* ---------- big number ---------- */
+  .hero{padding:26px 30px 20px;border-bottom:1px solid var(--line);display:flex;align-items:flex-end;gap:34px;flex-wrap:wrap}
+  .hero .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--gray);text-transform:uppercase}
+  .hero .big{font-family:var(--serif);font-size:64px;line-height:1;margin-top:8px;font-variant-numeric:tabular-nums;
+             letter-spacing:-.01em}
+  .hero .big em{font-style:normal;font-size:22px;color:var(--gray)}
+  .hero .whom{font-family:var(--mono);font-size:11px;color:var(--ink2);margin-top:10px}
+  .hero .whom b{color:var(--accent);font-weight:600}
+  .breakdown{flex:1;min-width:230px;padding-bottom:6px}
+  .bdt{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+       color:var(--gray);margin-bottom:6px;letter-spacing:.08em}
+  .bdbar{display:flex;height:14px;border:1px solid var(--ink);overflow:hidden}
+  .bdbar .seg{transition:width .7s var(--ease)}
+  .seg.in{background:var(--ink)}
+  .seg.out{background:var(--accent)}
+  .seg.saved{background:repeating-linear-gradient(-45deg,transparent,transparent 3px,rgba(47,125,79,.5) 3px,rgba(47,125,79,.5) 5px)}
+  .bdlegend{display:flex;gap:16px;margin-top:8px;font-family:var(--mono);font-size:9.5px;color:var(--ink2)}
+  .bdlegend i{display:inline-block;width:8px;height:8px;margin-right:5px;vertical-align:-1px}
+
+  /* ---------- table ---------- */
+  .tablehead{display:flex;align-items:center;padding:16px 30px 10px;gap:14px}
+  .tablehead .blocklabel{flex:1}
+  .tablehead .sort{font-family:var(--mono);font-size:10px;color:var(--gray);letter-spacing:.08em}
+  .rows{flex:1;overflow-y:auto;padding:0 30px 24px;scrollbar-width:thin;scrollbar-color:var(--line2) transparent}
+  .rows::-webkit-scrollbar{width:4px}
+  .rows::-webkit-scrollbar-thumb{background:var(--line2)}
+
+  .mrow{position:relative;display:grid;grid-template-columns:190px 1fr 1fr 120px 150px;
+        align-items:center;gap:16px;padding:13px 16px;border:1px solid var(--line);
+        background:var(--paper);margin-bottom:8px;cursor:pointer;
+        transition:border-color .3s var(--ease),background .3s var(--ease),transform .55s var(--ease)}
+  .mrow:hover{border-color:var(--ink)}
+  .mrow.best{border-color:var(--ink);background:#FBFAF5}
+  .mrow.best::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--accent)}
+  .mrow.pinned{box-shadow:inset 0 0 0 1.5px var(--accent)}
+  .mname{font-family:var(--mono);font-size:13px;font-weight:600}
+  .mname .tag{display:inline-block;font-size:8px;letter-spacing:.14em;color:var(--paper);
+              background:var(--accent);padding:2px 6px;margin-left:8px;vertical-align:2px}
+  .mprice{font-family:var(--mono);font-size:11px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .mprice small{display:block;font-size:8.5px;color:var(--gray);letter-spacing:.1em;margin-top:2px}
+  .mper{font-family:var(--mono);font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .mmonth{position:relative;font-family:var(--mono);font-size:16px;font-weight:600;text-align:right;
+          font-variant-numeric:tabular-nums}
+  .mmonth .bar{position:absolute;right:0;bottom:-7px;height:3px;background:var(--panel2);width:100%}
+  .mmonth .bar i{position:absolute;right:0;top:0;bottom:0;background:var(--ink);transition:width .7s var(--ease)}
+  .mrow.best .mmonth .bar i{background:var(--accent)}
+  .stamp{position:absolute;right:12px;top:-11px;font-family:var(--mono);font-size:9px;font-weight:700;
+         letter-spacing:.16em;color:var(--accent);border:1.5px solid var(--accent);
+         padding:2px 8px;transform:rotate(-3deg);background:var(--paper)}
+
+  @media (max-width:960px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr;height:auto}
+    .left{border-right:0;border-bottom:1px solid var(--line)}
+    .hero .big{font-size:44px}
+    .mrow{grid-template-columns:130px 1fr 110px;font-size:11px}
+    .mprice.hideM,.mper{display:none}
+    .rows{overflow:visible}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">No.04</span>
+    <span class="name">Cost Ledger</span>
+    <span class="sub">LLM Cost Calculator</span>
+  </div>
+  <div class="hnote">PRICING SHEET · <b>SAMPLE RATES</b> · 缓存命中按 25% 计费</div>
+</header>
+
+<main>
+  <!-- ============ LEFT: workload ============ -->
+  <section class="left">
+    <div class="sect">
+      <div class="blocklabel">01 — Workload 场景</div>
+      <div class="presets" id="presets">
+        <button class="chip" data-preset="chat">智能客服</button>
+        <button class="chip" data-preset="rag">RAG 知识库</button>
+        <button class="chip" data-preset="batch">批量摘要</button>
+        <button class="chip" data-preset="agent">Agent 自动化</button>
+      </div>
+    </div>
+    <div class="sect">
+      <div class="blocklabel">02 — 用量参数</div>
+      <div class="slider-row">
+        <div class="top"><span class="k">日请求量</span><span class="v" id="v-req">4,786</span></div>
+        <input type="range" id="s-req" min="0" max="100" value="42">
+        <div class="hint">对数刻度 · 100 → 1,000,000 次 / 日</div>
+      </div>
+      <div class="slider-row">
+        <div class="top"><span class="k">平均输入 tokens</span><span class="v" id="v-in">1,200</span></div>
+        <input type="range" id="s-in" min="50" max="32000" step="50" value="1200">
+      </div>
+      <div class="slider-row">
+        <div class="top"><span class="k">平均输出 tokens</span><span class="v" id="v-out">350</span></div>
+        <input type="range" id="s-out" min="20" max="8000" step="10" value="350">
+      </div>
+      <div class="slider-row">
+        <div class="top"><span class="k">缓存命中率</span><span class="v" id="v-cache">30%</span></div>
+        <input type="range" id="s-cache" min="0" max="90" value="30">
+        <div class="hint">命中部分按输入价 25% 计费（prompt caching）</div>
+      </div>
+    </div>
+    <div class="sect">
+      <div class="blocklabel">03 — 计费周期</div>
+      <div class="periodrow">
+        <button id="per-m" class="on">月度 · 30 天</button>
+        <button id="per-y">年度 · 365 天</button>
+      </div>
+      <div class="note">// 点击表格任意行可「钉选」该模型，左上角大数切换为它的账单与成本结构。</div>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT: ledger ============ -->
+  <section class="right">
+    <div class="hero">
+      <div>
+        <div class="lbl" id="hero-lbl">最优方案 · 月成本</div>
+        <div class="big"><em>$</em><span id="hero-num">0</span></div>
+        <div class="whom" id="hero-whom">—</div>
+      </div>
+      <div class="breakdown">
+        <div class="bdt"><span id="bd-model">—</span><span id="bd-pct">—</span></div>
+        <div class="bdbar">
+          <div class="seg in" id="seg-in" style="width:33%"></div>
+          <div class="seg out" id="seg-out" style="width:33%"></div>
+          <div class="seg saved" id="seg-saved" style="width:34%"></div>
+        </div>
+        <div class="bdlegend">
+          <span><i style="background:var(--ink)"></i>输入成本</span>
+          <span><i style="background:var(--accent)"></i>输出成本</span>
+          <span><i style="background:rgba(47,125,79,.5)"></i>缓存节省</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="tablehead">
+      <div class="blocklabel">04 — Model Ledger 模型账单</div>
+      <span class="sort">SORTED BY COST ↑ · 实时重排</span>
+    </div>
+    <div class="rows" id="rows"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const fmtN=n=>n.toLocaleString("en-US");
+const fmt$=(n,d)=>"$"+n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+
+/* ================= model sheet (sample rates, $ / 1M tokens) ================= */
+const MODELS=[
+ {id:"kimi-k2",    pin:0.60, pout:2.50, tag:""},
+ {id:"moon-v1-8k", pin:1.20, pout:4.80, tag:""},
+ {id:"lite-turbo", pin:0.08, pout:0.32, tag:""},
+ {id:"atlas-pro",  pin:2.00, pout:8.00, tag:""},
+ {id:"nova-mini",  pin:0.15, pout:0.60, tag:""},
+ {id:"sage-70b",   pin:0.45, pout:0.45, tag:"SELF-HOST"},
+];
+
+/* ================= workload state ================= */
+const PRESETS={
+  chat:  {req:46, inp:1200, out:350,  cache:30, label:"智能客服"},
+  rag:   {req:38, inp:4200, out:600,  cache:55, label:"RAG 知识库"},
+  batch: {req:60, inp:8500, out:900,  cache:10, label:"批量摘要"},
+  agent: {req:42, inp:2600, out:1400, cache:20, label:"Agent 自动化"},
+};
+const sliderVal=v=>Math.round(100*Math.pow(10000,v/100)); // 100..1,000,000
+const S={reqs:sliderVal(42), inp:1200, out:350, cache:30, yearly:false, pinned:null};
+
+function calc(m){
+  const cached=S.inp*S.cache/100, fresh=S.inp-cached;
+  const inCost=(fresh+cached*0.25)/1e6*m.pin;
+  const outCost=S.out/1e6*m.pout;
+  const perReq=inCost+outCost;
+  const full=S.inp/1e6*m.pin+outCost;      // without cache discount
+  const days=S.yearly?365:30;
+  return {perReq, total:perReq*S.reqs*days, in:inCost*S.reqs*days,
+          out:outCost*S.reqs*days, saved:(full-perReq)*S.reqs*days};
+}
+
+/* ================= render ================= */
+let order=[]; // current sorted ids
+function render(){
+  MODELS.forEach(m=>m._c=calc(m));
+  const sorted=[...MODELS].sort((a,b)=>a._c.total-b._c.total);
+  const maxT=sorted[sorted.length-1]._c.total||1;
+  const best=sorted[0];
+  const focus=S.pinned?MODELS.find(m=>m.id===S.pinned):best;
+
+  // hero
+  $("hero-lbl").textContent=(S.pinned?"钉选模型":"最优方案")+" · "+(S.yearly?"年成本":"月成本");
+  tweenNum($("hero-num"),focus._c.total,focus._c.total>=100?0:2);
+  $("hero-whom").innerHTML=S.pinned
+    ?`已钉选 <b>${focus.id}</b> · 与最优差 ${fmt$((focus._c.total-best._c.total),focus._c.total-best._c.total>=100?0:2)} / ${S.yearly?"年":"月"}`
+    :`当前最优 <b>${best.id}</b> · ${fmt$(best._c.perReq,5)} / 次请求`;
+  // breakdown
+  const c=focus._c, sum=c.in+c.out+c.saved||1;
+  $("seg-in").style.width=(c.in/sum*100)+"%";
+  $("seg-out").style.width=(c.out/sum*100)+"%";
+  $("seg-saved").style.width=(c.saved/sum*100)+"%";
+  $("bd-model").textContent=focus.id;
+  $("bd-pct").textContent=`输入 ${Math.round(c.in/sum*100)}% · 输出 ${Math.round(c.out/sum*100)}% · 缓存省 ${fmt$(c.saved,0)}`;
+
+  // rows with FLIP reorder
+  const rowsEl=$("rows");
+  const oldRect={};
+  [...rowsEl.children].forEach(el=>oldRect[el.dataset.id]=el.getBoundingClientRect());
+  sorted.forEach((m,i)=>{
+    let el=rowsEl.querySelector(`[data-id="${m.id}"]`);
+    if(!el){
+      el=document.createElement("div");
+      el.className="mrow";el.dataset.id=m.id;
+      el.addEventListener("click",()=>{
+        S.pinned=S.pinned===m.id?null:m.id;render();
+      });
+    }
+    el.classList.toggle("best",i===0);
+    el.classList.toggle("pinned",S.pinned===m.id);
+    el.innerHTML=`
+      ${i===0?'<span class="stamp">BEST VALUE</span>':""}
+      <div class="mname">${m.id}${m.tag?`<span class="tag">${m.tag}</span>`:""}</div>
+      <div class="mprice">${fmt$(m.pin,2)} / ${fmt$(m.pout,2)}<small>IN / OUT · $ PER 1M TOK</small></div>
+      <div class="mper">${fmt$(m._c.perReq,5)}<small>PER REQUEST</small></div>
+      <div class="mmonth">${fmt$(m._c.total,m._c.total>=100?0:2)}<div class="bar"><i style="width:${(m._c.total/maxT*100).toFixed(1)}%"></i></div></div>`;
+    rowsEl.appendChild(el); // re-append in sorted order
+  });
+  // FLIP animate
+  [...rowsEl.children].forEach(el=>{
+    const o=oldRect[el.dataset.id];
+    if(!o)return;
+    const n=el.getBoundingClientRect();
+    const dy=o.top-n.top;
+    if(dy){
+      el.style.transition="none";el.style.transform=`translateY(${dy}px)`;
+      requestAnimationFrame(()=>{el.style.transition="";el.style.transform="";});
+    }
+  });
+  order=sorted.map(m=>m.id);
+}
+
+/* hero number tween */
+let tweenRaf=null;
+function tweenNum(el,to,dec){
+  const from=parseFloat(el.dataset.v||"0");
+  el.dataset.v=to;
+  const t0=performance.now(),dur=650;
+  cancelAnimationFrame(tweenRaf);
+  const step=now=>{
+    const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3);
+    const v=from+(to-from)*e;
+    el.textContent=v.toLocaleString("en-US",{minimumFractionDigits:dec,maximumFractionDigits:dec});
+    if(p<1)tweenRaf=requestAnimationFrame(step);
+  };
+  tweenRaf=requestAnimationFrame(step);
+}
+
+/* ================= controls ================= */
+function bindSlider(id,key,fmt,after){
+  const el=$(id);
+  el.addEventListener("input",()=>{
+    const v=+el.value;
+    if(key==="reqs")S.reqs=sliderVal(v);else S[key]=v;
+    $(id.replace("s-","v-")).textContent=fmt(key==="reqs"?S.reqs:v);
+    markCustom();render();
+  });
+}
+bindSlider("s-req","reqs",fmtN);
+bindSlider("s-in","inp",fmtN);
+bindSlider("s-out","out",fmtN);
+bindSlider("s-cache","cache",v=>v+"%");
+
+function markCustom(){
+  document.querySelectorAll("#presets .chip").forEach(c=>c.classList.remove("on"));
+}
+document.querySelectorAll("#presets .chip").forEach(c=>{
+  c.addEventListener("click",()=>{
+    const p=PRESETS[c.dataset.preset];
+    $("s-req").value=p.req;$("s-in").value=p.inp;$("s-out").value=p.out;$("s-cache").value=p.cache;
+    S.reqs=sliderVal(p.req);S.inp=p.inp;S.out=p.out;S.cache=p.cache;
+    $("v-req").textContent=fmtN(S.reqs);
+    $("v-in").textContent=fmtN(p.inp);
+    $("v-out").textContent=fmtN(p.out);
+    $("v-cache").textContent=p.cache+"%";
+    document.querySelectorAll("#presets .chip").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");
+    render();
+  });
+});
+$("per-m").addEventListener("click",()=>{S.yearly=false;syncPer();render()});
+$("per-y").addEventListener("click",()=>{S.yearly=true;syncPer();render()});
+function syncPer(){
+  $("per-m").classList.toggle("on",!S.yearly);
+  $("per-y").classList.toggle("on",S.yearly);
+}
+
+/* ================= init ================= */
+document.querySelector('#presets .chip[data-preset="chat"]').classList.add("on");
+render();
+</script>
+</body>
+</html>

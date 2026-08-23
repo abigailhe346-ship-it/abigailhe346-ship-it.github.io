@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voxel Island — 体素浮岛 No.10</title>
+<style>
+  :root{
+    --paper:#f7f0e1;
+    --ink:#22303c;
+    --green:#3e7c4f;
+    --blue:#35507a;
+    --orange:#e8603c;
+    --dim:#8b8574;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--paper);
+            transition:background 1.2s cubic-bezier(.4,0,.2,1);}
+  body.night{background:#1d2440;}
+  body{font-family:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;color:var(--ink);
+       -webkit-font-smoothing:antialiased;}
+  body.night{color:#e8e4d8;}
+  #stage{position:fixed;inset:0;cursor:grab;}
+  #stage.dragging{cursor:grabbing;}
+  #stage canvas{display:block;}
+
+  .plate{position:fixed;top:26px;left:28px;z-index:10;pointer-events:none;}
+  .plate .no{font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.3em;color:var(--orange);}
+  .plate h1{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;font-size:30px;font-weight:700;
+            letter-spacing:.04em;margin-top:6px;line-height:1;}
+  .plate .sub{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;font-style:italic;
+              font-size:13px;color:var(--dim);margin-top:6px;letter-spacing:.1em;}
+  body.night .plate .sub{color:#9aa3c0;}
+  .plate .stamp{display:inline-block;margin-top:10px;padding:4px 9px;border:2px solid var(--orange);
+                color:var(--orange);font-size:9px;letter-spacing:.34em;transform:rotate(-2deg);}
+
+  .caption{position:fixed;right:26px;top:28px;z-index:10;text-align:right;pointer-events:none;
+           font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.2em;
+           color:var(--dim);line-height:2;}
+  body.night .caption{color:#9aa3c0;}
+  .caption b{color:var(--green);font-weight:600;}
+  body.night .caption b{color:#7fb7ff;}
+
+  /* ---------- controls ---------- */
+  .controls{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:10;
+            display:flex;gap:14px;align-items:stretch;max-width:calc(100vw - 28px);flex-wrap:wrap;justify-content:center;}
+  .card{background:var(--paper);border:2px solid var(--ink);
+        box-shadow:4px 4px 0 var(--blue);
+        padding:11px 16px;display:flex;flex-direction:column;justify-content:center;gap:5px;
+        transition:box-shadow .3s,background 1.2s;}
+  body.night .card{background:#252d4d;border-color:#e8e4d8;box-shadow:4px 4px 0 #11162b;}
+  .card .k{font-family:"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.28em;color:var(--dim);}
+  body.night .card .k{color:#9aa3c0;}
+  .card .v{font-family:"SF Mono",Menlo,monospace;font-size:13px;letter-spacing:.1em;color:var(--green);}
+  body.night .card .v{color:#7fb7ff;}
+  .btn{appearance:none;background:var(--paper);border:2px solid var(--ink);color:var(--ink);
+       font-family:inherit;font-weight:700;font-size:11px;letter-spacing:.22em;
+       padding:12px 20px;cursor:pointer;box-shadow:4px 4px 0 var(--ink);
+       transition:transform .12s cubic-bezier(.2,.7,.3,1),box-shadow .12s,background .2s,color .2s;}
+  .btn:hover{background:var(--orange);border-color:var(--orange);color:var(--paper);box-shadow:4px 4px 0 var(--blue);}
+  .btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink);}
+  .btn.alt:hover{background:var(--blue);border-color:var(--blue);}
+  body.night .btn{background:#252d4d;color:#e8e4d8;border-color:#e8e4d8;box-shadow:4px 4px 0 #11162b;}
+
+  @media (max-width:680px){
+    .caption{display:none;}
+    .plate{top:16px;left:18px;}
+    .plate h1{font-size:22px;}
+    .controls{bottom:14px;gap:10px;}
+    .btn{padding:10px 14px;font-size:10px;}
+    .card{padding:9px 12px;}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<header class="plate">
+  <div class="no">No.10 / ARCHIPELAGO SERIES</div>
+  <h1>Voxel Island</h1>
+  <div class="sub">体素浮岛 · 一座漂在云上的一方块世界</div>
+  <div class="stamp">PROCEDURAL</div>
+</header>
+
+<div class="caption">
+  ISLAND ID <b id="capSeed">—</b><br>
+  BLOCKS <b id="capBlocks">—</b><br>
+  CYCLE <b id="capCycle">DAY</b>
+</div>
+
+<div class="controls">
+  <div class="card">
+    <span class="k">ISLAND ID / 编号</span>
+    <span class="v" id="seedVal">#0000</span>
+  </div>
+  <button class="btn" id="regen">REGENERATE / 再生</button>
+  <button class="btn alt" id="cycle">NIGHTFALL / 入夜</button>
+  <button class="btn" id="save">SAVE PNG / 存图</button>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ================= seeded rng + 2D value noise ================= */
+  function mulberry32(a){
+    return function(){
+      a|=0;a=(a+0x6D2B79F5)|0;
+      var t=Math.imul(a^(a>>>15),1|a);
+      t=(t+Math.imul(t^(t>>>7),61|t))^t;
+      return ((t^(t>>>14))>>>0)/4294967296;
+    };
+  }
+  function makeNoise2(seed){
+    var rand=mulberry32(seed);
+    var vals=new Float32Array(256),perm=new Uint8Array(512),i,j,t;
+    for(i=0;i<256;i++){vals[i]=rand();perm[i]=i;}
+    for(i=255;i>0;i--){j=(rand()*(i+1))|0;t=perm[i];perm[i]=perm[j];perm[j]=t;}
+    for(i=0;i<512;i++)perm[i]=perm[i&255];
+    function sm(t){return t*t*(3-2*t);}
+    function n(x,y){
+      var X=Math.floor(x),Y=Math.floor(y);
+      var fx=sm(x-X),fy=sm(y-Y);
+      var a=vals[perm[(X&255)+perm[Y&255]]&255];
+      var b=vals[perm[((X+1)&255)+perm[Y&255]]&255];
+      var c=vals[perm[(X&255)+perm[(Y+1)&255]]&255];
+      var d=vals[perm[((X+1)&255)+perm[(Y+1)&255]]&255];
+      return a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy;
+    }
+    return function fbm(x,y,oct){
+      var v=0,amp=0.5,f=1,norm=0;
+      for(var i=0;i<oct;i++){v+=amp*n(x*f,y*f);norm+=amp;amp*=0.5;f*=2.1;}
+      return v/norm;
+    };
+  }
+
+  /* ================= renderer / scene ================= */
+  var stage=document.getElementById("stage");
+  var renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  stage.appendChild(renderer.domElement);
+
+  var scene=new THREE.Scene();
+  var SKY_DAY=new THREE.Color(0xf7f0e1), SKY_NIGHT=new THREE.Color(0x1d2440);
+  scene.background=SKY_DAY.clone();
+  scene.fog=new THREE.Fog(scene.background.clone(),10,26);
+
+  var camera=new THREE.PerspectiveCamera(40,1,0.1,100);
+  var azim=0.7,elev=0.42,radius=9.2;
+  var lookAt=new THREE.Vector3(0,0.15,0);
+  function placeCamera(){
+    camera.position.set(
+      lookAt.x+radius*Math.cos(elev)*Math.sin(azim),
+      lookAt.y+radius*Math.sin(elev),
+      lookAt.z+radius*Math.cos(elev)*Math.cos(azim));
+    camera.lookAt(lookAt);
+  }
+  placeCamera();
+
+  var sun=new THREE.DirectionalLight(0xfff2d8,1.15);
+  sun.position.set(5,8,3);
+  scene.add(sun);
+  var amb=new THREE.HemisphereLight(0xfff6e6,0x8a97a8,0.85);
+  scene.add(amb);
+
+  /* stars (night) */
+  var starMat;
+  (function(){
+    var n=500,pos=new Float32Array(n*3),rand=mulberry32(77);
+    for(var i=0;i<n;i++){
+      var th=rand()*Math.PI*2,ph=Math.acos(rand()*2-1),r=20+rand()*12;
+      pos[i*3]=r*Math.sin(ph)*Math.cos(th);
+      pos[i*3+1]=Math.abs(r*Math.cos(ph))*0.7-3;
+      pos[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+    }
+    var g=new THREE.BufferGeometry();
+    g.setAttribute("position",new THREE.BufferAttribute(pos,3));
+    starMat=new THREE.PointsMaterial({size:0.08,color:0xfdf6d8,transparent:true,opacity:0});
+    scene.add(new THREE.Points(g,starMat));
+  })();
+  /* moon */
+  var moon=(function(){
+    var c=document.createElement("canvas");c.width=c.height=128;
+    var x=c.getContext("2d");
+    var g=x.createRadialGradient(64,64,10,64,64,60);
+    g.addColorStop(0,"rgba(253,246,216,1)");
+    g.addColorStop(0.55,"rgba(253,246,216,0.95)");
+    g.addColorStop(1,"rgba(253,246,216,0)");
+    x.fillStyle=g;x.beginPath();x.arc(64,64,60,0,7);x.fill();
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,opacity:0}));
+    sp.scale.set(3,3,1);sp.position.set(-9,8,-12);
+    scene.add(sp);return sp;
+  })();
+
+  /* ================= island ================= */
+  var VOX=0.34,R=8;
+  var islandGroup=null,instanceMesh=null;
+  var waterfallSrc=new THREE.Vector3(1.8,0.6,0);
+  var blockCount=0;
+
+  var GRASS=[0x3e7c4f,0x4a8a55,0x35704a];
+  var DIRT=[0x7a5238,0x6e4a32];
+  var STONE=[0x8d8a80,0x7c7970,0x98958a];
+  var SNOW=[0xf2f0e8];
+  var TRUNK=0x5f4230;
+  var LEAF=[0x2f6640,0x3e7c4f,0x4a8a55];
+  var WATER=0x4d7f9e;
+  var SAND=0xd9c88f;
+
+  function buildIsland(seed){
+    var rand=mulberry32(seed);
+    var fbm=makeNoise2(seed^0x51ab);
+    var maxH=3.2+rand()*2.2;
+    var vox=[]; /* {x,y,z,c} */
+    var tops=[];
+    var gx,gz,y;
+
+    for(gx=-R;gx<=R;gx++)for(gz=-R;gz<=R;gz++){
+      var d=Math.sqrt(gx*gx+gz*gz)/R;
+      if(d>1)continue;
+      var edge=1-d*d;
+      var h=fbm(gx*0.22+9,gz*0.22,4)*0.5+0.5;
+      h*=edge*1.15;
+      var height=1+Math.floor(h*maxH);
+      for(y=0;y<height;y++){
+        var c;
+        if(y===height-1){
+          var high=height>maxH*0.78;
+          var moist=fbm(gx*0.5,gz*0.5+31,3);
+          c=high?SNOW[0]:(d>0.86?SAND:GRASS[Math.floor(moist*3)%3]);
+        }else if(y>=height-3)c=DIRT[(gx+gz+y)&1];
+        else c=STONE[(gx*3+gz+y)%3];
+        vox.push({x:gx,y:y,z:gz,c:c});
+      }
+      tops.push({x:gx,z:gz,top:height-1,d:d,c:vox[vox.length-1].c});
+      /* underside taper: dense core, jagged hanging rock */
+      var depth=Math.floor((1-d)*8+rand()*1.2);
+      for(y=1;y<=depth;y++){
+        var keepP=1-Math.pow(y/(depth+1),1.6)*0.92;
+        if(rand()<keepP){
+          vox.push({x:gx,y:-y,z:gz,c:STONE[Math.floor(rand()*3)]});
+        }
+      }
+    }
+
+    /* trees on grassy tops */
+    for(var i=0;i<tops.length;i++){
+      var t=tops[i];
+      if(t.d<0.72&&t.c!==SNOW[0]&&t.c!==SAND&&rand()<0.07){
+        var lc=LEAF[Math.floor(rand()*3)];
+        vox.push({x:t.x,y:t.top+1,z:t.z,c:TRUNK});
+        vox.push({x:t.x,y:t.top+2,z:t.z,c:lc});
+        vox.push({x:t.x+1,y:t.top+2,z:t.z,c:lc});
+        vox.push({x:t.x-1,y:t.top+2,z:t.z,c:lc});
+        vox.push({x:t.x,y:t.top+2,z:t.z+1,c:lc});
+        vox.push({x:t.x,y:t.top+2,z:t.z-1,c:lc});
+        if(rand()<0.6)vox.push({x:t.x,y:t.top+3,z:t.z,c:LEAF[Math.floor(rand()*3)]});
+      }
+    }
+
+    /* waterfall: carve a channel at a random edge, mark water blocks */
+    var wAng=rand()*Math.PI*2;
+    var wx=Math.round(Math.cos(wAng)*(R-2)),wz=Math.round(Math.sin(wAng)*(R-2));
+    var best=null,bd=1e9;
+    for(var k=0;k<tops.length;k++){
+      var dd=(tops[k].x-wx)*(tops[k].x-wx)+(tops[k].z-wz)*(tops[k].z-wz);
+      if(dd<bd){bd=dd;best=tops[k];}
+    }
+    if(best){
+      best.c=WATER;
+      for(var m=0;m<vox.length;m++){
+        if(vox[m].x===best.x&&vox[m].z===best.z&&vox[m].y===best.top)vox[m].c=WATER;
+      }
+      var out=new THREE.Vector3(best.x,0,best.z).normalize();
+      waterfallSrc.set((best.x+out.x*0.55)*VOX,(best.top+0.5)*VOX,(best.z+out.z*0.55)*VOX);
+      waterfallSrc.userData={dir:out,y0:(best.top+0.5)*VOX};
+    }
+
+    /* build instanced mesh */
+    if(islandGroup){scene.remove(islandGroup);
+      islandGroup.traverse(function(o){if(o.geometry)o.geometry.dispose();if(o.material)o.material.dispose();});}
+    islandGroup=new THREE.Group();
+    var geo=new THREE.BoxGeometry(VOX*0.96,VOX*0.96,VOX*0.96);
+    var mat=new THREE.MeshLambertMaterial({color:0xffffff});
+    instanceMesh=new THREE.InstancedMesh(geo,mat,vox.length);
+    var M=new THREE.Matrix4(),C=new THREE.Color();
+    for(var q=0;q<vox.length;q++){
+      M.makeTranslation(vox[q].x*VOX,vox[q].y*VOX,vox[q].z*VOX);
+      instanceMesh.setMatrixAt(q,M);
+      C.setHex(vox[q].c);
+      instanceMesh.setColorAt(q,C);
+    }
+    instanceMesh.instanceMatrix.needsUpdate=true;
+    if(instanceMesh.instanceColor)instanceMesh.instanceColor.needsUpdate=true;
+    islandGroup.add(instanceMesh);
+    scene.add(islandGroup);
+    blockCount=vox.length;
+    document.getElementById("capBlocks").textContent=blockCount;
+  }
+
+  /* ================= waterfall particles ================= */
+  var WF_N=240;
+  var wfGeo=new THREE.BufferGeometry();
+  var wfPos=new Float32Array(WF_N*3);
+  wfGeo.setAttribute("position",new THREE.BufferAttribute(wfPos,3));
+  var wfMat=new THREE.PointsMaterial({size:0.075,color:0xbfe0ea,transparent:true,opacity:0.9,depthWrite:false});
+  var wf=new THREE.Points(wfGeo,wfMat);
+  scene.add(wf);
+  var wfVel=new Float32Array(WF_N*3),wfLife=new Float32Array(WF_N);
+  var wfRand=mulberry32(999);
+
+  function wfSpawn(i){
+    var d=waterfallSrc.userData&&waterfallSrc.userData.dir?waterfallSrc.userData.dir:{x:1,z:0};
+    wfPos[i*3]=waterfallSrc.x+(wfRand()-0.5)*0.14;
+    wfPos[i*3+1]=waterfallSrc.y;
+    wfPos[i*3+2]=waterfallSrc.z+(wfRand()-0.5)*0.14;
+    wfVel[i*3]=d.x*(0.25+wfRand()*0.35);
+    wfVel[i*3+1]=-0.15-wfRand()*0.3;
+    wfVel[i*3+2]=d.z*(0.25+wfRand()*0.35);
+    wfLife[i]=1.4+wfRand()*0.8;
+  }
+  for(var wi=0;wi<WF_N;wi++){wfSpawn(wi);wfLife[wi]*=wfRand();}
+
+  /* mist sprite at waterfall base */
+  var mist=(function(){
+    var c=document.createElement("canvas");c.width=c.height=128;
+    var x=c.getContext("2d");
+    var g=x.createRadialGradient(64,64,4,64,64,60);
+    g.addColorStop(0,"rgba(230,242,246,0.8)");
+    g.addColorStop(1,"rgba(230,242,246,0)");
+    x.fillStyle=g;x.fillRect(0,0,128,128);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,opacity:0.55,depthWrite:false}));
+    sp.scale.set(1.6,1.1,1);
+    scene.add(sp);return sp;
+  })();
+
+  /* ================= voxel clouds ================= */
+  var clouds=[];
+  (function(){
+    var rand=mulberry32(4242);
+    var geo=new THREE.BoxGeometry(1,1,1);
+    for(var i=0;i<5;i++){
+      var g=new THREE.Group();
+      var mat=new THREE.MeshLambertMaterial({color:0xffffff,transparent:true,opacity:0.92});
+      var nBox=5+Math.floor(rand()*5);
+      for(var j=0;j<nBox;j++){
+        var m=new THREE.Mesh(geo,mat);
+        var s=0.5+rand()*0.9;
+        m.scale.set(s,s*0.55,s*(0.7+rand()*0.5));
+        m.position.set((rand()-0.5)*1.6,(rand()-0.5)*0.3,(rand()-0.5)*1.1);
+        g.add(m);
+      }
+      var a=rand()*Math.PI*2;
+      g.userData={ang:a,rad:4.2+rand()*2.6,y:-1.6-rand()*1.6,spd:0.03+rand()*0.05,mat:mat};
+      g.position.set(Math.cos(a)*g.userData.rad,g.userData.y,Math.sin(a)*g.userData.rad);
+      scene.add(g);
+      clouds.push(g);
+    }
+  })();
+
+  /* ================= day / night ================= */
+  var dayT=1,dayTarget=1;
+  var SUN_DAY=new THREE.Color(0xfff2d8),SUN_NIGHT=new THREE.Color(0x8fa3d6);
+  var HEM_DAY=new THREE.Color(0xfff6e6),HEM_NIGHT=new THREE.Color(0x33406b);
+  var GND_DAY=new THREE.Color(0x8a97a8),GND_NIGHT=new THREE.Color(0x1a2036);
+  var CL_DAY=new THREE.Color(0xffffff),CL_NIGHT=new THREE.Color(0x8fa0c8);
+  var WF_DAY=new THREE.Color(0xbfe0ea),WF_NIGHT=new THREE.Color(0x9fd8ff);
+  var capCycle=document.getElementById("capCycle");
+  var cycleBtn=document.getElementById("cycle");
+
+  cycleBtn.addEventListener("click",function(){
+    dayTarget=dayTarget>0.5?0:1;
+    document.body.classList.toggle("night",dayTarget<0.5);
+    capCycle.textContent=dayTarget<0.5?"NIGHT":"DAY";
+    cycleBtn.textContent=dayTarget<0.5?"DAYBREAK / 破晓":"NIGHTFALL / 入夜";
+  });
+
+  function applyCycle(){
+    scene.background.copy(SKY_DAY).lerp(SKY_NIGHT,1-dayT);
+    scene.fog.color.copy(scene.background);
+    sun.color.copy(SUN_DAY).lerp(SUN_NIGHT,1-dayT);
+    sun.intensity=0.25+dayT*0.9;
+    amb.color.copy(HEM_DAY).lerp(HEM_NIGHT,1-dayT);
+    amb.groundColor.copy(GND_DAY).lerp(GND_NIGHT,1-dayT);
+    amb.intensity=0.35+dayT*0.5;
+    starMat.opacity=(1-dayT)*0.95;
+    moon.material.opacity=(1-dayT)*0.95;
+    wfMat.color.copy(WF_DAY).lerp(WF_NIGHT,1-dayT);
+    for(var i=0;i<clouds.length;i++){
+      clouds[i].userData.mat.color.copy(CL_DAY).lerp(CL_NIGHT,1-dayT);
+    }
+  }
+  applyCycle();
+
+  /* ================= UI ================= */
+  var SEED=(Math.random()*0xffff)|0;
+  var seedVal=document.getElementById("seedVal");
+  var capSeed=document.getElementById("capSeed");
+  function fmt(s){return "#"+("0000"+s.toString(16).toUpperCase()).slice(-4);}
+
+  function regenerate(newSeed){
+    if(newSeed)SEED=(Math.random()*0xffff)|0;
+    buildIsland(SEED);
+    seedVal.textContent=fmt(SEED);
+    capSeed.textContent=fmt(SEED);
+    for(var i=0;i<WF_N;i++)wfSpawn(i);
+  }
+  document.getElementById("regen").addEventListener("click",function(){regenerate(true);});
+  document.getElementById("save").addEventListener("click",function(){
+    renderer.render(scene,camera);
+    var a=document.createElement("a");
+    a.download="voxel-island-"+fmt(SEED)+".png";
+    a.href=renderer.domElement.toDataURL("image/png");
+    a.click();
+  });
+
+  /* drag orbit */
+  var dragging=false,px=0,py=0,autoSpin=true;
+  stage.addEventListener("pointerdown",function(e){
+    dragging=true;autoSpin=false;px=e.clientX;py=e.clientY;
+    stage.classList.add("dragging");
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener("pointermove",function(e){
+    if(!dragging)return;
+    azim-=(e.clientX-px)*0.005;
+    elev=Math.min(1.15,Math.max(0.12,elev+(e.clientY-py)*0.004));
+    px=e.clientX;py=e.clientY;
+  });
+  stage.addEventListener("pointerup",function(){
+    dragging=false;
+    stage.classList.remove("dragging");
+    setTimeout(function(){autoSpin=true;},2600);
+  });
+
+  /* ================= resize + loop ================= */
+  function resize(){
+    var w=window.innerWidth,h=window.innerHeight;
+    renderer.setSize(w,h);
+    camera.aspect=w/h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize",resize);
+  resize();
+
+  regenerate(false);
+
+  var last=performance.now();
+  function loop(now){
+    var dt=Math.min(0.05,(now-last)/1000);
+    last=now;
+
+    if(autoSpin)azim+=dt*0.07;
+    placeCamera();
+
+    dayT+=(dayTarget-dayT)*Math.min(1,dt*2.2);
+    applyCycle();
+
+    var bobY=islandGroup?islandGroup.position.y:0;
+    if(islandGroup){
+      islandGroup.position.y=Math.sin(now*0.0006)*0.12;
+      bobY=islandGroup.position.y;
+      wf.position.y=bobY;
+    }
+
+    /* waterfall */
+    for(var i=0;i<WF_N;i++){
+      wfLife[i]-=dt;
+      if(wfLife[i]<=0||wfPos[i*3+1]<-3.4){wfSpawn(i);continue;}
+      wfVel[i*3+1]-=dt*2.6;
+      wfPos[i*3]+=wfVel[i*3]*dt;
+      wfPos[i*3+1]+=wfVel[i*3+1]*dt;
+      wfPos[i*3+2]+=wfVel[i*3+2]*dt;
+    }
+    wfGeo.attributes.position.needsUpdate=true;
+    mist.position.set(waterfallSrc.x+((waterfallSrc.userData&&waterfallSrc.userData.dir)?waterfallSrc.userData.dir.x:1)*0.35,
+                      -2.6+bobY+Math.sin(now*0.002)*0.05,
+                      waterfallSrc.z+((waterfallSrc.userData&&waterfallSrc.userData.dir)?waterfallSrc.userData.dir.z:0)*0.35);
+    mist.material.opacity=0.35+0.2*Math.sin(now*0.003);
+
+    /* clouds drift */
+    for(var c=0;c<clouds.length;c++){
+      var g=clouds[c];
+      g.userData.ang+=dt*g.userData.spd;
+      g.position.x=Math.cos(g.userData.ang)*g.userData.rad;
+      g.position.z=Math.sin(g.userData.ang)*g.userData.rad;
+      g.position.y=g.userData.y+Math.sin(now*0.0005+c*2)*0.15;
+    }
+
+    renderer.render(scene,camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

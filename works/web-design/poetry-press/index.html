@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拾字诗局 LOOSE TYPE — 独立诗歌出版社</title>
+<style>
+  :root{
+    --paper:#F5F1E8;
+    --paper2:#EDE7D8;
+    --ink:#1A1A1A;
+    --cinn:#B33A2B;
+    --serif:"Songti SC","Didot","Bodoni MT",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--serif);overflow-x:hidden;}
+  ::selection{background:var(--cinn);color:var(--paper);}
+
+  #fibers{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55;}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:center;
+    padding:18px 4vw;pointer-events:none;}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.14em;line-height:1.7;}
+  .sig .no{color:var(--cinn);}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-align:right;line-height:1.9;color:rgba(26,26,26,.6);}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;
+    position:relative;z-index:2;padding:0 4vw;}
+  .hero .over{font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:var(--cinn);margin-bottom:4vh;}
+  h1{font-size:clamp(72px,15vw,230px);line-height:1;font-weight:900;position:relative;letter-spacing:.02em;}
+  h1 .lp{position:relative;display:inline-block;color:var(--ink);}
+  h1 .lp::before,h1 .lp::after{content:attr(data-c);position:absolute;left:0;top:0;width:100%;}
+  h1 .lp::before{color:var(--cinn);transform:translate(3px,3px);z-index:-1;opacity:.85;}
+  h1 .lp::after{color:rgba(26,26,26,.28);transform:translate(-2px,-2px);z-index:-2;}
+  .hero .en{font-family:var(--mono);font-size:clamp(11px,1.2vw,14px);letter-spacing:.7em;margin-top:3.5vh;color:rgba(26,26,26,.65);}
+  .hero .sub{font-style:italic;font-size:clamp(16px,2vw,24px);margin-top:2.5vh;color:rgba(26,26,26,.7);}
+  .hero .est{position:absolute;bottom:5vh;font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(26,26,26,.45);}
+
+  /* ---------- press room ---------- */
+  .pressroom{position:relative;z-index:2;padding:6vh 4vw 12vh;max-width:1340px;margin:0 auto;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5vh;flex-wrap:wrap;gap:10px;
+    border-bottom:2px solid var(--ink);padding-bottom:16px;}
+  .sec-head h2{font-size:clamp(30px,4vw,56px);font-weight:900;}
+  .sec-head h2 em{color:var(--cinn);font-style:italic;font-weight:400;}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:rgba(26,26,26,.5);}
+
+  .press-grid{display:grid;grid-template-columns:1fr 300px;gap:4vw;align-items:start;}
+  @media(max-width:900px){.press-grid{grid-template-columns:1fr;}}
+
+  /* sheet */
+  .sheet-wrap{position:relative;}
+  #sheet{position:relative;background:#FBF8F1;aspect-ratio:3/4;max-height:76vh;width:100%;
+    box-shadow:0 1px 0 #fff inset,0 30px 60px rgba(26,26,26,.18),0 4px 12px rgba(26,26,26,.12);
+    border:1px solid rgba(26,26,26,.12);overflow:hidden;outline:none;}
+  #sheet::after{content:"";position:absolute;inset:10px;border:1px solid rgba(179,58,43,.3);pointer-events:none;}
+  #sheet .stamp{position:absolute;white-space:pre;font-weight:900;color:var(--ink);
+    text-shadow:1px 1px 0 rgba(179,58,43,.35);user-select:none;line-height:1;}
+  #sheet .caret{position:absolute;width:2px;background:var(--cinn);animation:blink 1s steps(1) infinite;pointer-events:none;}
+  @keyframes blink{50%{opacity:0}}
+  #sheet .hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;
+    font-style:italic;font-size:16px;color:rgba(26,26,26,.35);line-height:2.2;pointer-events:none;padding:0 10%;}
+  #platen{position:absolute;left:-4%;right:-4%;height:60px;top:-80px;background:var(--ink);
+    box-shadow:0 10px 24px rgba(26,26,26,.35);pointer-events:none;z-index:5;opacity:0;}
+  #platen::after{content:"拾字诗局 · LOOSE TYPE PRESS";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:var(--paper);}
+
+  /* press controls */
+  .controls{display:flex;flex-direction:column;gap:26px;position:sticky;top:12vh;}
+  .inkmeter .il{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(26,26,26,.55);margin-bottom:12px;}
+  .inkbar{height:10px;border:1.5px solid var(--ink);position:relative;background:var(--paper);}
+  .inkfill{position:absolute;inset:0;background:var(--ink);transform-origin:left;transition:transform .5s var(--ease);}
+  .inkbar .pct{position:absolute;right:-52px;top:-4px;font-family:var(--mono);font-size:10px;width:46px;}
+  .pbtn{border:2px solid var(--ink);background:var(--paper);color:var(--ink);padding:16px 20px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.24em;text-align:left;position:relative;overflow:hidden;transition:color .3s;}
+  .pbtn::before{content:"";position:absolute;inset:0;background:var(--ink);transform:scaleX(0);transform-origin:left;transition:transform .35s var(--ease);z-index:0;}
+  .pbtn:hover::before{transform:scaleX(1);}
+  .pbtn:hover{color:var(--paper);}
+  .pbtn span{position:relative;z-index:1;}
+  .pbtn.red{border-color:var(--cinn);color:var(--cinn);}
+  .pbtn.red::before{background:var(--cinn);}
+  .pbtn.red:hover{color:var(--paper);}
+  .pnote{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:2.1;color:rgba(26,26,26,.5);}
+  .toggle{display:flex;align-items:center;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(26,26,26,.6);}
+  .tswitch{width:44px;height:24px;border:2px solid var(--ink);position:relative;background:var(--paper);}
+  .tswitch .tknob{position:absolute;top:2px;left:2px;width:16px;height:16px;background:var(--ink);transition:left .3s var(--ease),background .3s;}
+  .tswitch.on .tknob{left:22px;background:var(--cinn);}
+
+  /* ---------- shelf ---------- */
+  .shelf-sec{position:relative;z-index:2;padding:12vh 4vw;max-width:1340px;margin:0 auto;}
+  .shelf{display:flex;align-items:flex-end;gap:10px;border-bottom:10px solid var(--ink);padding:0 2vw;min-height:340px;}
+  .book{width:64px;position:relative;transition:transform .5s var(--ease);transform-origin:bottom;}
+  .book:hover{transform:translateY(-56px) rotate(-4deg);}
+  .book .spine{width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+    writing-mode:vertical-rl;font-size:13px;letter-spacing:.2em;color:var(--paper);padding:16px 0;position:relative;}
+  .book .spine .by{position:absolute;bottom:14px;font-family:var(--mono);font-size:8px;letter-spacing:.15em;opacity:.7;}
+  .book .pop{position:absolute;left:50%;bottom:calc(100% + 18px);transform:translateX(-50%) translateY(8px);width:230px;
+    background:var(--ink);color:var(--paper);padding:18px 20px;opacity:0;pointer-events:none;transition:.35s var(--ease);z-index:10;}
+  .book:hover .pop{opacity:1;transform:translateX(-50%) translateY(0);}
+  .pop h4{font-size:17px;margin-bottom:6px;}
+  .pop .pm{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--cinn);margin-bottom:10px;}
+  .pop p{font-size:12px;line-height:1.9;font-style:italic;color:rgba(245,241,232,.8);}
+
+  footer{position:relative;z-index:2;background:var(--ink);color:var(--paper);padding:10vh 4vw 6vh;}
+  footer .fbig{font-size:clamp(34px,7vw,110px);font-weight:900;line-height:1.1;margin-bottom:5vh;}
+  footer .fbig em{color:var(--cinn);font-style:italic;font-weight:400;}
+  footer .fgrid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;line-height:2.2;color:rgba(245,241,232,.55);}
+
+  .toast{position:fixed;left:50%;bottom:6vh;transform:translate(-50%,20px);background:var(--ink);color:var(--paper);
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;padding:14px 26px;z-index:90;opacity:0;
+    transition:opacity .4s var(--ease),transform .4s var(--ease);pointer-events:none;}
+  .toast.on{opacity:1;transform:translate(-50%,0);}
+
+  @media(max-width:720px){
+    h1{font-size:17vw;}
+    .hero .en{letter-spacing:.4em;font-size:10px;}
+    .hright{display:none;}
+    .sig{font-size:9px;letter-spacing:.08em;}
+    .controls{position:static;}
+    #sheet{max-height:none;}
+  }
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+  .reveal.in{opacity:1;transform:none;}
+</style>
+</head>
+<body>
+
+<canvas id="fibers"></canvas>
+
+<header>
+  <div class="sig"><span class="no">№ 05</span> · <b>拾字诗局 LOOSE TYPE</b><br>WEB DESIGN / POETRY PRESS</div>
+  <div class="hright">活版印刷 · 手工装帧<br>每年只出四种诗集</div>
+</header>
+
+<div class="hero">
+  <div class="over">INDEPENDENT POETRY PRESS · 独立诗歌出版社</div>
+  <h1><span class="lp" data-c="拾">拾</span><span class="lp" data-c="字">字</span><span class="lp" data-c="诗">诗</span><span class="lp" data-c="局">局</span></h1>
+  <div class="en">L O O S E &nbsp; T Y P E</div>
+  <div class="sub">把散落的字，一个一个捡回来，排成诗。</div>
+  <div class="est">EST. 2019 — 一台 1962 年的海德堡圆盘印刷机</div>
+</div>
+
+<div class="pressroom">
+  <div class="sec-head reveal">
+    <h2>印刷间 <em>Press Room</em></h2>
+    <span class="idx">01 / 点击纸面，直接打字 — 墨会用完</span>
+  </div>
+  <div class="press-grid reveal">
+    <div class="sheet-wrap">
+      <div id="sheet" tabindex="0">
+        <div id="platen"></div>
+        <div class="hint" id="sheetHint">点这里，然后直接打字。<br>每一个字都会像活版一样压上去——<br>带一点歪，带一点墨的不均匀。</div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="inkmeter">
+        <div class="il">墨量 INK LEVEL</div>
+        <div class="inkbar"><div class="inkfill" id="inkFill"></div><span class="pct" id="inkPct">100%</span></div>
+      </div>
+      <button class="pbtn red" id="pullProof"><span>压一张样张 PULL A PROOF →</span></button>
+      <button class="pbtn" id="reink"><span>重新上墨 RE-INK</span></button>
+      <button class="pbtn" id="clearSheet"><span>换一张纸 FRESH SHEET</span></button>
+      <button class="pbtn" id="download"><span>下载样张 PNG ↓</span></button>
+      <div class="toggle">
+        <button class="tswitch" id="autoToggle" aria-label="auto"></button>
+        <span>机器代笔 AUTO TYPE</span>
+      </div>
+      <div class="pnote">样张数据只存在这一页里。<br>退格可以改正，活字印刷不能——<br>所以写慢一点。</div>
+    </div>
+  </div>
+</div>
+
+<div class="shelf-sec">
+  <div class="sec-head reveal">
+    <h2>已出版 <em>Catalogue</em></h2>
+    <span class="idx">02 / 书脊 — 悬停抽出</span>
+  </div>
+  <div class="shelf reveal" id="shelf"></div>
+</div>
+
+<footer>
+  <div class="fbig">字是慢的，<br><em>纸记得一切。</em></div>
+  <div class="fgrid">
+    <div>拾字诗局 LOOSE TYPE<br>城南旧印刷厂 · 三号车间<br>press@loosetype.example</div>
+    <div>投稿<br>只收纸质手稿 · 邮编 100000<br>三个月内必有回音</div>
+    <div>№ 05 — WEB DESIGN<br>DESIGNED &amp; CODED BY HAND<br>© 2026 LOOSE TYPE</div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= paper fibers ================= */
+(function(){
+  var c=document.getElementById('fibers'),x=c.getContext('2d'),W,H;
+  function rs(){W=c.width=innerWidth;H=c.height=innerHeight;draw();}
+  function draw(){
+    x.clearRect(0,0,W,H);
+    for(var i=0;i<Math.floor(W*H/9000);i++){
+      var px=Math.random()*W,py=Math.random()*H,l=Math.random()*10+3,a=Math.random()*6.28;
+      x.strokeStyle='rgba(26,26,26,'+(Math.random()*.045+.01)+')';
+      x.lineWidth=Math.random()*.8+.3;
+      x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke();
+    }
+    for(var j=0;j<Math.floor(W*H/60000);j++){
+      x.fillStyle='rgba(179,58,43,'+(Math.random()*.05+.02)+')';
+      x.beginPath();x.arc(Math.random()*W,Math.random()*H,Math.random()*1.4+.4,0,6.28);x.fill();
+    }
+  }
+  rs();addEventListener('resize',rs);
+})();
+
+/* ================= letterpress sheet ================= */
+var sheet=document.getElementById('sheet'),hint=document.getElementById('sheetHint');
+var stamps=[];          /* {ch,x,y,rot,ink,size,cinn} */
+var ink=100;
+var curX=0.14,curY=0.16,lineH=0.075,charW=0.052,sizeRem=34;
+var caret=document.createElement('div');caret.className='caret';sheet.appendChild(caret);
+function layoutCaret(){
+  caret.style.left=(curX*100)+'%';caret.style.top=(curY*100)+'%';
+  caret.style.height=(sizeRem*1.15)+'px';
+}
+layoutCaret();
+function updateInk(){
+  ink=Math.max(0,ink);
+  document.getElementById('inkFill').style.transform='scaleX('+(ink/100)+')';
+  document.getElementById('inkPct').textContent=Math.round(ink)+'%';
+}
+updateInk();
+function hideHint(){hint.style.display='none';}
+function stampChar(ch){
+  if(ink<=0){note('墨用完了 — 先重新上墨');return false;}
+  hideHint();
+  var inkDensity=Math.min(1,ink/70);            /* drier ink = lighter print */
+  var s=document.createElement('div');s.className='stamp';
+  var rot=(Math.random()-.5)*3.2,jx=(Math.random()-.5)*3,jy=(Math.random()-.5)*3;
+  var size=sizeRem*(0.94+Math.random()*.12);
+  var st={ch:ch,x:curX+jx/300,y:curY+jy/300,rot:rot,ink:inkDensity*(0.72+Math.random()*.28),size:size,
+          cinn:Math.random()<0.06};
+  stamps.push(st);
+  s.textContent=ch;
+  s.style.left=(st.x*100)+'%';s.style.top=(st.y*100)+'%';
+  s.style.fontSize=size+'px';
+  s.style.opacity=st.ink;
+  s.style.transform='rotate('+rot+'deg) scale(1.6)';
+  s.style.color=st.cinn?'var(--cinn)':'var(--ink)';
+  sheet.insertBefore(s,caret);
+  requestAnimationFrame(function(){s.style.transition='transform .18s cubic-bezier(.34,1.56,.64,1)';
+    s.style.transform='rotate('+rot+'deg) scale(1)';});
+  /* advance */
+  var wRatio=/[\x00-\xff]/.test(ch)?0.55:1;   /* ascii narrower */
+  curX+=charW*wRatio;
+  if(curX>0.86)newLine();
+  layoutCaret();
+  ink-=0.28;updateInk();
+  return true;
+}
+function newLine(){curX=0.14;curY+=lineH;
+  if(curY>0.86){note('一张纸写满了 — 换一张纸吧');curY=0.16;clearStamps();}
+  layoutCaret();
+}
+function backspace(){
+  var st=stamps.pop();if(!st)return;
+  var els=sheet.querySelectorAll('.stamp');var last=els[els.length-1];if(last)last.remove();
+  curX=st.x;curY=st.y;layoutCaret();
+  ink=Math.min(100,ink+0.28);updateInk();
+}
+function clearStamps(){
+  stamps=[];sheet.querySelectorAll('.stamp').forEach(function(e){e.remove();});
+  curX=0.14;curY=0.16;layoutCaret();
+}
+sheet.addEventListener('keydown',function(e){
+  if(e.key==='Backspace'){e.preventDefault();backspace();}
+  else if(e.key==='Enter'){e.preventDefault();newLine();}
+  else if(e.key.length===1){e.preventDefault();stampChar(e.key);}
+});
+sheet.addEventListener('click',function(){sheet.focus();});
+
+/* ================= poems & proof press ================= */
+var POEMS=[
+  ['雨停在屋檐上','像一封没寄出的信','','我们都没有拆','——《檐下集》'],
+  ['夜里修表的人','把时间拆开','又一粒一粒装回去','','——《子午线》'],
+  ['海退了一寸','沙滩就多出一寸','可以写信的地方','','——《潮间带》'],
+  ['面包出炉的时候','整个巷子都醒了','除了那只猫','','——《晨酵》'],
+  ['我把话说得很轻','怕惊动了','字里住着的那些人','','——《拾字》'],
+  ['雪落在旧印刷机上','铅字凉了一夜','早晨排出一行白','','——《雪样张》'],
+  ['你走之后','茶杯空着','空着也是一种满','','——《空盏》']
+];
+var toast=document.getElementById('toast');
+function note(t){toast.textContent=t;toast.classList.add('on');setTimeout(function(){toast.classList.remove('on');},2400);}
+var pressing=false;
+document.getElementById('pullProof').addEventListener('click',function(){
+  if(pressing)return;pressing=true;
+  clearStamps();hideHint();
+  var poem=POEMS[Math.floor(Math.random()*POEMS.length)];
+  var platen=document.getElementById('platen');
+  var i=0,j=0;
+  newLine(); /* top margin */
+  function pressLine(done){
+    platen.style.transition='none';platen.style.opacity='1';
+    platen.style.transform='translateY(0)';
+    requestAnimationFrame(function(){
+      platen.style.transition='transform .5s cubic-bezier(.22,1,.36,1),opacity .5s';
+      platen.style.transform='translateY('+(sheet.offsetHeight*0.5)+'px)';platen.style.opacity='0';
+    });
+    setTimeout(done,420);
+  }
+  function step(){
+    if(i>=poem.length){pressing=false;return;}
+    var line=poem[i];
+    if(j<line.length){
+      var ch=line[j];
+      if(ink<=0){ink=100;updateInk();}
+      var wRatio=/[\x00-\xff]/.test(ch)?0.55:1;
+      if(curX+charW*wRatio>0.86)newLine();
+      stampChar(ch);j++;
+      setTimeout(step,60+Math.random()*70);
+    }else{
+      i++;j=0;
+      pressLine(function(){newLine();step();});
+    }
+  }
+  step();
+});
+document.getElementById('reink').addEventListener('click',function(){
+  ink=100;updateInk();note('上墨完成 — 滚筒转了三圈');
+});
+document.getElementById('clearSheet').addEventListener('click',function(){
+  clearStamps();hint.style.display='flex';note('换上新纸 — 手工毛边 · 250g');
+});
+
+/* ================= auto type toggle ================= */
+var auto=false,autoTimer=null;
+document.getElementById('autoToggle').addEventListener('click',function(){
+  auto=!auto;this.classList.toggle('on',auto);
+  if(auto){
+    sheet.focus();
+    var poem=POEMS[Math.floor(Math.random()*POEMS.length)].join('\n')+'\n\n';
+    var k=0;
+    autoTimer=setInterval(function(){
+      if(k>=poem.length){k=0;poem=POEMS[Math.floor(Math.random()*POEMS.length)].join('\n')+'\n\n';}
+      var ch=poem[k++];
+      if(ch==='\n')newLine();else{if(ink<=0){ink=100;updateInk();}stampChar(ch);}
+    },140);
+  }else clearInterval(autoTimer);
+});
+
+/* ================= download PNG ================= */
+document.getElementById('download').addEventListener('click',function(){
+  var w=900,h=1200,c=document.createElement('canvas');c.width=w;c.height=h;
+  var x=c.getContext('2d');
+  x.fillStyle='#FBF8F1';x.fillRect(0,0,w,h);
+  /* fibers */
+  for(var i=0;i<700;i++){
+    var px=Math.random()*w,py=Math.random()*h,l=Math.random()*10+3,a=Math.random()*6.28;
+    x.strokeStyle='rgba(26,26,26,'+(Math.random()*.05+.01)+')';x.lineWidth=.6;
+    x.beginPath();x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke();
+  }
+  x.strokeStyle='rgba(179,58,43,.4)';x.lineWidth=2;x.strokeRect(30,30,w-60,h-60);
+  stamps.forEach(function(st){
+    x.save();
+    x.translate(st.x*w+sizeRem/2,st.y*h+sizeRem/2);
+    x.rotate(st.rot*Math.PI/180);
+    x.globalAlpha=st.ink;
+    x.fillStyle=st.cinn?'#B33A2B':'#1A1A1A';
+    x.font='900 '+st.size*(w/sheet.offsetWidth)+'px "Songti SC", serif';
+    x.textAlign='center';x.textBaseline='middle';
+    x.shadowColor='rgba(179,58,43,.3)';x.shadowOffsetX=2;x.shadowOffsetY=2;
+    x.fillText(st.ch,0,0);
+    x.restore();
+  });
+  x.globalAlpha=1;x.fillStyle='rgba(26,26,26,.55)';
+  x.font='16px "SF Mono", monospace';x.textAlign='right';
+  x.fillText('LOOSE TYPE PRESS — 拾字诗局 · PROOF '+new Date().toISOString().slice(0,10),w-50,h-48);
+  var a=document.createElement('a');
+  a.download='loose-type-proof.png';a.href=c.toDataURL('image/png');a.click();
+  note('样张已存为 PNG — 共 '+stamps.length+' 枚活字');
+});
+
+/* ================= shelf ================= */
+var BOOKS=[
+  {t:'檐下集',a:'江拾雨',c:'#1A1A1A',h:250,m:'2021 · 初版八百册',p:'“雨停在屋檐上，像一封没寄出的信。”'},
+  {t:'潮间带',a:'陈沙',c:'#B33A2B',h:280,m:'2022 · 重印三次',p:'“海退了一寸，沙滩就多出一寸可以写信的地方。”'},
+  {t:'雪样张',a:'北原',c:'#4A5568',h:235,m:'2023 · 毛边本',p:'“铅字凉了一夜，早晨排出一行白。”'},
+  {t:'空盏',a:'苏晚',c:'#6B5B3E',h:265,m:'2024 · 手工线装',p:'“茶杯空着。空着也是一种满。”'},
+  {t:'子午线',a:'顾一辰',c:'#2E3B2E',h:245,m:'2025 · 编号版',p:'“把时间拆开，又一粒一粒装回去。”'},
+  {t:'晨酵',a:'陈麦',c:'#8C4A2B',h:225,m:'2026 · 新出',p:'“面包出炉的时候，整个巷子都醒了。”'}
+];
+(function(){
+  var shelf=document.getElementById('shelf');
+  shelf.innerHTML=BOOKS.map(function(b){
+    return '<div class="book" style="height:'+b.h+'px">'+
+      '<div class="spine" style="background:'+b.c+'">'+b.t+'<span class="by">'+b.a+'</span></div>'+
+      '<div class="pop"><h4>《'+b.t+'》</h4><div class="pm">'+b.a+' · '+b.m+'</div><p>'+b.p+'</p></div></div>';
+  }).join('');
+})();
+
+/* ================= reveal ================= */
+(function(){
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+  },{threshold:.12});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

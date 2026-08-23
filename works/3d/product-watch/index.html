@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meridian Atelier — 腕表产品配置器 No.03</title>
+<style>
+  :root{
+    --bg:#f2efe8;
+    --panel:#faf8f2;
+    --line:#d8d2c2;
+    --ink:#1c1a17;
+    --dim:#8a8272;
+    --gold:#c8a04e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);}
+  body{font-family:"SF Mono",Menlo,"Courier New",monospace;color:var(--ink);
+       -webkit-font-smoothing:antialiased;}
+  #stage{position:fixed;inset:0;cursor:grab;}
+  #stage:active{cursor:grabbing;}
+  #stage canvas{display:block;width:100%;height:100%;}
+
+  .plate{position:fixed;top:26px;left:30px;z-index:10;pointer-events:none;}
+  .plate .no{font-size:10px;letter-spacing:.4em;color:var(--gold);}
+  .plate h1{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+            font-size:26px;font-weight:400;letter-spacing:.14em;margin-top:7px;}
+  .plate .sub{font-size:10px;letter-spacing:.3em;color:var(--dim);margin-top:6px;}
+  .plate .rule{width:64px;height:1px;background:linear-gradient(90deg,var(--gold),transparent);margin-top:11px;}
+
+  .readout{position:fixed;top:28px;right:30px;z-index:10;text-align:right;pointer-events:none;
+           font-size:10px;letter-spacing:.24em;color:var(--dim);line-height:2.1;}
+  .readout b{color:var(--ink);font-weight:400;}
+  .readout .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--gold);
+                margin-right:8px;vertical-align:1px;animation:pulse 2.4s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .brand{position:fixed;left:30px;bottom:26px;z-index:10;pointer-events:none;
+         font-size:10px;letter-spacing:.26em;color:var(--dim);line-height:2.2;}
+  .brand em{font-style:normal;color:var(--ink);}
+  .brand .price{font-family:Didot,"Bodoni MT",Georgia,serif;font-size:24px;
+                letter-spacing:.06em;color:var(--ink);margin:4px 0 2px;}
+
+  /* ---------- config panel ---------- */
+  .panel{position:fixed;right:30px;top:50%;transform:translateY(-50%);z-index:10;
+         width:236px;background:linear-gradient(180deg,rgba(250,248,242,.92),rgba(242,239,232,.95));
+         border:1px solid var(--line);backdrop-filter:blur(8px);
+         box-shadow:0 24px 60px rgba(28,26,23,.12);padding:20px 20px 16px;}
+  .panel::before,.panel::after{content:"";position:absolute;width:10px;height:10px;
+         border:1px solid var(--gold);}
+  .panel::before{top:-4px;left:-4px;border-right:none;border-bottom:none;}
+  .panel::after{bottom:-4px;right:-4px;border-left:none;border-top:none;}
+  .panel h2{font-family:Didot,"Bodoni MT",Georgia,serif;font-size:15px;font-weight:400;
+            letter-spacing:.22em;margin-bottom:14px;}
+  .group{margin-bottom:16px;}
+  .group .label{font-size:9px;letter-spacing:.32em;color:var(--dim);margin-bottom:8px;
+                display:flex;justify-content:space-between;}
+  .group .label b{color:var(--gold);font-weight:400;letter-spacing:.1em;}
+  .opts{display:flex;gap:8px;flex-wrap:wrap;}
+  .sw{width:26px;height:26px;border-radius:50%;border:1px solid rgba(28,26,23,.2);
+      cursor:pointer;transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s;position:relative;}
+  .sw:hover{transform:scale(1.14);}
+  .sw.on{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--ink);}
+  .panel .note{font-size:9px;letter-spacing:.2em;color:var(--dim);line-height:1.9;
+               border-top:1px solid var(--line);padding-top:11px;}
+
+  .btnrow{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10;display:flex;gap:10px;}
+  .btn{appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+       font-family:inherit;font-size:10px;letter-spacing:.28em;padding:12px 18px 11px;cursor:pointer;
+       text-transform:uppercase;transition:background .2s cubic-bezier(.2,.7,.3,1),color .2s;}
+  .btn:hover{background:var(--ink);color:var(--bg);}
+  .btn.gold{border-color:var(--gold);color:var(--gold);}
+  .btn.gold:hover{background:var(--gold);color:#fff;}
+  .btn:active{transform:translateY(1px);}
+
+  @media (max-width:820px){
+    .panel{right:12px;left:12px;width:auto;top:auto;bottom:76px;transform:none;
+           display:flex;gap:14px;padding:12px 14px;}
+    .panel h2{display:none;}
+    .group{margin-bottom:0;flex:1;}
+    .panel .note{display:none;}
+    .brand{display:none;}
+    .btnrow{bottom:14px;}
+    .plate h1{font-size:20px;}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<div class="plate">
+  <div class="no">No.03 — THREE.JS / CONFIGURATOR</div>
+  <h1>Meridian Atelier</h1>
+  <div class="sub">腕表产品配置器 · M-01 自动机械</div>
+  <div class="rule"></div>
+</div>
+
+<div class="readout">
+  <span class="dot"></span>ATELIER LIVE<br>
+  REF <b id="rRef">M01-ST/MN/LT</b><br>
+  LOCAL TIME <b id="rTime">--:--:--</b>
+</div>
+
+<div class="brand">
+  <em>MERIDIAN &amp; CO.</em> — GENÈVE<br>
+  <div class="price" id="rPrice">¥12,800</div>
+  <div id="rDesc">精钢表壳 · 午夜表盘 · 棕革表带</div>
+</div>
+
+<div class="panel">
+  <h2>CONFIGURE</h2>
+  <div class="group">
+    <div class="label">表壳 CASE <b id="lCase">精钢</b></div>
+    <div class="opts" id="oCase"></div>
+  </div>
+  <div class="group">
+    <div class="label">表盘 DIAL <b id="lDial">午夜</b></div>
+    <div class="opts" id="oDial"></div>
+  </div>
+  <div class="group">
+    <div class="label">表带 STRAP <b id="lStrap">棕革</b></div>
+    <div class="opts" id="oStrap"></div>
+  </div>
+  <div class="note">CAL. M-01 自动上链机芯<br>21 石 · 42 小时动储 · 蓝宝石表镜</div>
+</div>
+
+<div class="btnrow">
+  <button class="btn gold" id="btnRandom">随机搭配</button>
+  <button class="btn" id="btnTurn">暂停旋转</button>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ================= options ================= */
+  var CASES = [
+    { name:"精钢", code:"ST", color:0xd8d9dc, rough:0.22, price:0 },
+    { name:"黄金", code:"GD", color:0xd9b268, rough:0.30, price:8600 },
+    { name:"黑瓷", code:"BK", color:0x1c1d20, rough:0.42, price:2200 }
+  ];
+  var DIALS = [
+    { name:"午夜", code:"MN", bg:"#12161c", marker:"#e8e4d8", hand:0xe8e4d8, price:0 },
+    { name:"象牙", code:"IV", bg:"#ece5d4", marker:"#26241f", hand:0x26241f, price:400 },
+    { name:"墨杉", code:"FR", bg:"#14332a", marker:"#d9d3c2", hand:0xd9d3c2, price:400 },
+    { name:"岩灰", code:"SL", bg:"#3a4048", marker:"#e8e4d8", hand:0xe8e4d8, price:400 }
+  ];
+  var STRAPS = [
+    { name:"棕革", code:"LT", color:0x7a5230, rough:0.95, metal:0.0, price:0 },
+    { name:"黑革", code:"LB", color:0x232019, rough:0.95, metal:0.0, price:0 },
+    { name:"钢链", code:"BR", color:0xc9cacc, rough:0.3,  metal:1.0, price:1800 }
+  ];
+  var BASE_PRICE = 12800;
+  var sel = { c:0, d:0, s:0 };
+
+  /* ================= renderer ================= */
+  var stage = document.getElementById("stage");
+  var renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  stage.appendChild(renderer.domElement);
+
+  var scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf2efe8);
+  var camera = new THREE.PerspectiveCamera(34, window.innerWidth/window.innerHeight, 0.1, 100);
+  var camDist = 8.6, camDistT = 8.6;
+
+  /* ================= procedural studio env-map ================= */
+  function envFace(bright){
+    var c = document.createElement("canvas"); c.width = c.height = 64;
+    var x = c.getContext("2d");
+    var g = x.createLinearGradient(0, 0, 0, 64);
+    g.addColorStop(0, bright ? "#ffffff" : "#e8e6e0");
+    g.addColorStop(0.5, "#b8b6b0");
+    g.addColorStop(1, "#3a3a3c");
+    x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+    /* softbox stripe */
+    x.fillStyle = "rgba(255,255,255,0.85)";
+    x.fillRect(24, 0, 12, 64);
+    return c;
+  }
+  var envTop = document.createElement("canvas"); envTop.width = envTop.height = 64;
+  var xt = envTop.getContext("2d");
+  xt.fillStyle = "#ffffff"; xt.fillRect(0, 0, 64, 64);
+  var envBot = document.createElement("canvas"); envBot.width = envBot.height = 64;
+  var xb = envBot.getContext("2d");
+  xb.fillStyle = "#2e2c28"; xb.fillRect(0, 0, 64, 64);
+  var cube = new THREE.CubeTexture([envFace(), envFace(), envTop, envBot, envFace(), envFace()]);
+  cube.needsUpdate = true;
+
+  /* ================= lights ================= */
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xcabfa8, 0.85));
+  var key = new THREE.DirectionalLight(0xffffff, 1.0);
+  key.position.set(4, 8, 5);
+  key.castShadow = true;
+  key.shadow.mapSize.set(2048, 2048);
+  key.shadow.camera.left = key.shadow.camera.bottom = -6;
+  key.shadow.camera.right = key.shadow.camera.top = 6;
+  key.shadow.radius = 4;
+  scene.add(key);
+  var fill = new THREE.DirectionalLight(0xfff2dd, 0.35);
+  fill.position.set(-5, 3, -4);
+  scene.add(fill);
+
+  /* ================= ground ================= */
+  var ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(40, 40),
+    new THREE.ShadowMaterial({ opacity: 0.16 })
+  );
+  ground.rotation.x = -Math.PI / 2;
+  ground.position.y = -2.05;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  /* ================= dial texture ================= */
+  var dialCanvas = document.createElement("canvas");
+  dialCanvas.width = dialCanvas.height = 512;
+  var dialTex = new THREE.CanvasTexture(dialCanvas);
+  dialTex.encoding = THREE.sRGBEncoding;
+  dialTex.anisotropy = 8;
+
+  function drawDial(){
+    var d = DIALS[sel.d];
+    var x = dialCanvas.getContext("2d");
+    var R = 256;
+    var g = x.createRadialGradient(R, R - 60, 40, R, R, R);
+    g.addColorStop(0, d.bg);
+    g.addColorStop(1, shade(d.bg, -18));
+    x.fillStyle = g; x.fillRect(0, 0, 512, 512);
+
+    x.strokeStyle = d.marker; x.fillStyle = d.marker;
+    /* minute track */
+    for (var i = 0; i < 60; i++){
+      var a = i * Math.PI / 30, five = (i % 5 === 0);
+      x.save(); x.translate(R, R); x.rotate(a);
+      x.lineWidth = five ? 5 : 2;
+      x.globalAlpha = five ? 0.95 : 0.45;
+      x.beginPath(); x.moveTo(0, -R + 18); x.lineTo(0, -R + (five ? 44 : 32)); x.stroke();
+      x.restore();
+    }
+    /* hour markers */
+    x.globalAlpha = 1;
+    for (var h = 0; h < 12; h++){
+      var ha = h * Math.PI / 6;
+      x.save(); x.translate(R, R); x.rotate(ha);
+      x.fillRect(-5, -R + 62, 10, 34);
+      x.restore();
+    }
+    /* brand text */
+    x.textAlign = "center"; x.fillStyle = d.marker;
+    x.font = "300 26px Didot, Georgia, serif";
+    x.fillText("MERIDIAN", R, R - 72);
+    x.font = "15px Menlo, monospace";
+    x.globalAlpha = 0.7;
+    x.fillText("AUTOMATIC · 21 JEWELS", R, R + 96);
+    x.globalAlpha = 1;
+    /* center dot */
+    x.beginPath(); x.arc(R, R, 9, 0, 6.2832); x.fill();
+    dialTex.needsUpdate = true;
+  }
+  function shade(hex, amt){
+    var n = parseInt(hex.slice(1), 16);
+    var r = Math.max(0, Math.min(255, (n >> 16) + amt));
+    var g = Math.max(0, Math.min(255, ((n >> 8) & 255) + amt));
+    var b = Math.max(0, Math.min(255, (n & 255) + amt));
+    return "#" + ((r << 16) | (g << 8) | b).toString(16).padStart(6, "0");
+  }
+
+  /* ================= materials ================= */
+  var caseMat = new THREE.MeshStandardMaterial({
+    color: CASES[0].color, metalness: 1.0, roughness: CASES[0].rough, envMap: cube, envMapIntensity: 1.1
+  });
+  var handMat = new THREE.MeshStandardMaterial({
+    color: DIALS[0].hand, metalness: 0.9, roughness: 0.3, envMap: cube, envMapIntensity: 0.8
+  });
+  var secMat = new THREE.MeshStandardMaterial({ color: 0xc8a04e, metalness: 0.8, roughness: 0.35 });
+  var strapMat = new THREE.MeshStandardMaterial({
+    color: STRAPS[0].color, metalness: STRAPS[0].metal, roughness: STRAPS[0].rough,
+    envMap: cube, envMapIntensity: 0.7
+  });
+  var dialMat = new THREE.MeshStandardMaterial({ map: dialTex, roughness: 0.55, metalness: 0.05 });
+  var glassMat = new THREE.MeshStandardMaterial({
+    color: 0xffffff, metalness: 0, roughness: 0.05, transparent: true, opacity: 0.10,
+    envMap: cube, envMapIntensity: 1.6
+  });
+
+  /* ================= watch build ================= */
+  var watch = new THREE.Group();
+  var tilt = new THREE.Group();
+  tilt.add(watch);
+  tilt.position.y = 0.85;
+  scene.add(tilt);
+
+  /* case */
+  var caseMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 0.92, 0.34, 72), caseMat);
+  caseMesh.castShadow = true;
+  watch.add(caseMesh);
+  var bezel = new THREE.Mesh(new THREE.TorusGeometry(0.97, 0.075, 24, 72), caseMat);
+  bezel.rotation.x = Math.PI / 2;
+  bezel.position.y = 0.17;
+  bezel.castShadow = true;
+  watch.add(bezel);
+  /* caseback ring */
+  var back = new THREE.Mesh(new THREE.TorusGeometry(0.88, 0.05, 16, 64), caseMat);
+  back.rotation.x = Math.PI / 2;
+  back.position.y = -0.17;
+  watch.add(back);
+  /* lugs */
+  [[-0.62, 1.0], [0.62, 1.0], [-0.62, -1.0], [0.62, -1.0]].forEach(function(p){
+    var lug = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.26, 0.34), caseMat);
+    lug.position.set(p[0], 0.02, p[1]);
+    lug.castShadow = true;
+    watch.add(lug);
+  });
+  /* crown */
+  var crown = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.14, 24), caseMat);
+  crown.rotation.z = Math.PI / 2;
+  crown.position.set(1.12, 0.02, 0);
+  crown.castShadow = true;
+  watch.add(crown);
+  /* dial */
+  var dial = new THREE.Mesh(new THREE.CircleGeometry(0.9, 72), dialMat);
+  dial.rotation.x = -Math.PI / 2;
+  dial.position.y = 0.165;
+  watch.add(dial);
+  /* crystal dome */
+  var crystal = new THREE.Mesh(new THREE.SphereGeometry(0.96, 48, 24, 0, Math.PI * 2, 0, 0.9), glassMat);
+  crystal.scale.y = 0.32;
+  crystal.position.y = 0.1;
+  watch.add(crystal);
+
+  /* hands (12 o'clock = -z) */
+  function makeHand(w, l, mat, y, tail){
+    var g = new THREE.BoxGeometry(w, 0.02, l + (tail || 0));
+    g.translate(0, 0, -l / 2 + (tail || 0) / 2);
+    var m = new THREE.Mesh(g, mat);
+    m.position.y = y;
+    var grp = new THREE.Group();
+    grp.add(m);
+    watch.add(grp);
+    return grp;
+  }
+  var hourHand = makeHand(0.075, 0.42, handMat, 0.185);
+  var minHand  = makeHand(0.055, 0.68, handMat, 0.2);
+  var secHand  = makeHand(0.02, 0.74, secMat, 0.215, 0.18);
+  var cap = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 24), secMat);
+  cap.position.y = 0.2;
+  watch.add(cap);
+
+  /* strap — flat ribbon extruded along a closed wrist loop */
+  var strapPts = [
+    [0, 0.12, 1.06], [0, -0.34, 1.62], [0, -1.12, 1.86], [0, -1.82, 1.18],
+    [0, -2.02, 0], [0, -1.82, -1.18], [0, -1.12, -1.86], [0, -0.34, -1.62], [0, 0.12, -1.06]
+  ].map(function(p){ return new THREE.Vector3(p[0], p[1], p[2]); });
+  var strapCurve = new THREE.CatmullRomCurve3(strapPts, false, "catmullrom", 0.12);
+  var strapShape = new THREE.Shape();
+  strapShape.moveTo(-0.035, -0.19); strapShape.lineTo(0.035, -0.19);
+  strapShape.lineTo(0.035, 0.19);   strapShape.lineTo(-0.035, 0.19);
+  strapShape.closePath();
+  var strap = new THREE.Mesh(
+    new THREE.ExtrudeGeometry(strapShape, { steps: 220, bevelEnabled: false, extrudePath: strapCurve }),
+    strapMat
+  );
+  strap.castShadow = true;
+  watch.add(strap);
+
+  watch.rotation.x = -0.42;   /* lean face toward viewer */
+
+  /* ================= UI build ================= */
+  function buildOpts(elId, list, key, labelId){
+    var box = document.getElementById(elId);
+    list.forEach(function(o, i){
+      var el = document.createElement("div");
+      el.className = "sw" + (sel[key] === i ? " on" : "");
+      el.title = o.name;
+      var col = o.bg || ("#" + o.color.toString(16).padStart(6, "0"));
+      el.style.background = o.bg
+        ? "radial-gradient(circle at 40% 35%," + shade(o.bg, 26) + "," + o.bg + ")"
+        : "radial-gradient(circle at 40% 35%," + shade(col, 40) + "," + col + ")";
+      el.addEventListener("click", function(){ select(key, i); });
+      box.appendChild(el);
+    });
+  }
+  buildOpts("oCase", CASES, "c");
+  buildOpts("oDial", DIALS, "d");
+  buildOpts("oStrap", STRAPS, "s");
+
+  function select(key, i){
+    sel[key] = i;
+    ["oCase", "oDial", "oStrap"].forEach(function(id, k){
+      var kk = ["c", "d", "s"][k];
+      Array.prototype.forEach.call(document.getElementById(id).children, function(c, j){
+        c.classList.toggle("on", j === sel[kk]);
+      });
+    });
+    var C = CASES[sel.c], D = DIALS[sel.d], S = STRAPS[sel.s];
+    caseMat.color.setHex(C.color); caseMat.roughness = C.rough;
+    handMat.color.setHex(D.hand);
+    strapMat.color.setHex(S.color); strapMat.roughness = S.rough; strapMat.metalness = S.metal;
+    drawDial();
+    document.getElementById("lCase").textContent = C.name;
+    document.getElementById("lDial").textContent = D.name;
+    document.getElementById("lStrap").textContent = S.name;
+    document.getElementById("rRef").textContent = "M01-" + C.code + "/" + D.code + "/" + S.code;
+    document.getElementById("rDesc").textContent = C.name + "表壳 · " + D.name + "表盘 · " + S.name + "表带";
+    var price = BASE_PRICE + C.price + D.price + S.price;
+    document.getElementById("rPrice").textContent = "¥" + price.toLocaleString("en-US");
+  }
+
+  document.getElementById("btnRandom").addEventListener("click", function(){
+    select("c", (Math.random() * 3) | 0);
+    select("d", (Math.random() * 4) | 0);
+    select("s", (Math.random() * 3) | 0);
+  });
+
+  var turning = true;
+  var btnTurn = document.getElementById("btnTurn");
+  btnTurn.addEventListener("click", function(){
+    turning = !turning;
+    btnTurn.textContent = turning ? "暂停旋转" : "开启旋转";
+  });
+
+  /* ================= interaction ================= */
+  var dragging = false, px = 0, py = 0;
+  var rotY = 0.5, rotYT = 0.5, rotX = 0, rotXT = 0;
+  stage.addEventListener("pointerdown", function(e){
+    dragging = true; px = e.clientX; py = e.clientY;
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener("pointermove", function(e){
+    if (!dragging) return;
+    rotYT += (e.clientX - px) * 0.008;
+    rotXT += (e.clientY - py) * 0.005;
+    rotXT = Math.max(-0.5, Math.min(0.7, rotXT));
+    px = e.clientX; py = e.clientY;
+  });
+  stage.addEventListener("pointerup", function(){ dragging = false; });
+  stage.addEventListener("wheel", function(e){
+    e.preventDefault();
+    camDistT *= (1 + e.deltaY * 0.0009);
+    camDistT = Math.max(5.2, Math.min(13, camDistT));
+  }, { passive: false });
+
+  window.addEventListener("resize", function(){
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  /* ================= loop ================= */
+  var clock = new THREE.Clock();
+  var spinV = 0;
+
+  function tick(){
+    requestAnimationFrame(tick);
+    var dt = Math.min(clock.getDelta(), 0.05);
+    var t = clock.elapsedTime;
+
+    /* real time hands */
+    var now = new Date();
+    var s = now.getSeconds() + now.getMilliseconds() / 1000;
+    var m = now.getMinutes() + s / 60;
+    var h = (now.getHours() % 12) + m / 60;
+    secHand.rotation.y  = -(s / 60) * Math.PI * 2;
+    minHand.rotation.y  = -(m / 60) * Math.PI * 2;
+    hourHand.rotation.y = -(h / 12) * Math.PI * 2;
+
+    spinV += ((turning ? 0.32 : 0) - spinV) * 0.05;
+    if (!dragging) rotYT += spinV * dt;
+    rotY += (rotYT - rotY) * 0.09;
+    rotX += (rotXT - rotX) * 0.09;
+    tilt.rotation.y = rotY;
+    tilt.rotation.x = rotX;
+    tilt.position.y = 0.85 + Math.sin(t * 0.8) * 0.05;
+
+    camDist += (camDistT - camDist) * 0.08;
+    camera.position.set(0, 3.1, camDist);
+    camera.lookAt(0, 0.4, 0);
+
+    renderer.render(scene, camera);
+  }
+
+  setInterval(function(){
+    var el = document.getElementById("rTime");
+    var d = new Date();
+    el.textContent = ("0" + d.getHours()).slice(-2) + ":" +
+                     ("0" + d.getMinutes()).slice(-2) + ":" +
+                     ("0" + d.getSeconds()).slice(-2);
+  }, 500);
+
+  select("c", 0);
+  tick();
+})();
+</script>
+</body>
+</html>

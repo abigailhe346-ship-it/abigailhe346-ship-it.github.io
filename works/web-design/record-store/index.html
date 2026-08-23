@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>纹道 GROOVE 黑胶唱片店 — Vinyl & Synthesized Previews</title>
+<style>
+  :root{
+    --cream:#EDE5D3;
+    --ink:#17140F;
+    --orange:#E85C2B;
+    --teal:#2E7D74;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --serif:"Songti SC",Didot,"Bodoni MT",Georgia,serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--cream);color:var(--ink);font-family:var(--sans);overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--orange);color:var(--cream);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:16px 3vw;pointer-events:none;
+    background:linear-gradient(rgba(237,229,211,.92) 40%,rgba(237,229,211,0));}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.13em;line-height:1.75;}
+  .sig .no{color:var(--orange);font-weight:700;}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-align:right;line-height:1.9;color:rgba(23,20,15,.6);}
+
+  /* ---- hero ---- */
+  .hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;padding:0 4vw;position:relative;overflow:hidden;}
+  .hero .vinylbg{position:absolute;right:-14vw;top:50%;transform:translateY(-50%);
+    width:min(60vw,720px);height:min(60vw,720px);border-radius:50%;
+    background:repeating-radial-gradient(circle at 50% 50%,#17140F 0 2px,#241F16 2px 4px);
+    animation:spin 14s linear infinite;opacity:.92;}
+  .hero .vinylbg::after{content:"";position:absolute;inset:38%;border-radius:50%;background:var(--orange);}
+  .hero .vinylbg::before{content:"";position:absolute;inset:49.4%;border-radius:50%;background:var(--cream);z-index:2;}
+  @keyframes spin{to{transform:translateY(-50%) rotate(360deg);}}
+  .hero .k{font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:var(--orange);margin-bottom:3vh;}
+  h1{font-family:var(--serif);font-size:clamp(70px,12vw,200px);line-height:.95;font-weight:900;letter-spacing:.02em;}
+  h1 small{display:block;font-family:var(--mono);font-size:clamp(11px,1.2vw,15px);font-weight:400;
+    letter-spacing:.6em;margin-top:2.5vh;color:rgba(23,20,15,.65);}
+  .hero .under{margin-top:5vh;display:flex;gap:4vw;align-items:baseline;flex-wrap:wrap;}
+  .hero .under p{font-size:14px;line-height:2;max-width:44ch;color:rgba(23,20,15,.8);}
+  .hero .under .est{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--teal);}
+
+  /* ---- shelf ---- */
+  .shelf{padding:6vh 4vw 16vh;max-width:1500px;margin:0 auto;}
+  .shelf .sec-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;
+    border-top:3px solid var(--ink);padding-top:16px;margin-bottom:6vh;}
+  .shelf h2{font-family:var(--serif);font-size:clamp(36px,5vw,72px);font-weight:900;}
+  .shelf h2 em{font-style:italic;font-weight:400;color:var(--orange);}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:rgba(23,20,15,.55);}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3.5vw;}
+  @media(max-width:1000px){.grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:640px){.grid{grid-template-columns:1fr;}}
+
+  .card{perspective:1400px;position:relative;}
+  .card .inner{position:relative;width:100%;aspect-ratio:1/1;transform-style:preserve-3d;
+    transition:transform .8s var(--ease);}
+  .card.flipped .inner{transform:rotateY(180deg);}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border:1px solid var(--ink);background:#fff;overflow:hidden;}
+  .face.front canvas{display:block;width:100%;height:100%;}
+  .face.back{transform:rotateY(180deg);background:var(--ink);color:var(--cream);
+    display:flex;flex-direction:column;padding:8% 9%;}
+  .back .bt{font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--orange);}
+  .back h3{font-family:var(--serif);font-size:clamp(20px,2vw,28px);margin:8px 0 2px;line-height:1.2;}
+  .back .artist{font-size:12px;color:rgba(237,229,211,.7);letter-spacing:.1em;}
+  .back ol{list-style:none;margin-top:5%;flex:1;}
+  .back ol li{display:flex;justify-content:space-between;font-size:12.5px;padding:7px 0;
+    border-bottom:1px solid rgba(237,229,211,.18);letter-spacing:.04em;}
+  .back ol li span:first-child{color:rgba(237,229,211,.85);}
+  .back ol li span:last-child{font-family:var(--mono);font-size:10px;color:rgba(237,229,211,.5);}
+  .back .brow{display:flex;gap:10px;margin-top:6%;}
+  .btn{font-family:var(--mono);font-size:10px;letter-spacing:.2em;border:1px solid var(--cream);
+    background:transparent;color:var(--cream);padding:11px 16px;cursor:pointer;
+    transition:all .25s var(--ease);display:inline-flex;align-items:center;gap:8px;}
+  .btn svg{width:10px;height:10px;fill:currentColor;}
+  .btn:hover{background:var(--cream);color:var(--ink);}
+  .btn.playing{background:var(--orange);border-color:var(--orange);color:var(--cream);}
+  .btn.playing:hover{background:var(--cream);color:var(--ink);}
+  .flipbtn{position:absolute;top:10px;right:10px;z-index:3;width:34px;height:34px;border-radius:50%;
+    border:1px solid var(--ink);background:rgba(237,229,211,.9);cursor:pointer;display:flex;
+    align-items:center;justify-content:center;transition:transform .4s var(--ease),background .3s;}
+  .flipbtn svg{width:14px;height:14px;stroke:var(--ink);fill:none;stroke-width:2;}
+  .flipbtn:hover{transform:rotate(180deg);background:var(--orange);}
+  .face.back .flipbtn{border-color:rgba(237,229,211,.5);background:transparent;}
+  .face.back .flipbtn svg{stroke:var(--cream);}
+  .face.back .flipbtn:hover{background:var(--orange);}
+  .card .cap{display:flex;justify-content:space-between;margin-top:12px;font-family:var(--mono);
+    font-size:10px;letter-spacing:.16em;color:rgba(23,20,15,.6);}
+  .card .cap b{color:var(--ink);}
+  /* tonearm-free spinning label indicator */
+  .card.spinning .front::after{content:"";position:absolute;inset:0;pointer-events:none;
+    background:conic-gradient(from 0deg,transparent 0 80%,rgba(237,229,211,.35) 92%,transparent 100%);
+    animation:labelspin 1.8s linear infinite;mix-blend-mode:screen;}
+  @keyframes labelspin{to{transform:rotate(360deg);}}
+
+  /* ---- now playing bar ---- */
+  #nowbar{position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--ink);color:var(--cream);
+    display:flex;align-items:center;gap:16px;padding:12px 3vw;transform:translateY(110%);
+    transition:transform .5s var(--ease);}
+  #nowbar.show{transform:none;}
+  #nowbar .disc{width:40px;height:40px;border-radius:50%;flex:0 0 auto;
+    background:repeating-radial-gradient(circle,#EDE5D3 0 1px,#17140F 1px 3px);
+    border:1px solid rgba(237,229,211,.4);position:relative;animation:discspin 2s linear infinite;}
+  #nowbar .disc::after{content:"";position:absolute;inset:36%;border-radius:50%;background:var(--orange);}
+  @keyframes discspin{to{transform:rotate(360deg);}}
+  #nowbar .meta{min-width:0;flex:0 1 auto;}
+  #nowbar .t{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #nowbar .a{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:rgba(237,229,211,.6);margin-top:2px;}
+  #nowbar .prog{flex:1;height:2px;background:rgba(237,229,211,.2);position:relative;min-width:60px;}
+  #nowbar .prog i{position:absolute;left:0;top:-1px;height:4px;width:0;background:var(--orange);}
+  #nowbar .bpm{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--teal);white-space:nowrap;}
+  #nowStop{flex:0 0 auto;}
+
+  footer{border-top:1px solid rgba(23,20,15,.3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    padding:18px 4vw 90px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(23,20,15,.55);}
+  @media(max-width:640px){.hright{display:none;}.hero .vinylbg{opacity:.35;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 10</span> · <b>纹道 GROOVE 黑胶唱片店</b><br>WEB DESIGN / RECORD STORE</div>
+  <div class="hright">二楼 · 请走窄楼梯<br>全场唱片可试听 · 唱针自 1987<br>NEW ARRIVALS EVERY FRIDAY</div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="vinylbg"></div>
+  <div class="k">VINYL ONLY — 只卖黑胶</div>
+  <h1>纹道<small>GROOVE RECORD STORE — 每一条纹里都有一支乐队</small></h1>
+  <div class="under">
+    <p>六点六平方毫米的纹道里，藏着一整晚的音量。本店试听不设耳机——
+      每张唱片的三十秒，都由店内的合成器现场演算。点唱片翻面，看曲目；按试听，落针。</p>
+    <span class="est">EST. 1987 — SIDE A / SIDE B</span>
+  </div>
+</section>
+
+<!-- ============ SHELF ============ -->
+<section class="shelf">
+  <div class="sec-head">
+    <h2>本周上新 <em>NEW ARRIVALS</em></h2>
+    <span class="idx">CLICK TO FLIP · 试听为 WebAudio 实时合成 · 无任何音频文件</span>
+  </div>
+  <div class="grid" id="grid"></div>
+</section>
+
+<footer>
+  <span>纹道 GROOVE 黑胶唱片店 — 1987–2026</span>
+  <span>33⅓ RPM · STEREO · 试听片段由合成器生成</span>
+</footer>
+
+<!-- ============ NOW PLAYING ============ -->
+<div id="nowbar">
+  <div class="disc"></div>
+  <div class="meta"><div class="t" id="nbT">—</div><div class="a" id="nbA">—</div></div>
+  <div class="prog"><i id="nbProg"></i></div>
+  <div class="bpm" id="nbBpm">—</div>
+  <button class="btn" id="nowStop"><svg viewBox="0 0 10 10"><rect width="10" height="10"/></svg>停止 STOP</button>
+</div>
+
+<script>
+(function(){
+"use strict";
+/* ============ data ============ */
+var RECORDS=[
+ {title:"午夜电车",en:"MIDNIGHT TRAM",artist:"寺岛 忍",year:1983,genre:"CITY POP",
+  tracks:[["A1 末班之后","4:12"],["A2 霓虹雨刷","3:48"],["B1 自动贩卖机之恋","4:02"],["B2 回送车库","5:20"]],
+  bpm:104,root:60,scale:[0,2,4,7,9],wave:"sawtooth",seed:831,style:0,
+  c1:"#17140F",c2:"#E85C2B",c3:"#EDE5D3"},
+ {title:"苔径",en:"MOSS PATH",artist:"谷口 绿",year:1996,genre:"AMBIENT",
+  tracks:[["A1 石上苔","6:33"],["A2 雾中行","7:05"],["B1 溪声远","5:47"],["B2 苔径","8:12"]],
+  bpm:72,root:57,scale:[0,3,5,7,10],wave:"triangle",seed:962,style:1,
+  c1:"#2E7D74",c2:"#EDE5D3",c3:"#17140F"},
+ {title:"纸盒太阳",en:"CARDBOARD SUN",artist:"THE FOLD",year:2004,genre:"LO-FI INDIE",
+  tracks:[["A1 胶带与琴弦","2:58"],["A2 楼下早餐店","3:21"],["B1 纸盒太阳","3:44"],["B2 走调和声","2:47"]],
+  bpm:128,root:62,scale:[0,2,3,5,7,9,10],wave:"square",seed:414,style:2,
+  c1:"#D9A441",c2:"#17140F",c3:"#E85C2B"},
+ {title:"霓虹盂兰盆",en:"NEON BON",artist:"電々",year:2019,genre:"ELECTRO",
+  tracks:[["A1 迎え火","4:44"],["A2 盆踊り 3.0","3:57"],["B1 送り火","4:21"],["B2 河灯","5:02"]],
+  bpm:118,root:55,scale:[0,2,3,7,8],wave:"sawtooth",seed:777,style:3,
+  c1:"#E85C2B",c2:"#17140F",c3:"#2E7D74"},
+ {title:"慢速冲浪",en:"SLOW SURF",artist:"岸辺",year:1975,genre:"SURF ROCK",
+  tracks:[["A1 退潮","3:33"],["A2 板上早餐","2:56"],["B1 慢速冲浪","4:18"],["B2 晒伤","3:41"]],
+  bpm:96,root:64,scale:[0,2,4,7,9],wave:"sawtooth",seed:233,style:2,
+  c1:"#2E7D74",c2:"#E85C2B",c3:"#EDE5D3"},
+ {title:"雨停之前",en:"BEFORE RAIN ENDS",artist:"佐野 蓝",year:1969,genre:"JAZZ BALLAD",
+  tracks:[["A1 屋檐","5:12"],["A2 伞下二人","4:48"],["B1 雨停之前","6:02"],["B2 水洼里的天","4:36"]],
+  bpm:84,root:58,scale:[0,2,3,5,7,9,10],wave:"triangle",seed:690,style:1,
+  c1:"#17140F",c2:"#8C93A8",c3:"#EDE5D3"}
+];
+
+/* ============ sleeve generator ============ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+var MONO='"SF Mono",Menlo,monospace';
+
+function drawSleeve(cv,r){
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  var s=cv.clientWidth||300;
+  cv.width=s*dpr;cv.height=s*dpr;
+  var ctx=cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var R=mulberry32(r.seed);
+  var i;
+  ctx.fillStyle=r.c1;ctx.fillRect(0,0,s,s);
+
+  if(r.style===0){ // sun + horizon lines
+    var cy=s*(0.32+R()*0.15),cr=s*(0.24+R()*0.08);
+    ctx.fillStyle=r.c2;ctx.beginPath();ctx.arc(s*0.5,cy,cr,0,7);ctx.fill();
+    ctx.strokeStyle=r.c3;ctx.lineWidth=2;
+    for(i=0;i<14;i++){
+      var y=cy+cr+s*0.05+i*s*0.038;
+      ctx.beginPath();
+      ctx.moveTo(s*0.08,y);ctx.lineTo(s*0.92,y);
+      ctx.globalAlpha=1-i*0.06;ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    ctx.fillStyle=r.c3;ctx.fillRect(s*0.08,s*0.08,s*0.2,3);
+  }else if(r.style===1){ // concentric arcs from corner
+    var cx=R()<0.5?0:s,cy2=R()<0.5?0:s;
+    for(i=12;i>0;i--){
+      ctx.fillStyle=i%2?r.c2:r.c1;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy2);
+      ctx.arc(cx,cy2,i*s*0.09,0,Math.PI*2);
+      ctx.fill();
+    }
+    ctx.fillStyle=r.c3;
+    ctx.beginPath();ctx.arc(cx,cy2,s*0.09,0,7);ctx.fill();
+    // vinyl ring overlay
+    ctx.strokeStyle="rgba(23,20,15,.25)";ctx.lineWidth=1;
+    for(i=1;i<10;i++){ctx.beginPath();ctx.arc(s/2,s/2,s*0.05*i,0,7);ctx.stroke();}
+  }else if(r.style===2){ // diagonal stripes + disc
+    ctx.save();
+    ctx.translate(s/2,s/2);ctx.rotate(-Math.PI/4*(0.7+R()*0.6));
+    for(i=-14;i<14;i++){
+      ctx.fillStyle=i%2?r.c2:r.c1;
+      ctx.fillRect(i*s*0.09,-s,s*0.045+R()*s*0.03,s*2);
+    }
+    ctx.restore();
+    ctx.fillStyle=r.c3;
+    ctx.beginPath();ctx.arc(s*(0.3+R()*0.4),s*(0.3+R()*0.4),s*0.16,0,7);ctx.fill();
+    ctx.strokeStyle=r.c2;ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(s*(0.3+R()*0.4),s*0.7,s*0.07,0,7);ctx.stroke();
+  }else{ // dot grid + bold circle
+    ctx.fillStyle=r.c2;
+    for(var gy=s*0.1;gy<s*0.9;gy+=s*0.07)
+      for(var gx=s*0.1;gx<s*0.9;gx+=s*0.07){
+        ctx.beginPath();ctx.arc(gx,gy,s*0.008+R()*s*0.012,0,7);ctx.fill();
+      }
+    ctx.fillStyle=r.c3;
+    ctx.beginPath();ctx.arc(s*0.5,s*(0.38+R()*0.2),s*(0.2+R()*0.1),0,7);ctx.fill();
+    ctx.fillStyle=r.c1;
+    ctx.beginPath();ctx.arc(s*0.5,s*(0.38+R()*0.2),s*0.06,0,7);ctx.fill();
+  }
+
+  // sleeve caption strip
+  ctx.fillStyle="rgba(237,229,211,.94)";
+  ctx.fillRect(0,s*0.86,s,s*0.14);
+  ctx.fillStyle="#17140F";
+  ctx.font="700 "+Math.round(s*0.045)+"px "+MONO;
+  ctx.fillText(r.en,s*0.06,s*0.925);
+  ctx.font="400 "+Math.round(s*0.032)+"px "+MONO;
+  ctx.textAlign="right";
+  ctx.fillText(r.artist+" · "+r.year,s*0.94,s*0.925);
+  ctx.textAlign="left";
+}
+
+/* ============ build cards ============ */
+var grid=document.getElementById("grid");
+var cardEls=[],playBtns=[];
+var flipSVG='<svg viewBox="0 0 24 24"><path d="M4 9a8 8 0 0 1 14-3M20 15a8 8 0 0 1-14 3"/><path d="M18 2v4h-4M6 22v-4h4"/></svg>';
+var playSVG='<svg viewBox="0 0 10 10"><path d="M0 0l10 5-10 5z"/></svg>';
+var stopSVG='<svg viewBox="0 0 10 10"><rect width="10" height="10"/></svg>';
+
+RECORDS.forEach(function(r,i){
+  var card=document.createElement("div");
+  card.className="card";
+  var tracks=r.tracks.map(function(t){
+    return '<li><span>'+t[0]+'</span><span>'+t[1]+'</span></li>';
+  }).join("");
+  card.innerHTML=
+    '<div class="inner">'+
+      '<div class="face front"><canvas></canvas>'+
+        '<button class="flipbtn" title="翻面 FLIP">'+flipSVG+'</button></div>'+
+      '<div class="face back">'+
+        '<button class="flipbtn" title="翻回 FLIP BACK">'+flipSVG+'</button>'+
+        '<div class="bt">SIDE A / B — '+r.genre+' · '+r.bpm+' BPM</div>'+
+        '<h3>'+r.title+' <span style="font-weight:400">'+r.en+'</span></h3>'+
+        '<div class="artist">'+r.artist+' · '+r.year+'</div>'+
+        '<ol>'+tracks+'</ol>'+
+        '<div class="brow">'+
+          '<button class="btn preview">'+playSVG+'试听 PREVIEW</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="cap"><span><b>'+r.title+'</b> '+r.en+'</span><span>'+r.genre+'</span></div>';
+  grid.appendChild(card);
+  cardEls.push(card);
+
+  card.querySelectorAll(".flipbtn").forEach(function(b){
+    b.addEventListener("click",function(ev){
+      ev.stopPropagation();
+      card.classList.toggle("flipped");
+    });
+  });
+  var pb=card.querySelector(".preview");
+  playBtns.push(pb);
+  pb.addEventListener("click",function(ev){
+    ev.stopPropagation();
+    togglePlay(i);
+  });
+});
+function paintSleeves(){
+  cardEls.forEach(function(c,i){
+    drawSleeve(c.querySelector("canvas"),RECORDS[i]);
+  });
+}
+
+/* ============ audio engine ============ */
+var AC=null,master=null;
+var playing=-1,schedTimer=null,activeNodes=[],rafId=null;
+var playStart=0,playDur=0,stepDur=0;
+
+function ensureCtx(){
+  if(!AC){
+    AC=new (window.AudioContext||window.webkitAudioContext)();
+    master=AC.createGain();master.gain.value=0.85;
+    master.connect(AC.destination);
+  }
+  if(AC.state==="suspended")AC.resume();
+}
+function mtof(m){return 440*Math.pow(2,(m-69)/12);}
+
+function noiseBuffer(){
+  var len=AC.sampleRate*0.1,buf=AC.createBuffer(1,len,AC.sampleRate);
+  var d=buf.getChannelData(0);
+  for(var i=0;i<len;i++)d[i]=Math.random()*2-1;
+  return buf;
+}
+var NOISE=null;
+
+function kick(t){
+  var o=AC.createOscillator(),g=AC.createGain();
+  o.frequency.setValueAtTime(140,t);
+  o.frequency.exponentialRampToValueAtTime(38,t+0.1);
+  g.gain.setValueAtTime(0.55,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.16);
+  o.connect(g);g.connect(master);
+  o.start(t);o.stop(t+0.18);
+  activeNodes.push(o);
+}
+function hat(t,v){
+  var src=AC.createBufferSource();src.buffer=NOISE;
+  var f=AC.createBiquadFilter();f.type="highpass";f.frequency.value=6500;
+  var g=AC.createGain();
+  g.gain.setValueAtTime(0.14*v,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+0.04);
+  src.connect(f);f.connect(g);g.connect(master);
+  src.start(t);src.stop(t+0.05);
+  activeNodes.push(src);
+}
+function bass(t,fr,wave,dur){
+  var o=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter();
+  o.type=wave;o.frequency.value=fr;
+  f.type="lowpass";f.frequency.setValueAtTime(900,t);
+  f.frequency.exponentialRampToValueAtTime(220,t+dur);
+  g.gain.setValueAtTime(0.22,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(f);f.connect(g);g.connect(master);
+  o.start(t);o.stop(t+dur+0.02);
+  activeNodes.push(o);
+}
+function pad(t,frs,dur){
+  frs.forEach(function(fr){
+    [-4,4].forEach(function(det){
+      var o=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter();
+      o.type="triangle";o.frequency.value=fr;o.detune.value=det;
+      f.type="lowpass";f.frequency.value=1100;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.linearRampToValueAtTime(0.045,t+0.3);
+      g.gain.setValueAtTime(0.045,t+dur-0.4);
+      g.gain.linearRampToValueAtTime(0.0001,t+dur);
+      o.connect(f);f.connect(g);g.connect(master);
+      o.start(t);o.stop(t+dur+0.05);
+      activeNodes.push(o);
+    });
+  });
+}
+function pluck(t,fr){
+  var o=AC.createOscillator(),g=AC.createGain();
+  o.type="sine";o.frequency.value=fr;
+  g.gain.setValueAtTime(0.14,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+stepDur*1.8);
+  o.connect(g);g.connect(master);
+  o.start(t);o.stop(t+stepDur*2);
+  activeNodes.push(o);
+}
+
+function startPlay(i){
+  ensureCtx();
+  stopPlay(true);
+  var r=RECORDS[i];
+  var R=mulberry32(r.seed);
+  NOISE=noiseBuffer();
+  stepDur=60/r.bpm/2;
+  var bars=8,steps=8;
+  playDur=bars*steps*stepDur;
+  playStart=AC.currentTime+0.08;
+  // pre-compose patterns
+  var bassPat=[],melPat=[],bar,k;
+  for(bar=0;bar<bars;bar++){
+    for(k=0;k<steps;k++){
+      bassPat.push(R()<0.62?r.scale[Math.floor(R()*r.scale.length)]:null);
+      melPat.push(R()<0.3?r.scale[Math.floor(R()*r.scale.length)]+12:null);
+    }
+  }
+  var third=r.scale.indexOf(3)>=0?3:4;
+  for(var s=0;s<bars*steps;s++){
+    var t=playStart+s*stepDur;
+    if(s%4===0)kick(t);
+    if(s%2===1)hat(t,s%8===5?1.2:0.8);
+    var bp=bassPat[s];
+    if(bp!==null)bass(t,mtof(r.root-12+bp),r.wave,stepDur*0.95);
+    var mp=melPat[s];
+    if(mp!==null)pluck(t,mtof(r.root+mp));
+    if(s%(steps*2)===0)
+      pad(t,[mtof(r.root),mtof(r.root+third),mtof(r.root+7)],stepDur*steps*2);
+  }
+  playing=i;
+  // UI
+  document.getElementById("nbT").textContent=r.title+" "+r.en;
+  document.getElementById("nbA").textContent=r.artist+" · "+r.year+" · "+r.genre;
+  document.getElementById("nbBpm").textContent=r.bpm+" BPM — 33⅓ RPM";
+  document.getElementById("nowbar").classList.add("show");
+  cardEls[i].classList.add("spinning");
+  playBtns[i].classList.add("playing");
+  playBtns[i].innerHTML=stopSVG+"停止 STOP";
+  progressLoop();
+  // auto stop
+  schedTimer=setTimeout(function(){stopPlay();},(playDur+0.2)*1000);
+}
+function stopPlay(silent){
+  if(schedTimer){clearTimeout(schedTimer);schedTimer=null;}
+  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+  activeNodes.forEach(function(n){try{n.stop(0);}catch(e){}});
+  activeNodes=[];
+  if(playing>=0){
+    cardEls[playing].classList.remove("spinning");
+    playBtns[playing].classList.remove("playing");
+    playBtns[playing].innerHTML=playSVG+"试听 PREVIEW";
+    playing=-1;
+  }
+  if(!silent){
+    document.getElementById("nowbar").classList.remove("show");
+    document.getElementById("nbProg").style.width="0";
+  }
+}
+function togglePlay(i){
+  if(playing===i){stopPlay();return;}
+  startPlay(i);
+}
+function progressLoop(){
+  if(playing<0)return;
+  var t=(AC.currentTime-playStart)/playDur;
+  document.getElementById("nbProg").style.width=Math.min(t*100,100)+"%";
+  if(t>=1){stopPlay();return;}
+  rafId=requestAnimationFrame(progressLoop);
+}
+document.getElementById("nowStop").addEventListener("click",function(){stopPlay();});
+
+/* ============ resize / init ============ */
+var rt;
+window.addEventListener("resize",function(){
+  clearTimeout(rt);
+  rt=setTimeout(paintSleeves,150);
+});
+paintSleeves();
+})();
+</script>
+</body>
+</html>

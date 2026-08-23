@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planet Forge — 行星锻造所 No.08</title>
+<style>
+  :root{
+    --bg:#0a0e14;
+    --panel:#10151d;
+    --line:#2a3340;
+    --amber:#ffb000;
+    --teal:#57c7d4;
+    --ivory:#e8e3d5;
+    --dim:#6b7684;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);}
+  body{font-family:"SF Mono",Menlo,"Courier New",monospace;color:var(--ivory);
+       -webkit-font-smoothing:antialiased;}
+  #stage{position:fixed;inset:0;}
+  #stage canvas{display:block;width:100%;height:100%;}
+
+  /* ---------- name plate ---------- */
+  .plate{position:fixed;top:22px;left:24px;z-index:10;pointer-events:none;}
+  .plate .no{font-size:10px;letter-spacing:.35em;color:var(--amber);}
+  .plate h1{font-size:17px;font-weight:600;letter-spacing:.18em;margin-top:5px;color:var(--ivory);}
+  .plate .sub{font-size:10px;letter-spacing:.28em;color:var(--dim);margin-top:4px;}
+  .plate .rule{width:56px;height:2px;background:var(--amber);margin-top:9px;}
+
+  .readout{position:fixed;top:24px;right:24px;z-index:10;text-align:right;pointer-events:none;
+           font-size:10px;letter-spacing:.22em;color:var(--dim);line-height:1.9;}
+  .readout b{color:var(--teal);font-weight:400;}
+  .readout .led{display:inline-block;width:6px;height:6px;background:var(--amber);
+                margin-right:7px;vertical-align:1px;animation:blink 2.4s infinite;}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+  /* ---------- console ---------- */
+  .console{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:10;
+           display:flex;align-items:stretch;gap:0;
+           background:linear-gradient(180deg,rgba(16,21,29,.92),rgba(10,14,20,.94));
+           border:1px solid var(--line);
+           box-shadow:0 0 0 1px rgba(0,0,0,.6),0 18px 50px rgba(0,0,0,.55);
+           padding:0;max-width:min(920px,calc(100vw - 32px));}
+  .console::before,.console::after{content:"";position:absolute;width:9px;height:9px;
+           border:1px solid var(--amber);}
+  .console::before{top:-4px;left:-4px;border-right:none;border-bottom:none;}
+  .console::after{bottom:-4px;right:-4px;border-left:none;border-top:none;}
+  .cell{padding:14px 18px;border-right:1px solid var(--line);display:flex;
+        flex-direction:column;justify-content:center;gap:8px;min-width:0;}
+  .cell:last-child{border-right:none;}
+  .label{font-size:9px;letter-spacing:.3em;color:var(--dim);white-space:nowrap;}
+  .seedval{font-size:13px;letter-spacing:.14em;color:var(--teal);white-space:nowrap;}
+
+  .btn{appearance:none;border:1px solid var(--amber);background:transparent;color:var(--amber);
+       font-family:inherit;font-size:10px;letter-spacing:.26em;padding:11px 16px 10px;cursor:pointer;
+       text-transform:uppercase;transition:background .18s cubic-bezier(.2,.7,.3,1),color .18s;}
+  .btn:hover{background:var(--amber);color:#0a0e14;}
+  .btn.ghost{border-color:var(--line);color:var(--ivory);}
+  .btn.ghost:hover{background:var(--ivory);color:#0a0e14;border-color:var(--ivory);}
+  .btn:active{transform:translateY(1px);}
+  .btnrow{display:flex;gap:10px;}
+
+  .slider{display:flex;align-items:center;gap:12px;min-width:150px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:2px;
+       background:var(--line);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+       width:12px;height:16px;background:var(--amber);border:none;cursor:ew-resize;
+       box-shadow:0 0 8px rgba(255,176,0,.5);}
+  input[type=range]::-moz-range-thumb{width:12px;height:16px;background:var(--amber);
+       border:none;cursor:ew-resize;}
+  .sval{font-size:10px;color:var(--teal);letter-spacing:.1em;width:30px;text-align:right;}
+
+  .scan{position:fixed;inset:0;z-index:5;pointer-events:none;opacity:.05;
+        background:repeating-linear-gradient(0deg,transparent 0 2px,#fff 2px 3px);}
+
+  @media (max-width:760px){
+    .console{flex-wrap:wrap;bottom:12px;}
+    .cell{padding:10px 12px;border-right:none;border-top:1px solid var(--line);flex:1 1 40%;}
+    .cell:first-child{border-top:none;}
+    .cell:nth-child(2){border-top:none;}
+    .readout{display:none;}
+    input[type=range]{width:90px;}
+    .plate{top:14px;left:16px;}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="scan"></div>
+
+<header class="plate">
+  <div class="no">No.08 / ORBITAL SERIES</div>
+  <h1>PLANET FORGE</h1>
+  <div class="sub">行星锻造所 · 程序化星球生成</div>
+  <div class="rule"></div>
+</header>
+
+<div class="readout">
+  <div><span class="led"></span>FORGE ONLINE</div>
+  <div>SEED <b id="roSeed">—</b></div>
+  <div>PERIODS <b id="roRot">1.00</b></div>
+</div>
+
+<div class="console">
+  <div class="cell">
+    <span class="label">SEED / 种子</span>
+    <span class="seedval" id="seedVal">0x000000</span>
+  </div>
+  <div class="cell">
+    <span class="label">ROTATION / 自转速度</span>
+    <div class="slider">
+      <input type="range" id="rotSpeed" min="0" max="300" value="100">
+      <span class="sval" id="rotVal">1.0</span>
+    </div>
+  </div>
+  <div class="cell">
+    <span class="label">RELIEF / 地形起伏</span>
+    <div class="slider">
+      <input type="range" id="relief" min="20" max="200" value="100">
+      <span class="sval" id="relVal">1.0</span>
+    </div>
+  </div>
+  <div class="cell">
+    <div class="btnrow">
+      <button class="btn" id="regen">REGENERATE</button>
+      <button class="btn ghost" id="save">SAVE PNG</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ================= seeded PRNG + 3D value noise ================= */
+  var SEED = (Math.random()*0xffffff)|0;
+
+  function mulberry32(a){
+    return function(){
+      a|=0; a=(a+0x6D2B79F5)|0;
+      var t=Math.imul(a^(a>>>15),1|a);
+      t=(t+Math.imul(t^(t>>>7),61|t))^t;
+      return ((t^(t>>>14))>>>0)/4294967296;
+    };
+  }
+
+  function makeNoise(seed){
+    var rand=mulberry32(seed);
+    var perm=new Uint8Array(512);
+    var p=new Uint8Array(256),i,j,t;
+    for(i=0;i<256;i++)p[i]=i;
+    for(i=255;i>0;i--){j=(rand()*(i+1))|0;t=p[i];p[i]=p[j];p[j]=t;}
+    for(i=0;i<512;i++)perm[i]=p[i&255];
+    var grads=[];
+    for(i=0;i<256;i++){
+      var a=rand()*Math.PI*2, z=rand()*2-1, r=Math.sqrt(1-z*z);
+      grads.push([r*Math.cos(a),r*Math.sin(a),z]);
+    }
+    function fade(t){return t*t*t*(t*(t*6-15)+10);}
+    function lerp(a,b,t){return a+(b-a)*t;}
+    function g(hash,x,y,z){
+      var gr=grads[hash&255];
+      return gr[0]*x+gr[1]*y+gr[2]*z;
+    }
+    function noise(x,y,z){
+      var X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z);
+      x-=X;y-=Y;z-=Z;
+      var u=fade(x),v=fade(y),w=fade(z);
+      var A=perm[X&255]+Y,AA=perm[A&255]+Z,AB=perm[(A+1)&255]+Z;
+      var B=perm[(X+1)&255]+Y,BA=perm[B&255]+Z,BB=perm[(B+1)&255]+Z;
+      return lerp(
+        lerp(lerp(g(perm[AA],x,y,z),   g(perm[BA],x-1,y,z),u),
+             lerp(g(perm[AB],x,y-1,z), g(perm[BB],x-1,y-1,z),u),v),
+        lerp(lerp(g(perm[AA+1],x,y,z-1),   g(perm[BA+1],x-1,y,z-1),u),
+             lerp(g(perm[AB+1],x,y-1,z-1), g(perm[BB+1],x-1,y-1,z-1),u),v),w);
+    }
+    function fbm(x,y,z,oct){
+      var v=0,amp=0.5,f=1,norm=0;
+      for(var i=0;i<oct;i++){
+        v+=amp*noise(x*f,y*f,z*f);
+        norm+=amp; amp*=0.5; f*=2.03;
+      }
+      return v/norm;
+    }
+    return {noise:noise,fbm:fbm};
+  }
+
+  /* ================= palette system (seeded) ================= */
+  function hexLerp(c1,c2,t){
+    return [
+      Math.round(c1[0]+(c2[0]-c1[0])*t),
+      Math.round(c1[1]+(c2[1]-c1[1])*t),
+      Math.round(c1[2]+(c2[2]-c1[2])*t)
+    ];
+  }
+  var PALETTES=[
+    {name:"TERRA",   deep:[8,32,64],  shallow:[24,92,110], beach:[194,178,128], low:[78,112,62],  high:[120,102,80], snow:[232,232,226], atmo:[87,199,212],  cloud:true },
+    {name:"EMBER",   deep:[40,14,10], shallow:[96,32,20],  beach:[210,120,60],  low:[150,64,34],  high:[92,44,30],   snow:[255,196,120], atmo:[255,120,60],  cloud:false},
+    {name:"GLACIER", deep:[10,26,44], shallow:[40,80,110], beach:[170,190,200], low:[120,150,160],high:[90,110,130], snow:[240,246,250], atmo:[150,210,235], cloud:true },
+    {name:"ORCHID",  deep:[34,16,48], shallow:[84,40,96],  beach:[190,130,150], low:[120,70,110], high:[80,50,90],   snow:[235,214,235], atmo:[214,140,220], cloud:true },
+    {name:"VERDANT", deep:[10,34,26], shallow:[30,90,70],  beach:[200,190,120], low:[60,130,60],  high:[80,110,60],  snow:[220,235,215], atmo:[120,220,170], cloud:true }
+  ];
+
+  /* ================= three.js scene ================= */
+  var stage=document.getElementById("stage");
+  var renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  stage.appendChild(renderer.domElement);
+
+  var scene=new THREE.Scene();
+  var camera=new THREE.PerspectiveCamera(38,1,0.1,100);
+  camera.position.set(0,0.55,4.4);
+  camera.lookAt(0,0,0);
+
+  var sun=new THREE.DirectionalLight(0xfff2dd,1.5);
+  sun.position.set(4,2,3);
+  scene.add(sun);
+  var rim=new THREE.DirectionalLight(0x57c7d4,0.55);
+  rim.position.set(-4,-1,-3);
+  scene.add(rim);
+  scene.add(new THREE.AmbientLight(0x202833,0.9));
+
+  /* stars */
+  (function(){
+    var n=900,pos=new Float32Array(n*3),col=new Float32Array(n*3);
+    var rand=mulberry32(1234567);
+    for(var i=0;i<n;i++){
+      var th=rand()*Math.PI*2, ph=Math.acos(rand()*2-1), r=26+rand()*14;
+      pos[i*3]=r*Math.sin(ph)*Math.cos(th);
+      pos[i*3+1]=r*Math.cos(ph);
+      pos[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+      var b=0.35+rand()*0.65, warm=rand();
+      col[i*3]=b; col[i*3+1]=b*(warm>0.85?0.75:0.95); col[i*3+2]=b*(warm>0.85?0.55:1);
+    }
+    var g=new THREE.BufferGeometry();
+    g.setAttribute("position",new THREE.BufferAttribute(pos,3));
+    g.setAttribute("color",new THREE.BufferAttribute(col,3));
+    var m=new THREE.PointsMaterial({size:0.055,vertexColors:true,transparent:true,opacity:0.9,sizeAttenuation:true});
+    scene.add(new THREE.Points(g,m));
+  })();
+
+  var planetGroup=new THREE.Group();
+  planetGroup.rotation.z=0.18;
+  scene.add(planetGroup);
+
+  var planetMesh=null,cloudMesh=null,atmoMesh=null;
+
+  /* ================= planet construction ================= */
+  var R=1.35;
+
+  function buildPlanet(seed,relief){
+    var nz=makeNoise(seed);
+    var rand=mulberry32(seed^0x9e3779b9);
+    var pal=PALETTES[(rand()*PALETTES.length)|0];
+    var f0=1.6+rand()*1.4;               /* base frequency */
+    var warp=0.35+rand()*0.5;            /* domain warp */
+    var sea=0.46+rand()*0.1;             /* sea level threshold */
+    var amp=0.055*relief*(0.7+rand()*0.6);
+
+    if(planetMesh){planetGroup.remove(planetMesh);planetMesh.geometry.dispose();planetMesh.material.dispose();}
+    if(cloudMesh){planetGroup.remove(cloudMesh);cloudMesh.geometry.dispose();cloudMesh.material.dispose();}
+    if(atmoMesh){planetGroup.remove(atmoMesh);atmoMesh.geometry.dispose();atmoMesh.material.dispose();}
+
+    var geo=new THREE.SphereGeometry(R,180,180);
+    var posAttr=geo.attributes.position;
+    var colors=new Float32Array(posAttr.count*3);
+    var v=new THREE.Vector3();
+
+    for(var i=0;i<posAttr.count;i++){
+      v.fromBufferAttribute(posAttr,i);
+      var n=v.clone().normalize();
+      var wx=n.x+warp*nz.fbm(n.y*2.1+5,n.z*2.1,n.x*2.1,3);
+      var wy=n.y+warp*nz.fbm(n.z*2.1,n.x*2.1+9,n.y*2.1,3);
+      var wz=n.z+warp*nz.fbm(n.x*2.1,n.y*2.1+3,n.z*2.1,3);
+      var h=nz.fbm(wx*f0,wy*f0,wz*f0,6)*0.5+0.5;      /* 0..1 */
+      var ridge=1-Math.abs(nz.fbm(wx*f0*2.6+11,wy*f0*2.6,wz*f0*2.6,4));
+      ridge=ridge*ridge;
+      var land=Math.max(0,(h-sea)/(1-sea));
+      var disp=land>0 ? amp*(Math.pow(land,1.3)+ridge*land*0.9) : -amp*0.25*(sea-h)/sea;
+      var rr=R+disp;
+      posAttr.setXYZ(i,n.x*rr,n.y*rr,n.z*rr);
+
+      /* ---- color bands ---- */
+      var lat=Math.abs(n.y);
+      var c;
+      if(h<sea-0.09)      c=pal.deep;
+      else if(h<sea)      c=hexLerp(pal.deep,pal.shallow,(h-(sea-0.09))/0.09);
+      else if(h<sea+0.02) c=pal.beach;
+      else{
+        var t=Math.min(1,(h-sea-0.02)/0.3);
+        c=hexLerp(pal.low,pal.high,t);
+        if(ridge>0.55&&t>0.25)c=hexLerp(c,pal.high,0.55);
+      }
+      var snowLine=0.72+lat*0.22;
+      if(h>snowLine||lat>0.93)c=hexLerp(c,pal.snow,Math.min(1,(h-snowLine)*6+((lat-0.93)*12>0?0.8:0)));
+      var shade=0.92+0.08*nz.noise(n.x*9,n.y*9,n.z*9);
+      colors[i*3]=Math.min(1,c[0]/255*shade);
+      colors[i*3+1]=Math.min(1,c[1]/255*shade);
+      colors[i*3+2]=Math.min(1,c[2]/255*shade);
+    }
+    geo.setAttribute("color",new THREE.BufferAttribute(colors,3));
+    geo.computeVertexNormals();
+
+    planetMesh=new THREE.Mesh(geo,new THREE.MeshStandardMaterial({
+      vertexColors:true,roughness:0.94,metalness:0.04
+    }));
+    planetGroup.add(planetMesh);
+
+    /* ---- atmosphere shell ---- */
+    var atmoGeo=new THREE.SphereGeometry(R*1.22,64,64);
+    var atmoCol=new THREE.Color(pal.atmo[0]/255,pal.atmo[1]/255,pal.atmo[2]/255);
+    atmoMesh=new THREE.Mesh(atmoGeo,new THREE.ShaderMaterial({
+      vertexShader:[
+        "varying vec3 vN;",
+        "void main(){",
+        "  vN=normalize(normalMatrix*normal);",
+        "  gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);",
+        "}"
+      ].join("\n"),
+      fragmentShader:[
+        "varying vec3 vN;",
+        "uniform vec3 uColor;",
+        "void main(){",
+        "  float i=pow(max(0.0,0.72-dot(vN,vec3(0.0,0.0,1.0))),3.0);",
+        "  gl_FragColor=vec4(uColor,1.0)*i*1.6;",
+        "}"
+      ].join("\n"),
+      uniforms:{uColor:{value:atmoCol}},
+      blending:THREE.AdditiveBlending,
+      side:THREE.BackSide,
+      transparent:true,
+      depthWrite:false
+    }));
+    planetGroup.add(atmoMesh);
+
+    /* ---- clouds ---- */
+    if(pal.cloud){
+      var cg=new THREE.SphereGeometry(R*1.045,96,96);
+      var cp=cg.attributes.position;
+      var cc=new Float32Array(cp.count*4);
+      var u=new THREE.Vector3();
+      for(var j=0;j<cp.count;j++){
+        u.fromBufferAttribute(cp,j);
+        var q=u.clone().normalize();
+        var ch=nz.fbm(q.x*2.3+31,q.y*2.3,q.z*2.3,5)*0.5+0.5;
+        var a=Math.max(0,(ch-0.5))*2.1;
+        a=a*a*(3-2*a);              /* smoothstep soft edges */
+        a=Math.min(0.72,a);
+        cc[j*4]=1;cc[j*4+1]=1;cc[j*4+2]=1;cc[j*4+3]=a;
+        var bump=1+a*0.012;
+        cp.setXYZ(j,u.x*bump,u.y*bump,u.z*bump);
+      }
+      cg.setAttribute("color",new THREE.BufferAttribute(cc,4));
+      cloudMesh=new THREE.Mesh(cg,new THREE.MeshLambertMaterial({
+        vertexColors:true,transparent:true,depthWrite:false,opacity:1
+      }));
+      planetGroup.add(cloudMesh);
+    }
+
+    rim.color.setRGB(pal.atmo[0]/255,pal.atmo[1]/255,pal.atmo[2]/255);
+    return pal;
+  }
+
+  /* ================= UI ================= */
+  var seedVal=document.getElementById("seedVal");
+  var roSeed=document.getElementById("roSeed");
+  var roRot=document.getElementById("roRot");
+  var rotSlider=document.getElementById("rotSpeed");
+  var relSlider=document.getElementById("relief");
+  var rotVal=document.getElementById("rotVal");
+  var relVal=document.getElementById("relVal");
+
+  var rotSpeed=1.0, relief=1.0, currentPal=null;
+
+  function fmtSeed(s){
+    var h=("000000"+s.toString(16).toUpperCase()).slice(-6);
+    return "0x"+h;
+  }
+
+  function regenerate(newSeed){
+    if(newSeed)SEED=(Math.random()*0xffffff)|0;
+    currentPal=buildPlanet(SEED,relief);
+    seedVal.textContent=fmtSeed(SEED);
+    roSeed.textContent=fmtSeed(SEED);
+  }
+
+  rotSlider.addEventListener("input",function(){
+    rotSpeed=rotSlider.value/100;
+    rotVal.textContent=rotSpeed.toFixed(1);
+    roRot.textContent=rotSpeed.toFixed(2);
+  });
+  var relTimer=null;
+  relSlider.addEventListener("input",function(){
+    relief=relSlider.value/100;
+    relVal.textContent=relief.toFixed(1);
+    if(relTimer)return;
+    relTimer=setTimeout(function(){relTimer=null;regenerate(false);},140);
+  });
+  document.getElementById("regen").addEventListener("click",function(){regenerate(true);});
+  document.getElementById("save").addEventListener("click",function(){
+    renderer.render(scene,camera);
+    var a=document.createElement("a");
+    a.download="planet-forge-"+fmtSeed(SEED)+".png";
+    a.href=renderer.domElement.toDataURL("image/png");
+    a.click();
+  });
+
+  /* subtle parallax with pointer */
+  var tx=0,ty=0;
+  window.addEventListener("pointermove",function(e){
+    tx=(e.clientX/window.innerWidth-0.5)*0.35;
+    ty=(e.clientY/window.innerHeight-0.5)*0.22;
+  });
+
+  /* ================= resize + loop ================= */
+  function resize(){
+    var w=window.innerWidth,h=window.innerHeight;
+    renderer.setSize(w,h);
+    camera.aspect=w/h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize",resize);
+  resize();
+
+  regenerate(false);
+
+  var last=performance.now();
+  function loop(now){
+    var dt=Math.min(0.05,(now-last)/1000);
+    last=now;
+    planetGroup.rotation.y+=dt*0.22*rotSpeed;
+    if(cloudMesh)cloudMesh.rotation.y+=dt*0.05*rotSpeed;
+    camera.position.x+=(tx-camera.position.x)*0.04;
+    camera.position.y+=(0.55-ty-camera.position.y)*0.04;
+    camera.lookAt(0,0,0);
+    renderer.render(scene,camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

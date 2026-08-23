@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PromptBench — A/B 提示词对比台</title>
+<style>
+:root{
+  --bg:#0E0F13; --panel:#15171F; --panel2:#1B1E28; --line:#262A36;
+  --ink:#E8E4DA; --dim:#8B8FA0; --faint:#565B6B;
+  --a:#FFB547; --b:#6FE3C1; --bad:#F0644F;
+  --mono:"SF Mono","Menlo","Consolas",monospace;
+  --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+  --serif:"Didot","Bodoni MT","Georgia","Songti SC",serif;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);min-height:100vh;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--a);color:#111}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(1200px 600px at 80% -10%,rgba(255,181,71,.06),transparent 60%),
+             radial-gradient(900px 500px at 10% 110%,rgba(111,227,193,.05),transparent 60%)}
+.wrap{position:relative;z-index:1;max-width:1240px;margin:0 auto;padding:0 clamp(16px,4vw,48px) 80px}
+
+/* header */
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;
+  padding:28px 0 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tag{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--dim);text-transform:uppercase}
+.tag b{color:var(--a);font-weight:400}
+.title-row{display:flex;align-items:flex-end;gap:24px;padding:34px 0 8px;flex-wrap:wrap}
+h1{font-family:var(--serif);font-weight:400;font-size:clamp(40px,6.4vw,84px);line-height:.98;letter-spacing:-.01em}
+h1 em{font-style:italic;color:var(--a)}
+.sub{max-width:420px;color:var(--dim);font-size:14px;line-height:1.75;padding-bottom:8px}
+.sub code{font-family:var(--mono);font-size:12px;color:var(--b)}
+
+/* editors */
+.bench{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:34px}
+@media(max-width:860px){.bench{grid-template-columns:1fr}}
+.editor{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  transition:border-color .4s var(--ease),box-shadow .4s var(--ease)}
+.editor:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.ed-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;
+  border-bottom:1px solid var(--line);background:var(--panel2)}
+.ed-name{font-family:var(--mono);font-size:12px;letter-spacing:.18em;display:flex;align-items:center;gap:10px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent)}
+.ed-model{font-family:var(--mono);font-size:11px;color:var(--dim);background:none;border:1px solid var(--line);
+  border-radius:6px;padding:5px 9px;cursor:pointer;color-scheme:dark;transition:border-color .3s}
+.ed-model:hover{border-color:var(--accent)}
+textarea{width:100%;min-height:150px;background:transparent;border:none;outline:none;resize:vertical;
+  color:var(--ink);font-family:var(--mono);font-size:13px;line-height:1.8;padding:16px;caret-color:var(--accent)}
+.sliders{padding:6px 16px 16px;display:grid;gap:12px}
+.sl{display:grid;grid-template-columns:92px 1fr 52px;align-items:center;gap:12px;font-family:var(--mono);font-size:11px}
+.sl label{color:var(--dim);letter-spacing:.08em}
+.sl output{text-align:right;color:var(--accent)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:linear-gradient(to right,var(--accent) var(--fill,50%),var(--line) var(--fill,50%));border-radius:2px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-6px;border-radius:50%;
+  background:var(--bg);border:2px solid var(--accent);transition:transform .2s var(--ease)}
+input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.25)}
+input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+input[type=range]::-moz-range-progress{height:2px;background:var(--accent)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--bg);border:2px solid var(--accent)}
+
+/* controls */
+.controls{display:flex;align-items:center;gap:14px;margin:30px 0 8px;flex-wrap:wrap}
+.btn{font-family:var(--mono);font-size:13px;letter-spacing:.14em;padding:15px 30px;border-radius:8px;cursor:pointer;
+  border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+  transition:transform .25s var(--ease),border-color .25s,background .25s,box-shadow .25s}
+.btn:hover{transform:translateY(-2px);border-color:var(--faint)}
+.btn:active{transform:translateY(0)}
+.btn.primary{background:var(--ink);color:#101116;border-color:var(--ink);font-weight:600}
+.btn.primary:hover{box-shadow:0 8px 30px rgba(232,228,218,.18)}
+.btn.primary:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.hint{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:.08em}
+.hint kbd{border:1px solid var(--line);border-radius:4px;padding:1px 6px;color:var(--dim)}
+
+/* output */
+.arena{margin-top:22px}
+.arena.hidden{display:none}
+.out-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:860px){.out-grid{grid-template-columns:1fr}}
+.out{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;position:relative}
+.out.win{border-color:var(--accent)}
+.out-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line);
+  font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:var(--dim)}
+.badge{font-size:10px;padding:3px 9px;border-radius:20px;border:1px solid var(--accent);color:var(--accent);
+  opacity:0;transform:translateY(4px);transition:all .5s var(--ease)}
+.out.win .badge{opacity:1;transform:none}
+.resp{padding:18px 16px 22px;font-size:14px;line-height:1.95;min-height:190px;color:#D6D2C8;white-space:pre-wrap}
+.resp .cur{display:inline-block;width:8px;height:15px;background:var(--accent);vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line)}
+.metric{padding:12px 10px 14px;text-align:center;border-right:1px solid var(--line)}
+.metric:last-child{border-right:none}
+.metric .v{font-family:var(--mono);font-size:17px;color:var(--ink)}
+.metric .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--faint);margin-top:4px;text-transform:uppercase}
+.scorebar{height:3px;background:var(--line)}
+.scorebar i{display:block;height:100%;width:0;background:var(--accent);transition:width 1.2s var(--ease)}
+
+/* fingerprint */
+.finger{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:22px 20px}
+.finger h3{font-family:var(--mono);font-size:11px;letter-spacing:.24em;color:var(--dim);font-weight:400;margin-bottom:18px;text-transform:uppercase}
+.f-rows{display:grid;gap:14px}
+.f-row{display:grid;grid-template-columns:110px 1fr;gap:16px;align-items:center;font-size:12px;color:var(--dim)}
+@media(max-width:640px){.f-row{grid-template-columns:84px 1fr}}
+.f-bars{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.f-bar{height:5px;background:var(--line);border-radius:3px;overflow:hidden;position:relative}
+.f-bar i{position:absolute;inset:0;width:0;transition:width 1.1s var(--ease)}
+.f-bar.a i{background:var(--a)} .f-bar.b i{background:var(--b)}
+.verdict{margin-top:20px;padding-top:16px;border-top:1px dashed var(--line);font-size:13.5px;line-height:1.9;color:var(--dim)}
+.verdict b{color:var(--ink);font-weight:600}
+footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;
+  font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--faint);flex-wrap:wrap;gap:8px}
+.fade-in{animation:fadeUp .7s var(--ease) both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="tag"><b>PROMPTBENCH</b> — AGENT DEMOS / 01</div>
+    <div class="tag">A/B PROMPT LAB · SIMULATED RUNS</div>
+  </header>
+
+  <div class="title-row fade-in">
+    <h1>提示词<em>对比台</em></h1>
+    <p class="sub">同一个任务，两种写法。左右编辑提示词、调节采样参数，一次运行看两条输出的风格指纹与评分差异——把「这个 prompt 更好」从感觉变成证据。输出由本地模拟引擎生成，<code>无需联网</code>。</p>
+  </div>
+
+  <div class="bench fade-in" style="animation-delay:.1s">
+    <div class="editor" style="--accent:var(--a)">
+      <div class="ed-head">
+        <div class="ed-name"><span class="dot"></span>VARIANT A</div>
+        <select class="ed-model" data-side="a">
+          <option value="kimi-k2">kimi-k2</option><option value="gpt-4o">gpt-4o</option><option value="claude-4">claude-4</option>
+        </select>
+      </div>
+      <textarea id="pa" spellcheck="false"></textarea>
+      <div class="sliders">
+        <div class="sl"><label>TEMPERATURE</label><input type="range" min="0" max="1.5" step="0.05" value="0.3" data-side="a" data-p="t"><output>0.30</output></div>
+        <div class="sl"><label>MAX TOKENS</label><input type="range" min="60" max="400" step="20" value="180" data-side="a" data-p="n"><output>180</output></div>
+      </div>
+    </div>
+    <div class="editor" style="--accent:var(--b)">
+      <div class="ed-head">
+        <div class="ed-name"><span class="dot"></span>VARIANT B</div>
+        <select class="ed-model" data-side="b">
+          <option value="kimi-k2">kimi-k2</option><option value="gpt-4o">gpt-4o</option><option value="claude-4">claude-4</option>
+        </select>
+      </div>
+      <textarea id="pb" spellcheck="false"></textarea>
+      <div class="sliders">
+        <div class="sl"><label>TEMPERATURE</label><input type="range" min="0" max="1.5" step="0.05" value="0.9" data-side="b" data-p="t"><output>0.90</output></div>
+        <div class="sl"><label>MAX TOKENS</label><input type="range" min="60" max="400" step="20" value="180" data-side="b" data-p="n"><output>180</output></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls fade-in" style="animation-delay:.18s">
+    <button class="btn primary" id="run">运行对比 →</button>
+    <button class="btn" id="dice">换一组题目</button>
+    <span class="hint">或按 <kbd>⌘</kbd>+<kbd>Enter</kbd> 运行 · 可直接改写两侧提示词</span>
+  </div>
+
+  <div class="arena hidden" id="arena">
+    <div class="out-grid">
+      <div class="out" id="outA" style="--accent:var(--a)">
+        <div class="out-head"><span>OUTPUT · A</span><span class="badge">WINNER</span></div>
+        <div class="resp" id="respA"></div>
+        <div class="scorebar"><i id="sbA"></i></div>
+        <div class="metrics">
+          <div class="metric"><div class="v" id="mAt">0</div><div class="k">tokens</div></div>
+          <div class="metric"><div class="v" id="mAl">0</div><div class="k">latency</div></div>
+          <div class="metric"><div class="v" id="mAc">0</div><div class="k">est. cost</div></div>
+          <div class="metric"><div class="v" id="mAs">0</div><div class="k">score</div></div>
+        </div>
+      </div>
+      <div class="out" id="outB" style="--accent:var(--b)">
+        <div class="out-head"><span>OUTPUT · B</span><span class="badge">WINNER</span></div>
+        <div class="resp" id="respB"></div>
+        <div class="scorebar"><i id="sbB"></i></div>
+        <div class="metrics">
+          <div class="metric"><div class="v" id="mBt">0</div><div class="k">tokens</div></div>
+          <div class="metric"><div class="v" id="mBl">0</div><div class="k">latency</div></div>
+          <div class="metric"><div class="v" id="mBc">0</div><div class="k">est. cost</div></div>
+          <div class="metric"><div class="v" id="mBs">0</div><div class="k">score</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="finger">
+      <h3>风格指纹 · Style Fingerprint</h3>
+      <div class="f-rows" id="frows"></div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+  </div>
+
+  <footer>
+    <span>PROMPTBENCH · LOCAL SIMULATION ENGINE</span>
+    <span>DESIGNED &amp; BUILT BY YU · 2026</span>
+  </footer>
+</div>
+
+<script>
+"use strict";
+/* ---------- scenarios ---------- */
+const SCENARIOS=[
+ {task:"客服退款回复",
+  a:"写一段客服回复，处理用户对物流延迟的投诉。",
+  b:"你是资深客服主管。用户订单延迟了 5 天，情绪不满。请写一段 120 字以内的回复：① 先共情道歉 ② 说明原因（暴雨导致中转延误）③ 给出补偿方案（10 元券）④ 语气真诚不套话。"},
+ {task:"代码审查意见",
+  a:"review 一下这段代码有没有问题：一个用 while 循环轮询接口的前端函数。",
+  b:"以高级前端工程师的身份审查一个 while 轮询接口的函数。按「严重/建议/可选」三档列出问题，每条注明：问题、风险、改写示例。重点关注内存泄漏、错误处理与竞态。"},
+ {task:"产品 Slogan",
+  a:"给一个白噪音睡眠 App 写几句 slogan。",
+  b:"为白噪音睡眠 App「潮汐」写 3 条中文 slogan。要求：不超过 10 字；意象来自海、夜、呼吸；避免「助眠神器」类俗词；每条附一句创作思路。"},
+ {task:"SQL 优化解释",
+  a:"解释一下这条慢 SQL 为什么慢，怎么优化。",
+  b:"你是 DBA。面对一条全表扫描的慢 SQL：① 用执行计划的术语解释瓶颈（扫描行数、回表）② 给出索引方案并说明最左前缀原理 ③ 估算优化后量级 ④ 面向初中级工程师，术语要有注释。"}
+];
+const RESP_POOL={
+ calm:[["收到反馈，我们非常重视。","经核实，本次延迟由中转环节造成。","我们已为您登记补偿，会在 24 小时内到账。","给您带来不便，十分抱歉。"],
+        ["先看问题本身。","这个实现的核心风险在于缺少退出条件。","建议改为带退避的重试机制。","附上改写后的关键片段供参考。"],
+        ["夜里，请把耳朵交给海。","让呼吸慢下来，剩下的交给潮汐。","一声浪，一夜眠。"],
+        ["从执行计划看，瓶颈在全表扫描。","优化方向是为过滤字段建立联合索引。","注意最左前缀匹配，否则索引不会生效。"]],
+ wild:[["天啊这个延迟我们也急死了！","先说结论：补偿马上安排！","我们已经拉着物流开了三轮会。","再次抱抱这位耐心的用户。"],
+        ["这段代码看得我倒吸一口凉气。","while 轮询简直是定时炸弹的亲戚。","试试指数退避，世界会美好很多。","改完记得请我喝奶茶（不是）。"],
+        ["浪把夜揉碎，撒进耳朵里。","呼吸落到第四拍，就睡着了。","今晚，让海替你值班。"],
+        ["这条 SQL 慢得像在手工翻字典。","索引一加，直接起飞三个数量级。","最左前缀是灵魂，划重点！"]]
+};
+const $=id=>document.getElementById(id);
+const state={t:{a:.3,b:.9},n:{a:180,b:180},busy:false,scenario:0};
+
+function setScenario(i){
+  state.scenario=i;
+  $("pa").value=SCENARIOS[i].a; $("pb").value=SCENARIOS[i].b;
+}
+setScenario(0);
+
+/* sliders */
+document.querySelectorAll("input[type=range]").forEach(r=>{
+  const paint=()=>{const p=(r.value-r.min)/(r.max-r.min)*100;
+    r.style.setProperty("--fill",p+"%");
+    r.nextElementSibling.textContent=(+r.value).toFixed(r.step.includes(".")?2:0);};
+  paint();
+  r.addEventListener("input",()=>{paint();state[r.dataset.p][r.dataset.side]=+r.value;});
+});
+
+/* deterministic hash rng */
+function rng(seed){let h=2166136261;for(const c of seed)h=(h^c.charCodeAt(0))*16777619>>>0;
+  return()=>{h=(h*1664525+1013904223)>>>0;return h/4294967296;};}
+
+function generate(prompt,temp,maxTok,pool){
+  const rnd=rng(prompt+temp+Math.random());
+  const src=pool[Math.floor(rnd()*pool.length)];
+  const words=[...src.join("")].length;
+  let text=src.join("\n");
+  if(temp>1.1){text=text.replace(/。/g,"！");}
+  const est=Math.min(maxTok,Math.round(words*(0.8+rnd()*0.5)));
+  return {text,est};
+}
+
+function score(prompt,temp){
+  let s=52;
+  const feats=["①","②","步骤","以内","要求","角色","你是","格式","示例","避免","档","术语"];
+  feats.forEach(f=>{if(prompt.includes(f))s+=4;});
+  s+=Math.min(12,prompt.length/18);
+  s-=Math.abs(temp-0.65)*14;               /* temperature sweet spot */
+  s+=Math.random()*6-3;
+  return Math.max(20,Math.min(99,Math.round(s)));
+}
+
+function fingerprint(text){
+  const sents=text.split(/[\n。！]/).filter(s=>s.trim().length>1);
+  const avg=sents.reduce((a,s)=>a+s.length,0)/Math.max(1,sents.length);
+  const excl=(text.match(/！/g)||[]).length, nums=(text.match(/[0-9①②③④]/g)||[]).length;
+  return {
+    "句式长度":Math.min(1,avg/28),
+    "结构密度":Math.min(1,nums/8),
+    "情感浓度":Math.min(1,excl/4+(text.includes("抱")? .3:0)),
+    "术语占比":Math.min(1,(text.match(/[A-Za-z]{3,}/g)||[]).length/6+((text.match(/索引|轮询|补偿|执行计划|意象/g)||[]).length/10))
+  };
+}
+
+function typewrite(el,text,done){
+  el.innerHTML="";const cur=document.createElement("span");cur.className="cur";
+  const node=document.createTextNode("");el.append(node,cur);
+  let i=0;(function step(){
+    if(i>=text.length){cur.remove();done&&done();return;}
+    const chunk=text.slice(i,i+(text[i]==="\n"?1:2));i+=chunk.length;
+    node.textContent+=chunk;
+    setTimeout(step,text[i-1]==="\n"?120:18+Math.random()*26);
+  })();
+}
+
+function countUp(el,to,fmt,ms){
+  const t0=performance.now();
+  (function f(t){const p=Math.min(1,(t-t0)/ms),e=1-Math.pow(1-p,3);
+    el.textContent=fmt(to*e);if(p<1)requestAnimationFrame(f);})(t0);
+}
+
+function run(){
+  if(state.busy)return;state.busy=true;$("run").disabled=true;
+  const arena=$("arena");arena.classList.remove("hidden");
+  arena.scrollIntoView({behavior:"smooth",block:"nearest"});
+  ["A","B"].forEach(s=>{$("out"+s).classList.remove("win");$("sb"+s).style.width=0;});
+  $("verdict").innerHTML="";$("frows").innerHTML="";
+
+  const sides=[
+    {k:"A",prompt:$("pa").value,t:state.t.a,n:state.n.a},
+    {k:"B",prompt:$("pb").value,t:state.t.b,n:state.n.b}
+  ];
+  const results=sides.map(s=>{
+    const pool=s.t>0.7?RESP_POOL.wild:RESP_POOL.calm;
+    const g=generate(s.prompt,s.t,s.n,pool);
+    return {...s,...g,score:score(s.prompt,s.t),
+      latency:Math.round(600+g.est*9+Math.random()*400),
+      cost:g.est*0.0000042,fp:null};
+  });
+
+  let done=0;
+  results.forEach(r=>{
+    typewrite($("resp"+r.k),r.text,()=>{
+      r.fp=fingerprint(r.text);
+      countUp($("m"+r.k+"t"),r.est,v=>Math.round(v),800);
+      countUp($("m"+r.k+"l"),r.latency,v=>Math.round(v)+"ms",800);
+      countUp($("m"+r.k+"c"),r.cost,v=>"$"+v.toFixed(4),800);
+      countUp($("m"+r.k+"s"),r.score,v=>Math.round(v),1000);
+      $("sb"+r.k).style.width=r.score+"%";
+      if(++done===2)finish(results);
+    });
+  });
+}
+
+function finish([ra,rb]){
+  const winner=ra.score>=rb.score?"A":"B";
+  $("out"+winner).classList.add("win");
+  const rows=["句式长度","结构密度","情感浓度","术语占比"].map(k=>
+    `<div class="f-row"><span>${k}</span><div class="f-bars">
+      <div class="f-bar a"><i style="width:${(ra.fp[k]*100).toFixed(0)}%"></i></div>
+      <div class="f-bar b"><i style="width:${(rb.fp[k]*100).toFixed(0)}%"></i></div></div></div>`).join("");
+  $("frows").innerHTML=rows;
+  const w=winner==="A"?ra:rb,l=winner==="A"?rb:ra;
+  const why=[];
+  if(w.prompt.length>l.prompt.length*1.4)why.push("约束更具体（角色 / 步骤 / 字数）");
+  if(Math.abs(w.t-0.65)<Math.abs(l.t-0.65))why.push("temperature 更接近任务甜区");
+  if(why.length===0)why.push("输出结构与任务贴合度更高");
+  $("verdict").innerHTML=`<b>结论：</b>Variant ${winner} 以 <b>${w.score} : ${l.score}</b> 胜出——${why.join("，")}。上方指纹图可复核：橙为 A，青为 B。`;
+  state.busy=false;$("run").disabled=false;
+}
+
+$("run").addEventListener("click",run);
+$("dice").addEventListener("click",()=>{setScenario((state.scenario+1)%SCENARIOS.length);
+  document.querySelector(".bench").animate([{opacity:.3},{opacity:1}],{duration:450,easing:"ease-out"});});
+document.addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key==="Enter"){e.preventDefault();run();}});
+</script>
+</body>
+</html>

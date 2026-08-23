@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MNEMOSYNE — Agent 记忆系统交互图解</title>
+<style>
+  :root{
+    --ink-bg:#12101D; --panel:#181527; --line:#282443; --line2:#37315A;
+    --ink:#EDE6D6; --dim:#8B84A8; --faint:#565073;
+    --gold:#E3B341; --ice:#7AC7E3; --violet:#B48BE0; --parch:#EDE6D6;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--ink-bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow:hidden;display:flex;flex-direction:column}
+  ::selection{background:rgba(227,179,65,.25)}
+
+  header{flex:0 0 58px;display:flex;align-items:center;gap:16px;padding:0 20px;
+    border-bottom:1px solid var(--line);background:var(--panel);z-index:10}
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.12em}
+  .brand .name{font-family:var(--serif);font-size:17px;font-weight:700;letter-spacing:.14em}
+  .brand .sub{font-size:11px;color:var(--dim)}
+  .spacer{flex:1}
+  .ctl{display:flex;align-items:center;gap:10px}
+  .ctl label{font-size:9.5px;letter-spacing:.16em;color:var(--dim)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:110px;height:2px;
+    background:var(--line2);border-radius:1px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;
+    border-radius:50%;background:var(--gold);border:2px solid var(--ink-bg);
+    box-shadow:0 0 0 1px var(--gold);transition:transform .15s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--gold);border:2px solid var(--ink-bg)}
+  .ctl output{font-family:var(--mono);font-size:10.5px;color:var(--gold);width:34px}
+  .btn{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;padding:8px 15px;
+    border-radius:2px;cursor:pointer;transition:all .18s var(--ease);
+    background:transparent;color:var(--gold);border:1px solid rgba(227,179,65,.45)}
+  .btn:hover{background:rgba(227,179,65,.1);border-color:var(--gold)}
+  .btn.ghost{color:var(--dim);border-color:var(--line2)}
+  .btn.ghost:hover{color:var(--ink);border-color:var(--faint);background:var(--panel)}
+  .btn.ghost.on{color:var(--ice);border-color:rgba(122,199,227,.5);background:rgba(122,199,227,.07)}
+
+  main{flex:1;position:relative;min-height:0}
+  #cv{position:absolute;inset:0;display:block;width:100%;height:100%}
+  #tip{position:fixed;z-index:60;pointer-events:none;max-width:250px;
+    background:rgba(24,21,39,.95);border:1px solid var(--line2);border-radius:3px;
+    padding:9px 12px;font-size:11.5px;line-height:1.6;color:var(--ink);
+    opacity:0;transition:opacity .18s;backdrop-filter:blur(6px)}
+  #tip .tags{display:block;margin-top:4px;font-family:var(--mono);font-size:9.5px;color:var(--gold)}
+
+  /* bottom console */
+  #console{border-top:1px solid var(--line);background:var(--panel);padding:12px 20px 10px}
+  .console-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  #recall{
+    flex:1;min-width:180px;font-family:var(--mono);font-size:12.5px;padding:9px 14px;
+    background:var(--ink-bg);border:1px solid var(--line2);border-radius:2px;color:var(--ink);
+    outline:none;transition:all .25s var(--ease)}
+  #recall:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(227,179,65,.08)}
+  #recall::placeholder{color:var(--faint)}
+  .suggs{display:flex;gap:6px}
+  .sugg{font-family:var(--mono);font-size:10px;padding:6px 11px;border:1px solid var(--line2);
+    border-radius:20px;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s var(--ease)}
+  .sugg:hover{border-color:var(--gold);color:var(--gold)}
+  #ctx-label{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--faint);
+    margin:10px 0 7px}
+  #ctxbar{display:flex;gap:8px;min-height:30px;align-items:center;flex-wrap:wrap}
+  #ctxbar .empty{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+  .ctx-chip{font-size:11px;padding:5px 12px;border-radius:2px;color:var(--ink-bg);
+    background:var(--gold);font-weight:500;animation:chipIn .45s var(--ease);
+    max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @keyframes chipIn{from{opacity:0;transform:translateY(8px) scale(.9)}}
+
+  footer{flex:0 0 30px;display:flex;align-items:center;padding:0 20px;gap:18px;
+    border-top:1px solid var(--line);background:var(--panel);
+    font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em}
+  footer .sig{margin-left:auto}
+  @media (max-width:760px){
+    .brand .sub{display:none}
+    header{padding:0 12px;gap:10px}
+    .ctl label{display:none}
+    #encode{display:none}
+    input[type=range]{width:70px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·05</span>
+    <span class="name">MNEMOSYNE</span>
+    <span class="sub">Agent 记忆系统交互图解</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="ctl">
+    <label>遗忘速率</label>
+    <input type="range" id="decay" min="0.3" max="3" step="0.1" value="1">
+    <output id="decay-val">1.0×</output>
+  </div>
+  <button class="btn ghost on" id="auto">AUTO 编码</button>
+  <button class="btn" id="encode">＋ 编码一条记忆</button>
+</header>
+
+<main>
+  <canvas id="cv"></canvas>
+</main>
+
+<div id="tip"></div>
+
+<div id="console">
+  <div class="console-row">
+    <input id="recall" placeholder="输入检索词，唤醒相关记忆… (试试：巴黎)" spellcheck="false">
+    <button class="btn" id="recall-btn">检索 RECALL</button>
+    <div class="suggs" id="suggs"></div>
+  </div>
+  <div id="ctx-label">CONTEXT WINDOW · 上下文窗口</div>
+  <div id="ctxbar"><span class="empty">检索到的记忆会被注入这里，成为 Agent 的上下文。</span></div>
+</div>
+
+<footer>
+  <div>工作记忆(7 槽) → 情景记忆(会衰减) → 语义记忆(结晶永存) · 悬停粒子查看记忆内容</div>
+  <div class="sig">ATELIER M · 2026</div>
+</footer>
+
+<script>
+'use strict';
+/* ================= memory pool ================= */
+const POOL = [
+  {text:'用户偏好简洁直接的回复', tags:['偏好','用户']},
+  {text:'项目截止日 2026-09-01', tags:['项目','日期','工作']},
+  {text:'在卢森堡公园聊到神经可塑性', tags:['巴黎','对话']},
+  {text:'喜欢苏格拉底式提问', tags:['偏好','对话']},
+  {text:'猫名叫 Mochi，今年三岁', tags:['宠物','家庭']},
+  {text:'周五站会改到 10:30', tags:['日程','工作']},
+  {text:'对花生严重过敏', tags:['健康','重要']},
+  {text:'正在学法语，约 B1 水平', tags:['语言','学习']},
+  {text:'咖啡因只在上午摄入', tags:['习惯','健康']},
+  {text:'偏爱 Vim 键位与暗色主题', tags:['工具','偏好']},
+  {text:'住在巴黎 11 区', tags:['巴黎','地址']},
+  {text:'母亲是钢琴教师', tags:['家庭','个人']},
+  {text:'跑步目标：半马破二', tags:['运动','目标','健康']},
+  {text:'正在读《追忆似水年华》', tags:['阅读','巴黎']},
+  {text:'团队用 Linear 管理任务', tags:['工作','工具']},
+  {text:'不喜欢超过 30 分钟的会议', tags:['偏好','工作']},
+  {text:'生日是 3 月 14 日', tags:['日期','个人']},
+  {text:'梦想是在左岸开一间小书店', tags:['巴黎','梦想']},
+];
+const ZONE_COLOR = {working:'#7AC7E3', episodic:'#EDE6D6', semantic:'#E3B341'};
+
+/* ================= canvas & layout ================= */
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let W=0, H=0, DPR=1;
+function resize(){
+  DPR = window.devicePixelRatio||1;
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W*DPR; cv.height = H*DPR;
+}
+window.addEventListener('resize', resize);
+resize();
+
+const WORK_SLOTS = 7;
+const L = () => ({
+  working: {cx: W*0.155, cy: H*0.46, r: Math.min(W,H)*0.155},
+  episodic:{x: W*0.315, y: H*0.14, w: W*0.30, h: H*0.62},
+  semantic:{x: W*0.665, y: H*0.13, w: W*0.295, h: H*0.62},
+  spawn:   {x: W*0.035, y: H*0.90},
+});
+const slotPos = i => {
+  const z = L().working, a = -Math.PI/2 + i/WORK_SLOTS*Math.PI*2;
+  return {x: z.cx + Math.cos(a)*z.r, y: z.cy + Math.sin(a)*z.r};
+};
+const latticePos = i => {
+  const z = L().semantic, cols = 4, gx = z.w/(cols+0.2), gy = 46;
+  const col = i%cols, row = (i/cols|0);
+  return {x: z.x + gx*(col+0.7) + (row%2?gx/2:0), y: z.y + 30 + row*gy};
+};
+const epiPoint = p => {
+  const z = L().episodic;
+  return {x: z.x + p.nx*z.w, y: z.y + p.ny*z.h};
+};
+
+/* ================= particles ================= */
+let particles = [];
+let semCount = 0, poolIdx = 0;
+const takenSlots = () => new Set(particles.filter(p=>p.zone==='working'||p.state==='incoming').map(p=>p.slot));
+function freeSlot(){
+  const t = takenSlots();
+  for(let i=0;i<WORK_SLOTS;i++) if(!t.has(i)) return i;
+  return -1;
+}
+function encode(auto){
+  const mem = POOL[poolIdx++ % POOL.length];
+  let slot = freeSlot();
+  if(slot === -1){
+    /* evict oldest working memory */
+    const ws = particles.filter(p=>p.zone==='working').sort((a,b)=>a.born-b.born);
+    if(ws.length){ ws[0].state='fading'; ws[0].fade=1; ws[0].zone=null; }
+    slot = freeSlot();
+    if(slot === -1) return;
+  }
+  const s = L().spawn;
+  particles.push({
+    mem, zone:'working', state:'incoming', slot,
+    x:s.x, y:s.y, fromX:s.x, fromY:s.y, t:0, dur:1.1,
+    born:performance.now(), dwell:9+Math.random()*6,
+    strength:1, nx:0.1+Math.random()*0.8, ny:0.1+Math.random()*0.8,
+    driftA:Math.random()*7, glow:0, fade:1, semIdx:-1,
+  });
+}
+
+/* ================= recall ================= */
+const ctxbar = document.getElementById('ctxbar');
+let echoes = []; // {fromFn, t, mem}
+function recall(q){
+  q = q.trim().toLowerCase();
+  if(!q) return;
+  const matches = particles.filter(p=>
+    p.zone && (p.mem.text.toLowerCase().includes(q) ||
+    p.mem.tags.some(t=>t.toLowerCase().includes(q))));
+  matches.forEach((p,i)=>{
+    p.glow = 1;
+    setTimeout(()=>echoes.push({p, t:0}), i*130);
+  });
+  if(!matches.length){
+    ctxbar.querySelector('.empty')?.remove();
+    const c = document.createElement('span');
+    c.className = 'ctx-chip';
+    c.style.background = 'var(--line2)'; c.style.color = 'var(--dim)';
+    c.textContent = '没有关于「'+q+'」的记忆';
+    ctxbar.appendChild(c);
+    trimCtx();
+  }
+}
+function trimCtx(){
+  while(ctxbar.children.length > 6) ctxbar.removeChild(ctxbar.firstChild);
+}
+function echoArrive(mem){
+  ctxbar.querySelector('.empty')?.remove();
+  const c = document.createElement('span');
+  c.className = 'ctx-chip';
+  c.textContent = mem.text;
+  ctxbar.appendChild(c);
+  trimCtx();
+}
+document.getElementById('recall-btn').onclick = ()=>recall(document.getElementById('recall').value);
+document.getElementById('recall').addEventListener('keydown', e=>{
+  if(e.key==='Enter') recall(e.target.value);
+});
+const SUGGS = ['巴黎','偏好','工作','健康'];
+const suggsEl = document.getElementById('suggs');
+SUGGS.forEach(s=>{
+  const b = document.createElement('button');
+  b.className = 'sugg'; b.textContent = s;
+  b.onclick = ()=>{ document.getElementById('recall').value = s; recall(s); };
+  suggsEl.appendChild(b);
+});
+
+/* ================= controls ================= */
+let decayRate = 1, autoOn = true;
+document.getElementById('decay').addEventListener('input', e=>{
+  decayRate = +e.target.value;
+  document.getElementById('decay-val').textContent = decayRate.toFixed(1)+'×';
+});
+document.getElementById('encode').onclick = ()=>encode(false);
+document.getElementById('auto').onclick = e=>{
+  autoOn = !autoOn;
+  e.target.classList.toggle('on', autoOn);
+};
+
+/* ================= hover tooltip ================= */
+const tip = document.getElementById('tip');
+let mouse = {x:-1, y:-1}, hoverP = null;
+cv.addEventListener('mousemove', e=>{
+  const r = cv.getBoundingClientRect();
+  mouse = {x:e.clientX-r.left, y:e.clientY-r.top, cx:e.clientX, cy:e.clientY};
+});
+cv.addEventListener('mouseleave', ()=>{ mouse={x:-1,y:-1}; hoverP=null; tip.style.opacity=0; });
+
+/* ================= simulation ================= */
+function step(dt, now){
+  particles.forEach(p=>{
+    p.glow = Math.max(0, p.glow - dt*0.8);
+    switch(p.state){
+      case 'incoming': case 'toEpisodic': case 'toSemantic': {
+        p.t += dt/p.dur;
+        const t = Math.min(1, p.t), e = t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+        const target = p.state==='incoming' ? slotPos(p.slot)
+          : p.state==='toEpisodic' ? epiPoint(p)
+          : latticePos(p.semIdx);
+        /* gentle arc */
+        const mx = (p.fromX+target.x)/2, my = Math.min(p.fromY,target.y)-46;
+        const u = 1-e;
+        p.x = u*u*p.fromX + 2*u*e*mx + e*e*target.x;
+        p.y = u*u*p.fromY + 2*u*e*my + e*e*target.y;
+        if(t>=1){
+          if(p.state==='incoming'){ p.state='working'; p.born=now; }
+          else if(p.state==='toEpisodic') p.state='episodic';
+          else { p.state='semantic'; }
+        }
+        break;
+      }
+      case 'working': {
+        const s = slotPos(p.slot);
+        p.x = s.x; p.y = s.y;
+        if(now - p.born > p.dwell*1000){
+          if(Math.random() < 0.62){
+            p.state='toEpisodic'; p.zone='episodic';
+            p.fromX=p.x; p.fromY=p.y; p.t=0; p.dur=1.4;
+            p.strength = 0.55+Math.random()*0.4;
+          } else { p.state='fading'; p.zone=null; }
+        }
+        break;
+      }
+      case 'episodic': {
+        p.driftA += dt*0.35;
+        p.nx += Math.cos(p.driftA)*dt*0.008;
+        p.ny += Math.sin(p.driftA*0.8)*dt*0.008;
+        p.nx = Math.min(0.96, Math.max(0.04, p.nx));
+        p.ny = Math.min(0.94, Math.max(0.06, p.ny));
+        const pt = epiPoint(p); p.x=pt.x; p.y=pt.y;
+        p.strength -= dt*0.022*decayRate;
+        if(p.strength < 0.14){ p.state='fading'; p.zone=null; }
+        else if(p.strength > 0.5 && Math.random() < dt*0.05){
+          p.state='toSemantic'; p.zone='semantic';
+          p.semIdx = semCount++;
+          p.fromX=p.x; p.fromY=p.y; p.t=0; p.dur=1.6;
+        }
+        break;
+      }
+      case 'semantic': {
+        const s = latticePos(p.semIdx);
+        p.x = s.x; p.y = s.y;
+        break;
+      }
+      case 'fading': {
+        p.fade -= dt*0.9;
+        break;
+      }
+    }
+  });
+  particles = particles.filter(p=>p.fade > 0);
+
+  echoes.forEach(e=>{ e.t += dt/1.15; });
+  const arrived = echoes.filter(e=>e.t>=1);
+  arrived.forEach(e=>echoArrive(e.p.mem));
+  echoes = echoes.filter(e=>e.t<1);
+}
+
+/* ================= drawing ================= */
+const dust = [...Array(46)].map(()=>({x:Math.random(),y:Math.random(),s:Math.random()}));
+function drawZoneLabels(){
+  ctx.font = '600 10px "SF Mono",Menlo,monospace';
+  ctx.textAlign = 'center';
+  const zones = L();
+  /* separators */
+  ctx.strokeStyle = 'rgba(40,36,67,.9)';
+  ctx.setLineDash([2,5]);
+  [W*0.27, W*0.63].forEach(x=>{
+    ctx.beginPath(); ctx.moveTo(x, H*0.08); ctx.lineTo(x, H*0.84); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#8B84A8';
+  ctx.fillText('工作记忆', W*0.155, H*0.085);
+  ctx.fillStyle = '#565073';
+  ctx.font = '9px "SF Mono",Menlo,monospace';
+  ctx.fillText('WORKING · 7 SLOTS', W*0.155, H*0.085+14);
+  ctx.font = '600 10px "SF Mono",Menlo,monospace';
+  ctx.fillStyle = '#8B84A8';
+  ctx.fillText('情景记忆', W*0.315+W*0.15, H*0.085);
+  ctx.font = '9px "SF Mono",Menlo,monospace';
+  ctx.fillStyle = '#565073';
+  ctx.fillText('EPISODIC · DECAYS', W*0.315+W*0.15, H*0.085+14);
+  ctx.font = '600 10px "SF Mono",Menlo,monospace';
+  ctx.fillStyle = '#8B84A8';
+  ctx.fillText('语义记忆', W*0.665+W*0.1475, H*0.085);
+  ctx.font = '9px "SF Mono",Menlo,monospace';
+  ctx.fillStyle = '#565073';
+  ctx.fillText('SEMANTIC · CRYSTALLIZED', W*0.665+W*0.1475, H*0.085+14);
+  ctx.textAlign = 'left';
+  /* working ring + slots */
+  const z = zones.working;
+  ctx.beginPath(); ctx.arc(z.cx, z.cy, z.r, 0, 7);
+  ctx.strokeStyle = 'rgba(122,199,227,.14)'; ctx.lineWidth = 1; ctx.stroke();
+  for(let i=0;i<WORK_SLOTS;i++){
+    const s = slotPos(i);
+    ctx.beginPath(); ctx.arc(s.x, s.y, 7, 0, 7);
+    ctx.strokeStyle = 'rgba(122,199,227,.22)'; ctx.stroke();
+  }
+  /* episodic boundary */
+  const e = zones.episodic;
+  ctx.strokeStyle = 'rgba(237,230,214,.08)';
+  ctx.strokeRect(e.x, e.y, e.w, e.h);
+  /* semantic lattice placeholder */
+  const s2 = zones.semantic;
+  ctx.strokeStyle = 'rgba(227,179,65,.08)';
+  ctx.strokeRect(s2.x, s2.y, s2.w, s2.h);
+}
+function draw(now){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  /* dust */
+  dust.forEach((d,i)=>{
+    d.x += 0.00006*(i%3+1); if(d.x>1) d.x=0;
+    ctx.beginPath();
+    ctx.arc(d.x*W, d.y*H, d.s*1.1+0.3, 0, 7);
+    ctx.fillStyle = 'rgba(139,132,168,'+(0.10+d.s*0.12)+')';
+    ctx.fill();
+  });
+  drawZoneLabels();
+
+  /* recall echo arcs */
+  const ctxRect = ctxbar.getBoundingClientRect();
+  const cvRect = cv.getBoundingClientRect();
+  const tx = ctxRect.left - cvRect.left + 40, ty = H + 6;
+  echoes.forEach(e=>{
+    const t = Math.min(1, e.t), ee = t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+    const sx = e.p.x, sy = e.p.y;
+    const mx = (sx+tx)/2, my = Math.min(sy,ty)-70;
+    const u=1-ee;
+    const x = u*u*sx + 2*u*ee*mx + ee*ee*tx;
+    const y = u*u*sy + 2*u*ee*my + ee*ee*ty;
+    /* path trail */
+    ctx.beginPath();
+    ctx.moveTo(sx,sy); ctx.quadraticCurveTo(mx,my,x,y);
+    ctx.strokeStyle = 'rgba(227,179,65,'+(0.35*(1-t))+')';
+    ctx.lineWidth = 1; ctx.stroke();
+    ctx.beginPath(); ctx.arc(x,y,2.6,0,7);
+    ctx.fillStyle = '#E3B341';
+    ctx.shadowColor = '#E3B341'; ctx.shadowBlur = 10;
+    ctx.fill(); ctx.shadowBlur = 0;
+  });
+
+  /* particles */
+  hoverP = null; let best = 16;
+  particles.forEach(p=>{
+    const col = p.state==='semantic' ? ZONE_COLOR.semantic
+      : p.zone==='episodic' ? ZONE_COLOR.episodic
+      : ZONE_COLOR.working;
+    let alpha = p.fade;
+    if(p.state==='episodic') alpha *= Math.max(0.18, p.strength);
+    const r = p.state==='semantic' ? 5 : 3.2;
+    const glowR = p.glow*10;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    if(p.glow>0 || hoverP===p){
+      ctx.shadowColor = '#E3B341'; ctx.shadowBlur = 14*p.glow + (hoverP===p?8:0);
+    }
+    if(p.state==='semantic'){
+      /* diamond crystal */
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y-r-glowR*0.2); ctx.lineTo(p.x+r, p.y);
+      ctx.lineTo(p.x, p.y+r+glowR*0.2); ctx.lineTo(p.x-r, p.y);
+      ctx.closePath();
+      ctx.fillStyle = col; ctx.fill();
+      ctx.globalAlpha = alpha*0.35;
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y-r*1.9); ctx.lineTo(p.x+r*1.9, p.y);
+      ctx.lineTo(p.x, p.y+r*1.9); ctx.lineTo(p.x-r*1.9, p.y);
+      ctx.closePath(); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.arc(p.x, p.y, r + p.glow*2, 0, 7);
+      ctx.fillStyle = col; ctx.fill();
+    }
+    ctx.restore();
+
+    /* hover detect */
+    if(mouse.x>=0){
+      const d = Math.hypot(mouse.x-p.x, mouse.y-p.y);
+      if(d < best){ best = d; hoverP = p; }
+    }
+  });
+
+  /* tooltip */
+  if(hoverP){
+    tip.innerHTML = hoverP.mem.text +
+      '<span class="tags">'+hoverP.mem.tags.map(t=>'#'+t).join(' ')+
+      ' · '+(hoverP.state==='semantic'?'已结晶':hoverP.zone==='episodic'?'强度 '+hoverP.strength.toFixed(2):'工作记忆')+'</span>';
+    tip.style.opacity = 1;
+    tip.style.left = Math.min(window.innerWidth-270, mouse.cx+14)+'px';
+    tip.style.top = (mouse.cy-20)+'px';
+    cv.style.cursor = 'pointer';
+  } else {
+    tip.style.opacity = 0;
+    cv.style.cursor = 'default';
+  }
+
+  /* counters */
+  const nw = particles.filter(p=>p.zone==='working').length;
+  const ne = particles.filter(p=>p.zone==='episodic').length;
+  const ns = particles.filter(p=>p.state==='semantic').length;
+  ctx.font = '10px "SF Mono",Menlo,monospace';
+  ctx.fillStyle = 'rgba(122,199,227,.75)';
+  ctx.fillText(nw+'/'+WORK_SLOTS, L().working.cx-10, L().working.cy+L().working.r+22);
+  ctx.fillStyle = 'rgba(237,230,214,.5)';
+  ctx.fillText(ne+' 条', L().episodic.x+8, L().episodic.y+L().episodic.h+18);
+  ctx.fillStyle = 'rgba(227,179,65,.6)';
+  ctx.fillText(ns+' 枚', L().semantic.x+8, L().semantic.y+L().semantic.h+18);
+}
+
+/* ================= main loop ================= */
+let last = performance.now(), autoTimer = 0;
+function loop(now){
+  if(cv.clientWidth>0 && (cv.clientWidth!==W || cv.clientHeight!==H)) resize();
+  const dt = Math.min(0.05, (now-last)/1000); last = now;
+  autoTimer += dt;
+  if(autoOn && autoTimer > 4.2){ autoTimer = 0; encode(true); }
+  step(dt, now);
+  draw(now);
+  requestAnimationFrame(loop);
+}
+encode(false); setTimeout(()=>encode(false), 700); setTimeout(()=>encode(false), 1400);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

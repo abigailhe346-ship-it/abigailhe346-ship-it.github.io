@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>复古终端 CRT://CHEN.DEV</title>
+<style>
+:root{
+  --bg:#070B07; --ph:#3DFF74; --ph-dim:#1E8F44; --amber:#FFB000;
+  --mono:"SF Mono",Menlo,Monaco,monospace;
+  --ease:cubic-bezier(.22,.9,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:#000;font-family:var(--mono);overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* CRT shell */
+.crt{position:fixed;inset:0;background:var(--bg);overflow:hidden;
+  display:flex;flex-direction:column}
+.crt::before{ /* scanlines */
+  content:"";position:absolute;inset:0;z-index:8;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.32) 0 1px,transparent 1px 3px)}
+.crt::after{ /* vignette + curvature */
+  content:"";position:absolute;inset:0;z-index:9;pointer-events:none;
+  background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
+.flicker{animation:flk 4s infinite steps(1)}
+@keyframes flk{0%,97%,100%{opacity:1}97.5%{opacity:.92}98%{opacity:.97}98.5%{opacity:.9}}
+.band{position:absolute;left:0;right:0;height:90px;z-index:7;pointer-events:none;
+  background:linear-gradient(transparent,rgba(255,255,255,.045),transparent);
+  animation:band 7s linear infinite}
+@keyframes band{from{top:-120px}to{top:110%}}
+
+/* status bar */
+.status{position:relative;z-index:10;display:flex;justify-content:space-between;gap:14px;
+  padding:10px 18px;font-size:10px;letter-spacing:.14em;color:var(--ph-dim);
+  border-bottom:1px dashed var(--ph-dim);text-transform:uppercase;flex:none}
+.status a{color:inherit;text-decoration:none;transition:.2s}
+.status a:hover{color:var(--ph);text-shadow:0 0 8px currentColor}
+.status .mid b{color:var(--ph);font-weight:600}
+@media(max-width:640px){.status .right{display:none}}
+
+/* screen */
+.screen{position:relative;z-index:5;flex:1;overflow-y:auto;padding:26px 26px 60px;
+  color:var(--ph);font-size:13.5px;line-height:1.75;scrollbar-width:none;cursor:text}
+.screen::-webkit-scrollbar{display:none}
+.screen *{text-shadow:0 0 6px rgba(61,255,116,.45)}
+.screen.amber,.screen.amber *{color:var(--amber);text-shadow:0 0 6px rgba(255,176,0,.45)}
+.screen.amber~.status,.crt.amber .status{color:#8a5e00;border-color:#8a5e00}
+.line{white-space:pre-wrap;word-break:break-word}
+.line.dim{opacity:.55}
+.line.err{color:#FF5F56}
+.typed-caret{display:inline-block;width:.62em;height:1.1em;background:currentColor;
+  vertical-align:-.18em;animation:blink 1s steps(1) infinite;margin-left:2px}
+@keyframes blink{50%{opacity:0}}
+a.tlink{color:inherit;border-bottom:1px dashed currentColor;text-decoration:none;transition:.2s}
+a.tlink:hover{background:var(--ph);color:#04140a;text-shadow:none}
+
+/* prompt */
+.prompt-line{display:flex;align-items:baseline;gap:0;margin-top:2px}
+.ps1{color:var(--ph);flex:none}
+.caret{display:inline-block;width:.62em;height:1.15em;background:var(--ph);
+  vertical-align:-.2em;margin-left:1px;animation:blink .9s steps(1) infinite;
+  box-shadow:0 0 10px var(--ph)}
+#cmd{position:fixed;opacity:0;pointer-events:none;top:0;left:0}
+
+/* power off animation */
+.crt.off .tube{animation:off .5s var(--ease) forwards}
+@keyframes off{
+  0%{transform:scaleY(1);filter:brightness(1)}
+  55%{transform:scaleY(.006);filter:brightness(3)}
+  100%{transform:scaleY(.006) scaleX(0);filter:brightness(6)}}
+.tube{position:absolute;inset:0;display:flex;flex-direction:column;transform-origin:center}
+
+/* matrix overlay */
+#mx{position:fixed;inset:0;z-index:6;pointer-events:none;opacity:0;transition:opacity .4s}
+#mx.on{opacity:1}
+
+@media(max-width:640px){.screen{padding:18px 14px 50px;font-size:12.5px}}
+</style>
+</head>
+<body>
+<div class="crt" id="crt">
+  <div class="tube" id="tube">
+    <div class="band"></div>
+    <header class="status flicker">
+      <span><a href="../../../index.html#work">[ESC] 返回总目</a></span>
+      <span class="mid"><b>№ 32 · CRT://CHEN.DEV</b> — 复古终端个人站 · TTY1 · 80×25</span>
+      <span class="right">PHOSPHOR P1 · 60HZ · MEM 640K OK</span>
+    </header>
+    <main class="screen" id="screen">
+      <div id="out"></div>
+      <div class="prompt-line" id="promptLine" style="display:none">
+        <span class="ps1" id="ps1">visitor@chen:~$&nbsp;</span><span id="echo"></span><span class="caret"></span>
+      </div>
+    </main>
+  </div>
+</div>
+<canvas id="mx"></canvas>
+<input id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="terminal input">
+
+<script>
+const out=document.getElementById('out'),screen_=document.getElementById('screen'),
+  promptLine=document.getElementById('promptLine'),echo=document.getElementById('echo'),
+  cmd=document.getElementById('cmd'),crt=document.getElementById('crt');
+
+/* ---------- typewriter queue ---------- */
+let queue=[],typing=false;
+function print(text,cls,speed){
+  queue.push({text,cls:cls||'',speed:speed==null?6:speed});
+  if(!typing)next();
+}
+function next(){
+  const item=queue.shift();
+  if(!item){typing=false;showPrompt();return}
+  typing=true;
+  const div=document.createElement('div');
+  div.className='line '+item.cls;out.appendChild(div);
+  scroll();
+  if(item.speed===0){div.innerHTML=item.text;next();return}
+  let i=0;
+  const plain=item.text;
+  (function step(){
+    const n=1+(Math.random()*2|0);
+    i=Math.min(plain.length,i+n);
+    div.textContent=plain.slice(0,i);
+    scroll();
+    if(i<plain.length)setTimeout(step,item.speed+Math.random()*14);
+    else setTimeout(next,60);
+  })();
+}
+function instant(html,cls){
+  const div=document.createElement('div');
+  div.className='line '+(cls||'');div.innerHTML=html;out.appendChild(div);scroll();
+}
+function scroll(){screen_.scrollTop=screen_.scrollHeight}
+
+/* ---------- content ---------- */
+const BANNER=
+"   ██████╗██╗  ██╗███████╗███╗   ██╗\n"+
+"  ██╔════╝██║  ██║██╔════╝████╗  ██║\n"+
+"  ██║     ███████║█████╗  ██╔██╗ ██║\n"+
+"  ██║     ██╔══██║██╔══╝  ██║╚██╗██║\n"+
+"  ╚██████╗██║  ██║███████╗██║ ╚████║\n"+
+"   ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝";
+const HELP=[
+"可用命令 COMMANDS:",
+"  help        显示本帮助",
+"  about       关于我 — 谁在敲这台机器",
+"  works       作品列表 · selected works",
+"  skills      技能树",
+"  contact     联系方式",
+"  theme amber | green   切换荧光粉颜色",
+"  matrix      让代码下雨（10 秒）",
+"  banner      重印 ASCII 横幅",
+"  power       关机……再按一次屏幕任意处唤醒",
+"  clear       清屏",
+"",
+"提示：按 ↑ / ↓ 翻阅历史命令。"].join("\n");
+
+const CMDS={
+  help(){print(HELP,'',0)},
+  about(){
+    print("NAME  : 陈末 CHEN MO\nROLE  : 创意开发者 / Creative Technologist\nBASE  : 杭州 · 远程友好\n\n白天写界面，夜里写让界面活过来的那部分。\n相信终端是最诚实的 UI——没有阴影可以藏bug，\n也没有圆角可以掩饰懒惰。这台机器 24 小时开机，欢迎常来。",'',8);
+  },
+  works(){
+    instant("SELECTED WORKS ─────────────────────────");
+    print(" [01] 玻璃拟态系统 LUMEN-OS ......... <a class='tlink' href='../glass-os/'>open</a>\n [02] 新粗野潮牌 RUCKUS ............. <a class='tlink' href='../neubrutal/'>open</a>\n [03] 极繁拼贴 COLLAGE-9000 ......... <a class='tlink' href='../maximal-collage/'>open</a>\n [04] 夜间温室 NIGHT CONSERVATORY ... <a class='tlink' href='../botanical-garden/'>open</a>\n [05] 更多 → 输入 contact 索取完整索引",'',0);
+  },
+  skills(){
+    const bar=(n)=>'█'.repeat(n)+'░'.repeat(10-n);
+    print("TYPESCRIPT  "+bar(9)+" 90%\nCANVAS/GL   "+bar(8)+" 80%\nCSS 动效    "+bar(9)+" 92%\nTHREE.JS    "+bar(7)+" 70%\nDESIGN SYS  "+bar(8)+" 84%\n泡咖啡      "+bar(6)+" 60%  ← 仍在调试",'',10);
+  },
+  contact(){
+    print("MAIL  : hello@chen.dev\nGIT   : github.com/chenmo-tty\n信条  : 回复不超过 24 小时，除非在爬山。",'',8);
+  },
+  banner(){print(BANNER,'',1)},
+  clear(){out.innerHTML=''},
+  theme(arg){
+    if(arg==='amber'){screen_.classList.add('amber');print("荧光粉已切换 → AMBER P3。眼睛舒服多了，对吧？",'',6)}
+    else if(arg==='green'){screen_.classList.remove('amber');print("荧光粉已切换 → GREEN P1。经典永不过时。",'',6)}
+    else print("用法: theme amber | green",'err',0);
+  },
+  matrix(){rain();print("正在接入母体…… 10 秒后自动断开。",'dim',6)},
+  power(){
+    print("正在关机…",'dim',0);
+    setTimeout(()=>{crt.classList.add('off');
+      const wake=()=>{crt.classList.remove('off');removeEventListener('pointerdown',wake);
+        print("电源恢复。640K 内存依然够用。",'dim',6)};
+      setTimeout(()=>addEventListener('pointerdown',wake),700);
+    },500);
+  }
+};
+
+/* ---------- input ---------- */
+let hist=[],hi=-1;
+function showPrompt(){promptLine.style.display='flex';cmd.focus()}
+screen_.addEventListener('click',()=>cmd.focus());
+document.addEventListener('keydown',e=>{if(document.activeElement!==cmd)cmd.focus()});
+cmd.addEventListener('input',()=>{echo.textContent=cmd.value;scroll()});
+cmd.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    const v=cmd.value.trim();
+    instant(document.getElementById('ps1').textContent.replace(/&nbsp;/g,' ')+' '+v);
+    cmd.value='';echo.textContent='';
+    if(v){hist.push(v);hi=hist.length;
+      const [c,...rest]=v.split(/\s+/);
+      const fn=CMDS[c.toLowerCase()];
+      promptLine.style.display='none';
+      if(fn)fn(rest.join(' '));
+      else print("command not found: "+c+"  — 输入 help 查看可用命令",'err',0);
+      if(c.toLowerCase()==='clear')showPrompt();
+    }
+    scroll();
+  }else if(e.key==='ArrowUp'){e.preventDefault();
+    if(hi>0){hi--;cmd.value=hist[hi]||'';echo.textContent=cmd.value}
+  }else if(e.key==='ArrowDown'){e.preventDefault();
+    if(hi<hist.length-1){hi++;cmd.value=hist[hi]}else{hi=hist.length;cmd.value=''}
+    echo.textContent=cmd.value;
+  }
+});
+
+/* ---------- matrix rain ---------- */
+const mx=document.getElementById('mx'),mc=mx.getContext('2d');
+let mxOn=false;
+function rain(){
+  mxOn=true;mx.classList.add('on');
+  mx.width=innerWidth;mx.height=innerHeight;
+  const cols=Math.floor(mx.width/16),drops=Array(cols).fill(0).map(()=>Math.random()*-40);
+  const chars='アイウエオ01<>/{}$#';
+  let frames=0;
+  (function loop(){
+    if(!mxOn)return;
+    mc.fillStyle='rgba(4,10,5,.12)';mc.fillRect(0,0,mx.width,mx.height);
+    mc.font='15px SF Mono,Menlo,monospace';
+    for(let i=0;i<cols;i++){
+      mc.fillStyle=Math.random()<.06?'#CFFFD9':'#2BE85F';
+      mc.fillText(chars[Math.random()*chars.length|0],i*16,drops[i]*16);
+      if(drops[i]*16>mx.height&&Math.random()>.975)drops[i]=0;
+      drops[i]++;
+    }
+    if(++frames<600)requestAnimationFrame(loop);
+    else{mxOn=false;mx.classList.remove('on')}
+  })();
+}
+
+/* ---------- boot sequence ---------- */
+promptLine.style.display='none';
+const BOOT=[
+"PHOSPHOR BIOS v2.11 — 自检通过",
+"MEM: 640K OK · CRT: WARM · KEYBOARD: DETECTED",
+"挂载 /dev/nostalgia ............ [OK]",
+"加载字体: 等宽是唯一美德 ....... [OK]",
+"",
+"正在进入 CHEN.DEV ——"
+];
+let bi=0;
+(function boot(){
+  if(bi<BOOT.length){instant(BOOT[bi],'dim');bi++;setTimeout(boot,260)}
+  else{
+    setTimeout(()=>{
+      print(BANNER,'',1);
+      setTimeout(()=>{
+        print("\n欢迎来到陈末的终端。这里是 1987 年想象中的未来。\n输入 help 查看命令，或者直接敲 works 看作品。\n",'',7);
+      },500);
+    },400);
+  }
+})();
+</script>
+</body>
+</html>

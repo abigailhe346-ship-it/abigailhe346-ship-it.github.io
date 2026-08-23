@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RITUAL 冲煮仪式 — 精品咖啡</title>
+<style>
+  :root{
+    --cream:#F2EBE0; --cream2:#EAE0D0; --ink:#2A1F16; --clay:#C0622F; --sage:#8A9B7C;
+    --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--cream);color:var(--ink);font-family:var(--sans);overflow-x:hidden;}
+  ::selection{background:var(--clay);color:var(--cream);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:18px 3.5vw;mix-blend-mode:multiply;}
+  .sig{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.8;}
+  .sig .no{color:var(--clay);font-weight:700;}
+  nav{display:flex;gap:26px;}
+  nav a{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-decoration:none;color:var(--ink);
+    border-bottom:1px solid transparent;padding-bottom:3px;transition:.3s;}
+  nav a:hover{border-color:var(--clay);color:var(--clay);}
+  @media(max-width:640px){nav{display:none;}}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:100vh;display:grid;grid-template-columns:1.15fr .85fr;align-items:center;padding:0 6vw;gap:4vw;position:relative;}
+  @media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:16vh;}}
+  .hero .over{font-family:var(--mono);font-size:11px;letter-spacing:.4em;color:var(--clay);margin-bottom:3.5vh;}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(46px,7vw,116px);line-height:1.06;}
+  h1 em{font-style:italic;color:var(--clay);}
+  .hero .sub{margin-top:4vh;font-size:15px;line-height:2.2;color:rgba(42,31,22,.75);max-width:46ch;}
+  .hero .meta-line{margin-top:5vh;display:flex;gap:34px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(42,31,22,.55);flex-wrap:wrap;}
+  .hero-visual{position:relative;display:flex;justify-content:center;align-items:flex-end;min-height:56vh;}
+  #cupSVG{width:min(38vw,420px);display:block;}
+  #steam{position:absolute;bottom:52%;left:50%;transform:translateX(-50%);pointer-events:none;}
+
+  /* ---------- ritual scroll story ---------- */
+  .ritual{position:relative;}
+  .ritual-grid{display:grid;grid-template-columns:1fr 1fr;max-width:1340px;margin:0 auto;padding:0 6vw;}
+  @media(max-width:900px){.ritual-grid{grid-template-columns:1fr;}}
+  .ritual-visual{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;}
+  @media(max-width:900px){.ritual-visual{height:52vh;top:0;z-index:5;background:linear-gradient(var(--cream) 82%,transparent);}}
+  #brewSVG{width:min(40vw,460px);}
+  @media(max-width:900px){#brewSVG{width:min(70vw,340px);}}
+  .ritual-steps{padding:16vh 0 20vh;}
+  .step{min-height:78vh;display:flex;flex-direction:column;justify-content:center;opacity:.16;transition:opacity .5s;
+    border-left:1px solid rgba(42,31,22,.18);padding-left:4vw;}
+  @media(max-width:900px){.step{min-height:52vh;}}
+  .step.on{opacity:1;}
+  .step .num{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--clay);}
+  .step h3{font-family:var(--serif);font-weight:400;font-size:clamp(30px,3.4vw,52px);margin:2vh 0;line-height:1.15;}
+  .step p{font-size:14.5px;line-height:2.2;color:rgba(42,31,22,.78);max-width:44ch;}
+  .step .spec{margin-top:3vh;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--sage);}
+
+  /* ---------- beans ---------- */
+  section.beans{padding:12vh 6vw;max-width:1340px;margin:0 auto;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:12px;
+    border-bottom:1px solid rgba(42,31,22,.25);padding-bottom:22px;margin-bottom:7vh;}
+  .sec-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(32px,4.4vw,62px);}
+  .sec-head h2 em{font-style:italic;color:var(--clay);}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:rgba(42,31,22,.5);}
+  .bean-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:26px;}
+  @media(max-width:1000px){.bean-grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:560px){.bean-grid{grid-template-columns:1fr;}}
+  .bean{border:1px solid rgba(42,31,22,.35);background:var(--cream);cursor:pointer;position:relative;
+    transition:transform .3s var(--ease),box-shadow .3s,background .3s;}
+  .bean:hover{transform:translateY(-6px);box-shadow:0 22px 34px -22px rgba(42,31,22,.5);}
+  .bean.sel{background:var(--ink);color:var(--cream);border-color:var(--ink);}
+  .bean.sel .bnotes,.bean.sel .bprice{color:rgba(242,235,224,.7);}
+  .bean .label{height:150px;border-bottom:1px solid rgba(42,31,22,.25);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .bean.sel .label{border-color:rgba(242,235,224,.25);}
+  .bean .label svg{width:74%;height:74%;transition:transform .5s var(--ease);}
+  .bean:hover .label svg{transform:rotate(-4deg) scale(1.06);}
+  .bean .bbody{padding:18px 20px 20px;}
+  .bean .borigin{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--clay);}
+  .bean h4{font-family:var(--serif);font-weight:400;font-size:23px;margin:8px 0 6px;}
+  .bean .bnotes{font-size:12px;line-height:1.8;color:rgba(42,31,22,.65);}
+  .bean .bprice{margin-top:14px;font-family:var(--mono);font-size:12px;letter-spacing:.08em;}
+  .bean .corner{position:absolute;top:10px;right:12px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;opacity:.5;}
+
+  /* bean detail */
+  .bean-detail{margin-top:8vh;border:1px solid rgba(42,31,22,.35);padding:5vh 4vw;display:grid;
+    grid-template-columns:.9fr 1.1fr;gap:5vw;align-items:center;background:var(--cream2);}
+  @media(max-width:800px){.bean-detail{grid-template-columns:1fr;}}
+  .bean-detail h3{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3vw,42px);line-height:1.2;}
+  .bean-detail .dsub{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--clay);margin-bottom:2vh;}
+  .bean-detail p{font-size:14px;line-height:2.2;color:rgba(42,31,22,.78);margin-top:2.5vh;max-width:52ch;}
+  .bars{display:flex;flex-direction:column;gap:16px;}
+  .bar-row{display:grid;grid-template-columns:74px 1fr 34px;align-items:center;gap:14px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;}
+  .bar-track{height:3px;background:rgba(42,31,22,.18);position:relative;}
+  .bar-fill{position:absolute;inset:0 auto 0 0;background:var(--clay);width:0;transition:width .9s var(--ease);}
+  .bar-val{text-align:right;}
+
+  /* ---------- brew calculator ---------- */
+  section.calc{padding:12vh 6vw;max-width:1340px;margin:0 auto;}
+  .calc-box{border:1px solid rgba(42,31,22,.35);display:grid;grid-template-columns:1fr 1fr;background:var(--cream2);}
+  @media(max-width:860px){.calc-box{grid-template-columns:1fr;}}
+  .calc-l{padding:6vh 4vw;border-right:1px solid rgba(42,31,22,.25);}
+  @media(max-width:860px){.calc-l{border-right:none;border-bottom:1px solid rgba(42,31,22,.25);}}
+  .ctl{margin-bottom:5vh;}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;letter-spacing:.16em;margin-bottom:14px;}
+  .ctl label b{color:var(--clay);font-weight:600;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:rgba(42,31,22,.3);outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;
+    background:var(--cream);border:2px solid var(--ink);cursor:pointer;transition:.2s;}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--clay);border-color:var(--clay);transform:scale(1.15);}
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--cream);border:2px solid var(--ink);cursor:pointer;}
+  .calc-r{padding:6vh 4vw;display:flex;flex-direction:column;justify-content:center;}
+  .readout{display:grid;grid-template-columns:1fr 1fr;gap:26px 20px;}
+  .ro{border-top:1px solid rgba(42,31,22,.3);padding-top:14px;}
+  .ro b{font-family:var(--serif);font-weight:400;font-size:clamp(26px,2.6vw,40px);display:block;}
+  .ro span{font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:rgba(42,31,22,.55);}
+  .calc-note{margin-top:4vh;font-size:12.5px;line-height:2;color:rgba(42,31,22,.6);font-style:italic;}
+
+  /* ---------- footer ---------- */
+  footer{border-top:1px solid rgba(42,31,22,.3);padding:8vh 6vw 6vh;display:flex;justify-content:space-between;
+    align-items:flex-end;flex-wrap:wrap;gap:20px;}
+  footer .fbig{font-family:var(--serif);font-weight:400;font-size:clamp(28px,3.4vw,50px);line-height:1.2;}
+  footer .fbig em{font-style:italic;color:var(--clay);}
+  footer .fine{font-family:var(--mono);font-size:10px;letter-spacing:.18em;color:rgba(42,31,22,.5);line-height:2.2;text-align:right;}
+  @media(max-width:640px){footer .fine{text-align:left;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 07</span> · <b>RITUAL 冲煮仪式</b><br>WEB DESIGN / SPECIALTY COFFEE</div>
+  <nav>
+    <a href="#ritual">冲煮 RITUAL</a>
+    <a href="#beans">豆单 BEANS</a>
+    <a href="#calc">配方 RECIPE</a>
+  </nav>
+</header>
+
+<!-- hero -->
+<div class="hero">
+  <div>
+    <div class="over">SLOW COFFEE · 手冲专门店 · 上海</div>
+    <h1>把早晨<br>煮成<em>一场仪式</em></h1>
+    <p class="sub">我们不卖"快咖啡"。每一杯都用九十二度的水、四段注水、三分半钟的等待换来。豆子每周三烘焙，养豆七天才上架——急不得，也不必急。</p>
+    <div class="meta-line">
+      <span>水温 92°C</span><span>粉水比 1:15</span><span>总时长 3′30″</span><span>今日豆 · 耶加雪菲</span>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <canvas id="steam" width="300" height="320"></canvas>
+    <svg id="cupSVG" viewBox="0 0 320 260" fill="none">
+      <ellipse cx="160" cy="238" rx="118" ry="10" stroke="#2A1F16" stroke-width="1.5" opacity=".4"/>
+      <path d="M60 110 h200 l-18 108 a22 22 0 0 1 -22 18 h-120 a22 22 0 0 1 -22 -18 z" fill="#2A1F16"/>
+      <path d="M70 122 h180 l-14 92 a16 16 0 0 1 -16 14 h-120 a16 16 0 0 1 -16 -14 z" fill="#F2EBE0"/>
+      <path id="coffeeSurf" d="M84 140 h152 l-4 26 h-144 z" fill="#C0622F"/>
+      <path d="M260 128 c34 2 44 22 40 42 c-4 21 -24 32 -46 28" stroke="#2A1F16" stroke-width="7" fill="none"/>
+      <text x="160" y="200" text-anchor="middle" font-family="monospace" font-size="12" letter-spacing="4" fill="#2A1F16">RITUAL</text>
+    </svg>
+  </div>
+</div>
+
+<!-- ritual scroll story -->
+<div class="ritual" id="ritual">
+  <div class="ritual-grid">
+    <div class="ritual-visual">
+      <svg id="brewSVG" viewBox="0 0 360 480" fill="none">
+        <!-- kettle -->
+        <g id="kettle" style="transform-origin:120px 130px;">
+          <path d="M60 96 h96 l10 68 a14 14 0 0 1 -14 12 h-72 a14 14 0 0 1 -14 -12 z" fill="#2A1F16"/>
+          <path d="M156 104 q34 6 40 34" stroke="#2A1F16" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <path d="M60 104 q-30 8 -34 30" stroke="#2A1F16" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <rect x="82" y="82" width="52" height="14" rx="6" fill="#2A1F16"/>
+        </g>
+        <!-- water stream -->
+        <path id="stream" d="M28 138 q-6 60 10 96" stroke="#8FB6C9" stroke-width="5" stroke-linecap="round" fill="none" opacity="0"/>
+        <!-- dripper -->
+        <path d="M96 236 h136 l-30 84 h-76 z" fill="#F2EBE0" stroke="#2A1F16" stroke-width="3"/>
+        <path id="slurry" d="M108 250 h112 l-8 22 h-96 z" fill="#5A3A22" opacity=".25"/>
+        <line x1="96" y1="236" x2="232" y2="236" stroke="#2A1F16" stroke-width="5"/>
+        <!-- drip -->
+        <circle id="drop" cx="164" cy="330" r="4.5" fill="#5A3A22" opacity="0"/>
+        <!-- server -->
+        <path d="M104 352 h120 l14 86 a16 16 0 0 1 -16 18 h-116 a16 16 0 0 1 -16 -18 z" fill="#F2EBE0" stroke="#2A1F16" stroke-width="3"/>
+        <path id="serverFill" d="M112 430 h104 l4 22 a10 10 0 0 1 -10 11 h-92 a10 10 0 0 1 -10 -11 z" fill="#5A3A22"/>
+        <text x="164" y="476" text-anchor="middle" font-family="monospace" font-size="10" letter-spacing="3" fill="#2A1F16" opacity=".6">POUR OVER · V60</text>
+      </svg>
+    </div>
+    <div class="ritual-steps" id="steps">
+      <div class="step" data-p="0">
+        <div class="num">STEP 01 / 闷蒸 BLOOM</div>
+        <h3>三十克水，<br>叫醒沉睡的粉层</h3>
+        <p>第一段注水只需三十克，像叫早一样轻。咖啡粉里的二氧化碳在此刻逸出，粉层鼓起一座小丘——我们叫它"汉堡"。等三十秒，让它呼吸完。</p>
+        <div class="spec">注水 30g · 等待 0:30 · 画小圈</div>
+      </div>
+      <div class="step" data-p="1">
+        <div class="num">STEP 02 / 一段注水 FIRST POUR</div>
+        <h3>由中心向外，<br>水流画出一枚硬币</h3>
+        <p>第二段注水到一百五十克。壶嘴压低，水流细而稳，从中心以一元硬币的大小慢慢画圈。水位不要超过粉墙，边缘的粉也要被温柔地照顾到。</p>
+        <div class="spec">注水至 150g · 0:30 — 1:10</div>
+      </div>
+      <div class="step" data-p="2">
+        <div class="num">STEP 03 / 二段注水 SECOND POUR</div>
+        <h3>再等水位下降<br>三分之一，继续</h3>
+        <p>等液面下降三分之一后注入第三段，至二百二十五克。这一段决定醇厚度——水流可以稍粗，搅动粉层底部，把甜感的物质都请出来。</p>
+        <div class="spec">注水至 225g · 1:10 — 1:50</div>
+      </div>
+      <div class="step" data-p="3">
+        <div class="num">STEP 04 / 滴滤完成 DRAW DOWN</div>
+        <h3>三分半钟，<br>一杯干净的早安</h3>
+        <p>液面流光、粉床平整如河床，冲煮完成。摇匀分享壶，倒进温过的杯子。先闻香，再趁热喝第一口——今天的仪式到此圆满。</p>
+        <div class="spec">总时长 3:30 · 粉床平整 · 趁热喝</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- beans -->
+<section class="beans" id="beans">
+  <div class="sec-head">
+    <h2>本周<em>豆单</em></h2>
+    <div class="idx">ROASTED WED · RESTED 7 DAYS / 点击卡片查看风味</div>
+  </div>
+  <div class="bean-grid" id="beanGrid"></div>
+  <div class="bean-detail" id="beanDetail">
+    <div>
+      <div class="dsub" id="dSub"></div>
+      <h3 id="dTitle"></h3>
+      <p id="dDesc"></p>
+    </div>
+    <div class="bars" id="dBars"></div>
+  </div>
+</section>
+
+<!-- calculator -->
+<section class="calc" id="calc">
+  <div class="sec-head">
+    <h2>找到你的<em>配方</em></h2>
+    <div class="idx">RECIPE BUILDER / 拖动滑杆</div>
+  </div>
+  <div class="calc-box">
+    <div class="calc-l">
+      <div class="ctl">
+        <label><span>咖啡粉量 DOSE</span><b id="doseVal">15 g</b></label>
+        <input type="range" id="dose" min="10" max="30" value="15" step="1">
+      </div>
+      <div class="ctl">
+        <label><span>粉水比 RATIO</span><b id="ratioVal">1 : 15</b></label>
+        <input type="range" id="ratio" min="12" max="18" value="15" step="0.5">
+      </div>
+      <div class="ctl" style="margin-bottom:0;">
+        <label><span>研磨度 GRIND</span><b id="grindVal">中细 · 白砂糖状</b></label>
+        <input type="range" id="grind" min="0" max="4" value="2" step="1">
+      </div>
+    </div>
+    <div class="calc-r">
+      <div class="readout">
+        <div class="ro"><b id="waterOut">225 g</b><span>总注水量 WATER</span></div>
+        <div class="ro"><b id="bloomOut">30 g</b><span>闷蒸水量 BLOOM</span></div>
+        <div class="ro"><b id="timeOut">3′30″</b><span>建议总时长 TIME</span></div>
+        <div class="ro"><b id="cupsOut">1 杯</b><span>约可出品 YIELD</span></div>
+      </div>
+      <p class="calc-note" id="calcNote">比例越低越浓郁，越高越清爽。1:15 是这支耶加雪菲的甜点区——花香在， body 也在。</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fbig">明天早上，<br>为自己<em>慢下来</em>三分半。</div>
+  <div class="fine">RITUAL 冲煮仪式 © 2026 · 每周三烘焙<br>作品 № 07 / WEB DESIGN</div>
+</footer>
+
+<script>
+/* ================= steam particles ================= */
+const sc=document.getElementById("steam"),sx=sc.getContext("2d");
+let parts=[];
+function spawn(){parts.push({x:150+(Math.random()*50-25),y:310,r:5+Math.random()*9,vy:.5+Math.random()*.7,drift:Math.random()*2-1,life:0,max:180+Math.random()*80});}
+function steamTick(){
+  sx.clearRect(0,0,300,320);
+  for(let i=parts.length-1;i>=0;i--){
+    const p=parts[i];p.life++;p.y-=p.vy;p.x+=Math.sin(p.life*.03)*p.drift*.5;p.r+=.06;
+    const a=Math.sin(Math.PI*Math.min(p.life/p.max,1))*.35;
+    sx.beginPath();sx.arc(p.x,p.y,p.r,0,7);sx.fillStyle=`rgba(42,31,22,${a*.55})`;sx.fill();
+    if(p.life>p.max)parts.splice(i,1);
+  }
+  if(parts.length<26&&Math.random()<.4)spawn();
+  requestAnimationFrame(steamTick);
+}
+steamTick();
+
+/* ================= scroll-driven brew animation ================= */
+const ritual=document.getElementById("ritual"),
+      kettle=document.getElementById("kettle"),
+      stream=document.getElementById("stream"),
+      slurry=document.getElementById("slurry"),
+      drop=document.getElementById("drop"),
+      serverFill=document.getElementById("serverFill"),
+      steps=[...document.querySelectorAll(".step")];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function lerp(a,b,t){return a+(b-a)*t;}
+function brewTick(){
+  const r=ritual.getBoundingClientRect();
+  const total=r.height-window.innerHeight;
+  const p=clamp(-r.top/Math.max(total,1),0,1);
+  // kettle tilt: active during pours (p .05-.3 and .4-.65)
+  const pour1=clamp((p-.03)/.06,0,1)*clamp((.34-p)/.06,0,1);
+  const pour2=clamp((p-.4)/.06,0,1)*clamp((.68-p)/.06,0,1);
+  const tilt=Math.max(pour1,pour2);
+  kettle.style.transform=`rotate(${tilt*-26}deg)`;
+  stream.setAttribute("opacity",tilt>.25?String(clamp((tilt-.25)/.2,0,1)*.9):0);
+  // slurry swells
+  const sw=clamp(p/.5,0,1);
+  slurry.setAttribute("opacity",(.2+sw*.8).toFixed(2));
+  slurry.setAttribute("d",`M${108-8*sw} ${250-14*sw} h${112+16*sw} l-8 ${22+40*sw} h-${96+0*sw} z`);
+  // drop
+  const dp=(p>.12&&p<.85)?(Math.sin(performance.now()*.012)*.5+.5):0;
+  drop.setAttribute("opacity",String(dp*.85));
+  drop.setAttribute("cy",String(330+dp*16));
+  // server fill rises with p
+  const fl=clamp((p-.1)/.8,0,1);
+  const yTop=lerp(430,368,fl),hh=lerp(22,84,fl);
+  serverFill.setAttribute("d",`M112 ${yTop} h104 l4 ${hh} a10 10 0 0 1 -10 11 h-92 a10 10 0 0 1 -10 -11 z`);
+  // active step
+  const idx=p<.22?0:p<.48?1:p<.74?2:3;
+  steps.forEach((s,i)=>s.classList.toggle("on",i===idx));
+  requestAnimationFrame(brewTick);
+}
+brewTick();
+
+/* ================= beans ================= */
+const BEANS=[
+  {o:"ETHIOPIA · YIRGACHEFFE",n:"耶加雪菲 果丁丁",notes:"茉莉花香 / 柑橘 / 红茶尾韵",price:"¥ 78 / 100g",
+   d:"水洗处理，海拔一千九百米。干香是扑鼻的白色花香，入口像一杯加了几滴柠檬汁的红茶，干净得让人想起山里的早晨。",
+   bars:[["酸质",88],["甜感",76],["醇厚",52],["余韵",84]],c:"#C0622F"},
+  {o:"COLOMBIA · HUILA",n:"哥伦比亚 慧兰",notes:"焦糖 / 红苹果 / 可可尾韵",price:"¥ 68 / 100g",
+   d:"水洗卡杜拉，均衡派的代表。焦糖般的甜感托着红苹果的微酸，尾段是黑可可，怎么冲都不容易出错的安全牌。",
+   bars:[["酸质",62],["甜感",85],["醇厚",74],["余韵",70]],c:"#8A9B7C"},
+  {o:"KENYA · NYERI",n:"肯尼亚 涅里 AA",notes:"黑加仑 / 圣女果 / 红糖",price:"¥ 88 / 100g",
+   d:"SL28 与 SL34 混种，双重水洗。酸得明亮张扬，像咬开一颗冰镇黑加仑——喜欢的人会上瘾，怕酸的人请绕道。",
+   bars:[["酸质",95],["甜感",70],["醇厚",60],["余韵",88]],c:"#B04A3A"},
+  {o:"YUNNAN · PU'ER",n:"云南 普洱 日晒",notes:"菠萝蜜 / 酒香 / 黑巧",price:"¥ 58 / 100g",
+   d:"卡蒂姆日晒，来自我们自己的云南地块。热带水果的发酵甜混着淡淡酒香，尾段是黑巧克力——国产豆早已今非昔比。",
+   bars:[["酸质",58],["甜感",80],["醇厚",82],["余韵",72]],c:"#7A6C9B"},
+];
+function labelSVG(c,i){
+  return `<svg viewBox="0 0 120 120" fill="none">
+    <circle cx="60" cy="60" r="44" stroke="${c}" stroke-width="1.6"/>
+    <circle cx="60" cy="60" r="44" stroke="${c}" stroke-width="1.6" stroke-dasharray="3 5" transform="rotate(${i*20} 60 60)"/>
+    <path d="M60 34 q16 14 0 30 q-16 -16 0 -30 z" fill="${c}"/>
+    <path d="M60 40 q10 12 0 24" stroke="#F2EBE0" stroke-width="1.4" fill="none"/>
+    <text x="60" y="88" text-anchor="middle" font-family="monospace" font-size="8.5" letter-spacing="2.5" fill="currentColor">RITUAL N°${i+1}</text>
+  </svg>`;
+}
+const beanGrid=document.getElementById("beanGrid");
+BEANS.forEach((b,i)=>{
+  const el=document.createElement("div");
+  el.className="bean"+(i===0?" sel":"");
+  el.innerHTML=`<span class="corner">N°${i+1}</span><div class="label">${labelSVG(b.c,i)}</div>
+    <div class="bbody"><div class="borigin">${b.o}</div><h4>${b.n}</h4>
+    <div class="bnotes">${b.notes}</div><div class="bprice">${b.price}</div></div>`;
+  el.addEventListener("click",()=>selectBean(i));
+  beanGrid.appendChild(el);
+});
+function selectBean(i){
+  document.querySelectorAll(".bean").forEach((el,j)=>el.classList.toggle("sel",j===i));
+  const b=BEANS[i];
+  document.getElementById("dSub").textContent=b.o+" · "+b.notes;
+  document.getElementById("dTitle").textContent=b.n;
+  document.getElementById("dDesc").textContent=b.d;
+  const bars=document.getElementById("dBars");
+  bars.innerHTML=b.bars.map(([k,v])=>`<div class="bar-row"><span>${k}</span><div class="bar-track"><div class="bar-fill" data-v="${v}"></div></div><span class="bar-val">${v}</span></div>`).join("");
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    bars.querySelectorAll(".bar-fill").forEach(f=>f.style.width=f.dataset.v+"%");
+  }));
+}
+selectBean(0);
+
+/* ================= recipe calculator ================= */
+const dose=document.getElementById("dose"),ratio=document.getElementById("ratio"),grind=document.getElementById("grind");
+const GRINDS=["极细 · 意式级","细 · 海盐状","中细 · 白砂糖状","中粗 · 粗砂糖状","粗 · 面包屑状"];
+const NOTES={
+  12:"1:12 接近日式深烘的浓醇冲法，配中粗研磨慢慢滴，兑一小块冰也很好。",
+  13:"1:13 偏浓郁，适合肯尼亚这类酸质张扬的豆子——浓一点，酸就变得有骨架。",
+  14:"1:14 是奶感与清爽之间的折中，哥伦比亚在这个比例最讨喜。",
+  15:"比例越低越浓郁，越高越清爽。1:15 是这支耶加雪菲的甜点区——花香在， body 也在。",
+  16:"1:16 更清透，花香和茶感被放大，适合慢慢喝、喝完整整一个上午。",
+  17:"1:17 接近杯测的清淡度，适合品鉴用，能喝出豆子所有的细节与缺点。",
+  18:"1:18 非常清亮，只推荐给极浅烘的豆子，否则会显得单薄。"};
+function fmtTime(sec){return Math.floor(sec/60)+"′"+String(Math.round(sec%60)).padStart(2,"0")+"″";}
+function update(){
+  const d=+dose.value,r=+ratio.value,g=+grind.value;
+  document.getElementById("doseVal").textContent=d+" g";
+  document.getElementById("ratioVal").textContent="1 : "+r;
+  document.getElementById("grindVal").textContent=GRINDS[g];
+  const water=Math.round(d*r);
+  document.getElementById("waterOut").textContent=water+" g";
+  document.getElementById("bloomOut").textContent=Math.min(Math.round(d*2),60)+" g";
+  document.getElementById("timeOut").textContent=fmtTime(120+(r-12)*12+(d-10)*3+(2-g)*8);
+  document.getElementById("cupsOut").textContent=(water>=300?2:1)+" 杯";
+  document.getElementById("calcNote").textContent=NOTES[r]||NOTES[15];
+}
+[dose,ratio,grind].forEach(el=>el.addEventListener("input",update));
+update();
+</script>
+</body>
+</html>

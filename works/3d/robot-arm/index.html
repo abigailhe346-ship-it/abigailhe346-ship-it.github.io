@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Robot Arm — Inverse Kinematics · 01</title>
+<style>
+  :root{
+    --bg:#0b0e12; --panel:#12161cf2; --line:#232a34;
+    --ink:#e8ecf1; --dim:#7d8794; --mono:'SF Mono',Menlo,monospace;
+    --accent:#ff5c1a; --accent2:#ffb37a; --cyan:#59d8ff;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
+    font-family:-apple-system,'Helvetica Neue','PingFang SC',sans-serif;color:var(--ink)}
+  #stage{position:fixed;inset:0;cursor:grab}
+  #stage.grabbing{cursor:grabbing}
+  #stage.on-target{cursor:move}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 42%,transparent 55%,rgba(0,0,0,.55) 100%)}
+  header{position:fixed;top:28px;left:32px;pointer-events:none;z-index:5}
+  .no{font-family:var(--mono);font-size:11px;letter-spacing:.35em;color:var(--accent);margin-bottom:8px}
+  h1{font-family:Didot,'Bodoni MT',Georgia,'Songti SC',serif;font-weight:400;
+     font-size:clamp(22px,3vw,34px);letter-spacing:.04em}
+  h1 em{font-style:italic;color:var(--accent2)}
+  .sub{margin-top:8px;font-size:12px;color:var(--dim);letter-spacing:.12em}
+  /* HUD readouts */
+  #hud{position:fixed;top:32px;right:32px;z-index:5;width:196px;
+    background:var(--panel);border:1px solid var(--line);border-radius:4px;
+    padding:14px 16px;font-family:var(--mono);font-size:11px;backdrop-filter:blur(6px)}
+  #hud .row{display:flex;justify-content:space-between;align-items:baseline;
+    padding:4px 0;border-bottom:1px dashed #1c232d}
+  #hud .row:last-child{border-bottom:none}
+  #hud .k{color:var(--dim);letter-spacing:.15em}
+  #hud .v{color:var(--ink)}
+  #hud .v.warn{color:var(--accent)}
+  #hud .title{color:var(--cyan);letter-spacing:.3em;font-size:10px;margin-bottom:8px}
+  /* control panel */
+  #panel{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;
+    display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:12px 20px;backdrop-filter:blur(8px);max-width:calc(100vw - 32px)}
+  .seg{display:flex;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .seg button{appearance:none;border:none;background:transparent;color:var(--dim);
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;padding:8px 14px;
+    cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1)}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--accent);color:#14090b}
+  .ctl{display:flex;align-items:center;gap:10px}
+  .ctl label{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:110px;height:2px;
+    background:var(--line);border-radius:2px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:12px;height:12px;border-radius:50%;background:var(--accent);
+    border:2px solid #0b0e12;box-shadow:0 0 0 1px var(--accent);transition:transform .2s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;
+    background:var(--accent);border:2px solid #0b0e12;box-shadow:0 0 0 1px var(--accent)}
+  .hint{position:fixed;bottom:30px;left:32px;font-family:var(--mono);font-size:10px;
+    color:var(--dim);letter-spacing:.12em;line-height:1.9;pointer-events:none;z-index:4}
+  .hint b{color:var(--ink);font-weight:400}
+  @media (max-width:760px){
+    #hud{display:none}.hint{display:none}
+    header{top:18px;left:20px}#panel{bottom:14px;padding:10px 12px;gap:10px}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="vignette"></div>
+<header>
+  <div class="no">N°01 — WEBGL KINEMATICS</div>
+  <h1>Robot Arm <em>逆运动学</em></h1>
+  <div class="sub">四轴机械臂 · 解析式 IK 解算 · 实时轨迹追踪</div>
+</header>
+<div id="hud">
+  <div class="title">JOINT TELEMETRY</div>
+  <div class="row"><span class="k">J1 YAW</span><span class="v" id="j0">0.0°</span></div>
+  <div class="row"><span class="k">J2 SHOULDER</span><span class="v" id="j1">0.0°</span></div>
+  <div class="row"><span class="k">J3 ELBOW</span><span class="v" id="j2">0.0°</span></div>
+  <div class="row"><span class="k">J4 WRIST</span><span class="v" id="j3">0.0°</span></div>
+  <div class="row"><span class="k">REACH</span><span class="v" id="reach">OK</span></div>
+  <div class="row"><span class="k">TIP ERR</span><span class="v" id="err">0.00</span></div>
+</div>
+<div class="hint"><b>拖拽橙色目标球</b> — 移动 IK 目标<br><b>拖拽背景</b> — 环绕视角 · <b>滚轮</b> — 缩放</div>
+<div id="panel">
+  <div class="seg" id="modeSeg">
+    <button data-m="manual" class="on">手动 MANUAL</button>
+    <button data-m="auto">自动轨迹 AUTO</button>
+  </div>
+  <div class="seg" id="traceSeg">
+    <button data-t="on" class="on">轨迹 TRACE</button>
+    <button data-t="off">隐藏</button>
+  </div>
+  <div class="ctl"><label>速度 SPEED</label><input type="range" id="speed" min="2" max="24" value="10"></div>
+  <div class="ctl"><label>轨迹长 TRAIL</label><input type="range" id="trail" min="60" max="600" value="320"></div>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+/* ================= palette ================= */
+var COL = {
+  bg:0x0b0e12, fog:0x0b0e12,
+  steel:0x2a313b, steelDark:0x1a2029, joint:0xff5c1a,
+  strip:0xff8a4d, floor:0x11151b, grid:0x232a34,
+  target:0xff5c1a, targetBad:0xff2244, glow:0x59d8ff
+};
+/* ================= renderer ================= */
+var stage = document.getElementById('stage');
+var renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputEncoding = THREE.sRGBEncoding;
+stage.appendChild(renderer.domElement);
+
+var scene = new THREE.Scene();
+scene.background = new THREE.Color(COL.bg);
+scene.fog = new THREE.Fog(COL.fog, 22, 52);
+
+var camera = new THREE.PerspectiveCamera(42, window.innerWidth/window.innerHeight, .1, 200);
+
+/* ================= lights ================= */
+scene.add(new THREE.HemisphereLight(0x8fa3bf, 0x0a0c10, .55));
+var key = new THREE.SpotLight(0xfff1e0, 1.5, 60, Math.PI/5, .45, 1.2);
+key.position.set(10, 18, 8);
+key.castShadow = true;
+key.shadow.mapSize.set(2048,2048);
+key.shadow.bias = -0.0004;
+scene.add(key);
+var rim = new THREE.DirectionalLight(0x59d8ff, .5);
+rim.position.set(-12, 8, -10);
+scene.add(rim);
+var warm = new THREE.PointLight(0xff5c1a, .55, 20);
+warm.position.set(0, 1.2, 0);
+scene.add(warm);
+
+/* ================= floor ================= */
+function gridTexture(){
+  var c = document.createElement('canvas'); c.width = c.height = 1024;
+  var g = c.getContext('2d');
+  g.fillStyle = '#11151b'; g.fillRect(0,0,1024,1024);
+  g.strokeStyle = '#1d242e'; g.lineWidth = 1;
+  var step = 1024/26, i;
+  for(i=0;i<=26;i++){
+    g.beginPath(); g.moveTo(i*step,0); g.lineTo(i*step,1024); g.stroke();
+    g.beginPath(); g.moveTo(0,i*step); g.lineTo(1024,i*step); g.stroke();
+  }
+  g.strokeStyle = '#2a3340'; g.lineWidth = 2;
+  g.beginPath(); g.arc(512,512,500,0,Math.PI*2); g.stroke();
+  g.beginPath(); g.arc(512,512,340,0,Math.PI*2); g.stroke();
+  // radial fade mask
+  var rg = g.createRadialGradient(512,512,180,512,512,512);
+  rg.addColorStop(0,'rgba(0,0,0,0)'); rg.addColorStop(1,'rgba(11,14,18,1)');
+  g.fillStyle = rg; g.fillRect(0,0,1024,1024);
+  var t = new THREE.CanvasTexture(c);
+  t.anisotropy = 8;
+  return t;
+}
+var floor = new THREE.Mesh(
+  new THREE.CircleGeometry(17, 72),
+  new THREE.MeshStandardMaterial({map:gridTexture(), roughness:.85, metalness:.25})
+);
+floor.rotation.x = -Math.PI/2;
+floor.receiveShadow = true;
+scene.add(floor);
+
+/* ================= arm construction ================= */
+var L1 = 4.2, L2 = 3.6, BASE_H = 2.0;      // link lengths / shoulder height
+var matSteel  = new THREE.MeshStandardMaterial({color:COL.steel, roughness:.38, metalness:.85});
+var matDark   = new THREE.MeshStandardMaterial({color:COL.steelDark, roughness:.5, metalness:.7});
+var matJoint  = new THREE.MeshStandardMaterial({color:COL.joint, roughness:.32, metalness:.55,
+                  emissive:0x3a1405, emissiveIntensity:.6});
+var matStrip  = new THREE.MeshStandardMaterial({color:0x111111, emissive:COL.strip,
+                  emissiveIntensity:1.6, roughness:.4, metalness:.2});
+
+function shadowed(m){ m.castShadow = true; m.receiveShadow = true; return m; }
+
+// pedestal
+var ped = new THREE.Group();
+var pedBase = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(1.9, 2.3, .5, 48), matDark));
+pedBase.position.y = .25;
+var pedCol = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.35, 1.5, 48), matSteel));
+pedCol.position.y = 1.25;
+var pedRing = new THREE.Mesh(new THREE.TorusGeometry(1.28, .05, 12, 64), matStrip);
+pedRing.rotation.x = Math.PI/2; pedRing.position.y = .55;
+ped.add(pedBase, pedCol, pedRing);
+scene.add(ped);
+
+// J0 yaw turret
+var j0 = new THREE.Group(); j0.position.y = BASE_H; scene.add(j0);
+var turret = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(.95, 1.1, .7, 40), matSteel));
+turret.position.y = .1; j0.add(turret);
+var turRing = new THREE.Mesh(new THREE.TorusGeometry(.98,.045,10,48), matJoint);
+turRing.rotation.x = Math.PI/2; turRing.position.y = .42; j0.add(turRing);
+
+// J1 shoulder
+var j1 = new THREE.Group(); j1.position.y = .45; j0.add(j1);
+var shoulderDisc = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.9,32), matJoint));
+shoulderDisc.rotation.z = Math.PI/2; j1.add(shoulderDisc);
+var upper = new THREE.Group(); j1.add(upper);
+var upperLink = shadowed(new THREE.Mesh(new THREE.BoxGeometry(.62, L1, .5), matSteel));
+upperLink.position.y = L1/2; upper.add(upperLink);
+var upperPlate = shadowed(new THREE.Mesh(new THREE.BoxGeometry(.7, L1*.72, .18), matJoint));
+upperPlate.position.set(0, L1*.46, .3); upper.add(upperPlate);
+var strip1 = new THREE.Mesh(new THREE.BoxGeometry(.06, L1*.6, .06), matStrip);
+strip1.position.set(.34, L1*.45, 0); upper.add(strip1);
+
+// J2 elbow
+var j2 = new THREE.Group(); j2.position.y = L1; upper.add(j2);
+var elbowDisc = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(.5,.5,.8,32), matJoint));
+elbowDisc.rotation.z = Math.PI/2; j2.add(elbowDisc);
+var fore = new THREE.Group(); j2.add(fore);
+var foreLink = shadowed(new THREE.Mesh(new THREE.BoxGeometry(.44, L2, .38), matSteel));
+foreLink.position.y = L2/2; fore.add(foreLink);
+var strip2 = new THREE.Mesh(new THREE.BoxGeometry(.05, L2*.6, .05), matStrip);
+strip2.position.set(.25, L2*.45, 0); fore.add(strip2);
+
+// J3 wrist + gripper
+var j3 = new THREE.Group(); j3.position.y = L2; fore.add(j3);
+var wristDisc = shadowed(new THREE.Mesh(new THREE.CylinderGeometry(.34,.34,.6,28), matJoint));
+wristDisc.rotation.z = Math.PI/2; j3.add(wristDisc);
+var grip = new THREE.Group(); j3.add(grip);
+var palm = shadowed(new THREE.Mesh(new THREE.BoxGeometry(.5,.55,.42), matDark));
+palm.position.y = .34; grip.add(palm);
+var fingerGeo = new THREE.BoxGeometry(.12,.5,.12);
+var fL = shadowed(new THREE.Mesh(fingerGeo, matJoint)); fL.position.set(.2,.75,0);
+var fR = shadowed(new THREE.Mesh(fingerGeo, matJoint)); fR.position.set(-.2,.75,0);
+grip.add(fL, fR);
+var tipMark = new THREE.Object3D(); tipMark.position.y = 1.0; grip.add(tipMark);
+
+/* ================= target gizmo ================= */
+function glowSprite(hex){
+  var c = document.createElement('canvas'); c.width = c.height = 128;
+  var g = c.getContext('2d');
+  var rg = g.createRadialGradient(64,64,0,64,64,64);
+  rg.addColorStop(0, hex); rg.addColorStop(.35, hex+'66'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = rg; g.fillRect(0,0,128,128);
+  var t = new THREE.CanvasTexture(c);
+  var m = new THREE.SpriteMaterial({map:t, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true});
+  return new THREE.Sprite(m);
+}
+var target = new THREE.Group();
+var tSphere = new THREE.Mesh(new THREE.SphereGeometry(.34, 28, 20),
+  new THREE.MeshStandardMaterial({color:COL.target, emissive:COL.target, emissiveIntensity:.85,
+    roughness:.3, metalness:.1, transparent:true, opacity:.95}));
+var tRing = new THREE.Mesh(new THREE.TorusGeometry(.62,.03,10,48),
+  new THREE.MeshBasicMaterial({color:COL.glow, transparent:true, opacity:.7}));
+var tGlow = glowSprite('#ff5c1a'); tGlow.scale.set(2.6,2.6,1);
+target.add(tSphere, tRing, tGlow);
+target.position.set(5.5, 4.2, 3);
+scene.add(target);
+// reach-limit sphere hint
+var reachHint = new THREE.Mesh(new THREE.SphereGeometry(L1+L2+1.4, 32, 20),
+  new THREE.MeshBasicMaterial({color:0x59d8ff, wireframe:true, transparent:true, opacity:.035}));
+reachHint.position.y = BASE_H+.45-1.4+0; // approx centered on shoulder
+reachHint.position.y = BASE_H + .45;
+scene.add(reachHint);
+
+/* ================= trail ================= */
+var TRAIL_MAX = 600;
+var trailGeo = new THREE.BufferGeometry();
+var trailPos = new Float32Array(TRAIL_MAX*3);
+var trailCol = new Float32Array(TRAIL_MAX*3);
+trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPos,3));
+trailGeo.setAttribute('color', new THREE.BufferAttribute(trailCol,3));
+var trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({
+  vertexColors:true, transparent:true, opacity:.9, blending:THREE.AdditiveBlending, depthWrite:false}));
+trail.frustumCulled = false;
+scene.add(trail);
+var trailPts = [];
+
+/* ================= dust particles ================= */
+var dustGeo = new THREE.BufferGeometry();
+var dustN = 260, dustArr = new Float32Array(dustN*3);
+for(var i=0;i<dustN;i++){
+  dustArr[i*3]   = (Math.random()-.5)*30;
+  dustArr[i*3+1] = Math.random()*12;
+  dustArr[i*3+2] = (Math.random()-.5)*30;
+}
+dustGeo.setAttribute('position', new THREE.BufferAttribute(dustArr,3));
+var dust = new THREE.Points(dustGeo, new THREE.PointsMaterial({
+  color:0x8fa3bf, size:.045, transparent:true, opacity:.5, depthWrite:false}));
+scene.add(dust);
+
+/* ================= IK solver (analytic, 4 axis) ================= */
+// angles: [yaw, shoulder, elbow, wrist] ; all pitch joints about local X
+var GRIP = 1.0;                    // wrist→tip length; solve so the TIP lands on target
+var SOL = { a:[0, .5, 1.2, -1.2], reachable:true };
+function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+var SH_Y = BASE_H + .45;
+// two-bone solve in the arm plane; returns {shoulder, elbow, wY, wZ}
+function solvePlane(h, r){
+  var d = Math.sqrt(r*r + h*h);
+  var dMax = L1 + L2 - .02, dMin = Math.abs(L1-L2) + .05;
+  var dc = clamp(d, dMin, dMax);
+  var beta = Math.atan2(r, h);
+  var a1 = Math.acos(clamp((L1*L1 + dc*dc - L2*L2)/(2*L1*dc), -1, 1));
+  var shoulder = beta - a1;
+  var gamma = Math.acos(clamp((L1*L1 + L2*L2 - dc*dc)/(2*L1*L2), -1, 1));
+  var elbow = Math.PI - gamma;
+  var wY = Math.cos(shoulder)*L1 + Math.cos(shoulder+elbow)*L2;
+  var wZ = Math.sin(shoulder)*L1 + Math.sin(shoulder+elbow)*L2;
+  return {shoulder:shoulder, elbow:elbow, wY:wY, wZ:wZ, d:d, dMax:dMax, dMin:dMin};
+}
+function solveIK(tx, ty, tz){
+  var r = Math.sqrt(tx*tx + tz*tz);
+  var h = ty - SH_Y;
+  var yaw = Math.atan2(tx, tz);
+  // pass 1: estimate wrist position
+  var s1 = solvePlane(h, r);
+  var reachable = s1.d <= s1.dMax && s1.d >= s1.dMin;
+  // pull the wrist target back along wrist→target so the gripper tip lands on target
+  var dh = h - s1.wY, dr = r - s1.wZ;
+  var dl = Math.sqrt(dh*dh + dr*dr);
+  if(dl > 1e-4){ dh /= dl; dr /= dl; } else { dh = 0; dr = 1; }
+  var s2 = solvePlane(h - dh*GRIP, r - dr*GRIP);
+  // wrist aims the gripper straight at the true target
+  var aim = Math.atan2(r - s2.wZ, h - s2.wY);
+  var wrist = aim - (s2.shoulder + s2.elbow);
+  return {a:[yaw, s2.shoulder, s2.elbow, wrist], reachable:reachable};
+}
+
+/* ================= camera orbit ================= */
+var cam = {az:.7, pol:1.12, r:19, azT:.7, polT:1.12, rT:19, look:new THREE.Vector3(0,3.4,0)};
+function applyCam(dt){
+  var k = 1 - Math.exp(-dt*7);
+  cam.az += (cam.azT-cam.az)*k; cam.pol += (cam.polT-cam.pol)*k; cam.r += (cam.rT-cam.r)*k;
+  camera.position.set(
+    cam.look.x + cam.r*Math.sin(cam.pol)*Math.sin(cam.az),
+    cam.look.y + cam.r*Math.cos(cam.pol),
+    cam.look.z + cam.r*Math.sin(cam.pol)*Math.cos(cam.az));
+  camera.lookAt(cam.look);
+}
+
+/* ================= interaction ================= */
+var ray = new THREE.Raycaster();
+var ptr = new THREE.Vector2();
+var dragging = null;           // 'target' | 'orbit'
+var mode = 'manual';
+var autoT = 0;
+
+function setPtr(e){
+  var r = renderer.domElement.getBoundingClientRect();
+  ptr.x = ((e.clientX-r.left)/r.width)*2 - 1;
+  ptr.y = -((e.clientY-r.top)/r.height)*2 + 1;
+}
+function hitTarget(e){
+  setPtr(e); ray.setFromCamera(ptr, camera);
+  return ray.intersectObjects([tSphere, tRing], false).length > 0;
+}
+var dragPlane = new THREE.Plane();
+stage.addEventListener('pointerdown', function(e){
+  if(hitTarget(e)){
+    dragging = 'target';
+    mode = 'manual'; syncSeg();
+    // drag on camera-facing plane through the target
+    var n = new THREE.Vector3(); camera.getWorldDirection(n);
+    dragPlane.setFromNormalAndCoplanarPoint(n, target.position);
+  } else {
+    dragging = 'orbit';
+  }
+  stage.classList.add('grabbing');
+  stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove', function(e){
+  if(dragging === 'target'){
+    setPtr(e); ray.setFromCamera(ptr, camera);
+    var p = new THREE.Vector3();
+    if(ray.ray.intersectPlane(dragPlane, p)){
+      p.y = clamp(p.y, .6, 11);
+      var rr = Math.sqrt(p.x*p.x + p.z*p.z);
+      if(rr > 10.5){ p.x *= 10.5/rr; p.z *= 10.5/rr; }
+      target.position.copy(p);
+    }
+  } else if(dragging === 'orbit'){
+    cam.azT -= e.movementX*.005;
+    cam.polT = clamp(cam.polT - e.movementY*.005, .35, 1.5);
+  } else {
+    stage.classList.toggle('on-target', hitTarget(e));
+  }
+});
+stage.addEventListener('pointerup', function(e){
+  dragging = null; stage.classList.remove('grabbing');
+});
+stage.addEventListener('wheel', function(e){
+  e.preventDefault();
+  cam.rT = clamp(cam.rT + e.deltaY*.02, 8, 34);
+}, {passive:false});
+
+/* ================= UI ================= */
+var speed = 10, trailLen = 320;
+document.getElementById('speed').addEventListener('input', function(e){ speed = +e.target.value; });
+document.getElementById('trail').addEventListener('input', function(e){ trailLen = +e.target.value; });
+var traceOn = true;
+function syncSeg(){
+  var btns = document.querySelectorAll('#modeSeg button');
+  for(var i=0;i<btns.length;i++) btns[i].classList.toggle('on', btns[i].dataset.m === mode);
+}
+document.getElementById('modeSeg').addEventListener('click', function(e){
+  if(e.target.dataset.m){ mode = e.target.dataset.m; syncSeg(); }
+});
+document.getElementById('traceSeg').addEventListener('click', function(e){
+  if(!e.target.dataset.t) return;
+  traceOn = e.target.dataset.t === 'on';
+  trail.visible = traceOn;
+  var btns = document.querySelectorAll('#traceSeg button');
+  for(var i=0;i<btns.length;i++) btns[i].classList.toggle('on', btns[i].dataset.t === (traceOn?'on':'off'));
+});
+
+/* ================= HUD ================= */
+var hudEls = ['j0','j1','j2','j3'].map(function(id){ return document.getElementById(id); });
+var reachEl = document.getElementById('reach'), errEl = document.getElementById('err');
+var hudT = 0;
+function updateHUD(dt){
+  hudT += dt; if(hudT < .12) return; hudT = 0;
+  var deg = [0,1,2,3].map(function(i){ return (SOL.a[i]*180/Math.PI); });
+  for(var i=0;i<4;i++) hudEls[i].textContent = deg[i].toFixed(1) + '°';
+  reachEl.textContent = SOL.reachable ? 'OK' : 'CLAMPED';
+  reachEl.className = 'v' + (SOL.reachable ? '' : ' warn');
+}
+
+/* ================= main loop ================= */
+var clock = new THREE.Clock();
+var tipWorld = new THREE.Vector3();
+var firstFrame = true;
+function animate(){
+  requestAnimationFrame(animate);
+  var dt = Math.min(clock.getDelta(), .05);
+  var t = clock.elapsedTime;
+
+  // auto pattern: lissajous path
+  if(mode === 'auto'){
+    autoT += dt*.5;
+    target.position.set(
+      Math.sin(autoT*1.3)*5.2,
+      4.4 + Math.sin(autoT*2.1 + 1.2)*2.8,
+      Math.cos(autoT*.9)*5.2);
+  }
+  tRing.rotation.x = t*1.4; tRing.rotation.y = t*.9;
+  tGlow.material.opacity = .7 + Math.sin(t*4)*.25;
+
+  // solve + smooth (snap on first frame so the arm never starts mid-reach)
+  var sol = solveIK(target.position.x, target.position.y, target.position.z);
+  SOL.reachable = sol.reachable;
+  tSphere.material.emissive.setHex(sol.reachable ? COL.target : COL.targetBad);
+  if(firstFrame){ SOL.a = sol.a.slice(); firstFrame = false; }
+  var k = 1 - Math.exp(-dt*speed);
+  for(var i=0;i<4;i++) SOL.a[i] += (sol.a[i]-SOL.a[i])*k;
+  j0.rotation.y = SOL.a[0];
+  j1.rotation.x = SOL.a[1];
+  j2.rotation.x = SOL.a[2];
+  j3.rotation.x = SOL.a[3];
+
+  // tip error
+  tipMark.getWorldPosition(tipWorld);
+  errEl.textContent = tipWorld.distanceTo(target.position).toFixed(2);
+
+  // trail
+  if(traceOn){
+    trailPts.push(tipWorld.clone());
+    while(trailPts.length > trailLen) trailPts.shift();
+    var n = trailPts.length;
+    for(var p=0;p<n;p++){
+      trailPos[p*3]=trailPts[p].x; trailPos[p*3+1]=trailPts[p].y; trailPos[p*3+2]=trailPts[p].z;
+      var f = p/Math.max(n-1,1);                        // older = dimmer
+      trailCol[p*3]=1.0*f; trailCol[p*3+1]=.42*f; trailCol[p*3+2]=.12*f;
+    }
+    trailGeo.setDrawRange(0, n);
+    trailGeo.attributes.position.needsUpdate = true;
+    trailGeo.attributes.color.needsUpdate = true;
+  } else if(trailPts.length){ trailPts.length = 0; trailGeo.setDrawRange(0,0); }
+
+  // ambient life
+  dust.rotation.y = t*.01;
+  warm.intensity = .45 + Math.sin(t*2.3)*.12;
+
+  applyCam(dt);
+  updateHUD(dt);
+  renderer.render(scene, camera);
+}
+window.addEventListener('resize', function(){
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+animate();
+})();
+</script>
+</body>
+</html>

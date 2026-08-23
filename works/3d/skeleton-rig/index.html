@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skeleton Rig — 骨骼绑定演示 No.09</title>
+<style>
+  :root{
+    --paper:#f4f1ea;
+    --paper2:#ede8dc;
+    --ink:#1a1a1a;
+    --red:#d93a2b;
+    --grid:#d8d3c6;
+    --dim:#8a8478;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--paper);}
+  body{font-family:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;color:var(--ink);
+       -webkit-font-smoothing:antialiased;}
+  #stage{position:fixed;inset:0;cursor:grab;}
+  #stage.dragging{cursor:grabbing;}
+  #stage canvas{display:block;}
+
+  .plate{position:fixed;top:24px;left:26px;z-index:10;pointer-events:none;}
+  .plate .no{font-size:10px;letter-spacing:.32em;color:var(--red);font-weight:600;}
+  .plate h1{font-size:20px;font-weight:700;letter-spacing:.1em;margin-top:6px;}
+  .plate .sub{font-size:11px;letter-spacing:.24em;color:var(--dim);margin-top:4px;}
+  .plate .cross{position:absolute;left:-14px;top:2px;width:8px;height:8px;}
+  .plate .cross::before,.plate .cross::after{content:"";position:absolute;background:var(--red);}
+  .plate .cross::before{left:3px;top:0;width:2px;height:8px;}
+  .plate .cross::after{left:0;top:3px;width:8px;height:2px;}
+
+  .side{position:fixed;right:22px;top:50%;transform:translateY(-50%) rotate(180deg);z-index:10;
+        writing-mode:vertical-rl;font-size:9px;letter-spacing:.5em;color:var(--dim);pointer-events:none;}
+
+  /* ---------- spec panel ---------- */
+  .spec{position:fixed;right:26px;bottom:26px;z-index:10;width:212px;background:rgba(244,241,234,.9);
+        border:1px solid var(--ink);padding:14px 16px;pointer-events:none;}
+  .spec h2{font-size:9px;letter-spacing:.3em;color:var(--dim);font-weight:600;
+           border-bottom:1px solid var(--ink);padding-bottom:8px;}
+  .spec .row{display:flex;justify-content:space-between;margin-top:9px;font-size:11px;}
+  .spec .row .k{color:var(--dim);letter-spacing:.12em;}
+  .spec .row .v{font-weight:600;font-variant-numeric:tabular-nums;}
+  .spec .row .v.red{color:var(--red);}
+  .spec .hint{margin-top:11px;padding-top:9px;border-top:1px dashed var(--grid);
+              font-size:9px;letter-spacing:.14em;color:var(--dim);line-height:1.7;}
+
+  /* ---------- gait bars ---------- */
+  .gait{position:fixed;left:26px;bottom:26px;z-index:10;width:190px;pointer-events:none;}
+  .gait .glabel{font-size:9px;letter-spacing:.3em;color:var(--dim);margin-bottom:8px;font-weight:600;}
+  .gbar{display:flex;align-items:center;gap:10px;margin-top:6px;}
+  .gbar .tag{font-size:10px;font-weight:700;width:10px;}
+  .gbar .track{flex:1;height:5px;background:var(--paper2);border:1px solid var(--ink);position:relative;}
+  .gbar .fill{position:absolute;left:0;top:0;bottom:0;background:var(--ink);transform-origin:left;}
+  .gbar.r .fill{background:var(--red);}
+
+  /* ---------- controls ---------- */
+  .controls{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:10;
+            display:flex;background:var(--paper);border:1px solid var(--ink);}
+  .ctl{padding:13px 20px;border-right:1px solid var(--ink);display:flex;flex-direction:column;gap:8px;}
+  .ctl:last-child{border-right:none;}
+  .ctl .k{font-size:9px;letter-spacing:.26em;color:var(--dim);font-weight:600;display:flex;justify-content:space-between;gap:14px;}
+  .ctl .k b{color:var(--ink);font-variant-numeric:tabular-nums;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:150px;height:1px;background:var(--ink);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;
+       background:var(--paper);border:2px solid var(--ink);border-radius:0;cursor:ew-resize;
+       transition:background .15s;}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--red);border-color:var(--red);}
+  input[type=range]::-moz-range-thumb{width:9px;height:9px;background:var(--paper);
+       border:2px solid var(--ink);border-radius:0;cursor:ew-resize;}
+
+  @media (max-width:820px){
+    .spec{display:none;}
+    .side{display:none;}
+    .gait{display:none;}
+    .controls{left:12px;right:12px;transform:none;bottom:12px;}
+    .ctl{flex:1;padding:10px 12px;}
+    input[type=range]{width:100%;}
+    .plate{top:14px;left:18px;}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<header class="plate">
+  <div class="cross"></div>
+  <div class="no">No.09 / KINEMATIC STUDY</div>
+  <h1>SKELETON RIG</h1>
+  <div class="sub">骨骼绑定 · 步行循环图解</div>
+</header>
+
+<div class="side">LOCOMOTION PLATE — FIG. 09</div>
+
+<aside class="spec">
+  <h2>JOINT SPECIFICATION</h2>
+  <div class="row"><span class="k">JOINT</span><span class="v red" id="spJoint">HIP.L</span></div>
+  <div class="row"><span class="k">FLEXION</span><span class="v" id="spAngle">0.0°</span></div>
+  <div class="row"><span class="k">PHASE</span><span class="v" id="spPhase">STANCE</span></div>
+  <div class="row"><span class="k">STRIDE</span><span class="v" id="spStride">0.00 M</span></div>
+  <div class="hint">点击骨架关节以检视其屈伸角度。拖拽旋转视角。</div>
+</aside>
+
+<div class="gait">
+  <div class="glabel">GAIT PHASE / 步态相位</div>
+  <div class="gbar"><span class="tag">L</span><div class="track"><div class="fill" id="gL"></div></div></div>
+  <div class="gbar r"><span class="tag">R</span><div class="track"><div class="fill" id="gR"></div></div></div>
+</div>
+
+<div class="controls">
+  <div class="ctl">
+    <span class="k">CADENCE / 步速 <b id="cadVal">1.40 HZ</b></span>
+    <input type="range" id="cadence" min="40" max="260" value="140">
+  </div>
+  <div class="ctl">
+    <span class="k">STRIDE / 步幅 <b id="strVal">0.86 M</b></span>
+    <input type="range" id="stride" min="20" max="100" value="62">
+  </div>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var INK=0x1a1a1a, RED=0xd93a2b, PAPER=0xf4f1ea, GRID=0xd8d3c6;
+
+  /* ================= renderer / scene ================= */
+  var stage=document.getElementById("stage");
+  var renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  stage.appendChild(renderer.domElement);
+
+  var scene=new THREE.Scene();
+  scene.background=new THREE.Color(PAPER);
+
+  var viewSize=2.6;
+  var camera=new THREE.OrthographicCamera(-1,1,1,-1,0.1,60);
+  var azim=0.62, elev=0.34, target=new THREE.Vector3(0,0.82,0);
+
+  function placeCamera(){
+    var r=7;
+    camera.position.set(
+      target.x+r*Math.cos(elev)*Math.sin(azim),
+      target.y+r*Math.sin(elev),
+      target.z+r*Math.cos(elev)*Math.cos(azim));
+    camera.lookAt(target);
+  }
+  placeCamera();
+
+  scene.add(new THREE.HemisphereLight(0xffffff,0xcfc8b8,0.95));
+  var key=new THREE.DirectionalLight(0xffffff,0.55);
+  key.position.set(3,6,4);
+  scene.add(key);
+
+  /* ================= floor: static grid + treadmill lines ================= */
+  var floor=new THREE.Mesh(
+    new THREE.PlaneGeometry(40,40),
+    new THREE.MeshBasicMaterial({color:0xefe9dd}));
+  floor.rotation.x=-Math.PI/2;
+  floor.position.y=-0.002;
+  scene.add(floor);
+
+  (function(){
+    var pts=[],i;
+    for(i=-20;i<=20;i++){
+      pts.push(i*0.5,0,-20, i*0.5,0,20);
+      pts.push(-20,0,i*0.5, 20,0,i*0.5);
+    }
+    var g=new THREE.BufferGeometry();
+    g.setAttribute("position",new THREE.BufferAttribute(new Float32Array(pts),3));
+    scene.add(new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:GRID,transparent:true,opacity:0.55})));
+  })();
+
+  var BELT_N=26,BELT_SPAN=6.5,beltX=[];
+  var beltGeo=new THREE.BufferGeometry();
+  var beltPos=new Float32Array(BELT_N*6);
+  beltGeo.setAttribute("position",new THREE.BufferAttribute(beltPos,3));
+  for(var bi=0;bi<BELT_N;bi++)beltX.push(-BELT_SPAN/2+bi*(BELT_SPAN/BELT_N));
+  var belt=new THREE.LineSegments(beltGeo,new THREE.LineBasicMaterial({color:0xb7af9d,transparent:true,opacity:0.9}));
+  scene.add(belt);
+
+  function updateBelt(){
+    for(var i=0;i<BELT_N;i++){
+      beltPos[i*6]=beltX[i];   beltPos[i*6+1]=0.001; beltPos[i*6+2]=-0.42;
+      beltPos[i*6+3]=beltX[i]; beltPos[i*6+4]=0.001; beltPos[i*6+5]=0.42;
+    }
+    beltGeo.attributes.position.needsUpdate=true;
+  }
+  updateBelt();
+
+  /* soft blob shadow */
+  var shadowTex=(function(){
+    var c=document.createElement("canvas");c.width=c.height=128;
+    var x=c.getContext("2d");
+    var g=x.createRadialGradient(64,64,4,64,64,62);
+    g.addColorStop(0,"rgba(26,26,26,0.30)");
+    g.addColorStop(1,"rgba(26,26,26,0)");
+    x.fillStyle=g;x.fillRect(0,0,128,128);
+    return new THREE.CanvasTexture(c);
+  })();
+  var shadow=new THREE.Mesh(new THREE.PlaneGeometry(1.5,0.62),
+    new THREE.MeshBasicMaterial({map:shadowTex,transparent:true,depthWrite:false}));
+  shadow.rotation.x=-Math.PI/2;
+  shadow.position.y=0.004;
+  scene.add(shadow);
+
+  /* ================= skeleton rig ================= */
+  var rig=new THREE.Group();
+  scene.add(rig);
+
+  var jointMat=new THREE.MeshStandardMaterial({color:INK,roughness:0.5,metalness:0.1});
+  var selMat=new THREE.MeshStandardMaterial({color:RED,roughness:0.4,metalness:0.1,emissive:0x5a0f06});
+  var boneMat=new THREE.MeshStandardMaterial({color:INK,roughness:0.62,metalness:0.05});
+  var jointGeo=new THREE.SphereGeometry(0.024,14,14);
+
+  function J(parent,x,y,z,r){
+    var o=new THREE.Object3D();
+    o.position.set(x,y,z);
+    parent.add(o);
+    var m=new THREE.Mesh(jointGeo,jointMat);
+    if(r)m.scale.setScalar(r);
+    o.add(m);
+    o.userData.ball=m;
+    return o;
+  }
+
+  var pelvis=J(rig,0,0.96,0,1.2);
+  var spine=J(pelvis,0,0.13,0);
+  var chest=J(spine,0,0.17,0);
+  var neck=J(chest,0,0.155,0);
+  var head=J(neck,0,0.10,0);
+  var skull=new THREE.Mesh(new THREE.SphereGeometry(0.105,20,20),
+    new THREE.MeshStandardMaterial({color:PAPER,roughness:0.55}));
+  skull.position.y=0.055;
+  head.add(skull);
+  var skullRing=new THREE.Mesh(new THREE.TorusGeometry(0.105,0.008,8,32),
+    new THREE.MeshBasicMaterial({color:INK}));
+  skullRing.rotation.x=Math.PI/2.4;
+  skullRing.position.y=0.055;
+  head.add(skullRing);
+
+  var shoulderL=J(chest,0,0.075,0.20);
+  var elbowL=J(shoulderL,0,-0.27,0);
+  var wristL=J(elbowL,0,-0.25,0);
+  var shoulderR=J(chest,0,0.075,-0.20);
+  var elbowR=J(shoulderR,0,-0.27,0);
+  var wristR=J(elbowR,0,-0.25,0);
+
+  var hipL=J(pelvis,0,-0.05,0.105,1.15);
+  var kneeL=J(hipL,0,-0.42,0);
+  var ankleL=J(kneeL,0,-0.40,0);
+  var toeL=J(ankleL,0.15,-0.035,0,0.8);
+  var hipR=J(pelvis,0,-0.05,-0.105,1.15);
+  var kneeR=J(hipR,0,-0.42,0);
+  var ankleR=J(kneeR,0,-0.40,0);
+  var toeR=J(ankleR,0.15,-0.035,0,0.8);
+
+  var LEG=0.82;
+
+  /* pelvis block */
+  var pelvisBlock=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.09,0.24),boneMat);
+  pelvisBlock.position.y=0.01;
+  pelvis.add(pelvisBlock);
+
+  /* bones as updatable cylinders */
+  var BONES=[
+    [pelvis,spine],[spine,chest],[chest,neck],
+    [chest,shoulderL],[chest,shoulderR],
+    [shoulderL,elbowL],[elbowL,wristL],
+    [shoulderR,elbowR],[elbowR,wristR],
+    [pelvis,hipL],[hipL,kneeL],[kneeL,ankleL],[ankleL,toeL],
+    [pelvis,hipR],[hipR,kneeR],[kneeR,ankleR],[ankleR,toeR]
+  ];
+  var boneGeo=new THREE.CylinderGeometry(0.011,0.011,1,8);
+  var UP=new THREE.Vector3(0,1,0);
+  var boneMeshes=BONES.map(function(){
+    var m=new THREE.Mesh(boneGeo,boneMat);
+    scene.add(m);
+    return m;
+  });
+  var _wa=new THREE.Vector3(),_wb=new THREE.Vector3(),_dir=new THREE.Vector3();
+  function updateBones(){
+    for(var i=0;i<BONES.length;i++){
+      BONES[i][0].getWorldPosition(_wa);
+      BONES[i][1].getWorldPosition(_wb);
+      _dir.subVectors(_wb,_wa);
+      var len=_dir.length();
+      var m=boneMeshes[i];
+      m.position.copy(_wa).addScaledVector(_dir,0.5);
+      m.scale.set(1,len,1);
+      m.quaternion.setFromUnitVectors(UP,_dir.normalize());
+    }
+  }
+
+  /* stride dimension line */
+  var dimGroup=new THREE.Group();
+  scene.add(dimGroup);
+  var dimMat=new THREE.LineBasicMaterial({color:RED});
+  var dimGeo=new THREE.BufferGeometry();
+  dimGeo.setAttribute("position",new THREE.BufferAttribute(new Float32Array(42),3));
+  dimGroup.add(new THREE.LineSegments(dimGeo,dimMat));
+
+  function textSprite(){
+    var c=document.createElement("canvas");c.width=256;c.height=64;
+    var tex=new THREE.CanvasTexture(c);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));
+    sp.scale.set(0.5,0.125,1);
+    return {sp:sp,c:c,tex:tex};
+  }
+  var dimLabel=textSprite();
+  dimGroup.add(dimLabel.sp);
+  function drawLabel(s,text){
+    var x=s.c.getContext("2d");
+    x.clearRect(0,0,256,64);
+    x.font="600 26px Menlo, monospace";
+    x.textAlign="center";x.textBaseline="middle";
+    x.fillStyle="#d93a2b";
+    x.fillText(text,128,34);
+    s.tex.needsUpdate=true;
+  }
+
+  function updateDim(strideM){
+    var h=strideM/2,y=0.012,t=0.09;
+    var p=dimGeo.attributes.position.array;
+    p[0]=-h;p[1]=y;p[2]=0; p[3]=h;p[4]=y;p[5]=0;
+    p[6]=-h;p[7]=y;p[8]=0; p[9]=-h;p[10]=y+t;p[11]=0;
+    p[12]=h;p[13]=y;p[14]=0; p[15]=h;p[16]=y+t;p[17]=0;
+    p[18]=-h;p[19]=y;p[20]=0; p[21]=-h+0.06;p[22]=y+0.025;p[23]=0;
+    p[24]=h;p[25]=y;p[26]=0; p[27]=h-0.06;p[28]=y+0.025;p[29]=0;
+    p[30]=-h;p[31]=y;p[32]=0; p[33]=-h+0.06;p[34]=y-0.025;p[35]=0;
+    p[36]=h;p[37]=y;p[38]=0; p[39]=h-0.06;p[40]=y-0.025;p[41]=0;
+    dimGeo.setDrawRange(0,14);
+    dimGeo.attributes.position.needsUpdate=true;
+    dimLabel.sp.position.set(0,0.17,0);
+    drawLabel(dimLabel,"STRIDE "+strideM.toFixed(2)+" M");
+  }
+
+  /* ================= walk cycle ================= */
+  var cadence=1.4, strideAmp=0.53, phase=0, running=true;
+
+  var angles={};
+  var JOINT_INFO={
+    "HIP.L":{obj:hipL,axis:"z",inv:1},"KNEE.L":{obj:kneeL,axis:"z",inv:-1},
+    "ANKLE.L":{obj:ankleL,axis:"z",inv:1},
+    "HIP.R":{obj:hipR,axis:"z",inv:1},"KNEE.R":{obj:kneeR,axis:"z",inv:-1},
+    "ANKLE.R":{obj:ankleR,axis:"z",inv:1},
+    "SHOULDER.L":{obj:shoulderL,axis:"z",inv:1},"ELBOW.L":{obj:elbowL,axis:"z",inv:1},
+    "SHOULDER.R":{obj:shoulderR,axis:"z",inv:1},"ELBOW.R":{obj:elbowR,axis:"z",inv:1},
+    "PELVIS":{obj:pelvis,axis:"y",inv:1},"NECK":{obj:neck,axis:"z",inv:1}
+  };
+  var NAME_BY_OBJ={};
+  Object.keys(JOINT_INFO).forEach(function(k){NAME_BY_OBJ[JOINT_INFO[k].obj.uuid]=k;});
+  var pickables=[];
+  Object.keys(JOINT_INFO).forEach(function(k){
+    var b=JOINT_INFO[k].obj.userData.ball;
+    b.userData.joint=JOINT_INFO[k].obj;
+    pickables.push(b);
+  });
+  var selected="HIP.L";
+
+  function leg(t,A){
+    /* t: leg phase. Returns [thigh, kneeFlex, footLift] */
+    var thigh=A*Math.cos(t);
+    var kneeFlex=1.9*A*Math.max(0,Math.sin(t-0.45));
+    kneeFlex=Math.min(kneeFlex,1.85);
+    var footLift=0.35*Math.max(0,Math.sin(t-0.2));
+    return [thigh,kneeFlex,footLift];
+  }
+
+  function pose(){
+    var A=strideAmp;
+    var L=leg(phase,A), R=leg(phase+Math.PI,A);
+    var armA=Math.min(0.9,A*1.05);
+
+    hipL.rotation.z=L[0];  kneeL.rotation.z=-L[1];  ankleL.rotation.z=-(L[0]-L[1])+L[2]-0.06;
+    hipR.rotation.z=R[0];  kneeR.rotation.z=-R[1];  ankleR.rotation.z=-(R[0]-R[1])+R[2]-0.06;
+
+    shoulderL.rotation.z=-armA*Math.cos(phase);
+    elbowL.rotation.z=0.35+0.45*Math.max(0,Math.cos(phase));
+    shoulderR.rotation.z=armA*Math.cos(phase);
+    elbowR.rotation.z=0.35+0.45*Math.max(0,-Math.cos(phase));
+
+    pelvis.position.y=0.96+0.035*Math.cos(2*phase);
+    pelvis.position.z=0.022*Math.cos(phase);
+    pelvis.rotation.y=0.13*Math.cos(phase);
+    pelvis.rotation.z=0.05*Math.sin(phase);
+    chest.rotation.y=-0.16*Math.cos(phase);
+    spine.rotation.z=-0.07;
+    neck.rotation.z=0.05;
+    head.rotation.y=0.07*Math.cos(phase);
+
+    var s=1+0.06*Math.sin(2*phase);
+    shadow.scale.set(s,1,1);
+    shadow.material.opacity=0.9-0.18*Math.abs(Math.cos(phase));
+
+    angles["HIP.L"]=L[0]; angles["KNEE.L"]=L[1]; angles["ANKLE.L"]=ankleL.rotation.z;
+    angles["HIP.R"]=R[0]; angles["KNEE.R"]=R[1]; angles["ANKLE.R"]=ankleR.rotation.z;
+    angles["SHOULDER.L"]=shoulderL.rotation.z; angles["ELBOW.L"]=elbowL.rotation.z;
+    angles["SHOULDER.R"]=shoulderR.rotation.z; angles["ELBOW.R"]=elbowR.rotation.z;
+    angles["PELVIS"]=pelvis.rotation.y; angles["NECK"]=neck.rotation.z;
+  }
+
+  /* ================= selection ================= */
+  var spJoint=document.getElementById("spJoint");
+  var spAngle=document.getElementById("spAngle");
+  var spPhase=document.getElementById("spPhase");
+  var spStride=document.getElementById("spStride");
+  var gL=document.getElementById("gL"),gR=document.getElementById("gR");
+
+  function selectJoint(name){
+    if(selected&&JOINT_INFO[selected])JOINT_INFO[selected].obj.userData.ball.material=jointMat;
+    selected=name;
+    var info=JOINT_INFO[name];
+    info.obj.userData.ball.material=selMat;
+    spJoint.textContent=name;
+  }
+  selectJoint("HIP.L");
+
+  var raycaster=new THREE.Raycaster();
+  var pointer=new THREE.Vector2();
+  var downX=0,downY=0,dragged=false;
+
+  stage.addEventListener("pointerdown",function(e){
+    downX=e.clientX;downY=e.clientY;dragged=false;
+    stage.classList.add("dragging");
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener("pointermove",function(e){
+    if(e.buttons){
+      var dx=e.clientX-downX,dy=e.clientY-downY;
+      if(Math.abs(dx)+Math.abs(dy)>4)dragged=true;
+      if(dragged){
+        azim-=(e.movementX||0)*0.005;
+        elev=Math.min(1.25,Math.max(0.06,elev+(e.movementY||0)*0.005));
+        placeCamera();
+      }
+    }
+  });
+  stage.addEventListener("pointerup",function(e){
+    stage.classList.remove("dragging");
+    if(!dragged){
+      var r=renderer.domElement.getBoundingClientRect();
+      pointer.x=((e.clientX-r.left)/r.width)*2-1;
+      pointer.y=-((e.clientY-r.top)/r.height)*2+1;
+      raycaster.setFromCamera(pointer,camera);
+      var hits=raycaster.intersectObjects(pickables);
+      if(hits.length){
+        var name=NAME_BY_OBJ[hits[0].object.userData.joint.uuid];
+        if(name)selectJoint(name);
+      }
+    }
+  });
+
+  /* ================= controls ================= */
+  var cadSlider=document.getElementById("cadence");
+  var strSlider=document.getElementById("stride");
+  var cadVal=document.getElementById("cadVal");
+  var strVal=document.getElementById("strVal");
+
+  function strideMeters(){
+    return 2*LEG*Math.sin(strideAmp);
+  }
+  function applyCad(){cadence=cadSlider.value/100;cadVal.textContent=cadence.toFixed(2)+" HZ";}
+  function applyStr(){
+    strideAmp=strSlider.value/100*0.85;
+    var m=strideMeters();
+    strVal.textContent=m.toFixed(2)+" M";
+    spStride.textContent=m.toFixed(2)+" M";
+    updateDim(m);
+  }
+  cadSlider.addEventListener("input",applyCad);
+  strSlider.addEventListener("input",applyStr);
+  applyCad();applyStr();
+
+  /* ================= resize + loop ================= */
+  function resize(){
+    var w=window.innerWidth,h=window.innerHeight,a=w/h;
+    camera.left=-viewSize*a/2;camera.right=viewSize*a/2;
+    camera.top=viewSize/2;camera.bottom=-viewSize/2;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w,h);
+  }
+  window.addEventListener("resize",resize);
+  resize();
+
+  var last=performance.now();
+  var DEG=180/Math.PI;
+  function loop(now){
+    var dt=Math.min(0.05,(now-last)/1000);
+    last=now;
+    if(running)phase+=dt*cadence*Math.PI*2*0.5;
+    pose();
+    rig.updateMatrixWorld(true);
+    updateBones();
+
+    /* treadmill scroll: belt moves backward at stride*freq */
+    var beltSpeed=strideMeters()*cadence*0.5;
+    for(var i=0;i<BELT_N;i++){
+      beltX[i]-=beltSpeed*dt;
+      if(beltX[i]<-BELT_SPAN/2)beltX[i]+=BELT_SPAN;
+    }
+    updateBelt();
+
+    /* live readouts */
+    var info=JOINT_INFO[selected];
+    var val=angles[selected]||0;
+    spAngle.textContent=(val*DEG*info.inv).toFixed(1)+"°";
+    var legPhase=selected.indexOf(".R")>-1?phase+Math.PI:phase;
+    spPhase.textContent=Math.sin(legPhase-0.45)>0?"SWING":"STANCE";
+    gL.style.transform="scaleX("+((Math.sin(phase)+1)/2).toFixed(3)+")";
+    gR.style.transform="scaleX("+((Math.sin(phase+Math.PI)+1)/2).toFixed(3)+")";
+
+    renderer.render(scene,camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGNAL WAVEFORM 信号波形 — 复古 CRT 示波器短片</title>
+<style>
+  :root{
+    --case:#191d1f; --case2:#22272a; --bezel:#101314; --line:#0a0c0d;
+    --screen:#050805; --green:#57ff9a; --amber:#ffb454;
+    --ink:#cfd6cb; --dim:#6d766c;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:#0e1112;color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+    background-image:radial-gradient(1200px 600px at 50% -10%, #161b1d 0%, #0e1112 60%);
+  }
+  ::selection{background:var(--green);color:#04120a}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;
+    padding:26px 32px 0;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .sig h1{
+    font-family:var(--serif);font-size:clamp(20px,2.6vw,28px);font-weight:700;letter-spacing:.05em;color:#e8ede6;
+  }
+  .sig h1 em{font-style:italic;color:var(--green)}
+  .no{
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--green);
+    border:1px solid #2c3a31;padding:5px 9px;text-transform:uppercase;white-space:nowrap;background:#101615;
+  }
+  .meta{
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);
+    text-transform:uppercase;display:flex;gap:18px;flex-wrap:wrap;
+  }
+  .meta b{color:var(--ink);font-weight:400}
+  .rule{margin:16px 32px 0;border-top:1px solid #23282a;position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:-1px;width:64px;height:3px;background:var(--green)}
+
+  main{padding:22px 32px 44px;max-width:1240px;margin:0 auto}
+
+  /* ——— the instrument chassis ——— */
+  .scope{
+    background:linear-gradient(160deg, var(--case2), var(--case) 55%);
+    border:1px solid #000;border-radius:14px;
+    box-shadow:0 30px 70px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07);
+    padding:20px;display:grid;grid-template-columns:1fr 246px;gap:18px;position:relative;
+  }
+  .screw{
+    position:absolute;width:11px;height:11px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #4b545a, #14171a 70%);
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.8);
+  }
+  .screw::after{
+    content:"";position:absolute;left:1px;right:1px;top:50%;height:1.4px;
+    background:#0a0c0d;transform:rotate(37deg);
+  }
+  .screw.s1{left:7px;top:7px}.screw.s2{right:7px;top:7px}
+  .screw.s3{left:7px;bottom:7px}.screw.s4{right:7px;bottom:7px}
+
+  /* ——— CRT screen ——— */
+  .crt-wrap{
+    background:var(--bezel);border-radius:10px;padding:16px;
+    box-shadow:inset 0 2px 10px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.05);
+  }
+  .crt{
+    position:relative;border-radius:18px/22px;overflow:hidden;background:var(--screen);
+    aspect-ratio:4/3;min-height:300px;
+    box-shadow:inset 0 0 60px rgba(0,0,0,.85);
+  }
+  .crt canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .crt .glass{
+    position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    background:
+      radial-gradient(120% 90% at 50% 8%, rgba(160,255,200,.05) 0%, transparent 42%),
+      radial-gradient(140% 120% at 50% 115%, rgba(0,0,0,.5) 0%, transparent 55%);
+  }
+  .crt .scan{
+    position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:.5;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px);
+  }
+  .crt .sweep{
+    position:absolute;inset:-20% 0;pointer-events:none;
+    background:linear-gradient(180deg, transparent 42%, rgba(87,255,154,.06) 50%, transparent 58%);
+    animation:sweep 7s linear infinite;
+  }
+  @keyframes sweep{from{transform:translateY(-30%)}to{transform:translateY(30%)}}
+  .crt .hud{
+    position:absolute;left:12px;bottom:9px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.14em;color:rgba(255,180,84,.75);text-transform:uppercase;pointer-events:none;
+  }
+  .crt .hud2{
+    position:absolute;right:12px;top:9px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.14em;color:rgba(87,255,154,.6);text-transform:uppercase;pointer-events:none;
+  }
+  .crt-inner{position:absolute;inset:0;transition:transform .5s cubic-bezier(.7,0,.9,.5), opacity .4s}
+  .crt-inner.off{transform:scale(.004,.006);opacity:.9}
+  .crt-dead{position:absolute;inset:0}
+
+  /* ——— control section ——— */
+  .ctrl{display:flex;flex-direction:column;gap:12px;min-width:0}
+  .sect{
+    border:1px solid #000;border-radius:8px;background:rgba(0,0,0,.22);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);padding:10px 12px 12px;
+  }
+  .sect h4{
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.26em;color:var(--dim);
+    text-transform:uppercase;font-weight:400;margin-bottom:10px;display:flex;justify-content:space-between;
+  }
+  .sect h4 i{font-style:normal;color:var(--amber)}
+  .knobs{display:grid;grid-template-columns:1fr 1fr;gap:12px 8px}
+  .kcell{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .knob{
+    width:50px;height:50px;border-radius:50%;cursor:ns-resize;touch-action:none;
+    background:radial-gradient(circle at 34% 28%, #454f55, #181c1e 68%);
+    border:1px solid #000;
+    box-shadow:0 4px 8px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.12);
+    position:relative;transition:box-shadow .2s;
+  }
+  .knob:hover{box-shadow:0 4px 10px rgba(0,0,0,.8), 0 0 0 3px rgba(87,255,154,.12), inset 0 1px 0 rgba(255,255,255,.12)}
+  .knob .ind{
+    position:absolute;left:50%;top:50%;width:2.4px;height:42%;background:var(--amber);
+    transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);border-radius:2px;
+    box-shadow:0 0 4px rgba(255,180,84,.7);
+  }
+  .kname{font-family:var(--mono);font-size:8px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+  .kval{font-family:var(--mono);font-size:9px;letter-spacing:.06em;color:var(--green)}
+
+  .lamps{display:flex;gap:10px;justify-content:center;padding:2px 0 6px}
+  .lamp{
+    width:9px;height:9px;border-radius:50%;background:#1a201c;border:1px solid #000;
+    box-shadow:inset 0 1px 2px rgba(0,0,0,.8);transition:all .25s;
+  }
+  .lamp.on{background:var(--green);box-shadow:0 0 8px rgba(87,255,154,.8)}
+  .lamp.amber.on{background:var(--amber);box-shadow:0 0 8px rgba(255,180,84,.8)}
+
+  .pbtn{
+    width:100%;border:1px solid #000;border-radius:6px;background:linear-gradient(180deg,#2b3236,#181c1e);
+    color:var(--ink);font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;
+    padding:10px 6px;cursor:pointer;box-shadow:0 3px 6px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.1);
+    transition:all .15s var(--ease);
+  }
+  .pbtn:hover{color:var(--green)}
+  .pbtn:active{transform:translateY(2px);box-shadow:0 1px 2px rgba(0,0,0,.5)}
+  .pbtn.on{color:var(--amber)}
+  .pbtn.green{background:linear-gradient(180deg,#1d3a2c,#0f1f17);color:var(--green)}
+  .pbtn.green:hover{color:#a8ffcf}
+  .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  .brand{
+    margin-top:auto;display:flex;justify-content:space-between;align-items:center;
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;
+    border-top:1px solid rgba(0,0,0,.6);padding-top:10px;
+  }
+  .brand b{color:var(--ink);font-weight:400}
+  .vent{
+    height:26px;border-radius:4px;opacity:.5;margin-top:8px;
+    background:repeating-linear-gradient(90deg, #000 0 3px, transparent 3px 8px);
+  }
+
+  footer{
+    padding:0 32px 34px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:#4a534e;text-transform:uppercase;
+  }
+  @media (max-width:900px){
+    .scope{grid-template-columns:1fr}
+    .knobs{grid-template-columns:repeat(4,1fr)}
+    .knob{width:44px;height:44px}
+  }
+  @media (max-width:640px){
+    header{padding:20px 18px 0}.rule{margin:14px 18px 0}
+    main{padding:16px 18px 30px}
+    .scope{padding:14px;gap:12px}
+    .crt{min-height:280px}
+    .knobs{grid-template-columns:repeat(4,1fr);gap:10px 4px}
+    .knob{width:40px;height:40px}
+    footer{padding:0 18px 26px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <span class="no">N°05 — AI-VIDEO</span>
+    <h1>SIGNAL WAVEFORM <em>信号波形</em></h1>
+  </div>
+  <div class="meta">
+    <span>MODEL <b>KW-7000</b></span>
+    <span>BANDWIDTH <b>20 MHZ</b></span>
+    <span>PHOSPHOR <b>P31 GREEN</b></span>
+  </div>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section class="scope" aria-label="示波器">
+    <span class="screw s1"></span><span class="screw s2"></span><span class="screw s3"></span><span class="screw s4"></span>
+
+    <div class="crt-wrap">
+      <div class="crt">
+        <div class="crt-inner" id="crtInner"><canvas id="scr"></canvas></div>
+        <div class="crt-dead" id="crtDead"></div>
+        <div class="sweep"></div>
+        <div class="scan"></div>
+        <div class="glass"></div>
+        <div class="hud" id="scrHud">CH1 · CH2 · STANDBY</div>
+        <div class="hud2">KW-7000 ▚ TRIG'D</div>
+      </div>
+    </div>
+
+    <div class="ctrl">
+      <div class="sect">
+        <h4>VERTICAL / 通道 <i>CH1 · CH2</i></h4>
+        <div class="knobs" id="knobsA"></div>
+      </div>
+      <div class="sect">
+        <h4>HORIZONTAL / 扫描 <i>MOD</i></h4>
+        <div class="knobs" id="knobsB"></div>
+      </div>
+      <div class="sect">
+        <h4>DISPLAY / 显示 <i id="modeName">DUAL</i></h4>
+        <div class="lamps">
+          <span class="lamp on" id="lamp0"></span>
+          <span class="lamp" id="lamp1"></span>
+          <span class="lamp amber" id="lamp2"></span>
+        </div>
+        <div class="btnrow">
+          <button class="pbtn" id="bMode">MODE</button>
+          <button class="pbtn on" id="bFocus">FOCUS</button>
+          <button class="pbtn green" id="bPatch">AUTO PATCH ↻</button>
+          <button class="pbtn" id="bPower">POWER</button>
+        </div>
+      </div>
+      <button class="pbtn green" id="bSave">SAVE FRAME ↓</button>
+      <div class="vent"></div>
+      <div class="brand"><span><b>KIMIWAVE</b> INSTRUMENTS</span><span>SER 2608-K7</span></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>SIGNAL WAVEFORM — CRT STUDY</span>
+  <span>AI-VIDEO / ANALOG SYNTHESIS FILM · 2026</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var scr = document.getElementById('scr');
+  var ctx = scr.getContext('2d');
+  var phos = document.createElement('canvas');      // phosphor persistence layer
+  var pctx = phos.getContext('2d');
+  var grat = document.createElement('canvas');      // static graticule
+  var gctx = grat.getContext('2d');
+
+  var W=0, H=0, dpr=1;
+  var GREEN = '#57ff9a', AMBER = '#ffb454';
+  var power = true, focus = true;                   // focus=true → sharp beam
+  var mode = 0;                                     // 0 DUAL · 1 ADD · 2 XY
+  var MODES = ['DUAL','ADD','X-Y'];
+  var phase1 = 0, phase2 = 0, lfoPh = 0;
+
+  /* knob parameters */
+  var P = {
+    f1:2.4, s1:0, f2:0.8, s2:3, mod:.25, persist:.55, gain:.85
+  };
+
+  /* ——— waveform morphing: 0 sin · 1 tri · 2 sqr · 3 saw ——— */
+  function basic(i, x){
+    var t = x - Math.floor(x);
+    if (i===0) return Math.sin(t*6.283185307);
+    if (i===1) return t<.5 ? 4*t-1 : 3-4*t;
+    if (i===2) return Math.tanh(3.2*Math.sin(t*6.283185307));
+    return 2*t-1;
+  }
+  function wave(x, s){
+    s = Math.max(0, Math.min(3, s));
+    var i = Math.min(2, Math.floor(s)), f = s - i;
+    var a = basic(i, x), b = basic(i+1, x);
+    return a + (b-a)*f;
+  }
+  function ch1(t){
+    var fm = P.mod * Math.sin(lfoPh + t*6.283185307*.5);
+    return wave(P.f1*t + phase1 + fm, P.s1);
+  }
+  function ch2(t){
+    return wave(P.f2*t + phase2, P.s2);
+  }
+
+  /* ——— sizing + graticule ——— */
+  function resize(){
+    var r = scr.parentElement.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio||1, 2);
+    W = Math.max(300, r.width); H = Math.max(280, r.height);
+    [scr,phos,grat].forEach(function(c){ c.width=W*dpr; c.height=H*dpr; });
+    [ctx,pctx,gctx].forEach(function(c){ c.setTransform(dpr,0,0,dpr,0,0); });
+    paintGraticule();
+    pctx.clearRect(0,0,W,H);
+  }
+  function paintGraticule(){
+    var g = gctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*.7);
+    g.addColorStop(0,'#08110a'); g.addColorStop(.75,'#050805'); g.addColorStop(1,'#020403');
+    gctx.fillStyle = g; gctx.fillRect(0,0,W,H);
+    gctx.strokeStyle = 'rgba(87,255,154,.13)'; gctx.lineWidth = 1;
+    var i, x, y;
+    for (i=1;i<10;i++){ x = W*i/10;
+      gctx.beginPath(); gctx.moveTo(x,0); gctx.lineTo(x,H); gctx.stroke(); }
+    for (i=1;i<8;i++){ y = H*i/8;
+      gctx.beginPath(); gctx.moveTo(0,y); gctx.lineTo(W,y); gctx.stroke(); }
+    gctx.strokeStyle = 'rgba(87,255,154,.3)';
+    gctx.beginPath(); gctx.moveTo(W/2,0); gctx.lineTo(W/2,H); gctx.stroke();
+    gctx.beginPath(); gctx.moveTo(0,H/2); gctx.lineTo(W,H/2); gctx.stroke();
+    gctx.strokeStyle = 'rgba(87,255,154,.35)';
+    for (i=0;i<50;i++){ x = W*i/50;
+      gctx.beginPath(); gctx.moveTo(x,H/2-3); gctx.lineTo(x,H/2+3); gctx.stroke(); }
+  }
+
+  /* ——— trace drawing ——— */
+  function trace(fn, color, lw, alpha){
+    pctx.strokeStyle = color;
+    pctx.lineWidth = lw;
+    pctx.globalAlpha = alpha;
+    pctx.shadowColor = color;
+    pctx.shadowBlur = focus ? 7 : 14;
+    pctx.beginPath();
+    var midY = H/2, amp = H*.36*P.gain, n = Math.floor(W/2);
+    for (var i=0;i<=n;i++){
+      var t = i/n;
+      var jit = focus ? 0 : (Math.random()-.5)*1.4;
+      var y = midY - fn(t)*amp + jit;
+      if (i===0) pctx.moveTo(t*W, y); else pctx.lineTo(t*W, y);
+    }
+    pctx.stroke();
+    pctx.shadowBlur = 0;
+    pctx.globalAlpha = 1;
+  }
+  function traceXY(){
+    pctx.strokeStyle = GREEN;
+    pctx.lineWidth = focus ? 1.6 : 2.6;
+    pctx.globalAlpha = .9;
+    pctx.shadowColor = GREEN; pctx.shadowBlur = focus ? 8 : 16;
+    pctx.beginPath();
+    var n = 900;
+    for (var i=0;i<=n;i++){
+      var t = i/n;
+      var x = W/2 + ch1(t)*W*.36*P.gain;
+      var y = H/2 - ch2(t)*H*.36*P.gain;
+      if (i===0) pctx.moveTo(x,y); else pctx.lineTo(x,y);
+    }
+    pctx.stroke();
+    pctx.shadowBlur = 0; pctx.globalAlpha = 1;
+  }
+
+  var hud = document.getElementById('scrHud');
+  var SHAPES = ['SIN','TRI','SQR','SAW'];
+  function shapeName(s){ return SHAPES[Math.round(Math.max(0,Math.min(3,s)))]; }
+
+  var last = 0;
+  function loop(ts){
+    var dt = Math.min(.05,(ts-last)/1000 || .016); last = ts;
+    if (power){
+      phase1 += dt*1.15; phase2 += dt*.9; lfoPh += dt*2.2;
+      // phosphor fade
+      pctx.globalCompositeOperation = 'source-over';
+      pctx.fillStyle = 'rgba(5,8,5,' + (0.34 - P.persist*.29).toFixed(3) + ')';
+      pctx.fillRect(0,0,W,H);
+      pctx.globalCompositeOperation = 'lighter';
+      if (mode===0){ trace(ch1, GREEN, focus?1.5:2.4, .95); trace(ch2, AMBER, focus?1.2:2, .8); }
+      else if (mode===1){ trace(function(t){ return (ch1(t)+ch2(t))*.62; }, GREEN, focus?1.8:2.8, 1); }
+      else traceXY();
+      ctx.clearRect(0,0,W,H);
+      ctx.drawImage(grat,0,0,W,H);
+      ctx.drawImage(phos,0,0,W,H);
+      hud.textContent = 'CH1 ' + shapeName(P.s1) + ' ' + P.f1.toFixed(2) + 'K · CH2 ' +
+        shapeName(P.s2) + ' ' + P.f2.toFixed(2) + 'K · ' + MODES[mode];
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* ——— rotary knobs ——— */
+  function makeKnob(parent, name, min, max, val, fmt, onChange){
+    var cell = document.createElement('div'); cell.className = 'kcell';
+    var kn = document.createElement('div'); kn.className = 'knob';
+    var ind = document.createElement('i'); ind.className = 'ind';
+    kn.appendChild(ind);
+    var kn2 = document.createElement('span'); kn2.className = 'kname'; kn2.textContent = name;
+    var kv = document.createElement('span'); kv.className = 'kval';
+    cell.appendChild(kn); cell.appendChild(kn2); cell.appendChild(kv);
+    parent.appendChild(cell);
+    function show(v){
+      var norm = (v-min)/(max-min);
+      ind.style.transform = 'translate(-50%,-100%) rotate(' + (-135 + norm*270) + 'deg)';
+      kv.textContent = fmt(v);
+    }
+    function set(v, silent){
+      v = Math.max(min, Math.min(max, v));
+      show(v);
+      if (!silent) onChange(v);
+      return v;
+    }
+    var sy = 0, sv = 0;
+    kn.addEventListener('pointerdown', function(e){
+      sy = e.clientY; sv = val; kn.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    kn.addEventListener('pointermove', function(e){
+      if (e.buttons !== 1) return;
+      val = set(sv + (sy - e.clientY)/130*(max-min));
+    });
+    kn.addEventListener('wheel', function(e){
+      e.preventDefault();
+      val = set(val - Math.sign(e.deltaY)*(max-min)*.04);
+    }, {passive:false});
+    val = set(val, true);
+    return { set:function(v){ val = set(v); }, get:function(){ return val; } };
+  }
+
+  var kA = document.getElementById('knobsA'), kB = document.getElementById('knobsB');
+  var K = {};
+  K.f1 = makeKnob(kA,'CH1 FREQ',.4,8,P.f1,function(v){return v.toFixed(2)+'K';},function(v){P.f1=v;});
+  K.s1 = makeKnob(kA,'CH1 SHAPE',0,3,P.s1,function(v){return shapeName(v);},function(v){P.s1=v;});
+  K.f2 = makeKnob(kA,'CH2 FREQ',.4,8,P.f2,function(v){return v.toFixed(2)+'K';},function(v){P.f2=v;});
+  K.s2 = makeKnob(kA,'CH2 SHAPE',0,3,P.s2,function(v){return shapeName(v);},function(v){P.s2=v;});
+  K.mod = makeKnob(kB,'MOD DEPTH',0,1,P.mod,function(v){return (v*100|0)+'%';},function(v){P.mod=v;});
+  K.persist = makeKnob(kB,'PERSIST',0,1,P.persist,function(v){return (v*100|0)+'%';},function(v){P.persist=v;});
+  K.gain = makeKnob(kB,'VOLTS/DIV',.25,1.15,P.gain,function(v){return (v*5).toFixed(1)+'V';},function(v){P.gain=v;});
+
+  /* ——— mode / focus / power / patch ——— */
+  var lamps = [document.getElementById('lamp0'),document.getElementById('lamp1'),document.getElementById('lamp2')];
+  var modeName = document.getElementById('modeName');
+  function showMode(){
+    lamps.forEach(function(l,i){ l.classList.toggle('on', i===mode); });
+    modeName.textContent = MODES[mode];
+  }
+  document.getElementById('bMode').addEventListener('click', function(){
+    mode = (mode+1)%3; showMode();
+    pctx.clearRect(0,0,W,H);
+  });
+  var bFocus = document.getElementById('bFocus');
+  bFocus.addEventListener('click', function(){
+    focus = !focus; bFocus.classList.toggle('on', focus);
+  });
+
+  var crtInner = document.getElementById('crtInner');
+  document.getElementById('bPower').addEventListener('click', function(){
+    power = !power;
+    crtInner.classList.toggle('off', !power);
+    if (!power) hud.textContent = 'STANDBY';
+  });
+
+  document.getElementById('bPatch').addEventListener('click', function(){
+    K.f1.set(rnd(.5,7.5)); K.s1.set(rnd(0,3));
+    K.f2.set(rnd(.5,7.5)); K.s2.set(rnd(0,3));
+    K.mod.set(rnd(0,.9)); K.persist.set(rnd(.25,.95)); K.gain.set(rnd(.4,1.1));
+    mode = Math.floor(rnd(0,3)); showMode();
+    pctx.clearRect(0,0,W,H);
+  });
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+
+  document.getElementById('bSave').addEventListener('click', function(){
+    var out = document.createElement('canvas');
+    out.width = W*dpr; out.height = H*dpr;
+    var o = out.getContext('2d');
+    o.setTransform(dpr,0,0,dpr,0,0);
+    o.drawImage(grat,0,0,W,H);
+    o.drawImage(phos,0,0,W,H);
+    o.fillStyle = 'rgba(255,180,84,.8)';
+    o.font = '9px Menlo, monospace';
+    o.fillText('KIMIWAVE KW-7000 — ' + MODES[mode] + ' · SIGNAL WAVEFORM N°05', 10, H-10);
+    var a = document.createElement('a');
+    a.download = 'signal-waveform_' + MODES[mode].toLowerCase() + '.png';
+    a.href = out.toDataURL('image/png');
+    a.click();
+  });
+
+  window.addEventListener('resize', resize);
+  resize(); showMode();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

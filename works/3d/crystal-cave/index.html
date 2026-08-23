@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crystal Cave / 08 / MIRA</title>
+<style>
+:root{
+  --bg:#07090d; --teal:#4ff0c8; --amber:#ffb454; --dim:#5f7d78; --line:#4ff0c82e;
+  --mono:"SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--teal);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--teal);color:var(--bg)}
+header{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+a{color:inherit;text-decoration:none}
+.back{display:flex;align-items:center;gap:12px;transition:color .25s}
+.back:hover{color:var(--teal)}
+.back b{font-weight:400;font-size:16px;transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.back:hover b{transform:translateX(-4px)}
+.hero{padding:5vw 4vw 3.5vw;display:grid;grid-template-columns:1.5fr 1fr;gap:5vw;align-items:end;border-bottom:1px solid var(--line)}
+.kicker{font:10px var(--mono);color:var(--amber);letter-spacing:.2em;text-transform:uppercase}
+.kicker::before{content:"◆ "}
+h1{font:400 clamp(44px,7.4vw,110px)/0.95 var(--mono);letter-spacing:-.02em;text-transform:uppercase;margin:22px 0 24px;color:#e8fff8}
+h1 em{font-style:normal;color:var(--teal);text-shadow:0 0 22px #4ff0c866}
+.hero p{max-width:440px;color:#8fb5ad;font-size:14px;line-height:1.75;margin:0}
+.readout{font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);line-height:2.1;text-align:right}
+.readout b{color:var(--teal);font-weight:400}
+.stage-wrap{padding:4vw 4vw 4.5vw}
+.stage{border:1px solid var(--line);height:min(64vw,680px);min-height:420px;position:relative;overflow:hidden;background:#04060a;cursor:crosshair}
+.stage canvas{display:block;width:100%;height:100%}
+.stage::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+  background:repeating-linear-gradient(0deg,#00000022 0 1px,transparent 1px 3px);opacity:.5}
+.corner{position:absolute;width:22px;height:22px;z-index:4;pointer-events:none}
+.corner.tl{top:10px;left:10px;border-top:1px solid var(--teal);border-left:1px solid var(--teal)}
+.corner.tr{top:10px;right:10px;border-top:1px solid var(--teal);border-right:1px solid var(--teal)}
+.corner.bl{bottom:10px;left:10px;border-bottom:1px solid var(--teal);border-left:1px solid var(--teal)}
+.corner.br{bottom:10px;right:10px;border-bottom:1px solid var(--teal);border-right:1px solid var(--teal)}
+.cross{position:absolute;top:50%;left:50%;width:26px;height:26px;transform:translate(-50%,-50%);z-index:4;pointer-events:none;opacity:.8}
+.cross::before,.cross::after{content:"";position:absolute;background:var(--teal)}
+.cross::before{left:50%;top:0;width:1px;height:100%}
+.cross::after{top:50%;left:0;height:1px;width:100%}
+.hud{position:absolute;inset:0;pointer-events:none;font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;z-index:4;color:var(--dim)}
+.hud .a{position:absolute;top:16px;left:44px}
+.hud .b{position:absolute;top:16px;right:44px;color:var(--amber)}
+.hud .c{position:absolute;bottom:16px;left:44px}
+.hud .d{position:absolute;bottom:16px;right:44px;text-align:right}
+.hud b{color:var(--teal);font-weight:400}
+.tools{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:14px 0;display:flex;justify-content:space-between;align-items:center;gap:22px;flex-wrap:wrap}
+.sliders{display:flex;gap:26px;flex-wrap:wrap}
+.sliders label{display:flex;align-items:center;gap:10px;font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.sliders output{color:var(--amber);min-width:24px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:1px;background:#4ff0c855;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:10px;height:10px;background:var(--amber);border:none;transform:rotate(45deg);cursor:grab}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--amber);border:none;transform:rotate(45deg);cursor:grab}
+.tool-btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--teal);background:transparent;border:1px solid #4ff0c855;padding:9px 14px;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+button:hover{background:#4ff0c81c;border-color:var(--teal)}
+button.on{background:var(--teal);color:var(--bg);border-color:var(--teal)}
+.caption{padding:6.5vw 4vw 8vw;display:grid;grid-template-columns:1fr 1fr;gap:6vw;border-top:1px solid var(--line)}
+.caption h2{font:400 clamp(28px,3.8vw,54px)/1.15 var(--mono);letter-spacing:-.01em;margin:0;color:#e8fff8;text-transform:uppercase}
+.caption h2 em{font-style:normal;color:var(--amber)}
+.caption p{color:#8fb5ad;font-size:14px;line-height:1.85;margin:0;max-width:440px}
+.caption .sig{margin-top:26px;font:9px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+@media(max-width:860px){
+  .hero{grid-template-columns:1fr;gap:24px}
+  .readout{text-align:left}
+  .caption{grid-template-columns:1fr;gap:28px}
+  .stage{height:78vw;min-height:360px}
+  .tools{flex-direction:column;align-items:flex-start}
+  .hud .c{display:none}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a>
+  <span>13 / 100 · 3D Worlds</span>
+  <span>Crystal Cave</span>
+</header>
+<main>
+  <section class="hero">
+    <div>
+      <div class="kicker">Subterranean survey / 2026</div>
+      <h1>Crystal<br><em>Cave</em></h1>
+      <p>一座深埋地下的发光晶体洞穴。拖动环视，滚轮推进，WASD 移动；洞壁的光随呼吸明灭，像某种沉睡巨物的心跳。</p>
+    </div>
+    <div class="readout" id="readout">SURVEY LOG — BOOTING<br>SEED <b>—</b><br>CRYSTALS <b>—</b><br>DEPTH <b>—</b></div>
+  </section>
+  <section class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+      <div class="cross"></div>
+      <div class="hud">
+        <span class="a">CAVERN SURVEY UNIT 08</span>
+        <span class="b" id="hudBreath">BREATH ACTIVE</span>
+        <span class="c">DRAG LOOK · WHEEL THRUST · W A S D MOVE</span>
+        <span class="d" id="hudPos">X +0.0 Y +0.0 Z +0.0</span>
+      </div>
+    </div>
+    <div class="tools">
+      <div class="sliders">
+        <label>Breath depth 呼吸幅度 <input type="range" id="sBreath" min="0" max="100" value="55"><output id="oBreath">55</output></label>
+        <label>Density 晶体密度 <input type="range" id="sDen" min="8" max="40" value="22"><output id="oDen">22</output></label>
+      </div>
+      <div class="tool-btns">
+        <button id="bBreath" class="on">Breath 呼吸</button>
+        <button id="bDrift" class="on">Drift 漫游</button>
+        <button id="bRegen">Regenerate 再生</button>
+        <button id="bDown">Download PNG</button>
+      </div>
+    </div>
+  </section>
+  <section class="caption">
+    <h2>The cave is not empty.<br>It is <em>listening.</em></h2>
+    <div>
+      <p>洞壁是一只随机种子生成的多面岩壳，晶体簇从岩缝里向光生长。每一次再生都是一座新洞穴：不同的矿脉走向、不同的呼吸频率。琥珀色的晶体只在最深的角落里出现——那是洞穴留给耐心勘探者的部分。</p>
+      <div class="sig">MIRA — Subterranean Series · 08</div>
+    </div>
+  </section>
+</main>
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage');
+var scene,camera,renderer,cave,crystalGroup,dust,lights=[];
+var seed=20260808,density=22,crystalCount=0;
+var yaw=0.6,pitch=-0.05,pos=new THREE.Vector3(0,0.4,6),vel=new THREE.Vector3();
+var yawT=yaw,pitchT=pitch,thrust=0;
+var dragging=false,px=0,py=0,breathOn=true,driftOn=true,breathDepth=0.55;
+var keys={};
+var C={bg:0x07090d,rock:0x11161d,teal:0x4ff0c8,amber:0xffb454};
+var disposables=[];
+function track(o){disposables.push(o);return o;}
+function rng(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
+function clearWorld(){
+  if(cave)scene.remove(cave);
+  if(crystalGroup)scene.remove(crystalGroup);
+  for(var i=0;i<lights.length;i++)scene.remove(lights[i]);
+  lights=[];
+  for(var j=0;j<disposables.length;j++){if(disposables[j].dispose)disposables[j].dispose();}
+  disposables=[];crystalCount=0;
+}
+function buildCave(){
+  var g=track(new THREE.IcosahedronGeometry(14,3));
+  var p=g.attributes.position;
+  var s=seed/1000;
+  for(var i=0;i<p.count;i++){
+    var x=p.getX(i),y=p.getY(i),z=p.getZ(i);
+    var n=0.32*Math.sin(x*0.9+s)+0.24*Math.sin(y*1.4+s*1.7)+0.2*Math.sin(z*1.1+x*0.6+s*2.3)+0.12*Math.sin((x+y+z)*2.6+s*0.7);
+    var k=1+n*0.32;
+    p.setXYZ(i,x*k,y*k*0.82,z*k);
+  }
+  g.computeVertexNormals();
+  var m=track(new THREE.MeshStandardMaterial({color:C.rock,flatShading:true,roughness:0.95,metalness:0.05,side:THREE.BackSide}));
+  cave=new THREE.Mesh(g,m);scene.add(cave);
+}
+function crystalMat(col){
+  return track(new THREE.MeshStandardMaterial({color:0x0c1210,emissive:col,emissiveIntensity:0.85,flatShading:true,roughness:0.25,metalness:0.1,transparent:true,opacity:0.94}));
+}
+function buildCrystals(){
+  crystalGroup=new THREE.Group();
+  var tealM=crystalMat(C.teal),amberM=crystalMat(C.amber);
+  var lightBudget=5;
+  for(var c=0;c<density;c++){
+    var th=rng()*Math.PI*2,ph=Math.PI*(0.25+rng()*0.75);
+    var rr=10.2+rng()*1.6;
+    var cx=rr*Math.sin(ph)*Math.cos(th),cy=rr*Math.cos(ph)*0.82,cz=rr*Math.sin(ph)*Math.sin(th);
+    var amber=rng()>0.78;
+    var cluster=new THREE.Group();cluster.position.set(cx,cy,cz);
+    cluster.lookAt(0,0,0);
+    var n=2+Math.floor(rng()*4);
+    for(var i=0;i<n;i++){
+      var h=0.7+rng()*2.4,w=0.16+rng()*0.3;
+      var cg=track(new THREE.OctahedronGeometry(1,0));
+      var cm=new THREE.Mesh(cg,amber?amberM:tealM);
+      cm.scale.set(w,h,w);
+      cm.position.set((rng()-0.5)*1.1,(rng()-0.5)*1.1,(rng()-0.2)*0.6);
+      cm.rotation.set((rng()-0.5)*0.9,(rng()-0.5)*0.9,(rng()-0.5)*0.9);
+      cluster.add(cm);crystalCount++;
+    }
+    if(lightBudget>0&&h>0){
+      var pl=new THREE.PointLight(amber?C.amber:C.teal,1.1,7.5,2);
+      pl.position.set(0,0,0.8);cluster.add(pl);lights.push(pl);lightBudget--;
+    }
+    crystalGroup.add(cluster);
+  }
+  scene.add(crystalGroup);
+}
+function buildDust(){
+  var N=340,arr=new Float32Array(N*3);
+  for(var i=0;i<N;i++){
+    var r=Math.sqrt(Math.random())*10,a=Math.random()*Math.PI*2,b=(Math.random()-0.35)*Math.PI;
+    arr[i*3]=r*Math.cos(a)*Math.cos(b);arr[i*3+1]=r*Math.sin(b)*0.8;arr[i*3+2]=r*Math.sin(a)*Math.cos(b);
+  }
+  var g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  var m=new THREE.PointsMaterial({color:C.teal,size:0.05,transparent:true,opacity:0.5,sizeAttenuation:true});
+  dust=new THREE.Points(g,m);scene.add(dust);
+}
+function updateReadout(){
+  document.getElementById('readout').innerHTML='SURVEY LOG — ACTIVE<br>SEED <b>'+seed+'</b><br>CRYSTALS <b>'+crystalCount+'</b><br>DEPTH <b>'+(-pos.y*3).toFixed(1)+' M</b>';
+}
+function init(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(C.bg);
+  scene.fog=new THREE.FogExp2(C.bg,0.055);
+  camera=new THREE.PerspectiveCamera(62,stage.clientWidth/stage.clientHeight,0.1,60);
+  renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.setSize(stage.clientWidth,stage.clientHeight);
+  stage.appendChild(renderer.domElement);
+  scene.add(new THREE.HemisphereLight(0x4ff0c8,0x05070a,0.5));
+  var amb=new THREE.AmbientLight(0x223330,0.7);scene.add(amb);
+  buildCave();buildCrystals();buildDust();updateReadout();
+  bind();
+  requestAnimationFrame(loop);
+}
+function bind(){
+  var el=renderer.domElement;
+  el.addEventListener('pointerdown',function(e){dragging=true;px=e.clientX;py=e.clientY;el.setPointerCapture(e.pointerId);});
+  el.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    yawT-=(e.clientX-px)*0.0042;pitchT=Math.max(-1.2,Math.min(1.2,pitchT-(e.clientY-py)*0.0042));
+    px=e.clientX;py=e.clientY;
+  });
+  el.addEventListener('pointerup',function(){dragging=false;});
+  el.addEventListener('wheel',function(e){e.preventDefault();thrust+=-e.deltaY*0.004;thrust=Math.max(-3,Math.min(3,thrust));},{passive:false});
+  window.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;});
+  window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false;});
+  window.addEventListener('resize',resize);
+  document.getElementById('sBreath').addEventListener('input',function(){breathDepth=this.value/100;document.getElementById('oBreath').textContent=this.value;});
+  document.getElementById('sDen').addEventListener('change',function(){density=parseInt(this.value,10);document.getElementById('oDen').textContent=this.value;regen(false);});
+  document.getElementById('bBreath').addEventListener('click',function(){breathOn=!breathOn;this.classList.toggle('on',breathOn);document.getElementById('hudBreath').textContent=breathOn?'BREATH ACTIVE':'BREATH HELD';});
+  document.getElementById('bDrift').addEventListener('click',function(){driftOn=!driftOn;this.classList.toggle('on',driftOn);});
+  document.getElementById('bRegen').addEventListener('click',function(){regen(true);});
+  document.getElementById('bDown').addEventListener('click',function(){
+    renderer.render(scene,camera);
+    var a=document.createElement('a');a.download='crystal-cave.png';a.href=renderer.domElement.toDataURL('image/png');a.click();
+  });
+}
+function regen(newSeed){
+  if(newSeed)seed=Math.floor(Math.random()*4294967295);
+  clearWorld();buildCave();buildCrystals();updateReadout();
+}
+function resize(){
+  if(!renderer)return;
+  camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();
+  renderer.setSize(stage.clientWidth,stage.clientHeight);
+}
+var last=performance.now(),t0=last;
+function loop(now){
+  requestAnimationFrame(loop);
+  var dt=Math.min(0.05,(now-last)/1000);last=now;
+  var t=(now-t0)/1000;
+  yaw+=(yawT-yaw)*0.1;pitch+=(pitchT-pitch)*0.1;
+  var fwd=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
+  var right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+  var acc=new THREE.Vector3();
+  if(keys['w'])acc.add(fwd);if(keys['s'])acc.sub(fwd);
+  if(keys['d'])acc.add(right);if(keys['a'])acc.sub(right);
+  if(keys['q'])yawT+=0.02;if(keys['e'])yawT-=0.02;
+  acc.addScaledVector(fwd,thrust);thrust*=0.9;
+  if(driftOn){
+    acc.addScaledVector(fwd,0.16);
+    yawT+=Math.sin(t*0.24)*0.0016;
+    pitchT+=Math.sin(t*0.17)*0.0009;
+  }
+  vel.addScaledVector(acc,dt*3.2);vel.multiplyScalar(0.88);
+  pos.addScaledVector(vel,dt*6);
+  pos.y+=(Math.sin(t*0.5)*0.15-pos.y*0.02)*dt;
+  var len=pos.length();
+  if(len>9.6)pos.multiplyScalar(9.6/len);
+  camera.position.copy(pos);
+  camera.lookAt(pos.x+fwd.x,pos.y+fwd.y,pos.z+fwd.z);
+  var breath=breathOn?(1-breathDepth*0.5+breathDepth*0.5*Math.sin(t*1.1)):1;
+  for(var i=0;i<lights.length;i++){lights[i].intensity=1.1*breath;}
+  if(crystalGroup){crystalGroup.traverse(function(o){if(o.material&&o.material.emissiveIntensity!==undefined)o.material.emissiveIntensity=0.55+0.55*breath;});}
+  if(dust){dust.rotation.y=t*0.008;dust.material.opacity=0.3+0.25*breath;}
+  document.getElementById('hudPos').textContent='X '+(pos.x>=0?'+':'')+pos.x.toFixed(1)+' Y '+(pos.y>=0?'+':'')+pos.y.toFixed(1)+' Z '+(pos.z>=0?'+':'')+pos.z.toFixed(1);
+  renderer.render(scene,camera);
+}
+init();
+})();
+</script>
+</body>
+</html>

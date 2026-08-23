@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dataset Studio — 数据集标注工作台</title>
+<style>
+  :root{
+    --bg:#101014; --panel:#15151B; --panel2:#0D0D11; --line:rgba(255,255,255,.08);
+    --ink:#E9E8E2; --dim:#71767F; --faint:#383C44;
+    --yel:#FFD23F;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(255,210,63,.35)}
+  button{font-family:inherit}
+
+  /* ---------- header ---------- */
+  header{height:56px;display:flex;align-items:center;gap:20px;padding:0 22px;
+         border-bottom:1px solid var(--line);position:relative;z-index:5}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--yel);letter-spacing:.12em}
+  .brand .name{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.22em;text-transform:uppercase}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--mono);
+          font-size:11px;color:var(--dim)}
+  .dotlive{width:7px;height:7px;border-radius:50%;background:var(--yel);
+           box-shadow:0 0 8px var(--yel);animation:pulse 2.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* ---------- layout ---------- */
+  main{display:grid;grid-template-columns:250px 1fr 270px;height:calc(100% - 56px)}
+  .colL{border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+  .colC{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel2)}
+  .colR{border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
+
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ---------- queue ---------- */
+  .qhead{padding:14px 16px 10px}
+  #queue{flex:1;overflow-y:auto;padding:0 10px 14px;scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  #queue::-webkit-scrollbar{width:4px}
+  #queue::-webkit-scrollbar-thumb{background:var(--faint)}
+  .qrow{display:flex;align-items:center;gap:10px;padding:9px 10px;cursor:pointer;
+        border:1px solid transparent;border-radius:6px;transition:all .25s var(--ease)}
+  .qrow:hover{background:rgba(255,255,255,.04)}
+  .qrow.on{background:rgba(255,210,63,.07);border-color:rgba(255,210,63,.3)}
+  .qrow .idx{font-family:var(--mono);font-size:10px;color:var(--faint);width:22px;flex:none}
+  .qrow .txt{font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;
+             text-overflow:ellipsis;flex:1}
+  .qrow.on .txt{color:var(--ink)}
+  .qdot{width:7px;height:7px;border-radius:50%;flex:none;border:1.5px solid var(--faint)}
+  .qdot.done{background:var(--yel);border-color:var(--yel)}
+
+  /* ---------- annotator ---------- */
+  .labbar{display:flex;align-items:center;gap:8px;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .labbar .pre{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);
+               text-transform:uppercase;margin-right:6px}
+  .lchip{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;
+         padding:7px 12px;border:1px solid var(--line);background:transparent;color:var(--dim);
+         cursor:pointer;transition:all .25s var(--ease);user-select:none}
+  .lchip i{width:8px;height:8px;border-radius:2px;flex:none}
+  .lchip .hk{font-size:9px;border:1px solid var(--faint);padding:0 4px;color:var(--faint)}
+  .lchip:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+  .lchip.on{color:var(--ink)}
+
+  .textzone{flex:1;overflow-y:auto;padding:34px 40px;position:relative;
+            scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  .textzone::-webkit-scrollbar{width:4px}
+  .textzone::-webkit-scrollbar-thumb{background:var(--faint)}
+  #sample{font-size:21px;line-height:2.15;letter-spacing:.01em;max-width:760px;
+          user-select:text;cursor:text}
+  #sample .ch{position:relative;border-radius:3px;transition:background .2s}
+  #sample .ch.anno{animation:annoin .35s var(--ease)}
+  @keyframes annoin{from{background:rgba(255,255,255,.25)}}
+  #sample .src{font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.14em;
+               display:block;margin-bottom:18px;text-transform:uppercase}
+  .zonenav{display:flex;gap:10px;padding:14px 22px;border-top:1px solid var(--line);align-items:center}
+  .btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:10px 16px;cursor:pointer;
+       border:1px solid var(--line);background:transparent;color:var(--ink);
+       transition:all .25s var(--ease);display:inline-flex;align-items:center;gap:8px}
+  .btn:hover{border-color:rgba(255,255,255,.3)}
+  .btn.primary{background:var(--yel);border-color:var(--yel);color:#171405;font-weight:600}
+  .btn.primary:hover{background:#FFDD6B;box-shadow:0 0 22px rgba(255,210,63,.22)}
+  .navinfo{font-family:var(--mono);font-size:10px;color:var(--dim);margin-left:auto;letter-spacing:.08em}
+  .kbd{font-size:9px;border:1px solid var(--faint);padding:1px 5px;color:var(--dim)}
+
+  /* floating label toolbar */
+  #toolbar{position:fixed;z-index:60;display:flex;gap:6px;background:#1B1B22;
+           border:1px solid rgba(255,255,255,.16);padding:7px;box-shadow:0 14px 36px rgba(0,0,0,.55);
+           opacity:0;transform:translateY(6px) scale(.96);pointer-events:none;
+           transition:opacity .18s var(--ease),transform .18s var(--ease)}
+  #toolbar.show{opacity:1;transform:none;pointer-events:auto}
+  #toolbar .lchip{padding:6px 10px;font-size:10px}
+
+  /* ---------- right: labels & progress ---------- */
+  .sect{padding:16px 18px;border-bottom:1px solid var(--line)}
+  .lrow{display:flex;align-items:center;gap:10px;padding:8px 0}
+  .lrow i{width:10px;height:10px;border-radius:2px;flex:none}
+  .lrow .nm{font-family:var(--mono);font-size:11.5px;flex:1}
+  .lrow .ct{font-family:var(--mono);font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .lrow .hk{font-family:var(--mono);font-size:9px;border:1px solid var(--faint);padding:0 5px;color:var(--faint)}
+
+  .prog{margin-top:12px}
+  .prog .nums{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+              color:var(--dim);margin-bottom:7px}
+  .prog .nums b{color:var(--yel);font-weight:600}
+  .pbar{height:5px;background:var(--faint);overflow:hidden}
+  .pbar i{display:block;height:100%;background:var(--yel);width:0;transition:width .6s var(--ease)}
+
+  #entlist{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;
+           scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  #entlist::-webkit-scrollbar{width:4px}
+  #entlist::-webkit-scrollbar-thumb{background:var(--faint)}
+  .ent{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;
+       padding:7px 10px;background:var(--panel);border:1px solid var(--line);
+       animation:entin .3s var(--ease)}
+  @keyframes entin{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+  .ent i{width:7px;height:7px;border-radius:2px;flex:none}
+  .ent .w{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ent .lb{color:var(--dim);font-size:9.5px}
+  .ent .del{cursor:pointer;color:var(--faint);border:0;background:none;font-size:13px;
+            font-family:var(--mono);transition:color .2s}
+  .ent .del:hover{color:#FF6B5C}
+  .empty{font-family:var(--mono);font-size:10.5px;color:var(--faint);line-height:1.8}
+
+  .expfoot{margin-top:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+  .expnote{font-family:var(--mono);font-size:9.5px;color:var(--faint);line-height:1.7}
+
+  /* toast */
+  #toast{position:fixed;bottom:26px;left:50%;transform:translate(-50%,16px);z-index:80;
+         background:var(--yel);color:#171405;font-family:var(--mono);font-size:11px;font-weight:600;
+         padding:10px 18px;opacity:0;pointer-events:none;letter-spacing:.05em;
+         transition:all .35s var(--ease)}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+
+  @media (max-width:980px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr;height:auto}
+    .colL,.colR{border:0;border-bottom:1px solid var(--line)}
+    #queue{display:flex;overflow-x:auto;gap:4px;padding:0 12px 12px}
+    .qrow{flex:none;width:150px}
+    #sample{font-size:17px}
+    .textzone{padding:22px 20px;min-height:280px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">No.05</span>
+    <span class="name">Dataset Studio</span>
+    <span class="sub">NER Annotation Bench</span>
+  </div>
+  <div class="crumbs">
+    <span class="dotlive"></span><span>ner_cs_v1 · 客服意图语料 · LOCAL</span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ queue ============ -->
+  <section class="colL">
+    <div class="qhead"><div class="blocklabel">01 — Queue 样本队列</div></div>
+    <div id="queue"></div>
+  </section>
+
+  <!-- ============ annotator ============ -->
+  <section class="colC">
+    <div class="labbar" id="labbar">
+      <span class="pre">Active Label →</span>
+    </div>
+    <div class="textzone">
+      <div id="sample"></div>
+    </div>
+    <div class="zonenav">
+      <button class="btn" id="prev">← PREV</button>
+      <button class="btn" id="next">NEXT →</button>
+      <button class="btn" id="clearsample">CLEAR</button>
+      <span class="navinfo"><span class="kbd">1-5</span> 选标签 · 划词即标注 · 点击实体行可删除</span>
+    </div>
+  </section>
+
+  <!-- ============ right ============ -->
+  <section class="colR">
+    <div class="sect">
+      <div class="blocklabel">02 — Labels</div>
+      <div id="labels"></div>
+      <div class="prog">
+        <div class="nums"><span>PROGRESS</span><span><b id="pdone">0</b> / <span id="ptotal">0</span> 样本完成</span></div>
+        <div class="pbar"><i id="pfill"></i></div>
+      </div>
+    </div>
+    <div class="sect" style="flex:1;min-height:0;display:flex;flex-direction:column">
+      <div class="blocklabel" style="margin-bottom:10px">03 — Entities 当前样本</div>
+      <div id="entlist"></div>
+    </div>
+    <div class="expfoot">
+      <button class="btn primary" id="export">EXPORT JSONL ↓</button>
+      <button class="btn" id="reset">RESET ALL</button>
+      <div class="expnote">导出格式：{"text", "entities":[{start,end,label,text}]}，每行一条，UTF-8。</div>
+    </div>
+  </section>
+</main>
+
+<div id="toolbar"></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+
+/* ================= taxonomy ================= */
+const LABELS=[
+ {id:"PRODUCT",cn:"商品",color:"#FFD23F"},
+ {id:"ORDER",  cn:"订单号",color:"#6FB7FF"},
+ {id:"TIME",   cn:"时间",color:"#7EE0A3"},
+ {id:"LOC",    cn:"地点",color:"#FF8A5C"},
+ {id:"ORG",    cn:"机构",color:"#C39BFF"},
+];
+const LC={};LABELS.forEach(l=>LC[l.id]=l.color);
+
+/* ================= corpus ================= */
+const SAMPLES=[
+ {src:"call_log · #0412",text:"我上周在天猫买的索尼降噪耳机左耳突然没声音了，订单号 OD-88231745，人在上海，想约明天上门退换。"},
+ {src:"chat · #2093",text:"三月份办的腾讯视频会员自动续费扣了我两次钱，麻烦查一下订单 SV-55621087，我要退掉多扣的那笔。"},
+ {src:"call_log · #0417",text:"帮我看看周五从北京飞深圳的南航机票还能不能改签，行程单号 CZ-330182，同行人还有李霞。"},
+ {src:"chat · #2104",text:"618 预售付的小米手环定金，客服说六月一号前发货，现在物流还停在杭州转运中心，单号 SF-77012045。"},
+ {src:"ticket · #0871",text:"公司报销需要抬头开成杭州云栖科技有限公司，之前的电子发票 IN-90455623 开错了，能不能重开一张？"},
+ {src:"chat · #2119",text:"我昨晚八点在京东抢的任天堂游戏机显示已签收，但快递柜里根本没有，收货地址在成都武侯区。"},
+ {src:"call_log · #0422",text:"苹果手机以旧换新的估价和实际打款差了三百块，回收单号 RC-66120987，希望你们今天给我个说法。"},
+ {src:"ticket · #0880",text:"去年在携程订的大理民宿到店无房，平台承诺的赔偿金到现在没到账，工单号 CT-11882390，请尽快处理。"},
+];
+
+/* ================= state ================= */
+let cur=0, activeLabel="PRODUCT";
+const anno=SAMPLES.map(()=>[]); // per-sample [{start,end,label}]
+let selRange=null;
+
+/* ================= render: queue ================= */
+function renderQueue(){
+  const q=$("queue");q.innerHTML="";
+  SAMPLES.forEach((s,i)=>{
+    const el=document.createElement("div");
+    el.className="qrow"+(i===cur?" on":"");
+    el.innerHTML=`<span class="idx">${String(i+1).padStart(2,"0")}</span>
+      <span class="txt">${s.text.slice(0,14)}…</span>
+      <span class="qdot${anno[i].length?" done":""}"></span>`;
+    el.addEventListener("click",()=>loadSample(i));
+    q.appendChild(el);
+  });
+}
+
+/* ================= render: sample text ================= */
+function renderSample(){
+  const box=$("sample");
+  const s=SAMPLES[cur];
+  let html=`<span class="src">${s.src} · sample ${String(cur+1).padStart(2,"0")}/${SAMPLES.length}</span>`;
+  const marks=new Array(s.text.length).fill(null);
+  anno[cur].forEach(a=>{for(let i=a.start;i<a.end;i++)marks[i]=a.label});
+  for(let i=0;i<s.text.length;i++){
+    const lb=marks[i];
+    const ch=s.text[i].replace(/&/g,"&amp;").replace(/</g,"&lt;");
+    if(lb){
+      const c=LC[lb];
+      const first=i===0||marks[i-1]!==lb;
+      html+=`<span class="ch anno" data-i="${i}" style="background:${c}26;box-shadow:inset 0 -2px 0 ${c}">${first?`<span style="position:absolute;top:-14px;left:0;font-size:8.5px;font-family:'SF Mono',Menlo,monospace;color:${c};letter-spacing:.1em">${lb}</span>`:""}${ch}</span>`;
+    }else{
+      html+=`<span class="ch" data-i="${i}">${ch}</span>`;
+    }
+  }
+  box.innerHTML=html;
+}
+
+/* ================= render: labels / entities / progress ================= */
+function renderLabels(){
+  $("labbar").querySelectorAll(".lchip").forEach(e=>e.remove());
+  LABELS.forEach((l,i)=>{
+    const b=document.createElement("button");
+    b.className="lchip"+(l.id===activeLabel?" on":"");
+    b.style.borderColor=l.id===activeLabel?l.color:"";
+    b.style.background=l.id===activeLabel?l.color+"14":"";
+    b.innerHTML=`<i style="background:${l.color}"></i>${l.id} · ${l.cn}<span class="hk">${i+1}</span>`;
+    b.addEventListener("click",()=>{activeLabel=l.id;renderLabels();renderToolbar()});
+    $("labbar").appendChild(b);
+  });
+  const box=$("labels");box.innerHTML="";
+  LABELS.forEach((l,i)=>{
+    const n=anno.flat().filter(a=>a.label===l.id).length;
+    const el=document.createElement("div");
+    el.className="lrow";
+    el.innerHTML=`<i style="background:${l.color}"></i><span class="nm">${l.id} <span style="color:var(--faint)">/ ${l.cn}</span></span>
+      <span class="ct">${n}</span><span class="hk">${i+1}</span>`;
+    box.appendChild(el);
+  });
+  const done=anno.filter(a=>a.length>0).length;
+  $("pdone").textContent=done;$("ptotal").textContent=SAMPLES.length;
+  $("pfill").style.width=(done/SAMPLES.length*100)+"%";
+}
+function renderEnts(){
+  const box=$("entlist");box.innerHTML="";
+  if(!anno[cur].length){
+    box.innerHTML=`<div class="empty">// 当前样本暂无实体<br>// 用鼠标划选文本，再点标签或按 1-5</div>`;
+    return;
+  }
+  [...anno[cur]].sort((a,b)=>a.start-b.start).forEach(a=>{
+    const el=document.createElement("div");
+    el.className="ent";
+    el.innerHTML=`<i style="background:${LC[a.label]}"></i>
+      <span class="w">${SAMPLES[cur].text.slice(a.start,a.end)}</span>
+      <span class="lb">${a.label}</span><button class="del" title="删除">×</button>`;
+    el.querySelector(".del").addEventListener("click",()=>{
+      anno[cur]=anno[cur].filter(x=>x!==a);
+      refresh();
+    });
+    box.appendChild(el);
+  });
+}
+function refresh(){renderQueue();renderSample();renderLabels();renderEnts()}
+
+/* ================= sample nav ================= */
+function loadSample(i){
+  cur=(i+SAMPLES.length)%SAMPLES.length;
+  hideToolbar();
+  refresh();
+}
+$("prev").addEventListener("click",()=>loadSample(cur-1));
+$("next").addEventListener("click",()=>loadSample(cur+1));
+$("clearsample").addEventListener("click",()=>{anno[cur]=[];refresh()});
+document.addEventListener("keydown",e=>{
+  if(e.key>="1"&&e.key<="5"){
+    const l=LABELS[+e.key-1];
+    if(selRange){assign(l.id)}
+    else{activeLabel=l.id;renderLabels();renderToolbar()}
+  }else if(e.key==="ArrowRight"&&(e.metaKey||e.ctrlKey)){loadSample(cur+1)}
+  else if(e.key==="ArrowLeft"&&(e.metaKey||e.ctrlKey)){loadSample(cur-1)}
+  else if(e.key==="Escape"){hideToolbar();getSelection().removeAllRanges()}
+});
+
+/* ================= selection → annotation ================= */
+const sampleEl=$("sample");
+function getSelRange(){
+  const sel=getSelection();
+  if(!sel.rangeCount||sel.isCollapsed)return null;
+  const r=sel.getRangeAt(0);
+  if(!sampleEl.contains(r.startContainer)||!sampleEl.contains(r.endContainer))return null;
+  const idxOf=node=>{
+    let n=node.nodeType===3?node.parentNode:node;
+    if(!n||!n.classList||!n.classList.contains("ch"))n=n.closest?n.closest(".ch"):null;
+    return n?+n.dataset.i:null;
+  };
+  let a=idxOf(r.startContainer),b=idxOf(r.endContainer);
+  if(a===null||b===null)return null;
+  if(r.endOffset===0&&r.endContainer.nodeType===3)b--;
+  if(a>b)[a,b]=[b,a];
+  if(b<a)return null;
+  return {start:a,end:b+1};
+}
+document.addEventListener("mouseup",e=>{
+  if($("toolbar").contains(e.target))return;
+  setTimeout(()=>{
+    selRange=getSelRange();
+    if(selRange)showToolbar();else hideToolbar();
+  },10);
+});
+document.addEventListener("mousedown",e=>{
+  if(!$("toolbar").contains(e.target)&&!sampleEl.contains(e.target))hideToolbar();
+});
+
+const tb=$("toolbar");
+LABELS.forEach((l,i)=>{
+  const b=document.createElement("button");
+  b.className="lchip";
+  b.innerHTML=`<i style="background:${l.color}"></i>${l.id}<span class="hk">${i+1}</span>`;
+  b.addEventListener("click",()=>assign(l.id));
+  tb.appendChild(b);
+});
+function renderToolbar(){
+  [...tb.children].forEach((b,i)=>{
+    const l=LABELS[i];
+    b.classList.toggle("on",l.id===activeLabel);
+    b.style.borderColor=l.id===activeLabel?l.color:"";
+  });
+}
+function showToolbar(){
+  renderToolbar();
+  const sel=getSelection();
+  if(!sel.rangeCount)return;
+  const r=sel.getRangeAt(0).getBoundingClientRect();
+  tb.classList.add("show");
+  const tw=tb.offsetWidth;
+  tb.style.left=Math.max(10,Math.min(innerWidth-tw-10,r.left+r.width/2-tw/2))+"px";
+  tb.style.top=Math.max(64,r.top-tb.offsetHeight-12)+"px";
+}
+function hideToolbar(){tb.classList.remove("show");selRange=null}
+
+function assign(labelId){
+  if(!selRange)return;
+  // drop overlapping
+  anno[cur]=anno[cur].filter(a=>a.end<=selRange.start||a.start>=selRange.end);
+  anno[cur].push({start:selRange.start,end:selRange.end,label:labelId});
+  activeLabel=labelId;
+  getSelection().removeAllRanges();
+  hideToolbar();
+  refresh();
+  flash(`已标注 ${SAMPLES[cur].text.slice(selRange.start,selRange.end)} → ${labelId}`);
+}
+
+/* ================= export ================= */
+$("export").addEventListener("click",()=>{
+  const lines=SAMPLES.map((s,i)=>JSON.stringify({
+    text:s.text,
+    entities:anno[i].map(a=>({start:a.start,end:a.end,label:a.label,text:s.text.slice(a.start,a.end)}))
+  })).join("\n");
+  const blob=new Blob([lines],{type:"application/jsonl;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="ner_cs_v1_annotated.jsonl";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  const n=anno.flat().length;
+  flash(`已导出 ${SAMPLES.length} 条样本 · ${n} 个实体`);
+});
+$("reset").addEventListener("click",()=>{
+  anno.forEach(a=>a.length=0);
+  refresh();flash("已清空全部标注");
+});
+
+/* ================= toast ================= */
+let toastT=null;
+function flash(msg){
+  const t=$("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ================= init ================= */
+renderLabels();
+refresh();
+</script>
+</body>
+</html>

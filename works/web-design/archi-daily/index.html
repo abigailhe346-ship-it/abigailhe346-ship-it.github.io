@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARCHI DAILY 建筑日报 — 今日版面</title>
+<style>
+  :root{
+    --paper:#F5F2EC; --ink:#16130E; --red:#C2331B; --gray:#8A857A;
+    --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --rule:1px solid var(--ink);
+  }
+  body.night{--paper:#16130E; --ink:#E8E2D4; --red:#E8573A; --gray:#6E6A5F;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);transition:background .45s,color .45s;overflow-x:hidden;}
+  ::selection{background:var(--red);color:#F5F2EC;}
+  button{font-family:inherit;cursor:pointer;}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:16px 3.5vw;mix-blend-mode:difference;color:#fff;}
+  body.night header{mix-blend-mode:normal;color:var(--ink);}
+  .sig{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.8;}
+  .sig .no{color:var(--red);font-weight:700;}
+  .hbtns{display:flex;gap:10px;}
+  .hbtn{font-family:var(--mono);font-size:10px;letter-spacing:.16em;background:transparent;color:inherit;
+    border:1px solid currentColor;padding:8px 14px;transition:.25s;}
+  .hbtn:hover{background:var(--red);border-color:var(--red);color:#F5F2EC;}
+
+  /* ---------- masthead ---------- */
+  .mast{padding:15vh 4vw 0;max-width:1400px;margin:0 auto;}
+  .mast-top{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.18em;
+    border-bottom:var(--rule);padding-bottom:10px;flex-wrap:wrap;gap:8px;}
+  .nameplate{font-family:var(--serif);font-weight:900;font-size:clamp(58px,11.5vw,180px);line-height:1;
+    text-align:center;letter-spacing:-.02em;padding:2.5vh 0;border-bottom:3px double var(--ink);white-space:nowrap;}
+  .nameplate .en{font-family:var(--sans);font-weight:800;vertical-align:middle;}
+  .mast-bot{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.16em;
+    padding:10px 0;border-bottom:var(--rule);flex-wrap:wrap;gap:8px;color:var(--gray);}
+  .mast-bot b{color:var(--red);font-weight:600;}
+
+  /* ---------- front page generator ---------- */
+  .front{max-width:1400px;margin:0 auto;padding:6vh 4vw 4vh;}
+  .front-grid{display:grid;grid-template-columns:1fr 300px;gap:4vw;align-items:start;}
+  @media(max-width:960px){.front-grid{grid-template-columns:1fr;}}
+  #pageSVG{width:100%;display:block;border:var(--rule);background:var(--paper);transition:background .45s,border-color .45s;}
+  .front-side{position:sticky;top:14vh;}
+  @media(max-width:960px){.front-side{position:static;}}
+  .front-side h2{font-family:var(--serif);font-weight:400;font-size:30px;line-height:1.25;margin-bottom:2.5vh;}
+  .front-side h2 em{font-style:italic;color:var(--red);}
+  .front-side p{font-size:13px;line-height:2.1;color:var(--gray);margin-bottom:3.5vh;}
+  .gen-btn{display:block;width:100%;font-family:var(--mono);font-size:11px;letter-spacing:.2em;padding:16px;
+    border:var(--rule);background:var(--ink);color:var(--paper);margin-bottom:12px;transition:.25s;text-transform:uppercase;}
+  .gen-btn:hover{background:var(--red);border-color:var(--red);color:#F5F2EC;letter-spacing:.3em;}
+  .gen-btn.ghost{background:transparent;color:var(--ink);}
+  .gen-btn.ghost:hover{background:var(--red);color:#F5F2EC;}
+  .seed-line{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--gray);margin-top:2vh;line-height:2;}
+
+  /* ---------- editorial grid ---------- */
+  .paper{max-width:1400px;margin:0 auto;padding:4vh 4vw 10vh;}
+  .sec-rule{display:flex;align-items:baseline;justify-content:space-between;border-top:3px solid var(--ink);
+    border-bottom:var(--rule);padding:12px 0;margin-bottom:0;flex-wrap:wrap;gap:6px;}
+  .sec-rule h2{font-family:var(--serif);font-weight:900;font-size:clamp(26px,3vw,42px);letter-spacing:-.01em;}
+  .sec-rule .idx{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--gray);}
+  .news-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:0;}
+  .art{border-right:var(--rule);border-bottom:var(--rule);padding:26px 24px;cursor:pointer;position:relative;
+    transition:background .3s;}
+  .art:hover{background:rgba(194,51,27,.06);}
+  .art .kicker{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:var(--red);margin-bottom:14px;display:block;}
+  .art h3{font-family:var(--serif);font-weight:400;line-height:1.28;letter-spacing:.005em;}
+  .art h3 .u{background-image:linear-gradient(var(--red),var(--red));background-size:0% 2px;background-repeat:no-repeat;
+    background-position:0 96%;transition:background-size .45s var(--ease);}
+  .art:hover h3 .u{background-size:100% 2px;}
+  .art .byline{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;color:var(--gray);margin-top:14px;}
+  .art .lead{font-size:13px;line-height:2;margin-top:14px;color:inherit;opacity:.78;}
+  .art .fig{margin:0 0 18px;border:var(--rule);overflow:hidden;}
+  .art .fig svg{width:100%;display:block;transition:transform .6s var(--ease);}
+  .art:hover .fig svg{transform:scale(1.05);}
+  .a-lead{grid-column:span 8;}.a-lead h3{font-size:clamp(30px,3.6vw,54px);}
+  .a-side{grid-column:span 4;}.a-side h3{font-size:clamp(20px,2vw,28px);}
+  .a-third{grid-column:span 4;}.a-third h3{font-size:clamp(19px,1.8vw,26px);}
+  .a-half{grid-column:span 6;}.a-half h3{font-size:clamp(22px,2.4vw,34px);}
+  @media(max-width:960px){.a-lead,.a-side,.a-third,.a-half{grid-column:span 12;}}
+  .dropcap::first-letter{font-family:var(--serif);font-weight:900;font-size:56px;float:left;line-height:.82;
+    padding:6px 10px 0 0;color:var(--red);}
+  .pull{grid-column:span 12;border-right:none;display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:8vh 8vw;cursor:default;}
+  .pull:hover{background:transparent;}
+  .pull blockquote{font-family:var(--serif);font-style:italic;font-weight:400;font-size:clamp(24px,3.2vw,46px);line-height:1.5;max-width:26ch;}
+  .pull blockquote b{color:var(--red);font-style:normal;}
+
+  /* ---------- reader overlay ---------- */
+  .reader{position:fixed;inset:0;z-index:100;background:var(--paper);overflow:auto;transform:translateY(100%);
+    transition:transform .5s var(--ease);}
+  .reader.open{transform:none;}
+  .reader-inner{max-width:720px;margin:0 auto;padding:12vh 6vw 14vh;}
+  .reader .rk{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--red);}
+  .reader h2{font-family:var(--serif);font-weight:400;font-size:clamp(32px,4.6vw,58px);line-height:1.2;margin:2.5vh 0;}
+  .reader .rby{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--gray);border-top:var(--rule);
+    border-bottom:var(--rule);padding:12px 0;margin-bottom:4vh;}
+  .reader .rbody{font-size:15.5px;line-height:2.3;}
+  .reader .rbody p{margin-bottom:2.4em;}
+  .reader .rbody p:first-of-type::first-letter{font-family:var(--serif);font-weight:900;font-size:64px;float:left;
+    line-height:.82;padding:8px 12px 0 0;color:var(--red);}
+  .rclose{position:fixed;top:20px;right:4vw;font-family:var(--mono);font-size:11px;letter-spacing:.2em;
+    border:var(--rule);background:var(--paper);color:var(--ink);padding:12px 20px;z-index:2;transition:.25s;}
+  .rclose:hover{background:var(--red);color:#F5F2EC;border-color:var(--red);}
+
+  footer{border-top:3px solid var(--ink);max-width:1400px;margin:0 auto;padding:5vh 4vw 8vh;display:flex;
+    justify-content:space-between;flex-wrap:wrap;gap:14px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--gray);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 08</span> · <b>ARCHI DAILY 建筑日报</b><br>WEB DESIGN / EDITORIAL GRID</div>
+  <div class="hbtns">
+    <button class="hbtn" id="nightBtn">夜班模式 NIGHT</button>
+  </div>
+</header>
+
+<!-- masthead -->
+<div class="mast">
+  <div class="mast-top"><span>第 128 期 · 每日清晨付印</span><span>SHANGHAI · 售价 ¥2.00</span></div>
+  <div class="nameplate" id="nameplate">建筑日报 <span class="en">ARCHI DAILY</span></div>
+  <div class="mast-bot"><span id="dateLine"></span><span>天气 · 晴转多云 26°C</span><span>本期主题 · <b id="themeLine">垂直的城市</b></span></div>
+</div>
+
+<!-- front page generator -->
+<div class="front">
+  <div class="front-grid">
+    <div id="pageWrap"></div>
+    <aside class="front-side">
+      <h2>每天凌晨四点，<br>版面<em>自己排好</em>。</h2>
+      <p>头版由排版引擎生成：头条、图片与栏框从当日选题池随机组合，网格严格遵守十二栏系统。点击再生，看看明天的报纸长什么样；喜欢就下载存证。</p>
+      <button class="gen-btn" id="regen">↻ 生成今日版面</button>
+      <button class="gen-btn ghost" id="download">↓ 下载版面 SVG</button>
+      <div class="seed-line" id="seedLine"></div>
+    </aside>
+  </div>
+</div>
+
+<!-- editorial grid -->
+<div class="paper">
+  <div class="sec-rule"><h2>二版 · 城市观察</h2><span class="idx">CITY WATCH / 点击标题阅读全文</span></div>
+  <div class="news-grid" id="newsGrid"></div>
+</div>
+
+<footer>
+  <span>ARCHI DAILY 建筑日报 © 2026 · 编辑部 · 外滩源</span>
+  <span>作品 № 08 / WEB DESIGN</span>
+</footer>
+
+<!-- reader -->
+<div class="reader" id="reader">
+  <button class="rclose" id="rclose">合上报纸 ×</button>
+  <div class="reader-inner">
+    <div class="rk" id="rk"></div>
+    <h2 id="rt"></h2>
+    <div class="rby" id="rby"></div>
+    <div class="rbody" id="rbody"></div>
+  </div>
+</div>
+
+<script>
+/* ================= utils ================= */
+function mulberry(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const $=id=>document.getElementById(id);
+
+/* ================= masthead date ================= */
+const now=new Date();
+const WD=["日","一","二","三","四","五","六"];
+$("dateLine").textContent=`${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日 · 星期${WD[now.getDay()]}`;
+
+/* ================= night mode ================= */
+$("nightBtn").addEventListener("click",()=>{
+  document.body.classList.toggle("night");
+  $("nightBtn").textContent=document.body.classList.contains("night")?"早班模式 DAY":"夜班模式 NIGHT";
+  renderPage(); // re-render with new palette
+});
+
+/* ================= front page generator ================= */
+const HEADLINES=[
+  ["摩天楼学会弯腰了","超高层不再比高，开始比谁更懂街道"],
+  ["菜市场是最后的公共建筑","当商场关门，卖葱的摊位还亮着灯"],
+  ["砖的复仇","被混凝土统治五十年后，手作砖回来了"],
+  ["给天桥装上门厅","灰空间的尊严：城市缝隙改造报告"],
+  ["垂直村落实验","把弄堂竖起来，邻居回来了吗"],
+  ["雨棚之下的城市学","一条骑楼如何养活三种方言"],
+  ["废墟上的临时剧场","未完工建筑的七十二小时"],
+  ["窗台的政治学","一米进深里的晾衣、养花与张望"],
+];
+const THEMES=["垂直的城市","砖与缝隙","临时建筑学","街道的尊严","屋檐之下","未完成之美"];
+const PHOTOS=["天际线研究","街角测绘","立面采样","屋顶档案"];
+function pal(){const s=getComputedStyle(document.body);return{paper:s.getPropertyValue("--paper").trim(),ink:s.getPropertyValue("--ink").trim(),red:s.getPropertyValue("--red").trim(),gray:s.getPropertyValue("--gray").trim()};}
+let seed=Math.floor(Math.random()*99999);
+
+function buildingStrip(r,x,y,w,h,ink,red){
+  // procedural skyline photo
+  let s=`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${ink}"/>`;
+  let bx=x+4;
+  while(bx<x+w-8){
+    const bw=6+r()*18,bh=h*(.3+r()*.62);
+    s+=`<rect x="${bx}" y="${y+h-bh}" width="${bw}" height="${bh}" fill="${paperEsc}" opacity="${.25+r()*.5}"/>`;
+    // windows
+    for(let wy=y+h-bh+4;wy<y+h-6;wy+=5)for(let wx=bx+2;wx<bx+bw-2;wx+=4)
+      if(r()<.5)s+=`<rect x="${wx}" y="${wy}" width="1.6" height="2.2" fill="${r()<.08?red:paperEsc}" opacity="${.5+r()*.5}"/>`;
+    bx+=bw+2+r()*6;
+  }
+  // halftone corner
+  for(let i=0;i<5;i++)for(let j=0;j<5;j++)
+    s+=`<circle cx="${x+w-30+i*5}" cy="${y+6+j*5}" r="${1.8-(i+j)*.14}" fill="${paperEsc}" opacity=".7"/>`;
+  return s;
+}
+let paperEsc="#F5F2EC";
+function textBars(r,x,y,w,lines,ink,lh){
+  let s="";
+  for(let i=0;i<lines;i++){
+    const lw=i===lines-1?w*(.4+r()*.4):w*(.92+r()*.08);
+    s+=`<rect x="${x}" y="${y+i*lh}" width="${lw}" height="${lh*.38}" fill="${ink}" opacity="${.5+r()*.25}"/>`;
+  }
+  return s;
+}
+function renderPage(){
+  const P=pal();paperEsc=P.paper;
+  const r=mulberry(seed);
+  const W=900,H=1180,m=54,g=18,colW=(W-m*2-g*2)/3;
+  const [hl,sub]=HEADLINES[Math.floor(r()*HEADLINES.length)];
+  $("themeLine").textContent=THEMES[Math.floor(r()*THEMES.length)];
+  let s=`<svg id="pageSVG" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Georgia,'Songti SC',serif">`;
+  s+=`<rect width="${W}" height="${H}" fill="${P.paper}"/>`;
+  // top rule + flag
+  s+=`<rect x="${m}" y="${m-14}" width="${W-m*2}" height="3" fill="${P.ink}"/>`;
+  s+=`<text x="${m}" y="${m+34}" font-size="15" letter-spacing="6" fill="${P.ink}" font-family="Menlo,monospace">ARCHI DAILY · 建筑日报 · 第128期</text>`;
+  s+=`<text x="${W-m}" y="${m+34}" font-size="13" fill="${P.gray}" text-anchor="end" font-family="Menlo,monospace">${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,"0")}.${String(now.getDate()).padStart(2,"0")} · NO.${seed%900+100}</text>`;
+  s+=`<rect x="${m}" y="${m+48}" width="${W-m*2}" height="1" fill="${P.ink}"/>`;
+  // headline zone
+  const hlSize=Math.min(92,(W-m*2)/hl.length*1.55);
+  s+=`<text x="${m}" y="${m+48+hlSize}" font-size="${hlSize}" font-weight="900" fill="${P.ink}" letter-spacing="2">${hl}</text>`;
+  s+=`<text x="${m+4}" y="${m+48+hlSize+38}" font-size="21" fill="${P.gray}" font-style="italic">${sub}</text>`;
+  s+=`<rect x="${m}" y="${m+48+hlSize+58}" width="${40}" height="4" fill="${P.red}"/>`;
+  let y=m+48+hlSize+86;
+  // main photo left 2 cols, text right 1 col
+  const photoW=colW*2+g,photoH=300+r()*60;
+  s+=buildingStrip(r,m,y,photoW,photoH,P.ink,P.red);
+  s+=`<text x="${m}" y="${y+photoH+20}" font-size="11" fill="${P.gray}" font-family="Menlo,monospace">图 · ${PHOTOS[Math.floor(r()*PHOTOS.length)]} / 本报记者摄</text>`;
+  // right column text
+  const tx=m+photoW+g;
+  s+=`<text x="${tx}" y="${y+16}" font-size="13" fill="${P.red}" font-family="Menlo,monospace" letter-spacing="3">◆ 社论 OPINION</text>`;
+  s+=`<text x="${tx}" y="${y+52}" font-size="26" font-weight="700" fill="${P.ink}">高度之上，<tspan x="${tx}" dy="34">还有街道</tspan></text>`;
+  s+=textBars(r,tx,y+92,colW-10,Math.floor(photoH/13),P.ink,13);
+  s+=`<text x="${tx}" y="${y+photoH+20}" font-size="11" fill="${P.gray}" font-family="Menlo,monospace">社论版 · A04</text>`;
+  y+=photoH+44;
+  s+=`<rect x="${m}" y="${y}" width="${W-m*2}" height="1" fill="${P.ink}"/>`;
+  y+=26;
+  // three columns of news
+  for(let c=0;c<3;c++){
+    const cx=m+c*(colW+g);
+    s+=`<text x="${cx}" y="${y+14}" font-size="12" fill="${P.red}" font-family="Menlo,monospace" letter-spacing="3">${["◇ 现场","◇ 档案","◇ 对话"][c]}</text>`;
+    const t=["脚手架上的野餐会","一座水塔的四次重生","与晾衣杆谈判的人"][c];
+    s+=`<text x="${cx}" y="${y+44}" font-size="20" font-weight="700" fill="${P.ink}">${t.slice(0,6)}<tspan x="${cx}" dy="26">${t.slice(6)}</tspan></text>`;
+    if(c===1&&r()<.8){
+      s+=buildingStrip(r,cx,y+80,colW,120,P.ink,P.red);
+      s+=textBars(r,cx,y+220,colW,Math.floor((H-m-y-220)/13),P.ink,13);
+    }else{
+      s+=textBars(r,cx,y+80,colW,Math.floor((H-m-y-80)/13),P.ink,13);
+    }
+    if(c<2)s+=`<line x1="${cx+colW+g/2}" y1="${y}" x2="${cx+colW+g/2}" y2="${H-m}" stroke="${P.ink}" stroke-width=".6" opacity=".5"/>`;
+  }
+  s+=`<rect x="${m}" y="${H-m+6}" width="${W-m*2}" height="3" fill="${P.ink}"/>`;
+  s+="</svg>";
+  $("pageWrap").innerHTML=s;
+  $("seedLine").innerHTML=`版面种子 SEED #${seed}<br>头条数 ${HEADLINES.length} · 主题池 ${THEMES.length}`;
+}
+$("regen").addEventListener("click",()=>{seed=Math.floor(Math.random()*99999);renderPage();});
+$("download").addEventListener("click",()=>{
+  const svg=$("pageSVG");if(!svg)return;
+  const blob=new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'+new XMLSerializer().serializeToString(svg)],{type:"image/svg+xml"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=`archi-daily-${now.getFullYear()}${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}-${seed}.svg`;
+  a.click();URL.revokeObjectURL(a.href);
+});
+renderPage();
+
+/* ================= editorial grid ================= */
+const ARTS=[
+  {cls:"a-lead",k:"城市观察 / FIELD",t:"脚手架上的野餐会",by:"记者 · 陆拾壹",fig:true,
+   lead:"旧改工地的午休时间，工人们把模板拼成长桌，在十六层的高度吃一顿有风的饭。城市学家说，这是今年最动人的临时建筑。",
+   body:["旧改工地的午休时间，工人们把模板拼成长桌，在十六层的高度吃一顿有风的饭。没有图纸，没有报建，这张桌子只存在四十分钟——但它有朝向，有景观，有一条不成文的座次。","城市学家吴一凡在目睹这一幕之后，把它写进了年度观察报告：『我们花了太多时间讨论永恒的建筑，却忽略了这些只活一顿饭时间的构筑物。它们不占用档案，却占用记忆。』","下午一点半，长桌拆回模板，野餐结束。十六层的风继续吹，仿佛什么都没发生过——但每个参与者都记得，那张桌子朝西，看得见整条江。"]},
+  {cls:"a-side",k:"档案 / ARCHIVE",t:"一座水塔的四次重生",by:"撰稿 · 陈檐",fig:true,
+   lead:"1982 年供水，2001 年废弃，2010 年成为画室，2024 年变成灯塔书店。一座水塔的四次死亡与复活。",
+   body:["1982 年它开始供水，养活了半个家属院；2001 年管网改造，它第一次失业。之后的二十多年里，它当过画室、仓库、求婚现场，如今是一家只卖建筑书的小店。","店主保留了所有的水渍和锈迹，只加了一部电梯。『旧的东西不用擦干净，』他说，『水塔记得的事，比我多。』"]},
+  {cls:"a-third",k:"对话 / TALK",t:"与晾衣杆谈判的人",by:"记者 · 何窗",
+   lead:"设计师周雨的工作，是说服居民把晾衣杆纳入立面设计——这是本市最艰难的谈判。",
+   body:["设计师周雨过去三年只做一件事：说服居民把晾衣杆纳入立面改造。『晾衣杆是立面上唯一活着的元素，』她说，『你不能假装它不存在。』","她的方案是让晾衣杆变成可折叠的百叶——晒衣服时是生活，收起来时是韵律。第一批试点楼栋的投诉率，是零。"]},
+  {cls:"a-third",k:"现场 / SCENE",t:"午夜的外滩源",by:"摄影 · 江左",fig:true,
+   lead:"凌晨两点，游客散尽，保洁的水枪把百年石材洗回本来的颜色。这是外滩源一天中唯一的素颜时刻。",
+   body:["凌晨两点，游客散尽。保洁师傅的水枪扫过百年石材，水痕在路灯下像一层临时的釉。","摄影记者江左连续一个月记录这个时刻：『白天的建筑属于所有人，午夜的建筑只属于它自己。』"]},
+  {cls:"a-third",k:"评论 / REVIEW",t:"网红建筑的保质期",by:"主笔 · 安藤的邻居",
+   lead:"开业即巅峰，三个月后门可罗雀。打卡式建筑的生命周期，比一茬韭菜长不了多少。",
+   body:["开业第一周，排队两小时；第三个月，门可罗雀。打卡式建筑的生命周期，比一茬韭菜长不了多少。","问题不在设计好不好看，而在于它只为镜头设计了一个角度——而生活有三百六十个角度。建筑应该讨好时间，而不是讨好快门。"]},
+  {cls:"a-half",k:"专题 / FEATURE",t:"把弄堂竖起来之后",by:"记者 · 陆拾壹",fig:true,
+   lead:"垂直村落试点一年：晾衣纠纷下降了，电梯里的寒暄增加了，但有人在二十三楼怀念一楼的葱。",
+   body:["垂直村落试点整一年。数据令人欣慰：晾衣纠纷下降六成，电梯里的寒暄频次翻倍，共享厨房的翻台率超过了楼下的连锁餐厅。","但访谈里也出现了意外的句子。住在二十三楼的王阿姨说，她最怀念的是一楼窗台下那盆谁也不认领、谁都能摘一把的小葱。『垂直了之后，葱怎么办呢？』","设计师把这个意见记在了笔记本第一页。二期方案里，每五层将出现一个『葱层』——一个专门留给说不清用途的、一楼式的空间。"]},
+  {cls:"a-half",k:"技术 / TECH",t:"会呼吸的砖",by:"撰稿 · 陈檐",
+   lead:"新型烧结砖的孔隙率可以做到 38%，夏天的墙面比空调房低四度——老祖宗的材料，学会了新本领。",
+   body:["新型烧结砖把孔隙率做到了 38%。夏天的正午，这种墙面的内侧温度比空调设定还低四度——不插电，零噪音。","材料学家说这是『被动式降温的文艺复兴』。烧制车间里，师傅们更直接：『就是老祖宗的砖，多留了几个气孔。』有时候，创新不过是把忘掉的事重新想起来。"]},
+];
+function facadeSVG(i){
+  const r=mulberry(i*31+7);
+  let s=`<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="260" fill="#16130E"/>`;
+  const cols=4+Math.floor(r()*3),rows=3+Math.floor(r()*3);
+  const cw=400/cols,ch=260/rows;
+  for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){
+    const lit=r();
+    s+=`<rect x="${x*cw+8}" y="${y*ch+10}" width="${cw-16}" height="${ch-20}" fill="${lit<.18?"#C2331B":lit<.5?"#F5F2EC":"#3A362E"}" opacity="${lit<.18?.9:.25+r()*.55}"/>`;
+    if(r()<.3)s+=`<line x1="${x*cw+8}" y1="${y*ch+ch/2}" x2="${x*cw+cw-8}" y2="${y*ch+ch/2}" stroke="#16130E" stroke-width="3"/>`;
+  }
+  s+=`<rect x="0" y="244" width="400" height="16" fill="#F5F2EC" opacity=".08"/></svg>`;
+  return s;
+}
+const grid=$("newsGrid");
+ARTS.forEach((a,i)=>{
+  const el=document.createElement("article");
+  el.className="art "+a.cls;
+  el.innerHTML=`${a.fig?`<figure class="fig">${facadeSVG(i)}</figure>`:""}
+    <span class="kicker">${a.k}</span><h3><span class="u">${a.t}</span></h3>
+    <p class="lead ${i===0?"dropcap":""}">${a.lead}</p><div class="byline">${a.by} · 阅读约 ${2+i%3} 分钟</div>`;
+  el.addEventListener("click",()=>openReader(i));
+  grid.appendChild(el);
+});
+// pull quote
+const pull=document.createElement("div");
+pull.className="art pull";
+pull.innerHTML=`<blockquote>「建筑应该讨好<b>时间</b>，<br>而不是讨好<b>快门</b>。」</blockquote>`;
+grid.appendChild(pull);
+
+/* ================= reader ================= */
+function openReader(i){
+  const a=ARTS[i];
+  $("rk").textContent=a.k;$("rt").textContent=a.t;
+  $("rby").textContent=a.by+" · ARCHI DAILY 第128期";
+  $("rbody").innerHTML=(a.body||[a.lead]).map(p=>`<p>${p}</p>`).join("");
+  $("reader").classList.add("open");document.body.style.overflow="hidden";
+}
+$("rclose").addEventListener("click",()=>{$("reader").classList.remove("open");document.body.style.overflow="";});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("reader").classList.remove("open");document.body.style.overflow="";}});
+</script>
+</body>
+</html>

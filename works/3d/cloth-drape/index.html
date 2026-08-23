@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloth Drape — 织物落体 No.11</title>
+<style>
+  :root{
+    --washi:#f5f0e6;
+    --ink:#1f1d1a;
+    --terra:#b0552f;
+    --ash:#7a7368;
+    --hair:#d9d2c2;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--washi);}
+  body{font-family:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;color:var(--ink);
+       -webkit-font-smoothing:antialiased;}
+  #stage{position:fixed;inset:0;}
+  #stage canvas{display:block;}
+
+  .plate{position:fixed;top:30px;left:34px;z-index:10;pointer-events:none;max-width:420px;}
+  .plate .no{font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.32em;color:var(--terra);}
+  .plate h1{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;font-size:40px;font-weight:400;
+            letter-spacing:.02em;line-height:1.05;margin-top:10px;}
+  .plate h1 em{font-style:italic;color:var(--terra);}
+  .plate .sub{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;font-style:italic;
+              font-size:14px;color:var(--ash);margin-top:10px;}
+  .plate .rule{width:100%;height:1px;background:var(--hair);margin-top:16px;}
+  .plate .meta{font-family:"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.24em;
+               color:var(--ash);margin-top:10px;line-height:2;}
+
+  .enso{position:fixed;top:38px;right:44px;z-index:9;pointer-events:none;opacity:.5;}
+
+  .hint{position:fixed;right:34px;bottom:96px;z-index:10;pointer-events:none;
+        font-size:10px;letter-spacing:.18em;color:var(--ash);text-align:right;line-height:2;}
+
+  /* ---------- controls ---------- */
+  .bar{position:fixed;left:0;right:0;bottom:0;z-index:10;
+       border-top:1px solid var(--hair);background:rgba(245,240,230,.86);
+       backdrop-filter:blur(6px);
+       display:flex;align-items:center;gap:38px;padding:16px 34px;}
+  .grp{display:flex;align-items:center;gap:14px;}
+  .grp .k{font-size:9px;letter-spacing:.3em;color:var(--ash);white-space:nowrap;}
+  .grp .v{font-family:"SF Mono",Menlo,monospace;font-size:11px;color:var(--terra);width:44px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:170px;height:1px;
+       background:var(--ink);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;
+       border-radius:50%;background:var(--washi);border:2px solid var(--terra);cursor:ew-resize;
+       transition:background .15s;}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--terra);}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;
+       background:var(--washi);border:2px solid var(--terra);cursor:ew-resize;}
+  .tbtn{appearance:none;background:none;border:none;cursor:pointer;font-family:inherit;
+        font-size:11px;letter-spacing:.24em;color:var(--ink);padding:6px 2px;
+        border-bottom:1px solid transparent;transition:color .18s,border-color .18s;}
+  .tbtn::before{content:"[ ";color:var(--terra);}
+  .tbtn::after{content:" ]";color:var(--terra);}
+  .tbtn:hover{color:var(--terra);border-bottom-color:var(--terra);}
+  .spacer{flex:1;}
+  .credit{font-family:"SF Mono",Menlo,monospace;font-size:9px;letter-spacing:.22em;color:var(--ash);}
+
+  @media (max-width:760px){
+    .plate{top:16px;left:18px;}
+    .plate h1{font-size:26px;}
+    .plate .meta,.enso,.hint,.credit{display:none;}
+    .bar{flex-wrap:wrap;gap:14px;padding:12px 16px;}
+    input[type=range]{width:110px;}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+
+<header class="plate">
+  <div class="no">No.11 / TEXTILE STUDY</div>
+  <h1>Cloth <em>Drape</em></h1>
+  <div class="sub">织物落体 · 一匹落在石器上的布</div>
+  <div class="rule"></div>
+  <div class="meta">
+    METHOD — VERLET INTEGRATION<br>
+    MESH — 21 × 21 PARTICLES<br>
+    STATE — <span id="metaState">FALLING</span>
+  </div>
+</header>
+
+<svg class="enso" width="120" height="120" viewBox="0 0 120 120">
+  <path d="M60 8 C90 8 112 30 112 60 C112 92 88 112 58 112 C30 112 8 90 9 58 C10 30 34 10 62 10"
+        fill="none" stroke="#b0552f" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/>
+</svg>
+
+<div class="hint">拖拽布角将其固定在空中<br>点击已固定的布角可松开</div>
+
+<div class="bar">
+  <div class="grp">
+    <span class="k">WIND / 风</span>
+    <input type="range" id="wind" min="-100" max="100" value="0">
+    <span class="v" id="windVal">0.00</span>
+  </div>
+  <button class="tbtn" id="shape">COLUMN / 换柱</button>
+  <button class="tbtn" id="reset">RESET / 重来</button>
+  <div class="spacer"></div>
+  <span class="credit">WABI-SABI SIMULATION — 2026</span>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  var WASHI=0xf5f0e6, INK=0x1f1d1a, TERRA=0xb0552f;
+
+  /* ================= renderer / scene ================= */
+  var stage=document.getElementById("stage");
+  var renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.shadowMap.enabled=true;
+  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  stage.appendChild(renderer.domElement);
+
+  var scene=new THREE.Scene();
+  scene.background=new THREE.Color(WASHI);
+  scene.fog=new THREE.Fog(WASHI,9,20);
+
+  var camera=new THREE.PerspectiveCamera(34,1,0.1,60);
+  var azim=-0.55,elev=0.32,radius=4.6;
+  var lookAt=new THREE.Vector3(0,0.72,0);
+  function placeCamera(){
+    camera.position.set(
+      lookAt.x+radius*Math.cos(elev)*Math.sin(azim),
+      lookAt.y+radius*Math.sin(elev),
+      lookAt.z+radius*Math.cos(elev)*Math.cos(azim));
+    camera.lookAt(lookAt);
+  }
+  placeCamera();
+
+  scene.add(new THREE.HemisphereLight(0xfffaf0,0xb8ad98,0.75));
+  var sun=new THREE.DirectionalLight(0xfff2e2,1.05);
+  sun.position.set(3.2,5.2,2.2);
+  sun.castShadow=true;
+  sun.shadow.mapSize.set(1024,1024);
+  sun.shadow.camera.left=-3;sun.shadow.camera.right=3;
+  sun.shadow.camera.top=3;sun.shadow.camera.bottom=-3;
+  sun.shadow.camera.far=15;
+  sun.shadow.bias=-0.0004;
+  scene.add(sun);
+  var fill=new THREE.DirectionalLight(0xdde4ee,0.28);
+  fill.position.set(-3,2,-2);
+  scene.add(fill);
+
+  var floor=new THREE.Mesh(
+    new THREE.PlaneGeometry(30,30),
+    new THREE.MeshStandardMaterial({color:0xefe8d9,roughness:1}));
+  floor.rotation.x=-Math.PI/2;
+  floor.receiveShadow=true;
+  scene.add(floor);
+
+  /* ================= drape objects ================= */
+  var SPHERE_R=0.55, COL_R=0.36, COL_H=1.15;
+  var sphereObj=new THREE.Mesh(
+    new THREE.SphereGeometry(SPHERE_R,48,48),
+    new THREE.MeshStandardMaterial({color:0xd8d0bf,roughness:0.85,metalness:0.02}));
+  sphereObj.position.y=SPHERE_R;
+  sphereObj.castShadow=true;sphereObj.receiveShadow=true;
+  scene.add(sphereObj);
+
+  var colObj=new THREE.Mesh(
+    new THREE.CylinderGeometry(COL_R,COL_R*1.06,COL_H,40),
+    new THREE.MeshStandardMaterial({color:0xcfc6b2,roughness:0.9,metalness:0.02}));
+  colObj.position.y=COL_H/2;
+  colObj.castShadow=true;colObj.receiveShadow=true;
+  colObj.visible=false;
+  scene.add(colObj);
+
+  var shape="sphere"; /* or "column" */
+
+  /* ================= cloth (verlet) ================= */
+  var N=21, SP=0.085, COUNT=N*N;
+  var px=new Float32Array(COUNT),py=new Float32Array(COUNT),pz=new Float32Array(COUNT);
+  var ox=new Float32Array(COUNT),oy=new Float32Array(COUNT),oz=new Float32Array(COUNT);
+  var pinned=new Uint8Array(COUNT);
+  var CORNERS=[0,N-1,(N-1)*N,N*N-1];
+
+  function resetCloth(){
+    for(var j=0;j<N;j++)for(var i=0;i<N;i++){
+      var id=j*N+i;
+      px[id]=(i-(N-1)/2)*SP;
+      py[id]=1.52+0.02*Math.sin(i*0.6)+0.015*Math.cos(j*0.7);
+      pz[id]=(j-(N-1)/2)*SP;
+      ox[id]=px[id];oy[id]=py[id];oz[id]=pz[id];
+      pinned[id]=0;
+    }
+    for(var c=0;c<4;c++)syncHandle(c);
+  }
+
+  /* constraints: [a,b,rest] */
+  var cons=[];
+  (function(){
+    var i,j;
+    for(j=0;j<N;j++)for(i=0;i<N;i++){
+      var id=j*N+i;
+      if(i<N-1)cons.push(id,id+1,SP);
+      if(j<N-1)cons.push(id,id+N,SP);
+      if(i<N-1&&j<N-1){
+        cons.push(id,id+N+1,SP*Math.SQRT2);
+        cons.push(id+1,id+N,SP*Math.SQRT2);
+      }
+    }
+  })();
+
+  var wind=0, simTime=0, DT=1/60;
+
+  function collide(id){
+    var eps=0.012;
+    /* floor */
+    if(py[id]<eps){py[id]=eps;ox[id]=px[id]+(ox[id]-px[id])*0.4;oz[id]=pz[id]+(oz[id]-pz[id])*0.4;}
+    if(shape==="sphere"){
+      var dx=px[id],dy=py[id]-SPHERE_R,dz=pz[id];
+      var d=Math.sqrt(dx*dx+dy*dy+dz*dz);
+      if(d<SPHERE_R+eps&&d>1e-6){
+        var s=(SPHERE_R+eps)/d;
+        px[id]=dx*s;py[id]=SPHERE_R+dy*s;pz[id]=dz*s;
+        /* strong friction: cloth grips the stone */
+        ox[id]=px[id]+(ox[id]-px[id])*0.08;
+        oy[id]=py[id]+(oy[id]-py[id])*0.08;
+        oz[id]=pz[id]+(oz[id]-pz[id])*0.08;
+      }
+    }else{
+      var rx=px[id],rz=pz[id];
+      var rd=Math.sqrt(rx*rx+rz*rz);
+      if(py[id]>0&&py[id]<COL_H&&rd<COL_R+eps&&rd>1e-6){
+        var k=(COL_R+eps)/rd;
+        px[id]=rx*k;pz[id]=rz*k;
+        ox[id]=px[id]+(ox[id]-px[id])*0.08;
+        oz[id]=pz[id]+(oz[id]-pz[id])*0.08;
+      }
+      /* top cap */
+      if(rd<COL_R+eps&&py[id]<COL_H+eps&&py[id]>COL_H-0.25){
+        py[id]=COL_H+eps;
+        ox[id]=px[id]+(ox[id]-px[id])*0.1;
+        oz[id]=pz[id]+(oz[id]-pz[id])*0.1;
+      }
+    }
+  }
+
+  function step(){
+    simTime+=DT;
+    var dt2=DT*DT;
+    var g=-4.0;
+    var gust=0.6+0.4*Math.sin(simTime*2.1)+0.25*Math.sin(simTime*5.7);
+    var wax=wind*7.5*gust, waz=wind*2.2*Math.sin(simTime*1.4);
+    var i,id;
+    for(id=0;id<COUNT;id++){
+      if(pinned[id])continue;
+      var vx=(px[id]-ox[id])*0.985;
+      var vy=(py[id]-oy[id])*0.985;
+      var vz=(pz[id]-oz[id])*0.985;
+      ox[id]=px[id];oy[id]=py[id];oz[id]=pz[id];
+      var flutter=Math.sin(simTime*3.1+id*0.17)*wind*1.4;
+      px[id]+=vx+(wax+flutter)*dt2;
+      py[id]+=vy+g*dt2;
+      pz[id]+=vz+waz*dt2;
+    }
+    var iter=5,k,a,b,dx,dy,dz,d,diff,cx,cy,cz;
+    for(k=0;k<iter;k++){
+      for(i=0;i<cons.length;i+=3){
+        a=cons[i];b=cons[i+1];
+        dx=px[b]-px[a];dy=py[b]-py[a];dz=pz[b]-pz[a];
+        d=Math.sqrt(dx*dx+dy*dy+dz*dz)||1e-6;
+        diff=(d-cons[i+2])/d*0.5;
+        cx=dx*diff;cy=dy*diff;cz=dz*diff;
+        if(!pinned[a]){px[a]+=cx;py[a]+=cy;pz[a]+=cz;}
+        if(!pinned[b]){px[b]-=cx;py[b]-=cy;pz[b]-=cz;}
+      }
+      for(id=0;id<COUNT;id++)collide(id);
+    }
+  }
+
+  /* ================= cloth mesh ================= */
+  var clothGeo=new THREE.PlaneGeometry(1,1,N-1,N-1);
+  var clothMat=new THREE.MeshStandardMaterial({
+    color:TERRA,roughness:0.78,metalness:0.03,side:THREE.DoubleSide
+  });
+  clothMat.shadowSide=THREE.DoubleSide;
+  var cloth=new THREE.Mesh(clothGeo,clothMat);
+  cloth.castShadow=true;cloth.receiveShadow=true;
+  cloth.frustumCulled=false;
+  scene.add(cloth);
+  var clothPos=clothGeo.attributes.position;
+
+  function updateClothMesh(){
+    for(var id=0;id<COUNT;id++){
+      clothPos.setXYZ(id,px[id],py[id],pz[id]);
+    }
+    clothPos.needsUpdate=true;
+    clothGeo.computeVertexNormals();
+  }
+
+  /* corner handles */
+  var handleGroup=[];
+  var ringGeo=new THREE.TorusGeometry(0.032,0.007,10,24);
+  var hitGeo=new THREE.SphereGeometry(0.085,8,8);
+  var ringMat=new THREE.MeshBasicMaterial({color:TERRA});
+  var dotMat=new THREE.MeshBasicMaterial({color:INK});
+  for(var hc=0;hc<4;hc++){
+    (function(c){
+      var g=new THREE.Group();
+      var ring=new THREE.Mesh(ringGeo,ringMat.clone());
+      var hit=new THREE.Mesh(hitGeo,new THREE.MeshBasicMaterial({transparent:true,opacity:0,depthWrite:false}));
+      hit.userData.corner=c;
+      g.add(ring);g.add(hit);
+      g.userData.ring=ring;
+      scene.add(g);
+      handleGroup.push(g);
+    })(hc);
+  }
+  function syncHandle(c){
+    var id=CORNERS[c];
+    handleGroup[c].position.set(px[id],py[id],pz[id]);
+    handleGroup[c].userData.ring.material.color.setHex(pinned[id]?INK:TERRA);
+  }
+
+  /* ================= interaction ================= */
+  var raycaster=new THREE.Raycaster();
+  var mouse=new THREE.Vector2();
+  var dragCorner=-1,orbiting=false,lx=0,ly=0,moved=false;
+  var dragPlane=new THREE.Plane();
+  var hitPoint=new THREE.Vector3();
+  var metaState=document.getElementById("metaState");
+
+  function pickHandle(e){
+    var r=renderer.domElement.getBoundingClientRect();
+    mouse.x=((e.clientX-r.left)/r.width)*2-1;
+    mouse.y=-((e.clientY-r.top)/r.height)*2+1;
+    raycaster.setFromCamera(mouse,camera);
+    var hits=raycaster.intersectObjects(handleGroup,true);
+    if(hits.length){
+      var o=hits[0].object;
+      while(o&&o.userData.corner===undefined)o=o.parent;
+      if(o)return o.userData.corner;
+    }
+    return -1;
+  }
+
+  stage.addEventListener("pointerdown",function(e){
+    lx=e.clientX;ly=e.clientY;moved=false;
+    var c=pickHandle(e);
+    if(c>-1){
+      dragCorner=c;
+      var id=CORNERS[c];
+      var n=new THREE.Vector3();
+      camera.getWorldDirection(n);
+      dragPlane.setFromNormalAndCoplanarPoint(n,new THREE.Vector3(px[id],py[id],pz[id]));
+      pinned[id]=1;
+    }else{
+      orbiting=true;
+    }
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener("pointermove",function(e){
+    if(dragCorner>-1){
+      var r=renderer.domElement.getBoundingClientRect();
+      mouse.x=((e.clientX-r.left)/r.width)*2-1;
+      mouse.y=-((e.clientY-r.top)/r.height)*2+1;
+      raycaster.setFromCamera(mouse,camera);
+      if(raycaster.ray.intersectPlane(dragPlane,hitPoint)){
+        var id=CORNERS[dragCorner];
+        px[id]=Math.max(-2.4,Math.min(2.4,hitPoint.x));
+        py[id]=Math.max(0.04,Math.min(2.6,hitPoint.y));
+        pz[id]=Math.max(-2.4,Math.min(2.4,hitPoint.z));
+        ox[id]=px[id];oy[id]=py[id];oz[id]=pz[id];
+      }
+      moved=true;
+    }else if(orbiting){
+      var dx=e.clientX-lx,dy=e.clientY-ly;
+      if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
+      azim-=dx*0.005;
+      elev=Math.min(1.2,Math.max(0.08,elev+dy*0.004));
+      lx=e.clientX;ly=e.clientY;
+    }
+  });
+  stage.addEventListener("pointerup",function(){
+    if(dragCorner>-1){
+      if(!moved){
+        /* click on a handle: toggle pin off */
+        pinned[CORNERS[dragCorner]]=0;
+      }
+      dragCorner=-1;
+    }
+    orbiting=false;
+  });
+
+  /* ================= UI ================= */
+  var windSlider=document.getElementById("wind");
+  var windVal=document.getElementById("windVal");
+  windSlider.addEventListener("input",function(){
+    wind=windSlider.value/100;
+    windVal.textContent=wind.toFixed(2);
+  });
+  var shapeBtn=document.getElementById("shape");
+  shapeBtn.addEventListener("click",function(){
+    shape=shape==="sphere"?"column":"sphere";
+    sphereObj.visible=shape==="sphere";
+    colObj.visible=shape==="column";
+    shapeBtn.textContent=shape==="sphere"?"COLUMN / 换柱":"SPHERE / 换球";
+  });
+  document.getElementById("reset").addEventListener("click",function(){
+    resetCloth();
+    metaState.textContent="FALLING";
+  });
+
+  /* ================= resize + loop ================= */
+  function resize(){
+    var w=window.innerWidth,h=window.innerHeight;
+    renderer.setSize(w,h);
+    camera.aspect=w/h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener("resize",resize);
+  resize();
+
+  resetCloth();
+
+  /* dev warp: #t=8 fast-forwards the simulation */
+  var warp=parseFloat((location.hash.match(/t=([\d.]+)/)||[])[1]||"0");
+  for(var ws=0;ws<Math.min(20,warp)*60;ws++)step();
+
+  var last=performance.now(),acc=0,settleT=0;
+  function loop(now){
+    var dt=Math.min(0.05,(now-last)/1000);
+    last=now;
+    acc+=dt;
+    var steps=0;
+    while(acc>=DT&&steps<3){step();acc-=DT;steps++;}
+    updateClothMesh();
+    for(var c=0;c<4;c++)syncHandle(c);
+    handleGroup.forEach(function(g){g.quaternion.copy(camera.quaternion);});
+
+    /* settle state label */
+    var id0=CORNERS[0];
+    var v=Math.abs(px[id0]-ox[id0])+Math.abs(py[id0]-oy[id0]);
+    if(v<0.0004)settleT+=dt;else settleT=0;
+    metaState.textContent=settleT>1.2?"AT REST":(wind!==0?"BLOWING":"FALLING");
+
+    placeCamera();
+    renderer.render(scene,camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SECOND SPIN 二手转速黑胶行 — Dig Deep, Play Loud</title>
+<style>
+  :root{
+    --cream:#F1E8D8;
+    --cream2:#E7DCC6;
+    --ink:#1A1510;
+    --red:#D84A1E;
+    --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--cream);color:var(--ink);font-family:var(--sans);overflow-x:hidden;}
+  ::selection{background:var(--red);color:var(--cream);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:20px 4vw;mix-blend-mode:difference;pointer-events:none;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.16em;line-height:1.8;color:#fff;}
+  .sig .no{color:var(--red);}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-align:right;line-height:2;color:#fff;}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:12vh 5vw 8vh;gap:5vw;}
+  @media(max-width:920px){.hero{grid-template-columns:1fr;}}
+  .over{font-family:var(--mono);font-size:10px;letter-spacing:.5em;color:var(--red);margin-bottom:3.2vh;}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(46px,6vw,104px);line-height:1.04;}
+  h1 em{font-style:italic;color:var(--red);}
+  .hero-sub{margin-top:3.4vh;font-size:14px;line-height:2.2;color:rgba(26,21,16,.64);max-width:44ch;}
+  .player{margin-top:4.5vh;display:flex;align-items:center;gap:22px;flex-wrap:wrap;}
+  #playBtn{width:72px;height:72px;border-radius:50%;border:2px solid var(--ink);background:var(--ink);color:var(--cream);
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.35s var(--ease);}
+  #playBtn:hover{background:var(--red);border-color:var(--red);transform:scale(1.05);}
+  #playBtn svg{width:22px;height:22px;fill:var(--cream);}
+  .np .nl{font-family:var(--mono);font-size:9px;letter-spacing:.32em;color:rgba(26,21,16,.5);margin-bottom:8px;}
+  .np .nt{font-family:var(--serif);font-size:24px;line-height:1.2;}
+  .np .na{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:rgba(26,21,16,.6);margin-top:6px;}
+  .np .rpm{margin-top:12px;font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--red);}
+
+  .tt-stage{display:flex;justify-content:center;perspective:1200px;}
+  #ttWrap{transition:transform .2s ease-out;position:relative;}
+  #tt{width:min(44vw,520px);height:auto;display:block;filter:drop-shadow(0 50px 60px rgba(26,21,16,.28));}
+  .spin{animation:spin 1.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #vinylG{transform-origin:260px 175px;}
+  #armG{transform-origin:452px 62px;transition:transform 1.4s var(--ease);transform:rotate(-24deg);}
+  #ttWrap.playing #armG{transform:rotate(0deg);}
+
+  /* ---------- sections ---------- */
+  section{padding:13vh 5vw;max-width:1400px;margin:0 auto;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    border-bottom:2px solid var(--ink);padding-bottom:20px;margin-bottom:7vh;}
+  .sec-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(32px,4.4vw,62px);line-height:1;}
+  .sec-head h2 em{font-style:italic;color:var(--red);}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(26,21,16,.45);}
+  .reveal{opacity:0;transform:translateY(32px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+  .reveal.on{opacity:1;transform:none;}
+
+  /* ---------- crate ---------- */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4.5vh;}
+  .fchip{border:1.5px solid var(--ink);background:none;color:var(--ink);font-family:var(--mono);font-size:10px;
+    letter-spacing:.24em;padding:11px 20px;cursor:pointer;transition:.3s;border-radius:999px;}
+  .fchip:hover{background:var(--ink);color:var(--cream);}
+  .fchip.active{background:var(--red);border-color:var(--red);color:var(--cream);}
+  .crate-outer{position:relative;}
+  .crate{display:flex;gap:26px;overflow-x:auto;padding:20px 4px 34px;cursor:grab;scrollbar-width:none;-ms-overflow-style:none;}
+  .crate::-webkit-scrollbar{display:none;}
+  .crate.dragging{cursor:grabbing;scroll-behavior:auto;}
+  .rec{flex:0 0 auto;width:230px;transition:transform .45s var(--ease),opacity .45s var(--ease);}
+  .rec.hide{display:none;}
+  .rec:hover{transform:translateY(-14px);}
+  .rec .sleeve{width:230px;height:230px;position:relative;box-shadow:0 16px 30px rgba(26,21,16,.22);transition:.45s var(--ease);}
+  .rec .sleeve svg{width:100%;height:100%;display:block;}
+  .rec .vinyl-peek{position:absolute;top:8px;right:-46px;width:214px;height:214px;border-radius:50%;
+    background:repeating-radial-gradient(circle at 50% 50%,#14100c 0 2px,#221a14 2px 4px);
+    transition:right .5s var(--ease);z-index:-0;box-shadow:0 8px 18px rgba(26,21,16,.3);}
+  .rec .sleeve-wrap{position:relative;}
+  .rec:hover .vinyl-peek{right:-78px;}
+  .rec .rl{margin-top:18px;}
+  .rec .rt{font-family:var(--serif);font-size:19px;line-height:1.25;}
+  .rec .ra{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:rgba(26,21,16,.55);margin-top:6px;}
+  .rec .rp{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--mono);font-size:11px;}
+  .rec .rp .g{color:var(--red);letter-spacing:.2em;font-size:9px;align-self:center;}
+  .crate-hint{font-family:var(--mono);font-size:9px;letter-spacing:.32em;color:rgba(26,21,16,.4);margin-top:1vh;}
+  .crate::selection{background:transparent;}
+
+  /* ---------- detail ---------- */
+  #detail{position:fixed;left:0;right:0;bottom:0;z-index:70;background:var(--ink);color:var(--cream);
+    transform:translateY(102%);transition:transform .6s var(--ease);padding:34px 5vw;display:grid;
+    grid-template-columns:auto 1fr auto;gap:4vw;align-items:center;}
+  #detail.open{transform:none;}
+  #detail .d-sleeve{width:120px;height:120px;box-shadow:0 10px 24px rgba(0,0,0,.4);}
+  #detail .d-sleeve svg{width:100%;height:100%;display:block;}
+  #detail .dt{font-family:var(--serif);font-size:clamp(22px,2.6vw,36px);}
+  #detail .dm{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:rgba(241,232,216,.6);margin-top:10px;line-height:2;}
+  #detail .dd{font-size:13px;line-height:2;color:rgba(241,232,216,.72);margin-top:12px;max-width:60ch;}
+  #detail .d-act{display:flex;flex-direction:column;gap:12px;align-items:flex-end;}
+  .d-play{border:1.5px solid var(--red);background:var(--red);color:var(--cream);font-family:var(--mono);
+    font-size:10px;letter-spacing:.26em;padding:15px 26px;cursor:pointer;transition:.3s;white-space:nowrap;}
+  .d-play:hover{background:transparent;color:var(--red);}
+  .d-close{border:none;background:none;color:rgba(241,232,216,.6);font-family:var(--mono);font-size:10px;
+    letter-spacing:.26em;cursor:pointer;padding:6px;}
+  .d-close:hover{color:var(--cream);}
+  @media(max-width:760px){#detail{grid-template-columns:1fr;gap:18px;}#detail .d-act{align-items:flex-start;}}
+
+  /* ---------- manifesto ---------- */
+  .mani{max-width:900px;margin:0 auto;text-align:center;}
+  .mani .q{font-family:var(--serif);font-size:clamp(28px,3.8vw,54px);line-height:1.5;}
+  .mani .q em{font-style:italic;color:var(--red);}
+  .mani .who{margin-top:4vh;font-family:var(--mono);font-size:10px;letter-spacing:.32em;color:rgba(26,21,16,.5);}
+  .stats{margin-top:9vh;display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:2px;background:var(--ink);}
+  .stat{background:var(--cream);padding:30px 22px;text-align:center;}
+  .stat .sv{font-family:var(--serif);font-size:clamp(34px,3.4vw,52px);color:var(--ink);line-height:1;}
+  .stat .sv i{font-style:normal;color:var(--red);}
+  .stat .sl{font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:rgba(26,21,16,.5);margin-top:12px;line-height:1.9;}
+
+  footer{background:var(--ink);color:var(--cream);padding:11vh 5vw 7vh;margin-top:8vh;}
+  footer .fin{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;gap:6vw;flex-wrap:wrap;}
+  footer .big{font-family:var(--serif);font-size:clamp(30px,4.4vw,60px);line-height:1.15;}
+  footer .big em{font-style:italic;color:var(--red);}
+  footer .info{font-family:var(--mono);font-size:10px;letter-spacing:.24em;line-height:2.6;color:rgba(241,232,216,.55);}
+  footer .info b{color:var(--cream);font-weight:400;}
+  .copyright{background:var(--ink);color:rgba(241,232,216,.3);padding:0 5vw 5vh;font-family:var(--mono);font-size:9px;letter-spacing:.3em;}
+  .copyright div{max-width:1400px;margin:0 auto;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">Nº 024</span><br>SECOND SPIN<br>二手转速黑胶行</div>
+  <div class="hright">DIG DEEP · PLAY LOUD<br>SINCE 1998 — GUANGZHOU</div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div>
+    <div class="over">VINYL ONLY · 只卖黑胶</div>
+    <h1>好音乐<br>值得<em>转起来</em>听</h1>
+    <p class="hero-sub">一万两千张二手黑胶，每一张都经过店主老周的耳朵验货。试听不用问——唱机就在这儿，先放一张给你。</p>
+    <div class="player">
+      <button id="playBtn" aria-label="播放">
+        <svg id="icoPlay" viewBox="0 0 24 24"><path d="M6 3 L21 12 L6 21 Z"/></svg>
+        <svg id="icoPause" viewBox="0 0 24 24" style="display:none"><path d="M5 3 H10 V21 H5 Z M14 3 H19 V21 H14 Z"/></svg>
+      </button>
+      <div class="np">
+        <div class="nl">NOW SPINNING · 正在转动</div>
+        <div class="nt" id="npTitle">Blue in Green</div>
+        <div class="na" id="npArtist">MILES DAVIS · 1959</div>
+        <div class="rpm" id="npRpm">33⅓ RPM · SIDE A</div>
+      </div>
+    </div>
+  </div>
+  <div class="tt-stage">
+    <div id="ttWrap">
+      <svg id="tt" viewBox="0 0 520 360" aria-label="黑胶唱机">
+        <rect x="6" y="6" width="508" height="348" rx="10" fill="#241C14"/>
+        <rect x="6" y="6" width="508" height="348" rx="10" fill="none" stroke="#3A2E20"/>
+        <rect x="22" y="300" width="130" height="10" rx="5" fill="#D84A1E" opacity=".85"/>
+        <text x="26" y="330" font-family="SF Mono,Menlo,monospace" font-size="9" letter-spacing="3" fill="#8A7A64">SECOND SPIN · TT-98</text>
+        <g id="vinylG">
+          <circle cx="260" cy="175" r="140" fill="#0F0C09"/>
+          <circle cx="260" cy="175" r="140" fill="none" stroke="#241D16" stroke-width="1"/>
+          <g stroke="#221B14" stroke-width="1" fill="none">
+            <circle cx="260" cy="175" r="128"/><circle cx="260" cy="175" r="118"/><circle cx="260" cy="175" r="108"/>
+            <circle cx="260" cy="175" r="98"/><circle cx="260" cy="175" r="88"/><circle cx="260" cy="175" r="78"/>
+          </g>
+          <circle cx="260" cy="175" r="46" fill="#D84A1E"/>
+          <circle cx="260" cy="175" r="44" fill="none" stroke="#F1E8D8" stroke-width="1" opacity=".4"/>
+          <text id="vinylLabel" x="260" y="171" text-anchor="middle" font-family="Didot,Georgia,serif" font-size="12" fill="#F1E8D8">KIND OF BLUE</text>
+          <text x="260" y="188" text-anchor="middle" font-family="SF Mono,Menlo,monospace" font-size="6" letter-spacing="2" fill="#F1E8D8" opacity=".8">33⅓ RPM</text>
+          <circle cx="260" cy="175" r="3.5" fill="#F1E8D8"/>
+          <path d="M150 90 A 140 140 0 0 1 300 42" stroke="#F1E8D8" stroke-width="10" opacity=".06" fill="none"/>
+        </g>
+        <g id="armG">
+          <circle cx="452" cy="62" r="20" fill="#3A2E20" stroke="#57483A"/>
+          <line x1="452" y1="62" x2="330" y2="220" stroke="#C9BCA6" stroke-width="7" stroke-linecap="round"/>
+          <rect x="316" y="212" width="26" height="14" rx="3" transform="rotate(38 329 219)" fill="#D84A1E"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- CRATE -->
+<section id="crate">
+  <div class="sec-head reveal"><h2>翻一翻<em>唱片箱</em></h2><div class="idx">01 — THE CRATES / 本周新到</div></div>
+  <div class="filters reveal" id="filters"></div>
+  <div class="crate-outer reveal">
+    <div class="crate" id="crateRow"></div>
+    <div class="crate-hint">← 按住拖动翻箱 · 点击封面看详情 · 悬停抽出黑胶 →</div>
+  </div>
+</section>
+
+<!-- DETAIL DRAWER -->
+<div id="detail">
+  <div class="d-sleeve" id="dSleeve"></div>
+  <div>
+    <div class="dt" id="dTitle"></div>
+    <div class="dm" id="dMeta"></div>
+    <div class="dd" id="dDesc"></div>
+  </div>
+  <div class="d-act">
+    <button class="d-play" id="dPlay">放上唱机 ▸</button>
+    <button class="d-close" id="dClose">收起 ✕</button>
+  </div>
+</div>
+
+<!-- MANIFESTO -->
+<section>
+  <div class="sec-head reveal"><h2>为什么<em>黑胶</em></h2><div class="idx">02 — MANIFESTO</div></div>
+  <div class="mani reveal">
+    <div class="q">“流媒体给你一万首歌，<br>黑胶只给你<em>四十分钟</em>——<br>但那是完整的四十分钟。”</div>
+    <div class="who">— 老周 · 店主 / 首席验碟官</div>
+  </div>
+  <div class="stats reveal">
+    <div class="stat"><div class="sv">12<i>k</i></div><div class="sl">在库唱片<br>VINYL IN STOCK</div></div>
+    <div class="stat"><div class="sv">27<i>年</i></div><div class="sl">开店年份<br>SINCE 1998</div></div>
+    <div class="stat"><div class="sv">0</div><div class="sl">流媒体账号<br>STREAMING ACCTS</div></div>
+    <div class="stat"><div class="sv">∞</div><div class="sl">免费试听<br>FREE LISTENING</div></div>
+  </div>
+</section>
+
+<footer>
+  <div class="fin">
+    <div class="big">别在网上聊了，<br><em>来翻箱子。</em></div>
+    <div class="info">
+      <b>SECOND SPIN 二手转速</b><br>
+      广州 · 庙前西街 9 号<br>
+      周二至周日 · 13:00 — 22:00<br>
+      收碟 · 换碟 · 只收现金和故事
+    </div>
+  </div>
+</footer>
+<div class="copyright"><div>© 1998—2026 SECOND SPIN · WEB DESIGN Nº 024 · AI PORTFOLIO</div></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ records data + generative sleeves ============ */
+var RECORDS=[
+ {g:'JAZZ',t:'Blue in Green',a:'MILES DAVIS',y:'1959',p:'¥420',c:['#1B3A4B','#D84A1E','#F1E8D8'],
+  d:'Kind of Blue 里最安静的一首。老周说这张盘面有轻微炒豆声，"但那就是 1959 年的声音"。',
+  chords:[[146.8,174.6,220],[130.8,164.8,196],[146.8,185,220],[164.8,196,246.9]]},
+ {g:'JAZZ',t:'Maiden Voyage',a:'HERBIE HANCOCK',y:'1965',p:'¥380',c:['#0E4D64','#7FB3B0','#F1E8D8'],
+  d:'海面一样的和声。这张是日版首压，封套内侧还有上任主人写的听感——"适合台风天"。',
+  chords:[[174.6,220,261.6],[146.8,185,220],[164.8,207.7,246.9],[146.8,174.6,220]]},
+ {g:'SOUL',t:'What\'s Going On',a:'MARVIN GAYE',y:'1971',p:'¥460',c:['#5B2A86','#E9C46A','#F1E8D8'],
+  d:'马文·盖把整张专辑做成了一次祈祷。这张封套边角磨损，盘面近新，被老周评为"本周之心"。',
+  chords:[[164.8,196,246.9],[146.8,185,220],[138.6,174.6,207.7],[146.8,174.6,220]]},
+ {g:'CITY POP',t:'Pocket Park',a:'松原みき',y:'1980',p:'¥520',c:['#E76F51','#2A9D8F','#F1E8D8'],
+  d:'真夜中のドア 的原盘。City Pop 回潮之后一年比一年难找，这张是从一位大阪 DJ 手里收来的。',
+  chords:[[220,261.6,329.6],[196,246.9,293.7],[174.6,220,261.6],[196,233.1,293.7]]},
+ {g:'CITY POP',t:'Variety',a:'竹内まりや',y:'1984',p:'¥480',c:['#F4A261','#264653','#F1E8D8'],
+  d:'Plastic Love 收录盘。封面那位女士的墨镜里，倒映着整个八十年代的东京湾。',
+  chords:[[185,233.1,277.2],[174.6,220,261.6],[207.7,261.6,311.1],[185,220,277.2]]},
+ {g:'FUNK',t:'Mothership Connection',a:'PARLIAMENT',y:'1975',p:'¥400',c:['#1A1510','#D84A1E','#E9C46A'],
+  d:'P-Funk 的母舰。低音线肥到需要给唱针多压 0.5 克。封套折页完整，罕见。',
+  chords:[[110,138.6,164.8],[123.5,155.6,185],[98,123.5,146.8],[110,146.8,174.6]]},
+ {g:'FUNK',t:'Fresh',a:'SLY & THE FAMILY STONE',y:'1973',p:'¥360',c:['#606C38','#DDA15E','#F1E8D8'],
+  d:'又脏又松弛。If You Want Me to Stay 的贝斯是教科书级别的懒洋洋。',
+  chords:[[123.5,146.8,185],[110,138.6,164.8],[98,130.8,155.6],[123.5,155.6,196]]},
+ {g:'AMBIENT',t:'Ambient 1: Music for Airports',a:'BRIAN ENO',y:'1978',p:'¥440',c:['#4A4E69','#C9ADA7','#F1E8D8'],
+  d:'适合在店里打烊前放。钢琴 loop 之间的静默比音符更重要——黑胶的底噪恰好填补了它。',
+  chords:[[261.6,329.6,392],[246.9,311.1,370],[220,277.2,329.6],[261.6,311.1,392]]}
+];
+function sleeveSVG(rec,i){
+  var c=rec.c,mode=i%4;
+  var inner='';
+  if(mode===0){
+    for(var r=0;r<5;r++)inner+='<circle cx="115" cy="115" r="'+(26+r*20)+'" fill="none" stroke="'+c[1]+'" stroke-width="'+(r%2?3:7)+'" opacity="'+(1-r*.16)+'"/>';
+  }else if(mode===1){
+    for(var s=0;s<7;s++)inner+='<rect x="0" y="'+(s*33)+'" width="230" height="17" fill="'+(s%2?c[0]:c[1])+'" opacity="'+(s%2?1:.85)+'"/>';
+  }else if(mode===2){
+    for(var d=0;d<8;d++)for(var e=0;e<8;e++)inner+='<circle cx="'+(16+d*28)+'" cy="'+(16+e*28)+'" r="'+((d+e)%3*3+2.5)+'" fill="'+c[1]+'" opacity=".85"/>';
+  }else{
+    inner='<path d="M0 170 Q 57 60 115 150 T 230 120 V230 H0 Z" fill="'+c[1]+'"/>'+
+      '<path d="M0 195 Q 70 100 130 175 T 230 155 V230 H0 Z" fill="'+c[0]+'" opacity=".8"/>';
+  }
+  return '<svg viewBox="0 0 230 230"><rect width="230" height="230" fill="'+c[0]+'"/>'+inner+
+    '<text x="18" y="34" font-family="Didot,Georgia,serif" font-size="19" fill="'+c[2]+'">'+rec.t+'</text>'+
+    '<text x="18" y="52" font-family="SF Mono,Menlo,monospace" font-size="8" letter-spacing="2" fill="'+c[2]+'" opacity=".85">'+rec.a+' · '+rec.y+'</text></svg>';
+}
+
+/* ============ crate ============ */
+var crateRow=document.getElementById('crateRow');
+RECORDS.forEach(function(rec,i){
+  var d=document.createElement('div');d.className='rec';d.dataset.g=rec.g;d.dataset.i=i;
+  d.innerHTML='<div class="sleeve-wrap"><div class="vinyl-peek"></div><div class="sleeve">'+sleeveSVG(rec,i)+'</div></div>'+
+    '<div class="rl"><div class="rt">'+rec.t+'</div><div class="ra">'+rec.a+' · '+rec.y+'</div>'+
+    '<div class="rp"><span class="g">'+rec.g+'</span><span>'+rec.p+'</span></div></div>';
+  d.addEventListener('click',function(){if(!dragged)openDetail(i);});
+  crateRow.appendChild(d);
+});
+
+/* filters */
+var genres=['ALL','JAZZ','SOUL','CITY POP','FUNK','AMBIENT'];
+var fbox=document.getElementById('filters');
+genres.forEach(function(g,i){
+  var b=document.createElement('button');b.className='fchip'+(i===0?' active':'');b.textContent=g;
+  b.addEventListener('click',function(){
+    fbox.querySelectorAll('.fchip').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active');
+    crateRow.querySelectorAll('.rec').forEach(function(r){
+      r.classList.toggle('hide',g!=='ALL'&&r.dataset.g!==g);
+    });
+  });
+  fbox.appendChild(b);
+});
+
+/* drag to scroll */
+var isDown=false,dragged=false,startX=0,startL=0;
+crateRow.addEventListener('pointerdown',function(e){
+  isDown=true;dragged=false;startX=e.clientX;startL=crateRow.scrollLeft;
+  crateRow.classList.add('dragging');
+});
+window.addEventListener('pointermove',function(e){
+  if(!isDown)return;
+  var dx=e.clientX-startX;
+  if(Math.abs(dx)>6)dragged=true;
+  crateRow.scrollLeft=startL-dx;
+});
+window.addEventListener('pointerup',function(){isDown=false;crateRow.classList.remove('dragging');});
+
+/* ============ detail ============ */
+var detail=document.getElementById('detail'),curRec=0;
+function openDetail(i){
+  curRec=i;var r=RECORDS[i];
+  document.getElementById('dSleeve').innerHTML=sleeveSVG(r,i);
+  document.getElementById('dTitle').textContent=r.t;
+  document.getElementById('dMeta').textContent=r.a+' · '+r.y+' · '+r.g+' · '+r.p;
+  document.getElementById('dDesc').textContent=r.d;
+  detail.classList.add('open');
+}
+document.getElementById('dClose').addEventListener('click',function(){detail.classList.remove('open');});
+document.getElementById('dPlay').addEventListener('click',function(){
+  loadRecord(curRec);
+  detail.classList.remove('open');
+  if(!playing)togglePlay();
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+/* ============ audio engine ============ */
+var actx=null,master=null,crackleGain=null,playing=false,seqTimer=null,chordIdx=0;
+var curChords=RECORDS[0].chords;
+function initAudio(){
+  actx=new (window.AudioContext||window.webkitAudioContext)();
+  master=actx.createGain();master.gain.value=.5;
+  var lp=actx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=3400;
+  master.connect(lp);lp.connect(actx.destination);
+  /* vinyl crackle: looped noise buffer with random pops */
+  var len=actx.sampleRate*2,buf=actx.createBuffer(1,len,actx.sampleRate),ch=buf.getChannelData(0);
+  for(var i=0;i<len;i++){
+    ch[i]=(Math.random()*2-1)*.012;
+    if(Math.random()<.0004)ch[i]+=(Math.random()*2-1)*.5;
+  }
+  var src=actx.createBufferSource();src.buffer=buf;src.loop=true;
+  crackleGain=actx.createGain();crackleGain.gain.value=.55;
+  src.connect(crackleGain);crackleGain.connect(actx.destination);
+  src.start();
+}
+function playChord(freqs,when,dur){
+  freqs.forEach(function(f,vi){
+    var o=actx.createOscillator();o.type=vi===0?'triangle':'sine';
+    o.frequency.value=f*(vi===0?.5:1);o.detune.value=(Math.random()*6-3);
+    var g=actx.createGain();
+    g.gain.setValueAtTime(0,when);
+    g.gain.linearRampToValueAtTime(.16/(vi+1),when+.35);
+    g.gain.setValueAtTime(.16/(vi+1),when+dur-.7);
+    g.gain.linearRampToValueAtTime(0,when+dur);
+    o.connect(g);g.connect(master);
+    o.start(when);o.stop(when+dur+.1);
+  });
+}
+var BEAT=2.0;
+function schedule(){
+  if(!playing)return;
+  var t=actx.currentTime+.05;
+  playChord(curChords[chordIdx%curChords.length],t,BEAT);
+  chordIdx++;
+  seqTimer=setTimeout(schedule,BEAT*1000);
+}
+function togglePlay(){
+  if(!actx)initAudio();
+  if(actx.state==='suspended')actx.resume();
+  playing=!playing;
+  document.getElementById('icoPlay').style.display=playing?'none':'';
+  document.getElementById('icoPause').style.display=playing?'':'none';
+  document.getElementById('ttWrap').classList.toggle('playing',playing);
+  document.getElementById('vinylG').classList.toggle('spin',playing);
+  if(master)master.gain.linearRampToValueAtTime(playing?.5:0,actx.currentTime+.8);
+  if(crackleGain)crackleGain.gain.linearRampToValueAtTime(playing?.55:0,actx.currentTime+.8);
+  if(playing)schedule();else clearTimeout(seqTimer);
+}
+document.getElementById('playBtn').addEventListener('click',togglePlay);
+function loadRecord(i){
+  var r=RECORDS[i];
+  curChords=r.chords;
+  document.getElementById('npTitle').textContent=r.t;
+  document.getElementById('npArtist').textContent=r.a+' · '+r.y;
+  document.getElementById('vinylLabel').textContent=r.t.toUpperCase().slice(0,20);
+}
+
+/* turntable tilt */
+var tt=document.getElementById('ttWrap');
+window.addEventListener('mousemove',function(e){
+  var dx=(e.clientX/window.innerWidth-.5),dy=(e.clientY/window.innerHeight-.5);
+  tt.style.transform='rotateY('+dx*7+'deg) rotateX('+(-dy*5)+'deg)';
+});
+
+/* ============ reveal ============ */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target);}});
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

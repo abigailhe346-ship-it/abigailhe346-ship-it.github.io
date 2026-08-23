@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PALIMPSEST — 高级 AI 对话界面</title>
+<style>
+  :root{
+    --paper:#F4F0E6; --paper2:#EDE8DB; --ink:#191919; --ink2:#4A463D; --dim:#8B8577;
+    --line:#D8D2C2; --line2:#C6BFAC;
+    --verm:#E4572E; --verm-soft:rgba(228,87,46,.12);
+    --moss:#5A6B48;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;display:flex;overflow:hidden}
+  ::selection{background:var(--verm-soft)}
+  button{font-family:inherit}
+
+  /* ---------- sidebar ---------- */
+  aside{flex:0 0 264px;background:var(--paper2);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;min-height:0}
+  .s-brand{padding:22px 20px 16px;border-bottom:1px solid var(--line)}
+  .s-brand .no{font-family:var(--mono);font-size:10px;color:var(--verm);letter-spacing:.22em}
+  .s-brand h1{font-family:var(--serif);font-size:26px;font-weight:400;letter-spacing:.04em;margin-top:4px}
+  .s-brand .sub{font-size:11px;color:var(--dim);margin-top:2px;letter-spacing:.08em}
+  .s-list{flex:1;overflow-y:auto;padding:10px 12px}
+  .s-item{padding:11px 12px;border:1px solid transparent;cursor:pointer;transition:all .18s var(--ease);margin-bottom:2px}
+  .s-item:hover{background:rgba(25,25,25,.04)}
+  .s-item.on{background:var(--paper);border-color:var(--line2)}
+  .s-item .t{font-size:13px;font-weight:600;letter-spacing:.02em;display:flex;gap:8px;align-items:baseline}
+  .s-item .t span:first-child{font-family:var(--mono);font-size:9.5px;color:var(--verm);letter-spacing:.1em}
+  .s-item .d{font-size:11px;color:var(--dim);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .s-new{margin:12px;padding:11px;text-align:center;font-family:var(--mono);font-size:11px;
+    letter-spacing:.14em;color:var(--ink);background:transparent;border:1px solid var(--line2);
+    cursor:pointer;transition:all .18s var(--ease)}
+  .s-new:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .s-foot{padding:12px 20px;border-top:1px solid var(--line);font-family:var(--mono);
+    font-size:9.5px;color:var(--dim);letter-spacing:.12em;line-height:1.9}
+
+  /* ---------- main ---------- */
+  section.chat{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+  .c-head{flex:0 0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:12px 28px;border-bottom:1px solid var(--line)}
+  .c-head .title{font-family:var(--serif);font-size:18px;letter-spacing:.03em}
+  .seg{display:flex;border:1px solid var(--line2)}
+  .seg button{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:6px 11px;
+    background:transparent;border:none;color:var(--dim);cursor:pointer;transition:all .15s var(--ease)}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--ink);color:var(--paper)}
+  .temp{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.08em}
+  .temp b{color:var(--verm);min-width:26px;text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:110px;height:2px;background:var(--line2);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;
+    background:var(--verm);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--verm);border-radius:50%;transition:transform .15s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--verm);border:2px solid var(--paper);border-radius:50%}
+  .c-head .spacer{flex:1}
+  .c-head .meta{font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:.14em}
+
+  .c-scroll{flex:1;overflow-y:auto;min-height:0;scroll-behavior:smooth}
+  .c-col{max-width:760px;margin:0 auto;padding:34px 28px 20px}
+
+  .date-line{display:flex;align-items:center;gap:14px;margin:6px 0 26px;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--dim)}
+  .date-line::before,.date-line::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .msg{margin-bottom:30px;animation:up .45s var(--ease)}
+  @keyframes up{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .msg .m-meta{display:flex;align-items:baseline;gap:10px;margin-bottom:8px;
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--dim)}
+  .msg .m-meta .who{font-weight:700}
+  .msg.user .m-meta .who{color:var(--moss)}
+  .msg.ai .m-meta .who{color:var(--verm)}
+  .msg .m-acts{margin-left:auto;display:flex;gap:6px;opacity:0;transition:opacity .2s}
+  .msg:hover .m-acts{opacity:1}
+  .m-acts button{font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--dim);
+    background:transparent;border:1px solid var(--line);padding:3px 8px;cursor:pointer;transition:all .15s}
+  .m-acts button:hover{color:var(--ink);border-color:var(--ink)}
+  .msg .body{font-size:14.5px;line-height:1.85;letter-spacing:.01em}
+  .msg.user .body{color:var(--ink2)}
+  .msg.user .body{padding:13px 16px;background:rgba(25,25,25,.045);border-left:2px solid var(--moss)}
+  .msg.ai .body p{margin-bottom:10px}
+  .msg.ai .body strong{color:var(--ink);font-weight:700}
+  .msg.ai .body em{font-family:var(--serif);font-style:italic;font-size:1.06em}
+  .msg.ai .body code{font-family:var(--mono);font-size:.86em;background:var(--paper2);
+    border:1px solid var(--line);padding:1px 5px;color:var(--verm)}
+  .msg.ai .body pre{background:var(--ink);color:#E8E4D8;padding:14px 16px;overflow-x:auto;
+    margin:10px 0;font-size:12px;line-height:1.75}
+  .msg.ai .body pre code{background:none;border:none;padding:0;color:#C9D8A4}
+  .msg.ai .body ul{margin:8px 0 12px 20px}
+  .msg.ai .body li{margin-bottom:5px}
+  .cursor{display:inline-block;width:8px;height:15px;background:var(--verm);
+    vertical-align:-2px;animation:blink .7s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+
+  .thinking{display:flex;align-items:center;gap:10px;font-family:var(--mono);
+    font-size:10.5px;color:var(--dim);letter-spacing:.14em;margin-bottom:30px}
+  .thinking .dots{display:flex;gap:4px}
+  .thinking .dots i{width:5px;height:5px;background:var(--verm);border-radius:50%;
+    animation:hop 1s var(--ease) infinite}
+  .thinking .dots i:nth-child(2){animation-delay:.14s}
+  .thinking .dots i:nth-child(3){animation-delay:.28s}
+  @keyframes hop{0%,60%,100%{transform:translateY(0);opacity:.4}30%{transform:translateY(-4px);opacity:1}}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px}
+  .chipbtn{font-size:12px;color:var(--ink2);background:transparent;border:1px solid var(--line2);
+    padding:8px 14px;cursor:pointer;letter-spacing:.02em;transition:all .18s var(--ease)}
+  .chipbtn:hover{border-color:var(--verm);color:var(--verm);transform:translateY(-1px)}
+
+  /* ---------- composer ---------- */
+  .c-foot{flex:0 0 auto;border-top:1px solid var(--line);padding:14px 28px 16px;background:var(--paper)}
+  .c-box{max-width:760px;margin:0 auto}
+  .c-input{display:flex;align-items:flex-end;gap:10px;border:1px solid var(--line2);
+    background:#FBF9F3;padding:10px 12px;transition:border-color .2s}
+  .c-input:focus-within{border-color:var(--ink)}
+  textarea{flex:1;resize:none;border:none;outline:none;background:transparent;
+    font-family:var(--sans);font-size:14px;line-height:1.6;color:var(--ink);max-height:130px}
+  textarea::placeholder{color:var(--dim)}
+  .send{flex:0 0 auto;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    padding:9px 18px;background:var(--ink);color:var(--paper);border:1px solid var(--ink);
+    cursor:pointer;transition:all .18s var(--ease)}
+  .send:hover{background:var(--verm);border-color:var(--verm)}
+  .send.stop{background:var(--verm);border-color:var(--verm)}
+  .send:disabled{opacity:.35;cursor:not-allowed}
+  .c-under{display:flex;justify-content:space-between;margin-top:7px;
+    font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--dim)}
+  .c-under .sig{letter-spacing:.18em}
+
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:var(--line2);border:2px solid var(--paper)}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  @media (max-width:860px){
+    aside{display:none}
+    .c-head{padding:10px 14px;gap:8px}
+    .c-head .meta{display:none}
+    .c-scroll .c-col{padding:22px 16px 12px}
+    .c-foot{padding:10px 14px 12px}
+  }
+</style>
+</head>
+<body>
+<aside>
+  <div class="s-brand">
+    <div class="no">N°02</div>
+    <h1>Palimpsest</h1>
+    <div class="sub">高级 AI 对话界面 · 纸上谈兵</div>
+  </div>
+  <div class="s-list" id="convList"></div>
+  <button class="s-new" id="btnNew">+ 开启新对话</button>
+  <div class="s-foot">SESSION 2026-08-23<br>PALIMPSEST · WORK 02 / AGENT-DEMOS</div>
+</aside>
+
+<section class="chat">
+  <div class="c-head">
+    <span class="title" id="convTitle">未命名对话</span>
+    <div class="seg" id="modelSeg">
+      <button data-m="K2-Instruct" class="on">K2-INSTRUCT</button>
+      <button data-m="K2-Thinking">K2-THINKING</button>
+      <button data-m="K1.5-Lite">K1.5-LITE</button>
+    </div>
+    <div class="temp">温度<input type="range" id="temp" min="0" max="100" value="35"><b id="tempV">0.35</b></div>
+    <div class="spacer"></div>
+    <span class="meta" id="headMeta">0 TOKENS</span>
+  </div>
+  <div class="c-scroll" id="scroll">
+    <div class="c-col" id="col"></div>
+  </div>
+  <div class="c-foot">
+    <div class="c-box">
+      <div class="c-input">
+        <textarea id="ta" rows="1" placeholder="写下你的问题… Enter 发送，Shift+Enter 换行"></textarea>
+        <button class="send" id="btnSend">发送</button>
+      </div>
+      <div class="c-under">
+        <span id="charCount">0 字</span>
+        <span class="sig">PALIMPSEST — A STUDY IN CONVERSATION UI</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+"use strict";
+/* ============ knowledge base of replies ============ */
+const REPLIES=[
+ {k:["你好","hi","hello","在吗"],t:
+"你好。我是这套界面的演示引擎——不联网、不调 API，但把一次**真实对话的每个细节**都演给你看：\n\n- 逐字*流式输出*，带光标闪烁\n- 思考过程有计时与动画\n- 代码块、列表、强调一应俱全\n\n试试侧栏换一段对话，或者问我关于 **设计** 的事。"},
+ {k:["设计","界面","ui","ux","好看","风格"],t:
+"好的对话界面应当像一页**排版精良的纸**：\n\n1. *字阶克制*——正文、元信息、标题各就各位；\n2. *留白大方*——消息之间能呼吸；\n3. *动效诚实*——流式输出让用户**看见思考的节奏**，而不是转一个敷衍的菊花。\n\n> 形式追随注意力。\n\n这套界面用 Didot 衬线做标题、等宽字体做元信息，正是编辑部美学的路数。"},
+ {k:["代码","code","函数","编程","bug"],t:
+"当然。比如一个**防抖函数**，写作与流式渲染的过程一样——都要等节奏落定：\n\n```\nfunction debounce(fn, wait = 240) {\n  let t = null;\n  return (...args) => {\n    clearTimeout(t);\n    t = setTimeout(() => fn(...args), wait);\n  };\n}\n```\n\n要点有二：每次触发*重置计时器*；只有静默期满才真正执行。输入框的字数统计就是这么做的。"},
+ {k:["rag","检索","知识库"],t:
+"**RAG**（检索增强生成）分四幕：\n\n1. 把问题编码为*向量*；\n2. 在索引里找出 **Top-K** 近邻文档；\n3. 将文档片段拼入上下文；\n4. 让模型**基于证据**作答。\n\n它的价值不在“更聪明”，而在*可追溯*——每句话都能指回出处。本作品集的 RAG-EXPLAINER 把这条链路做成了可交互的图解。"},
+ {k:["温度","temperature","参数"],t:
+"**温度**是采样时的“胆子大小”：\n\n- `0.0`——永远挑概率最高的词，稳定但乏味；\n- `0.7`——常见的创作甜点区；\n- `1.5+`——开始说胡话，偶尔蹦出*神来之笔*。\n\n你头顶那条滑杆不是摆设：调高它，我的回复会变得更**跳跃**——试试看。"},
+ {k:["谁","作者","你是什么","模型"],t:
+"我是 *Palimpsest*——一件关于对话界面的**设计习作**，编号 N°02。\n\n名字意为“重写本”：古代抄经人刮掉旧字写新字，隐约可见底下的痕迹。对话亦如此——**每一轮都覆盖上一轮，又都留着影子**。\n\n技术栈朴素得近乎固执：零依赖、单文件、纯 CSS 动效。"}
+];
+const FALLBACK=[
+"这个问题值得慢慢回答。先说**结论**：演示引擎没有真正的知识，但它把*回答的形态*演示得很认真。\n\n你可以问我：\n\n- 关于**界面设计**的理念\n- 关于 `代码` 片段\n- 关于 **RAG** 或*温度参数*\n\n或者——调高温度，再问一遍同样的话。",
+"嗯，让我*想想*。\n\n一个诚实的回答是：我的知识库很小，但我的**表现力**不小。流式输出、思考计时、代码高亮——这些才是这件作品的主角。\n\n换个关键词试试？比如“设计”或“代码”。"
+];
+const SUGGEST=["这套界面的设计理念是什么？","写一段防抖函数","什么是 RAG？","温度参数是干什么的？"];
+
+/* ============ state ============ */
+let convs=[{id:1,title:"关于界面的形而上学",msgs:[],created:"08-23"}];
+let cur=0, streaming=false, abort=false, model="K2-Instruct", temp=0.35;
+const col=document.getElementById("col"), scroll=document.getElementById("scroll"),
+      ta=document.getElementById("ta"), btnSend=document.getElementById("btnSend");
+
+/* ============ mini markdown ============ */
+function md(src){
+  let html="";
+  const blocks=src.split("\n");
+  let inCode=false,inList=false;
+  for(let ln of blocks){
+    if(ln.trim().startsWith("```")){ html+=inCode?"</code></pre>":"<pre><code>"; inCode=!inCode; continue; }
+    if(inCode){ html+=esc(ln)+"\n"; continue; }
+    if(ln.trim().startsWith("> ")){ html+="<p><em>"+inline(ln.trim().slice(2))+"</em></p>"; continue; }
+    if(/^[-\d.]/.test(ln.trim())&&(ln.trim()[1]===" "||/^\d/.test(ln.trim()))){
+      if(!inList){html+="<ul>";inList=true;}
+      html+="<li>"+inline(ln.trim().replace(/^[-\d.]+\s*/,""))+"</li>"; continue;
+    } else if(inList){ html+="</ul>"; inList=false; }
+    if(ln.trim()===""){ continue; }
+    html+="<p>"+inline(ln)+"</p>";
+  }
+  if(inList)html+="</ul>";
+  if(inCode)html+="</code></pre>";
+  return html;
+}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function inline(s){
+  return esc(s)
+    .replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g,"<em>$1</em>")
+    .replace(/`([^`]+)`/g,"<code>$1</code>");
+}
+function streamSlice(safe){
+  // render only fully-closed markup during streaming: simple approach —
+  // render as-is; unclosed ** pairs just show asterisks until closed.
+  return md(safe);
+}
+
+/* ============ rendering ============ */
+function renderConvList(){
+  const el=document.getElementById("convList");
+  el.innerHTML="";
+  convs.forEach((c,i)=>{
+    const d=document.createElement("div");
+    d.className="s-item"+(i===cur?" on":"");
+    const last=c.msgs.filter(m=>m.role==="user").pop();
+    d.innerHTML="<div class='t'><span>"+String(i+1).padStart(2,"0")+"</span><span>"+esc(c.title)+"</span></div>"
+      +"<div class='d'>"+(last?esc(last.text):"（空对话）")+"</div>";
+    d.onclick=()=>{ if(streaming)return; cur=i; renderAll(); };
+    el.appendChild(d);
+  });
+}
+function renderMsgs(){
+  col.innerHTML="";
+  const c=convs[cur];
+  document.getElementById("convTitle").textContent=c.title;
+  const dl=document.createElement("div");
+  dl.className="date-line"; dl.textContent="CONVERSATION · "+c.created+" · "+model;
+  col.appendChild(dl);
+  if(c.msgs.length===0){
+    const ch=document.createElement("div"); ch.className="chips";
+    SUGGEST.forEach(s=>{
+      const b=document.createElement("button"); b.className="chipbtn"; b.textContent=s;
+      b.onclick=()=>{ ta.value=s; send(); }; ch.appendChild(b);
+    });
+    col.appendChild(ch);
+  }
+  c.msgs.forEach(m=>col.appendChild(msgEl(m)));
+  updateMeta();
+  scrollTop();
+}
+function msgEl(m){
+  const d=document.createElement("div");
+  d.className="msg "+(m.role==="user"?"user":"ai");
+  d.innerHTML="<div class='m-meta'><span class='who'>"+(m.role==="user"?"YOU":model.toUpperCase())
+    +"</span><span>"+m.time+"</span>"
+    +(m.role==="ai"?"<span>"+m.tokens+" TOKENS · "+m.elapsed+"s</span>":"")
+    +"<span class='m-acts'><button data-act='copy'>复制</button>"
+    +(m.role==="ai"?"<button data-act='regen'>重答</button>":"")+"</span></div>"
+    +"<div class='body'>"+(m.role==="user"?esc(m.text):md(m.text))+"</div>";
+  d.querySelector("[data-act=copy]").onclick=()=>{
+    navigator.clipboard&&navigator.clipboard.writeText(m.text);
+  };
+  const rg=d.querySelector("[data-act=regen]");
+  if(rg)rg.onclick=()=>regen(m);
+  return d;
+}
+function scrollTop(){ requestAnimationFrame(()=>{ scroll.scrollTop=scroll.scrollHeight; }); }
+function updateMeta(){
+  const toks=convs[cur].msgs.reduce((s,m)=>s+(m.tokens||Math.ceil(m.text.length/1.6)),0);
+  document.getElementById("headMeta").textContent=toks+" TOKENS";
+}
+function renderAll(){ renderConvList(); renderMsgs(); }
+
+/* ============ send & stream ============ */
+function now(){ const d=new Date(); return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+function pickReply(q){
+  const l=q.toLowerCase();
+  for(const r of REPLIES)if(r.k.some(k=>l.includes(k)))return r.t;
+  // temperature steers fallback flavor
+  return FALLBACK[Math.floor(Math.random()*(temp>0.6?FALLBACK.length:1))];
+}
+async function send(){
+  const text=ta.value.trim();
+  if(!text||streaming)return;
+  const c=convs[cur];
+  if(c.title==="未命名对话"||c.msgs.length===0)c.title=text.slice(0,14)+(text.length>14?"…":"");
+  c.msgs.push({role:"user",text,time:now()});
+  ta.value=""; autoGrow(); countChars();
+  renderMsgs(); renderConvList();
+  await respond(pickReply(text));
+}
+function regen(m){
+  if(streaming)return;
+  const c=convs[cur];
+  const idx=c.msgs.indexOf(m);
+  const q=[...c.msgs.slice(0,idx)].reverse().find(x=>x.role==="user");
+  c.msgs.splice(idx,1);
+  renderMsgs();
+  respond(pickReply(q?q.text:""));
+}
+async function respond(full){
+  streaming=true; abort=false;
+  btnSend.textContent="停止"; btnSend.classList.add("stop");
+  // thinking phase
+  const th=document.createElement("div");
+  th.className="thinking";
+  th.innerHTML="<div class='dots'><i></i><i></i><i></i></div><span>THINKING · <b>0.0s</b></span>";
+  col.appendChild(th); scrollTop();
+  const t0=performance.now();
+  const thinkMs=700+temp*900+Math.random()*500;
+  const tick=setInterval(()=>{ th.querySelector("b").textContent=((performance.now()-t0)/1000).toFixed(1)+"s"; },80);
+  await wait(thinkMs);
+  clearInterval(tick); th.remove();
+  // streaming phase
+  const c=convs[cur];
+  const m={role:"ai",text:"",time:now(),tokens:0,elapsed:((performance.now()-t0)/1000).toFixed(1)};
+  c.msgs.push(m);
+  const el=document.createElement("div");
+  el.className="msg ai";
+  el.innerHTML="<div class='m-meta'><span class='who'>"+model.toUpperCase()+"</span><span>"+m.time
+    +"</span><span class='tk'>0 TOKENS</span></div><div class='body'></div>";
+  col.appendChild(el);
+  const body=el.querySelector(".body"), tk=el.querySelector(".tk");
+  // jitter from temperature: higher temp => burstier rhythm
+  let i=0;
+  const speed=()=>Math.max(8, 34-temp*10) + Math.random()*(20+temp*120);
+  while(i<full.length){
+    if(abort){ m.text=full.slice(0,i)+" …（已停止）"; break; }
+    const step=1+Math.floor(Math.random()*(1+temp*3));
+    i=Math.min(full.length,i+step);
+    m.text=full.slice(0,i);
+    m.tokens=Math.ceil(i/1.6);
+    body.innerHTML=streamSlice(m.text)+(i<full.length?"<span class='cursor'></span>":"");
+    tk.textContent=m.tokens+" TOKENS";
+    scrollTop();
+    await wait(speed());
+  }
+  m.elapsed=((performance.now()-t0)/1000).toFixed(1);
+  streaming=false; abort=false;
+  btnSend.textContent="发送"; btnSend.classList.remove("stop");
+  renderMsgs(); renderConvList();
+}
+function wait(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+btnSend.onclick=()=>{ if(streaming){abort=true;} else send(); };
+ta.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); if(streaming)abort=true; else send(); }
+});
+function autoGrow(){ ta.style.height="auto"; ta.style.height=Math.min(130,ta.scrollHeight)+"px"; }
+function countChars(){ document.getElementById("charCount").textContent=ta.value.length+" 字"; }
+ta.addEventListener("input",()=>{ autoGrow(); countChars(); });
+
+document.getElementById("modelSeg").querySelectorAll("button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll("#modelSeg button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); model=b.dataset.m; renderMsgs();
+  };
+});
+const tempEl=document.getElementById("temp");
+tempEl.addEventListener("input",()=>{
+  temp=tempEl.value/100;
+  document.getElementById("tempV").textContent=temp.toFixed(2);
+});
+document.getElementById("btnNew").onclick=()=>{
+  if(streaming)return;
+  convs.push({id:convs.length+1,title:"未命名对话",msgs:[],created:"08-23"});
+  cur=convs.length-1; renderAll();
+};
+renderAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STUDIO PENG 嘭设计 — 做点好玩的设计</title>
+<style>
+  :root{
+    --paper:#FFFDF5; --ink:#141414; --red:#FF4D24; --blue:#2B4BFF; --yellow:#FFC700;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --serif:"Songti SC",Georgia,serif;
+    --bd:3px solid var(--ink);
+    --sh:8px 8px 0 var(--ink);
+    --sh-sm:5px 5px 0 var(--ink);
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow-x:hidden;
+    background-image:radial-gradient(rgba(20,20,20,.14) 1.2px,transparent 1.2px);background-size:26px 26px;}
+  ::selection{background:var(--yellow);color:var(--ink);}
+  button{font-family:inherit;cursor:pointer;}
+
+  /* ---------- header ---------- */
+  header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:16px 3.5vw;pointer-events:none;}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.8;background:var(--paper);
+    border:var(--bd);box-shadow:var(--sh-sm);padding:8px 12px;}
+  .sig .no{color:var(--red);font-weight:700;}
+  .sig b{font-weight:700;}
+  nav{display:flex;gap:10px;}
+  nav a{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-decoration:none;color:var(--ink);
+    background:var(--paper);border:var(--bd);box-shadow:var(--sh-sm);padding:9px 14px;transition:.18s;}
+  nav a:hover{background:var(--yellow);transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink);}
+  @media(max-width:640px){nav{display:none;}}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:16vh 4vw 8vh;position:relative;}
+  .hero .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.3em;margin-bottom:3vh;display:inline-flex;align-items:center;gap:12px;}
+  .kicker .dot{width:12px;height:12px;border-radius:50%;background:var(--red);border:2px solid var(--ink);animation:blink 1.4s infinite;}
+  @keyframes blink{50%{opacity:.25;}}
+  h1{font-size:clamp(52px,10.5vw,168px);line-height:.98;font-weight:900;letter-spacing:-.02em;text-transform:uppercase;}
+  h1 .row{display:block;overflow:hidden;}
+  h1 .row span{display:inline-block;transform:translateY(110%);animation:rise .9s var(--ease) forwards;}
+  h1 .row:nth-child(2) span{animation-delay:.12s;}
+  h1 .row:nth-child(3) span{animation-delay:.24s;}
+  @keyframes rise{to{transform:none;}}
+  h1 .hl-y{background:var(--yellow);box-shadow:var(--sh-sm);padding:0 .12em;display:inline-block;transform-origin:left;}
+  h1 .hl-b{color:var(--blue);-webkit-text-stroke:2.5px var(--blue);}
+  h1 .hl-r{color:var(--paper);background:var(--red);padding:0 .12em;}
+  .hero-sub{margin-top:4vh;max-width:52ch;font-size:15px;line-height:2;font-weight:500;}
+  .hero-cta{margin-top:3.5vh;display:flex;gap:14px;flex-wrap:wrap;}
+  .btn{border:var(--bd);background:var(--paper);font-weight:800;font-size:13px;letter-spacing:.1em;
+    padding:15px 26px;box-shadow:var(--sh);transition:.18s;text-transform:uppercase;}
+  .btn:hover{transform:translate(-3px,-3px);box-shadow:11px 11px 0 var(--ink);}
+  .btn:active{transform:translate(5px,5px);box-shadow:2px 2px 0 var(--ink);}
+  .btn.blue{background:var(--blue);color:var(--paper);}
+  .btn.red{background:var(--red);color:var(--paper);}
+
+  /* stickers */
+  .sticker{position:absolute;cursor:grab;touch-action:none;user-select:none;filter:drop-shadow(4px 5px 0 rgba(20,20,20,.9));
+    transition:filter .2s;z-index:5;}
+  .sticker:active{cursor:grabbing;}
+  .sticker:hover{filter:drop-shadow(6px 8px 0 rgba(20,20,20,.9));}
+  .sticker svg{display:block;width:100%;height:100%;overflow:visible;}
+
+  /* ---------- marquee ---------- */
+  .marquee{border-top:var(--bd);border-bottom:var(--bd);background:var(--yellow);overflow:hidden;white-space:nowrap;padding:14px 0;}
+  .marquee.blue{background:var(--blue);color:var(--paper);}
+  .mtrack{display:inline-flex;gap:0;will-change:transform;}
+  .mtrack span{font-weight:900;font-size:22px;letter-spacing:.06em;text-transform:uppercase;padding:0 26px;display:inline-flex;align-items:center;gap:26px;}
+  .mtrack span::after{content:"";width:14px;height:14px;background:currentColor;
+    clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);}
+
+  /* ---------- sections ---------- */
+  section{padding:11vh 4vw;}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:6vh;}
+  .sec-head h2{font-size:clamp(34px,5.5vw,74px);font-weight:900;text-transform:uppercase;line-height:1;letter-spacing:-.01em;}
+  .sec-head h2 em{font-style:normal;background:var(--red);color:var(--paper);padding:0 .14em;box-shadow:var(--sh-sm);}
+  .sec-head .idx{font-family:var(--mono);font-size:11px;letter-spacing:.24em;}
+
+  /* filters */
+  .filters{display:flex;gap:10px;flex-wrap:wrap;}
+  .fbtn{border:var(--bd);background:var(--paper);font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+    padding:10px 16px;box-shadow:var(--sh-sm);transition:.15s;text-transform:uppercase;}
+  .fbtn:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink);}
+  .fbtn.on{background:var(--ink);color:var(--paper);}
+
+  /* works grid */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:34px;}
+  @media(max-width:1000px){.grid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:640px){.grid{grid-template-columns:1fr;gap:26px;}}
+  .card{border:var(--bd);background:var(--paper);box-shadow:var(--sh);cursor:pointer;transition:transform .22s var(--ease),box-shadow .22s var(--ease),opacity .35s;}
+  .card:hover{transform:translate(-4px,-4px) rotate(-.6deg);box-shadow:13px 13px 0 var(--ink);}
+  .card.hide{opacity:0;transform:scale(.85);pointer-events:none;position:absolute;visibility:hidden;}
+  .card .cov{aspect-ratio:4/3;border-bottom:var(--bd);overflow:hidden;position:relative;}
+  .card .cov svg{width:100%;height:100%;display:block;transition:transform .5s var(--ease);}
+  .card:hover .cov svg{transform:scale(1.08) rotate(1.5deg);}
+  .card .meta{padding:16px 18px 18px;}
+  .card .meta .yr{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--red);font-weight:700;}
+  .card .meta h3{font-size:20px;font-weight:900;margin:6px 0 8px;text-transform:uppercase;letter-spacing:.01em;}
+  .card .meta .tagline{font-size:12.5px;line-height:1.7;color:#444;}
+  .card .badge{position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;
+    background:var(--yellow);border:2px solid var(--ink);padding:4px 8px;transform:rotate(6deg);box-shadow:3px 3px 0 var(--ink);}
+
+  /* ---------- manifesto ---------- */
+  .mani{border-top:var(--bd);border-bottom:var(--bd);background:var(--red);color:var(--paper);}
+  .mani-inner{padding:10vh 4vw;display:grid;grid-template-columns:1.2fr .8fr;gap:6vw;align-items:center;}
+  @media(max-width:860px){.mani-inner{grid-template-columns:1fr;}}
+  .mani h2{font-size:clamp(30px,4.2vw,58px);font-weight:900;line-height:1.25;text-transform:uppercase;}
+  .mani h2 mark{background:var(--ink);color:var(--yellow);padding:0 .15em;}
+  .mani p{font-size:14.5px;line-height:2.1;font-weight:500;}
+  .mani .stats{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:4vh;}
+  .stat{border:3px solid var(--paper);padding:16px;box-shadow:6px 6px 0 var(--ink);}
+  .stat b{font-size:30px;font-weight:900;display:block;}
+  .stat span{font-family:var(--mono);font-size:10px;letter-spacing:.18em;}
+
+  /* ---------- modal ---------- */
+  .overlay{position:fixed;inset:0;z-index:100;background:rgba(20,20,20,.55);backdrop-filter:blur(3px);
+    display:flex;align-items:center;justify-content:center;padding:4vw;opacity:0;pointer-events:none;transition:opacity .3s;}
+  .overlay.open{opacity:1;pointer-events:auto;}
+  .modal{background:var(--paper);border:var(--bd);box-shadow:14px 14px 0 var(--ink);max-width:920px;width:100%;
+    max-height:88vh;overflow:auto;transform:translateY(40px) rotate(1deg);transition:transform .35s var(--ease);position:relative;}
+  .overlay.open .modal{transform:none;}
+  .modal .mcov{aspect-ratio:16/8;border-bottom:var(--bd);}
+  .modal .mcov svg{width:100%;height:100%;display:block;}
+  .modal .mbody{padding:28px 32px 34px;}
+  .modal .mbody .yr{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--red);font-weight:700;}
+  .modal .mbody h3{font-size:clamp(26px,4vw,44px);font-weight:900;text-transform:uppercase;margin:8px 0 14px;line-height:1.05;}
+  .modal .mbody p{font-size:14.5px;line-height:2;max-width:62ch;color:#333;}
+  .modal .facts{display:flex;gap:12px;flex-wrap:wrap;margin-top:20px;}
+  .modal .facts span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;border:2px solid var(--ink);padding:6px 10px;background:var(--yellow);}
+  .mclose{position:absolute;top:14px;right:14px;width:44px;height:44px;border:var(--bd);background:var(--red);color:var(--paper);
+    font-size:20px;font-weight:900;box-shadow:var(--sh-sm);transition:.15s;z-index:2;}
+  .mclose:hover{transform:rotate(90deg);}
+
+  /* ---------- footer ---------- */
+  footer{padding:9vh 4vw 6vh;text-align:center;}
+  footer .big{font-size:clamp(40px,8vw,120px);font-weight:900;text-transform:uppercase;line-height:1;
+    transition:.2s;cursor:default;}
+  footer .big:hover{color:var(--blue);-webkit-text-stroke:2px var(--blue);}
+  footer .mail{margin-top:4vh;display:inline-block;font-family:var(--mono);font-size:13px;letter-spacing:.1em;
+    border:var(--bd);background:var(--yellow);padding:14px 28px;box-shadow:var(--sh);text-decoration:none;color:var(--ink);font-weight:700;transition:.18s;}
+  footer .mail:hover{transform:translate(-3px,-3px);box-shadow:11px 11px 0 var(--ink);}
+  footer .fine{margin-top:5vh;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:#777;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 06</span> · <b>STUDIO PENG 嘭设计</b><br>WEB DESIGN / MEMPHIS STUDIO SITE</div>
+  <nav>
+    <a href="#works">作品 WORKS</a>
+    <a href="#about">宣言 MANIFESTO</a>
+    <a href="#contact">联系 HELLO</a>
+  </nav>
+</header>
+
+<!-- hero -->
+<div class="hero" id="heroStage">
+  <div class="kicker"><span class="dot"></span>SHANGHAI · EST. 2019 · 一家不太安分的设计工作室</div>
+  <h1>
+    <span class="row"><span>我们做点</span></span>
+    <span class="row"><span><i class="hl-y" style="font-style:normal">好玩的</i><i class="hl-b" style="font-style:normal">设计</i></span></span>
+    <span class="row"><span>MAKE IT <i class="hl-r" style="font-style:normal">POP!</i></span></span>
+  </h1>
+  <p class="hero-sub">嘭设计是一家三人小工作室，做品牌、海报和一些奇怪的周边。我们相信颜色应该撞在一起，直线应该偶尔弯一下，甲方说的"再大一点"有时候是对的。右边的贴纸可以随便拖，弄乱了刷新就好。</p>
+  <div class="hero-cta">
+    <button class="btn blue" onclick="document.getElementById('works').scrollIntoView({behavior:'smooth'})">看看作品 ↓</button>
+    <button class="btn" id="shuffleStickers">打乱贴纸</button>
+  </div>
+
+  <!-- draggable stickers -->
+  <div class="sticker" data-x="68" data-y="14" style="width:min(150px,18vw)">
+    <svg viewBox="0 0 120 120"><polygon points="60,4 71,38 108,30 80,55 104,88 66,74 52,112 42,72 4,80 32,54 10,22 48,36" fill="#FFC700" stroke="#141414" stroke-width="4"/><text x="60" y="68" text-anchor="middle" font-family="monospace" font-size="15" font-weight="bold" fill="#141414">NEW!</text></svg>
+  </div>
+  <div class="sticker" data-x="86" data-y="46" style="width:min(110px,14vw)">
+    <svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="#2B4BFF" stroke="#141414" stroke-width="4"/><circle cx="50" cy="50" r="30" fill="none" stroke="#FFFDF5" stroke-width="3" stroke-dasharray="6 5"/><text x="50" y="56" text-anchor="middle" font-family="monospace" font-size="13" font-weight="bold" fill="#FFFDF5">PENG</text></svg>
+  </div>
+  <div class="sticker" data-x="60" data-y="62" style="width:min(170px,22vw)">
+    <svg viewBox="0 0 160 60"><path d="M4 30 Q 24 4, 44 30 T 84 30 T 124 30 T 156 30" fill="none" stroke="#FF4D24" stroke-width="10" stroke-linecap="round"/><path d="M4 30 Q 24 4, 44 30 T 84 30 T 124 30 T 156 30" fill="none" stroke="#141414" stroke-width="14" stroke-linecap="round" opacity="0" /><path d="M4 30 Q 24 4, 44 30 T 84 30 T 124 30 T 156 30" fill="none" stroke="#141414" stroke-width="10" stroke-linecap="round" stroke-dasharray="0 0" opacity=".0"/></svg>
+  </div>
+  <div class="sticker" data-x="82" data-y="76" style="width:min(120px,15vw)">
+    <svg viewBox="0 0 110 110"><rect x="8" y="8" width="94" height="94" rx="6" fill="#FF4D24" stroke="#141414" stroke-width="4" transform="rotate(6 55 55)"/><text x="57" y="48" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#FFFDF5" transform="rotate(6 55 55)">100% FUN</text><text x="57" y="72" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#141414" transform="rotate(6 55 55)">嘭!</text></svg>
+  </div>
+</div>
+
+<!-- marquee -->
+<div class="marquee"><div class="mtrack" id="mtrack1"></div></div>
+
+<!-- works -->
+<section id="works">
+  <div class="sec-head">
+    <h2>近期 <em>作品</em> SELECTED</h2>
+    <div class="idx">2022 — 2026 / 点击卡片查看详情</div>
+  </div>
+  <div class="filters" id="filters">
+    <button class="fbtn on" data-f="all">全部 ALL</button>
+    <button class="fbtn" data-f="brand">品牌 BRAND</button>
+    <button class="fbtn" data-f="poster">海报 POSTER</button>
+    <button class="fbtn" data-f="pack">包装 PACK</button>
+  </div>
+  <div class="grid" id="grid" style="margin-top:5vh;position:relative;"></div>
+</section>
+
+<div class="marquee blue"><div class="mtrack" id="mtrack2"></div></div>
+
+<!-- manifesto -->
+<section class="mani" id="about" style="padding:0;">
+  <div class="mani-inner">
+    <div>
+      <h2>设计不必<mark>端着</mark>，<br>好玩才是<mark>正经事</mark>。</h2>
+      <div class="stats">
+        <div class="stat"><b>47</b><span>PROJECTS DONE</span></div>
+        <div class="stat"><b>3</b><span>HUMANS + 1 CAT</span></div>
+        <div class="stat"><b>12</b><span>AWARDS &amp; NODS</span></div>
+        <div class="stat"><b>∞</b><span>STICKERS PRINTED</span></div>
+      </div>
+    </div>
+    <p>我们的方法论很简单：把 briefing 读三遍，把参考图全部关掉，然后问一句"这件事最有趣的讲法是什么"。孟菲斯小组在八十年代用塑料和层压板反抗了好品味，我们用像素和油墨反抗"差不多就行"。颜色要撞，字要歪一点没关系，留白是给眼睛喘气的地方——喘气之余，最好还能笑出来。</p>
+  </div>
+</section>
+
+<!-- footer -->
+<footer id="contact">
+  <div class="big">SAY HI · 打个招呼</div>
+  <br>
+  <a class="mail" href="#" onclick="return false;">HELLO@STUDIOPENG.FUN</a>
+  <div class="fine">STUDIO PENG 嘭设计 © 2026 · SHANGHAI · 作品 № 06 / WEB DESIGN</div>
+</footer>
+
+<!-- modal -->
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <button class="mclose" id="mclose" aria-label="关闭">×</button>
+    <div class="mcov" id="mcov"></div>
+    <div class="mbody">
+      <div class="yr" id="myr"></div>
+      <h3 id="mtitle"></h3>
+      <p id="mdesc"></p>
+      <div class="facts" id="mfacts"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= data ================= */
+const PROJECTS=[
+  {t:"跳房子汽水",en:"HOPSCOTCH SODA",yr:"2026",cat:"brand",badge:"NEW",
+   d:"给一家复兴老汽水的新品牌做全套视觉：标志是一枚正在弹跳的瓶盖，六种口味对应六种撞色，瓶标可以直接撕下来当贴纸。上市三个月，便利店里最先卖空的总是贴纸最多的那排。",
+   facts:["品牌识别","包装系统","贴纸周边"],seed:7},
+  {t:"夜航西飞海报节",en:"WEST WITH THE NIGHT",yr:"2025",cat:"poster",
+   d:"为期一个月的独立影展主视觉。我们把 31 部片子的名字拆成字母碎片，每晚随机拼回一张新海报——观众拿到的票根就是当晚那张的第 1/300。",
+   facts:["主视觉","生成海报 ×31","票根系统"],seed:21},
+  {t:"虎斑咖啡",en:"TABBY COFFEE",yr:"2025",cat:"pack",
+   d:"一家只卖深烘的街角咖啡店。豆袋用虎斑猫的条纹做满版图案，条纹的间距就是烘焙度——越深烘，条纹越密。猫不出现，但到处都是猫。",
+   facts:["包装设计","插画系统","菜单"],seed:3},
+  {t:"坏天气书店",en:"BAD WEATHER BOOKS",yr:"2024",cat:"brand",
+   d:"只在雨天营业的线上书店（真的，他们看天气预报开门）。标志是一滴歪掉的雨，所有物料都用被「淋湿」的字体。我们为这个案子淋了四场雨做测试，值得。",
+   facts:["品牌识别","网站","雨体实验"],seed:11},
+  {t:"像素庙会",en:"PIXEL TEMPLE FAIR",yr:"2024",cat:"poster",
+   d:"给城市更新项目做的节庆视觉：把糖葫芦、套圈、舞龙全部压成 8-bit 像素，再用丝网印刷四色叠印。远看是庙会，近看是游戏，排队的小孩都这么说。",
+   facts:["节庆视觉","丝网印刷","导视"],seed:33},
+  {t:"面团银行",en:"DOUGH BANK",yr:"2023",cat:"pack",
+   d:"一家把面包当理财产品卖的面包房（他们的原话）。吐司装在「存折」袋里，每买一次盖一个章，集满十个换一整个「定期存款」——一条巨大的法棍。",
+   facts:["包装系统","印章体系","空间物料"],seed:17},
+];
+const CAT_CN={brand:"品牌 BRAND",poster:"海报 POSTER",pack:"包装 PACK"};
+const PALS=[["#FF4D24","#FFC700","#FFFDF5"],["#2B4BFF","#FF4D24","#FFFDF5"],["#FFC700","#2B4BFF","#141414"],
+            ["#FF4D24","#2B4BFF","#FFC700"],["#141414","#FFC700","#FF4D24"],["#2B4BFF","#FFC700","#FFFDF5"]];
+
+/* ================= procedural memphis cover ================= */
+function rng(seed){let s=seed;return()=>{s=(s*9301+49297)%233280;return s/233280;};}
+function coverSVG(seed,w,h){
+  const r=rng(seed*97+13),pal=PALS[seed%PALS.length];
+  let s=`<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice"><rect width="${w}" height="${h}" fill="${pal[2]}"/>`;
+  // big bg shape
+  const k=Math.floor(r()*3);
+  if(k===0)s+=`<circle cx="${w*(.2+r()*.6)}" cy="${h*(.2+r()*.6)}" r="${h*.42}" fill="${pal[0]}"/>`;
+  else if(k===1)s+=`<rect x="${w*.1}" y="${h*.15}" width="${w*.8}" height="${h*.7}" rx="10" fill="${pal[0]}" transform="rotate(${-8+r()*16} ${w/2} ${h/2})"/>`;
+  else s+=`<polygon points="${w*.1},${h*.85} ${w*.5},${h*.1} ${w*.9},${h*.85}" fill="${pal[0]}"/>`;
+  // squiggle
+  let px=0,path=`M ${w*.05} ${h*(.3+r()*.4)}`;
+  for(let i=0;i<5;i++){px+=w*.18;path+=` Q ${px-w*.09} ${h*(.1+r()*.8)}, ${px} ${h*(.3+r()*.4)}`;}
+  s+=`<path d="${path}" fill="none" stroke="${pal[1]}" stroke-width="${8+r()*6}" stroke-linecap="round"/>`;
+  // confetti shapes
+  for(let i=0;i<10;i++){
+    const x=w*r(),y=h*r(),sz=8+r()*20,t=Math.floor(r()*4),c=pal[Math.floor(r()*pal.length)];
+    if(t===0)s+=`<circle cx="${x}" cy="${y}" r="${sz/2}" fill="${c}" stroke="#141414" stroke-width="3"/>`;
+    else if(t===1)s+=`<rect x="${x}" y="${y}" width="${sz}" height="${sz}" fill="${c}" stroke="#141414" stroke-width="3" transform="rotate(${r()*40-20} ${x} ${y})"/>`;
+    else if(t===2)s+=`<line x1="${x}" y1="${y}" x2="${x+sz}" y2="${y+sz}" stroke="${c}" stroke-width="6" stroke-linecap="round"/>`;
+    else s+=`<path d="M ${x} ${y} l ${sz*.6} 0 m ${-sz*.3} ${-sz*.3} l 0 ${sz*.6}" stroke="${c}" stroke-width="5" stroke-linecap="round" fill="none"/>`;
+  }
+  // half-tone dots corner
+  for(let i=0;i<4;i++)for(let j=0;j<4;j++)
+    s+=`<circle cx="${w*.82+i*14}" cy="${h*.08+j*14}" r="${5-i*.6-j*.4}" fill="#141414"/>`;
+  return s+"</svg>";
+}
+
+/* ================= render works ================= */
+const grid=document.getElementById("grid");
+PROJECTS.forEach((p,i)=>{
+  const el=document.createElement("article");
+  el.className="card";el.dataset.cat=p.cat;el.dataset.i=i;
+  el.innerHTML=`<div class="cov">${coverSVG(p.seed,400,300)}${p.badge?`<span class="badge">${p.badge}</span>`:""}</div>
+    <div class="meta"><div class="yr">${p.yr} · ${CAT_CN[p.cat]}</div><h3>${p.t} ${p.en}</h3><div class="tagline">${p.d.slice(0,34)}……</div></div>`;
+  el.addEventListener("click",()=>openModal(i));
+  grid.appendChild(el);
+});
+
+/* ================= modal ================= */
+const overlay=document.getElementById("overlay");
+function openModal(i){
+  const p=PROJECTS[i];
+  document.getElementById("mcov").innerHTML=coverSVG(p.seed+1,640,320);
+  document.getElementById("myr").textContent=`${p.yr} · ${CAT_CN[p.cat]} · CASE ${String(i+1).padStart(2,"0")}`;
+  document.getElementById("mtitle").textContent=`${p.t} ${p.en}`;
+  document.getElementById("mdesc").textContent=p.d;
+  document.getElementById("mfacts").innerHTML=p.facts.map(f=>`<span>${f}</span>`).join("");
+  overlay.classList.add("open");document.body.style.overflow="hidden";
+}
+function closeModal(){overlay.classList.remove("open");document.body.style.overflow="";}
+document.getElementById("mclose").addEventListener("click",closeModal);
+overlay.addEventListener("click",e=>{if(e.target===overlay)closeModal();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+
+/* ================= filters ================= */
+document.getElementById("filters").addEventListener("click",e=>{
+  const b=e.target.closest(".fbtn");if(!b)return;
+  document.querySelectorAll(".fbtn").forEach(x=>x.classList.toggle("on",x===b));
+  const f=b.dataset.f;
+  document.querySelectorAll(".card").forEach(c=>c.classList.toggle("hide",f!=="all"&&c.dataset.cat!==f));
+});
+
+/* ================= draggable stickers ================= */
+const stage=document.getElementById("heroStage");
+function placeStickers(rand){
+  document.querySelectorAll(".sticker").forEach(st=>{
+    const x=rand?55+Math.random()*35:parseFloat(st.dataset.x);
+    const y=rand?5+Math.random()*75:parseFloat(st.dataset.y);
+    st.style.left=x+"%";st.style.top=y+"%";st.style.right="auto";st.style.bottom="auto";
+    if(rand)st.style.transform=`rotate(${Math.random()*30-15}deg)`;
+  });
+}
+placeStickers(false);
+document.getElementById("shuffleStickers").addEventListener("click",()=>placeStickers(true));
+document.querySelectorAll(".sticker").forEach(st=>{
+  let sx,sy,ox,oy,drag=false;
+  st.addEventListener("pointerdown",e=>{
+    drag=true;st.setPointerCapture(e.pointerId);
+    sx=e.clientX;sy=e.clientY;ox=st.offsetLeft;oy=st.offsetTop;
+    st.style.zIndex=20;
+  });
+  st.addEventListener("pointermove",e=>{
+    if(!drag)return;
+    st.style.left=(ox+e.clientX-sx)+"px";st.style.top=(oy+e.clientY-sy)+"px";
+  });
+  st.addEventListener("pointerup",()=>{drag=false;st.style.zIndex=5;});
+});
+
+/* ================= marquee with scroll velocity ================= */
+const TXT1="品牌识别 · 海报实验 · 包装设计 · 奇怪周边 · BRAND · POSTER · PACK · FUN · ";
+const TXT2="不接急活 · 不接比稿 · 接一切好玩的事 · NO PITCH · YES FUN · ";
+function fillTrack(id,txt){
+  const t=document.getElementById(id);let h="";
+  for(let i=0;i<8;i++)h+=`<span>${txt}</span>`;
+  t.innerHTML=h;return t;
+}
+const tracks=[fillTrack("mtrack1",TXT1),fillTrack("mtrack2",TXT2)];
+let lastY=window.scrollY,vel=0,pos1=0,pos2=0;
+function tick(){
+  const y=window.scrollY;vel+= (Math.abs(y-lastY)*.15-vel)*.08;lastY=y;
+  const sp=1.1+Math.min(vel,10);
+  pos1-=sp;pos2+=sp*.8;
+  const w1=tracks[0].scrollWidth/2||1,w2=tracks[1].scrollWidth/2||1;
+  if(pos1<=-w1)pos1+=w1;if(pos2>=0)pos2-=w2;
+  tracks[0].style.transform=`translateX(${pos1}px)`;
+  tracks[1].style.transform=`translateX(${pos2}px)`;
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

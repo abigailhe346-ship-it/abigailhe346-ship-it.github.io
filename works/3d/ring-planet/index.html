@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ring Planet / 环带行星 / MIRA</title>
+<style>
+:root{
+  --bg:#05060c;--ink:#e6e2d8;--dim:#5d6478;--line:#161a28;
+  --amber:#e0a35a;--ice:#a8c8e8;
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --mono:"SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+header{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font:10px var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--dim)}
+a{color:inherit;text-decoration:none}
+.back{display:flex;align-items:center;gap:12px;color:var(--ink)}
+.back b{font:18px var(--serif);font-weight:400}
+.hero{padding:5vw 4vw 3.4vw;display:grid;grid-template-columns:1fr 1fr;gap:6vw;align-items:end}
+.kicker{font:10px var(--mono);color:var(--amber);letter-spacing:.12em;text-transform:uppercase}
+.hero h1{font:400 clamp(58px,9vw,138px)/.78 var(--serif);letter-spacing:-.06em;margin:22px 0 26px;color:var(--ink)}
+.hero h1 em{font-style:italic;color:var(--amber)}
+.hero p{max-width:420px;color:var(--dim);font-size:15px;line-height:1.7;margin:0}
+.micro{font:9px var(--mono);color:var(--dim);letter-spacing:.1em;text-transform:uppercase;line-height:1.7;text-align:right}
+.stage-wrap{padding:0 4vw 4vw}
+.stage{height:min(63vw,670px);min-height:420px;background:#04050a;position:relative;overflow:hidden;border:1px solid var(--line)}
+.stage canvas{display:block;width:100%;height:100%;cursor:grab}
+.stage canvas:active{cursor:grabbing}
+.hud{position:absolute;inset:18px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;font:9px var(--mono);letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+.hud strong{color:var(--amber);font-weight:400}
+.hud .bl{position:absolute;left:0;bottom:0}
+.hud .br{position:absolute;right:0;bottom:0}
+.tools{display:flex;align-items:center;gap:26px;flex-wrap:wrap;padding:16px 4vw;border:1px solid var(--line);border-top:none;font:9px var(--mono);letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+.slider{display:flex;align-items:center;gap:10px}
+.slider b{color:var(--amber);font-weight:400;min-width:34px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;height:2px;background:var(--line);outline:none;width:100px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;background:var(--amber);border:none;border-radius:0;cursor:pointer}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--amber);border:none;border-radius:0;cursor:pointer}
+button{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;background:none;border:1px solid var(--dim);color:var(--ink);padding:8px 14px;cursor:pointer;transition:border-color .25s,color .25s}
+button:hover{border-color:var(--amber);color:var(--amber)}
+.caption{padding:7vw 4vw 8vw;display:grid;grid-template-columns:1.2fr 1fr;gap:6vw;border-top:1px solid var(--line)}
+.caption h2{font:400 clamp(34px,4.6vw,68px)/1.02 var(--serif);letter-spacing:-.03em;margin:0}
+.caption h2 em{font-style:italic;color:var(--amber)}
+.caption p{color:var(--dim);font-size:15px;line-height:1.8;margin:0;align-self:end;max-width:440px}
+@media(max-width:820px){
+  .hero,.caption{grid-template-columns:1fr;gap:26px}
+  .micro{text-align:left}
+  .stage{min-height:340px;height:70vw}
+  .tools{gap:16px}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a>
+  <span>20 / 100 · 3D Worlds</span>
+  <span>Ring Planet</span>
+</header>
+<main>
+<section class="hero">
+  <div>
+    <div class="kicker">Orbital survey / 2026</div>
+    <h1>Ring<br><em>Planet</em></h1>
+    <p>一颗不存在的气态巨行星：云带由正弦与湍流混成，环带由数千条冰屑轨道织出，卡西尼缝在中央切开一道黑暗。换一颗星球，只需一次点击。</p>
+  </div>
+  <div class="micro">Three.js / Procedural bands / Ring shader<br>Gas giant generator + shepherd moons</div>
+</section>
+<section class="stage-wrap">
+  <div class="stage" id="stage">
+    <div class="hud">
+      <span>PLANET Nº <strong id="seed">----</strong></span>
+      <strong id="cls">CLASS / GAS GIANT</strong>
+      <span class="bl" id="spec">BANDS -- · MOONS -- · TILT --°</span>
+      <span class="br">RING A·B·C / CASSINI DIVISION</span>
+    </div>
+  </div>
+  <div class="tools">
+    <span>Drag to orbit · wheel to zoom</span>
+    <label class="slider">Tilt <input id="tilt" type="range" min="-30" max="30" value="-14"><b id="tiltv">-14°</b></label>
+    <label class="slider">Spin <input id="spin" type="range" min="0" max="200" value="60"><b id="spinv">0.6×</b></label>
+    <label class="slider">Rings <input id="rings" type="range" min="20" max="160" value="100"><b id="ringsv">1.0×</b></label>
+    <button id="random">New planet ↻</button>
+    <button id="dl">Download PNG ↓</button>
+  </div>
+</section>
+<section class="caption">
+  <h2>Nothing here is solid,<br>not even the <em>shadows.</em></h2>
+  <p>环不是圆盘，是数十亿块各自公转的冰；云带不是表面，是永不停歇的风。这件作品用一层着色器写环的密度波，用一张程序纹理写行星的湍流——所有宏伟，皆由颗粒构成。</p>
+</section>
+</main>
+<script src="../../../vendor/three.min.js"></script>
+<script>
+const stage=document.getElementById('stage'),seedEl=document.getElementById('seed'),specEl=document.getElementById('spec');
+let scene,camera,renderer,clock,system,planet,planetMat,ringMat,atmoMat,moons=[],stars;
+let az=.5,el=.22,rad=8,tAz=az,tEl=el,tRad=rad,drag=false,px=0,py=0,lastAct=0;
+let spin=.6,tiltDeg=-14,ringDensity=1;
+let P={hue:.08,bands:9,seed:'0000',ringHue:.58,storm:true};
+const uTime={value:0};
+function rnd(a,b){return a+Math.random()*(b-a)}
+/* ---------- procedural cloud-band texture ---------- */
+function planetTexture(){
+  const W=1024,H=512,c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d');
+  const base=new THREE.Color().setHSL(P.hue,.5,.5);
+  const deep=new THREE.Color().setHSL((P.hue+.06)%1,.55,.28);
+  const light=new THREE.Color().setHSL((P.hue+.94)%1,.35,.72);
+  const ph1=rnd(0,6),ph2=rnd(0,6),ph3=rnd(0,6);
+  const img=x.createImageData(W,H);
+  for(let j=0;j<H;j++){
+    const t=j/H;
+    for(let i=0;i<W;i++){
+      const s=i/W;
+      const warp=Math.sin(s*6.28*2+t*14+ph2)*.012+Math.sin(s*6.28*5-t*9+ph3)*.008;
+      const band=Math.sin((t+warp)*Math.PI*P.bands+ph1);
+      const fine=Math.sin((t+warp)*Math.PI*P.bands*7.3+ph2)*.5+.5;
+      let col;
+      if(band>0)col=base.clone().lerp(light,Math.pow(band,1.2));
+      else col=base.clone().lerp(deep,Math.pow(-band,1.1));
+      col.multiplyScalar(.92+fine*.1);
+      // polar darkening
+      const pol=Math.pow(Math.abs(t-.5)*2,3);
+      col.lerp(deep,pol*.4);
+      const k=(j*W+i)*4;
+      img.data[k]=col.r*255;img.data[k+1]=col.g*255;img.data[k+2]=col.b*255;img.data[k+3]=255;
+    }
+  }
+  x.putImageData(img,0,0);
+  // storm ovals
+  if(P.storm){
+    for(let n=0;n<2;n++){
+      const sx=rnd(W*.2,W*.8),sy=rnd(H*.3,H*.7),rw=rnd(40,80),rh=rw*rnd(.35,.5);
+      const g=x.createRadialGradient(sx,sy,2,sx,sy,rw);
+      const sc=new THREE.Color().setHSL((P.hue+.07)%1,.6,.35);
+      g.addColorStop(0,'rgba('+Math.round(sc.r*255)+','+Math.round(sc.g*255)+','+Math.round(sc.b*255)+',.85)');
+      g.addColorStop(.7,'rgba('+Math.round(sc.r*255)+','+Math.round(sc.g*255)+','+Math.round(sc.b*255)+',.3)');
+      g.addColorStop(1,'rgba(0,0,0,0)');
+      x.save();x.translate(sx,sy);x.scale(1,rh/rw);x.translate(-sx,-sy);
+      x.fillStyle=g;x.beginPath();x.arc(sx,sy,rw,0,6.29);x.fill();x.restore();
+    }
+  }
+  const tex=new THREE.CanvasTexture(c);tex.anisotropy=4;return tex;
+}
+/* ---------- ring shader ---------- */
+function buildRing(){
+  const inner=2.1,outer=3.9;
+  const geo=new THREE.RingGeometry(inner,outer,180,1);
+  ringMat=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,side:THREE.DoubleSide,
+    uniforms:{
+      uTime:uTime,uInner:{value:inner},uOuter:{value:outer},
+      uDensity:{value:1},uCol:{value:new THREE.Color().setHSL(P.ringHue,.4,.75)}
+    },
+    vertexShader:[
+      'varying vec2 vP;',
+      'void main(){vP=position.xy;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}'].join('\n'),
+    fragmentShader:[
+      'uniform float uTime,uInner,uOuter,uDensity;uniform vec3 uCol;',
+      'varying vec2 vP;',
+      'void main(){',
+      ' float r=length(vP);',
+      ' float rn=(r-uInner)/(uOuter-uInner);',
+      ' float drift=uTime*.015*(1.0-rn);',
+      ' float b=.55+.45*sin(rn*120.0+drift*40.0)*sin(rn*43.0+1.7)*sin(rn*17.0+.4);',
+      ' b=pow(max(b,0.0),1.4);',
+      ' float cassini=1.0-smoothstep(0.0,.035,abs(rn-.58));',
+      ' float encke=1.0-smoothstep(0.0,.012,abs(rn-.83));',
+      ' float edge=smoothstep(0.0,.05,rn)*(1.0-smoothstep(.9,1.0,rn));',
+      ' float a=b*uDensity*edge*(1.0-cassini)*(1.0-encke*.7);',
+      ' vec3 col=uCol*(.75+.5*b);',
+      ' gl_FragColor=vec4(col,a*.85);}'].join('\n')
+  });
+  const m=new THREE.Mesh(geo,ringMat);
+  m.rotation.x=-Math.PI/2;
+  return m;
+}
+/* ---------- atmosphere fresnel shell ---------- */
+function buildAtmo(){
+  const geo=new THREE.SphereGeometry(1.56,48,32);
+  atmoMat=new THREE.ShaderMaterial({
+    transparent:true,depthWrite:false,side:THREE.BackSide,blending:THREE.AdditiveBlending,
+    uniforms:{uCol:{value:new THREE.Color().setHSL(P.hue,.6,.6)}},
+    vertexShader:[
+      'varying vec3 vN,vV;',
+      'void main(){vec4 mv=modelViewMatrix*vec4(position,1.0);vN=normalMatrix*normal;vV=-mv.xyz;',
+      'gl_Position=projectionMatrix*mv;}'].join('\n'),
+    fragmentShader:[
+      'uniform vec3 uCol;varying vec3 vN,vV;',
+      'void main(){float f=pow(1.0-abs(dot(normalize(vN),normalize(vV))),3.0);',
+      'gl_FragColor=vec4(uCol,f*.7);}'].join('\n')
+  });
+  return new THREE.Mesh(geo,atmoMat);
+}
+function buildSystem(){
+  if(system){scene.remove(system);system.traverse(o=>{if(o.geometry)o.geometry.dispose();if(o.material&&o.material.map)o.material.map.dispose();if(o.material)o.material.dispose()})}
+  moons=[];
+  system=new THREE.Group();
+  planetMat=new THREE.MeshStandardMaterial({map:planetTexture(),roughness:.95,metalness:0});
+  planet=new THREE.Mesh(new THREE.SphereGeometry(1.5,64,48),planetMat);
+  system.add(planet);
+  system.add(buildRing());
+  system.add(buildAtmo());
+  const nMoons=Math.round(rnd(2,4));
+  for(let i=0;i<nMoons;i++){
+    const r=rnd(4.4,6.8),s=rnd(.12,.3);
+    const moon=new THREE.Mesh(new THREE.SphereGeometry(s,20,14),
+      new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(rnd(0,1),.15,rnd(.4,.7)),roughness:.9}));
+    moon.userData={r:r,speed:rnd(.08,.25)*(Math.random()<.5?1:-1),ph:rnd(0,6.28),tilt:rnd(-.12,.12)};
+    moons.push(moon);system.add(moon);
+  }
+  system.rotation.z=tiltDeg*Math.PI/180;
+  scene.add(system);
+  seedEl.textContent=P.seed;
+  specEl.textContent='BANDS '+String(P.bands).padStart(2,'0')+' · MOONS 0'+nMoons+' · TILT '+tiltDeg+'°';
+}
+function randomize(){
+  P.hue=rnd(0,1);P.bands=Math.round(rnd(6,14));P.storm=Math.random()<.75;
+  P.ringHue=(P.hue+rnd(.3,.6))%1;
+  P.seed=Math.floor(Math.random()*65535).toString(16).toUpperCase().padStart(4,'0');
+  buildSystem();
+}
+function makeStarTex(){
+  const c=document.createElement('canvas');c.width=c.height=32;const x=c.getContext('2d');
+  const g=x.createRadialGradient(16,16,0,16,16,16);
+  g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.3,'rgba(255,255,255,.6)');g.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=g;x.fillRect(0,0,32,32);return new THREE.CanvasTexture(c);
+}
+function init(){
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x04050a);
+  camera=new THREE.PerspectiveCamera(42,stage.clientWidth/stage.clientHeight,.1,300);
+  renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(stage.clientWidth,stage.clientHeight);
+  stage.prepend(renderer.domElement);
+  const sun=new THREE.DirectionalLight(0xfff0dd,2.2);sun.position.set(6,2.5,4);scene.add(sun);
+  scene.add(new THREE.AmbientLight(0x1a2035,1.4));
+  const rim=new THREE.DirectionalLight(0x4a6aa8,.5);rim.position.set(-6,-2,-5);scene.add(rim);
+  // starfield
+  const tex=makeStarTex(),sp=[],sc=[];
+  for(let i=0;i<1600;i++){
+    const th=rnd(0,6.28),ph=Math.acos(rnd(-1,1)),r=rnd(60,140);
+    sp.push(r*Math.sin(ph)*Math.cos(th),r*Math.sin(ph)*Math.sin(th),r*Math.cos(ph));
+    sc.push(rnd(.5,1.6));
+  }
+  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+  stars=new THREE.Points(sg,new THREE.PointsMaterial({size:.9,map:tex,transparent:true,opacity:.9,depthWrite:false,color:0xcfd8ee,sizeAttenuation:true}));
+  scene.add(stars);
+  randomize();clock=new THREE.Clock();bind();loop();
+}
+function bind(){
+  const c=renderer.domElement;
+  c.addEventListener('pointerdown',e=>{drag=true;px=e.clientX;py=e.clientY;c.setPointerCapture(e.pointerId)});
+  c.addEventListener('pointermove',e=>{if(!drag)return;tAz+=(e.clientX-px)*.006;tEl+=(e.clientY-py)*.004;
+    tEl=Math.max(-.9,Math.min(1.2,tEl));px=e.clientX;py=e.clientY;lastAct=performance.now()});
+  c.addEventListener('pointerup',()=>drag=false);
+  c.addEventListener('wheel',e=>{e.preventDefault();tRad=Math.max(4.5,Math.min(18,tRad+e.deltaY*.018));lastAct=performance.now()},{passive:false});
+  document.getElementById('tilt').addEventListener('input',e=>{tiltDeg=+e.target.value;
+    document.getElementById('tiltv').textContent=tiltDeg+'°';
+    system.rotation.z=tiltDeg*Math.PI/180;
+    specEl.textContent='BANDS '+String(P.bands).padStart(2,'0')+' · MOONS 0'+moons.length+' · TILT '+tiltDeg+'°'});
+  document.getElementById('spin').addEventListener('input',e=>{spin=e.target.value/100;
+    document.getElementById('spinv').textContent=spin.toFixed(1)+'×'});
+  document.getElementById('rings').addEventListener('input',e=>{ringDensity=e.target.value/100;
+    document.getElementById('ringsv').textContent=ringDensity.toFixed(1)+'×';
+    ringMat.uniforms.uDensity.value=ringDensity});
+  document.getElementById('random').addEventListener('click',randomize);
+  document.getElementById('dl').addEventListener('click',()=>{renderer.render(scene,camera);
+    const a=document.createElement('a');a.download='ring-planet-'+P.seed+'.png';a.href=renderer.domElement.toDataURL('image/png');a.click()});
+  window.addEventListener('resize',()=>{camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();renderer.setSize(stage.clientWidth,stage.clientHeight)});
+}
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),.05),now=performance.now();
+  uTime.value+=dt;
+  if(planet)planet.rotation.y+=dt*spin*.4;
+  moons.forEach(m=>{
+    m.userData.ph+=dt*m.userData.speed;
+    m.position.set(Math.cos(m.userData.ph)*m.userData.r,Math.sin(m.userData.ph*1.3)*m.userData.tilt*m.userData.r*.2,Math.sin(m.userData.ph)*m.userData.r);
+  });
+  if(stars)stars.rotation.y+=dt*.004;
+  if(!drag&&now-lastAct>3000)tAz+=dt*.045;
+  az+=(tAz-az)*.08;el+=(tEl-el)*.08;rad+=(tRad-rad)*.08;
+  camera.position.set(rad*Math.cos(el)*Math.sin(az),rad*Math.sin(el)*.8,rad*Math.cos(el)*Math.cos(az));
+  camera.lookAt(0,0,0);
+  renderer.render(scene,camera);
+}
+init();
+</script>
+</body>
+</html>

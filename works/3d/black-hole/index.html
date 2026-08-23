@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EVENT HORIZON · 黑洞引力透镜 / MIRA</title>
+<style>
+:root{
+  --paper:#eceae4; --stage:#05070d; --ink:#14161c; --ink-soft:#6a6e78;
+  --ember:#e8641f; --line:rgba(20,22,28,.26);
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans)}
+header{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font:10px var(--mono);letter-spacing:.12em;text-transform:uppercase}
+a{color:inherit;text-decoration:none}
+.back{display:flex;align-items:center;gap:10px}
+.back b{font:400 18px var(--serif)}
+header .mid{color:var(--ink-soft)}
+.hero{padding:4.6vw 4vw 3vw;display:grid;grid-template-columns:1.35fr 1fr;gap:5vw;align-items:end}
+.kicker{font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ember)}
+h1{font:400 clamp(52px,8.6vw,124px)/.84 var(--serif);letter-spacing:-.045em;margin:20px 0 24px}
+h1 em{font-style:italic;color:var(--ember)}
+.hero p{max-width:430px;font-size:14px;line-height:1.75;color:var(--ink-soft)}
+.spec{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;line-height:2;color:var(--ink-soft);text-align:right}
+.spec b{color:var(--ink);font-weight:400}
+.stage-wrap{padding:0 4vw 4vw}
+.stage{height:min(62vw,660px);min-height:400px;background:var(--stage);position:relative;overflow:hidden;cursor:grab}
+.stage:active{cursor:grabbing}
+.stage canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;inset:18px;pointer-events:none;display:flex;justify-content:space-between;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:rgba(236,234,228,.5)}
+.hud b{color:#f0975a;font-weight:400}
+.corner{position:absolute;width:14px;height:14px;border:1px solid rgba(236,234,228,.35)}
+.c-tl{top:10px;left:10px;border-right:0;border-bottom:0}
+.c-tr{top:10px;right:10px;border-left:0;border-bottom:0}
+.c-bl{bottom:10px;left:10px;border-right:0;border-top:0}
+.c-br{bottom:10px;right:10px;border-left:0;border-top:0}
+.panel{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 4vw;display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+.ctl label{display:flex;justify-content:space-between;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px}
+.ctl label b{color:var(--ink);font-weight:400}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:var(--ink);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:var(--paper);border:2px solid var(--ink);cursor:pointer;transition:background .2s}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--ember);border-color:var(--ember)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--paper);border:2px solid var(--ink);cursor:pointer}
+.tools{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 4vw 0;flex-wrap:wrap}
+.tools>span{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;background:transparent;color:var(--ink);border:1px solid var(--ink);padding:9px 16px;cursor:pointer;transition:all .25s cubic-bezier(.22,1,.36,1)}
+button:hover{background:var(--ink);color:var(--paper)}
+button.on{background:var(--ember);border-color:var(--ember);color:var(--paper)}
+.caption{padding:7vw 4vw;display:grid;grid-template-columns:1fr 1fr;gap:5vw;align-items:start}
+.caption h2{font:400 clamp(34px,4.4vw,64px)/1.05 var(--serif);letter-spacing:-.02em}
+.caption h2 em{font-style:italic;color:var(--ember)}
+.caption p{font-size:14px;line-height:1.8;color:var(--ink-soft);max-width:430px}
+footer{border-top:1px solid var(--line);padding:14px 4vw;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);display:flex;justify-content:space-between}
+@media(max-width:820px){
+  .hero,.caption{grid-template-columns:1fr;gap:28px}
+  .spec{text-align:left}
+  .panel{grid-template-columns:1fr 1fr;gap:20px}
+  .stage{min-height:340px}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a>
+  <span class="mid">N°03 / 05 · 3D Worlds</span>
+  <span>EVENT HORIZON</span>
+</header>
+<main>
+  <section class="hero">
+    <div>
+      <div class="kicker">General Relativity, In Real Time / GLSL Ray Bending</div>
+      <h1>EVENT<br>HORIZON <em>引力透镜</em></h1>
+      <p>这里没有贴图，只有方程。每一束星光在抵达你眼睛之前，都被时空本身弯折过一次。拖动环绕这颗黑洞，调大质量，看爱因斯坦环如何把整片星空拧成一个发光的圆。</p>
+    </div>
+    <div class="spec">
+      PER-PIXEL GEODESIC INTEGRATION · 64 STEPS<br>
+      SCHWARZSCHILD DEFLECTION α = 2Rs / r<br>
+      DIFFERENTIAL-ROTATION ACCRETION DISK<br>
+      PROCEDURAL STARFIELD — <b>NO TEXTURES</b>
+    </div>
+  </section>
+  <div class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="hud">
+        <span>Rs <b id="hudMass">1.00</b></span>
+        <span>DRAG TO <b>ORBIT</b></span>
+      </div>
+      <i class="corner c-tl"></i><i class="corner c-tr"></i><i class="corner c-bl"></i><i class="corner c-br"></i>
+    </div>
+  </div>
+  <section class="panel">
+    <div class="ctl"><label>质量 Mass <b id="vMass">1.00</b></label><input type="range" id="sMass" min="0.5" max="1.6" step="0.01" value="1"></div>
+    <div class="ctl"><label>盘温 Disk Temp <b id="vTemp">0.65</b></label><input type="range" id="sTemp" min="0" max="1" step="0.01" value="0.65"></div>
+    <div class="ctl"><label>转速 Spin <b id="vSpin">1.0</b></label><input type="range" id="sSpin" min="0" max="2.5" step="0.05" value="1"></div>
+    <div class="ctl"><label>曝光 Exposure <b id="vExp">1.1</b></label><input type="range" id="sExp" min="0.4" max="2.2" step="0.05" value="1.1"></div>
+  </section>
+  <div class="tools">
+    <span>Switches / 开关</span>
+    <div class="btns">
+      <button id="bDisk" class="on">吸积盘 Disk</button>
+      <button id="bStars" class="on">星场 Starfield</button>
+      <button id="bView">重置视角 Reset View</button>
+    </div>
+  </div>
+  <section class="caption">
+    <h2>光也会<em>坠落</em></h2>
+    <p>着色器为屏幕上的每一个像素积分一条被引力弯折的视线：越过事件视界的归于黑，擦身而过的被拧成光子环，其余的带着整片星场一起偏折。吸积盘内侧的等离子体转得比外侧快——开普勒定律在这里以颜色显形。</p>
+  </section>
+</main>
+<footer>
+  <span>EVENT HORIZON — N°03</span>
+  <span>THREE.JS r128 · FULLSCREEN GLSL RAYMARCH</span>
+  <span>MIRA · AI PORTFOLIO</span>
+</footer>
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+var stage=document.getElementById('stage');
+var W=stage.clientWidth,H=stage.clientHeight;
+var renderer=new THREE.WebGLRenderer({antialias:false});
+renderer.setPixelRatio(1);
+renderer.setSize(Math.floor(W*0.9),Math.floor(H*0.9),false);
+renderer.domElement.style.width='100%';
+renderer.domElement.style.height='100%';
+stage.appendChild(renderer.domElement);
+
+var scene=new THREE.Scene();
+var camera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+
+var uniforms={
+  uTime:{value:0},
+  uRes:{value:new THREE.Vector2(W,H)},
+  uYaw:{value:0.0},
+  uPitch:{value:0.22},
+  uRs:{value:1.0},
+  uTemp:{value:0.65},
+  uSpin:{value:1.0},
+  uExp:{value:1.1},
+  uDisk:{value:1.0},
+  uStars:{value:1.0}
+};
+
+var frag=[
+'precision highp float;',
+'uniform float uTime;',
+'uniform vec2 uRes;',
+'uniform float uYaw,uPitch,uRs,uTemp,uSpin,uExp,uDisk,uStars;',
+'',
+'float hash13(vec3 p){',
+'  p=fract(p*0.1031);',
+'  p+=dot(p,p.zyx+31.32);',
+'  return fract((p.x+p.y)*p.z);',
+'}',
+'float hash12(vec2 p){',
+'  vec3 p3=fract(vec3(p.xyx)*0.1031);',
+'  p3+=dot(p3,p3.yzx+33.33);',
+'  return fract((p3.x+p3.y)*p3.z);',
+'}',
+'float vnoise(vec2 p){',
+'  vec2 i=floor(p),f=fract(p);',
+'  f=f*f*(3.0-2.0*f);',
+'  float a=hash12(i);',
+'  float b=hash12(i+vec2(1.,0.));',
+'  float c=hash12(i+vec2(0.,1.));',
+'  float d=hash12(i+vec2(1.,1.));',
+'  return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);',
+'}',
+'float fbm(vec2 p){',
+'  float v=0.0,a=0.5;',
+'  for(int i=0;i<4;i++){v+=a*vnoise(p);p*=2.03;a*=0.5;}',
+'  return v;',
+'}',
+'',
+'vec3 starfield(vec3 d){',
+'  vec3 col=vec3(0.0);',
+'  /* milky way band */',
+'  float band=exp(-abs(dot(d,normalize(vec3(0.35,1.0,0.22))))*5.0);',
+'  float mw=fbm(vec2(d.x*3.1+d.z*1.7,d.y*3.1-d.z*2.3));',
+'  col+=vec3(0.13,0.17,0.26)*band*(0.3+mw*1.2);',
+'  /* two star layers */',
+'  for(int L=0;L<2;L++){',
+'    float freq=(L==0)?42.0:90.0;',
+'    vec3 n=d*freq;',
+'    vec3 id=floor(n);',
+'    vec3 f=fract(n)-0.5;',
+'    float h=hash13(id+float(L)*17.0);',
+'    if(h>0.965){',
+'      float b=pow((h-0.965)/0.035,3.0);',
+'      float dist=length(f);',
+'      float tw=0.75+0.25*sin(uTime*2.0+h*40.0);',
+'      vec3 tint=mix(vec3(0.75,0.85,1.0),vec3(1.0,0.9,0.75),hash13(id+3.7));',
+'      col+=smoothstep(0.32,0.0,dist)*b*tw*tint*((L==0)?1.2:0.6);',
+'    }',
+'  }',
+'  return col;',
+'}',
+'',
+'vec3 diskColor(float rr,float ang,float t){',
+'  /* differential rotation: inner orbits faster */',
+'  float rot=t*uSpin*2.2/(0.35+rr*rr);',
+'  vec2 q=vec2(rr*2.6,ang*1.2-rot);',
+'  float n=fbm(q);',
+'  float n2=fbm(q*2.3+vec2(4.7,1.3));',
+'  float streak=0.30+0.95*pow(n,1.6)+0.35*n2*n2;',
+'  /* temperature gradient: white-hot inner rim to ember outer */',
+'  float heat=smoothstep(4.6,1.35,rr);',
+'  vec3 hot=mix(vec3(1.0,0.42,0.10),vec3(1.0,0.93,0.80),uTemp);',
+'  vec3 cool=mix(vec3(0.45,0.10,0.03),vec3(1.0,0.55,0.20),uTemp*0.7);',
+'  vec3 c=mix(cool,hot,heat*heat);',
+'  /* radial alpha window */',
+'  float a=smoothstep(1.40,2.05,rr)*smoothstep(4.8,3.0,rr);',
+'  return c*streak*a;',
+'}',
+'',
+'void main(){',
+'  vec2 uv=(gl_FragCoord.xy*2.0-uRes)/min(uRes.x,uRes.y);',
+'  /* camera */',
+'  float cp=cos(uPitch),sp=sin(uPitch),cy=cos(uYaw),sy=sin(uYaw);',
+'  vec3 ro=vec3(sy*cp,sp,cy*cp)*7.2;',
+'  vec3 fwd=normalize(-ro);',
+'  vec3 right=normalize(cross(fwd,vec3(0.0,1.0,0.0)));',
+'  vec3 up=cross(right,fwd);',
+'  vec3 v=normalize(uv.x*right*0.6+uv.y*up*0.6+fwd);',
+'  ',
+'  vec3 p=ro;',
+'  float M=uRs;             /* bending strength / mass */',
+'  float rH=0.55*M;         /* event horizon radius */',
+'  /* conserved angular momentum (squared) of the light ray */',
+'  vec3 hvec=cross(p,v);',
+'  float h2=dot(hvec,hvec);',
+'  float minR=100.0;',
+'  vec3 col=vec3(0.0);',
+'  float diskGlow=0.0;',
+'  bool eaten=false;',
+'  vec3 prevP=p;',
+'  ',
+'  for(int i=0;i<160;i++){',
+'    float r2=dot(p,p);',
+'    float r=sqrt(r2);',
+'    minR=min(minR,r);',
+'    if(r<rH){eaten=true;break;}',
+'    if(r>24.0){break;}',
+'    /* accretion disk crossing (plane y=0) */',
+'    if(uDisk>0.5&&p.y*prevP.y<0.0&&i>0){',
+'      float t=prevP.y/(prevP.y-p.y);',
+'      vec3 h=mix(prevP,p,t);',
+'      float rr=length(h.xz);',
+'      if(rr>1.35*M&&rr<5.0*M){',
+'        float ang=atan(h.z,h.x);',
+'        vec3 dc=diskColor(rr/M,ang,uTime);',
+'        /* doppler beaming: approaching side brighter */',
+'        vec3 tang=normalize(vec3(-h.z,0.0,h.x));',
+'        float dop=1.0+0.85*dot(tang,normalize(ro-h));',
+'        float g=dc.r+dc.g+dc.b;',
+'        col+=dc*max(dop,0.15)*1.2*(1.0-diskGlow);',
+'        diskGlow=min(diskGlow+g*0.45,1.0);',
+'      }',
+'    }',
+'    prevP=p;',
+'    /* light-orbit equation: a = -3/2 h^2 M p / r^5 */',
+'    float dt=0.10*clamp(r*0.4,0.25,1.0);',
+'    vec3 acc=-1.5*h2*M*p/(r2*r2*r);',
+'    v+=acc*dt;',
+'    p+=v*dt;',
+'  }',
+'  ',
+'  if(!eaten){',
+'    col+=starfield(v)*uStars*1.4*(1.0-diskGlow*0.85);',
+'    /* subtle inner glow above horizon */',
+'    col+=vec3(0.9,0.45,0.15)*exp(-max(minR-rH,0.0)*2.2)*0.3;',
+'  }',
+'  /* photon ring (critical orbit at r = 1.5 M) */',
+'  float ring=exp(-abs(minR-1.45*M)*3.5);',
+'  col+=vec3(1.0,0.72,0.42)*ring*1.5;',
+'  ',
+'  /* grade */',
+'  col*=uExp;',
+'  col=col/(1.0+col*0.55);',
+'  col=pow(col,vec3(0.9));',
+'  /* vignette */',
+'  col*=1.0-0.32*dot(uv*0.72,uv*0.72);',
+'  gl_FragColor=vec4(col,1.0);',
+'}'
+].join('\n');
+
+var vert='void main(){gl_Position=vec4(position,1.0);}';
+var mat=new THREE.ShaderMaterial({uniforms:uniforms,vertexShader:vert,fragmentShader:frag});
+scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2,2),mat));
+
+/* ---------- interaction ---------- */
+var yaw=0.0,pitch=0.22,tYaw=0.0,tPitch=0.22;
+var down=false,lastX=0,lastY=0,idle=0;
+stage.addEventListener('pointerdown',function(e){
+  down=true;lastX=e.clientX;lastY=e.clientY;idle=0;
+  stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove',function(e){
+  if(!down)return;
+  tYaw-=(e.clientX-lastX)*0.004;
+  tPitch=Math.max(-0.9,Math.min(1.25,tPitch+(e.clientY-lastY)*0.003));
+  lastX=e.clientX;lastY=e.clientY;idle=0;
+});
+stage.addEventListener('pointerup',function(){down=false;});
+
+function bind(id,vid,fmt,fn){
+  var el=document.getElementById(id);
+  el.addEventListener('input',function(){
+    var v=parseFloat(el.value);
+    document.getElementById(vid).textContent=fmt(v);
+    fn(v);
+  });
+}
+bind('sMass','vMass',function(v){return v.toFixed(2);},function(v){
+  uniforms.uRs.value=v;
+  document.getElementById('hudMass').textContent=v.toFixed(2);
+});
+bind('sTemp','vTemp',function(v){return v.toFixed(2);},function(v){uniforms.uTemp.value=v;});
+bind('sSpin','vSpin',function(v){return v.toFixed(2);},function(v){uniforms.uSpin.value=v;});
+bind('sExp','vExp',function(v){return v.toFixed(2);},function(v){uniforms.uExp.value=v;});
+
+function toggle(id,key){
+  document.getElementById(id).addEventListener('click',function(){
+    var on=uniforms[key].value>0.5;
+    uniforms[key].value=on?0:1;
+    this.classList.toggle('on',!on);
+  });
+}
+toggle('bDisk','uDisk');
+toggle('bStars','uStars');
+document.getElementById('bView').addEventListener('click',function(){
+  tYaw=0;tPitch=0.22;
+});
+
+/* ---------- loop ---------- */
+var last=performance.now(),T=0;
+function tick(now){
+  var dt=Math.min(0.05,(now-last)/1000);last=now;T+=dt;
+  idle+=dt;
+  if(!down&&idle>2)tYaw+=dt*0.05;   /* slow auto-orbit */
+  yaw+=(tYaw-yaw)*Math.min(1,dt*5);
+  pitch+=(tPitch-pitch)*Math.min(1,dt*5);
+  uniforms.uTime.value=T;
+  uniforms.uYaw.value=yaw;
+  uniforms.uPitch.value=pitch;
+  renderer.render(scene,camera);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+window.addEventListener('resize',function(){
+  W=stage.clientWidth;H=stage.clientHeight;
+  uniforms.uRes.value.set(W,H);
+  renderer.setSize(Math.floor(W*0.9),Math.floor(H*0.9),false);
+});
+})();
+</script>
+</body>
+</html>

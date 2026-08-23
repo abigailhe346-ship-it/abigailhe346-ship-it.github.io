@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tool Chain — 工具调用链可视化</title>
+<style>
+  :root{
+    --bg:#0A0C10; --panel:#10131A; --panel2:#0C0F15; --line:rgba(255,255,255,.08);
+    --ink:#EAE8E1; --dim:#6E7580; --faint:#363C46;
+    --ember:#FF6A3D; --cyan:#4FC6D8; --lime:#8BD450; --red:#F0524A;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(255,106,61,.3)}
+  button{font-family:inherit}
+
+  /* ---------- header ---------- */
+  header{height:56px;display:flex;align-items:center;gap:20px;padding:0 22px;
+         border-bottom:1px solid var(--line);position:relative;z-index:5}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--ember);letter-spacing:.12em}
+  .brand .name{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.22em;text-transform:uppercase}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--mono);
+          font-size:11px;color:var(--dim)}
+  .dotlive{width:7px;height:7px;border-radius:50%;background:var(--cyan);
+           box-shadow:0 0 8px var(--cyan);animation:pulse 2.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* ---------- layout ---------- */
+  main{display:grid;grid-template-columns:300px 1fr;height:calc(100% - 56px)}
+  .left{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;min-height:0}
+  .right{display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--panel2);position:relative}
+
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ---------- playbooks ---------- */
+  .playbooks{padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+  .pb{border:1px solid var(--line);background:var(--panel);padding:12px 14px;cursor:pointer;
+      transition:all .3s var(--ease);position:relative;overflow:hidden}
+  .pb:hover{border-color:rgba(255,255,255,.22)}
+  .pb.on{border-color:rgba(255,106,61,.55);background:rgba(255,106,61,.05)}
+  .pb.on::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--ember)}
+  .pb .t{font-size:13px;font-weight:600;letter-spacing:.02em}
+  .pb .d{font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:4px;line-height:1.6}
+  .pb .n{position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:9px;color:var(--faint)}
+
+  /* ---------- runtime controls ---------- */
+  .controls{padding:16px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+  .slider-row{display:grid;grid-template-columns:88px 1fr 44px;align-items:center;gap:10px}
+  .slider-row .k{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .slider-row .v{font-family:var(--mono);font-size:12px;color:var(--ember);text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--faint)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;
+      background:var(--bg);border:2px solid var(--ember);border-radius:50%;transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--faint)}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--bg);
+      border:2px solid var(--ember);border-radius:50%}
+  .toggle-row{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;color:var(--dim);cursor:pointer;user-select:none}
+  .tswitch{width:32px;height:18px;border:1px solid var(--faint);border-radius:10px;position:relative;transition:all .25s var(--ease);flex:none}
+  .tswitch::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;
+                  background:var(--dim);transition:all .25s var(--ease)}
+  .toggle-row.on .tswitch{border-color:var(--ember);background:rgba(255,106,61,.15)}
+  .toggle-row.on .tswitch::after{left:16px;background:var(--ember)}
+
+  .runrow{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--line)}
+  .btn{font-family:var(--mono);font-size:12px;letter-spacing:.06em;padding:11px 16px;cursor:pointer;
+       border:1px solid var(--line);background:transparent;color:var(--ink);
+       transition:all .25s var(--ease);display:inline-flex;align-items:center;gap:8px;justify-content:center}
+  .btn.primary{flex:1;background:var(--ember);border-color:var(--ember);color:#171310;font-weight:600}
+  .btn.primary:hover{background:#FF855F;box-shadow:0 0 24px rgba(255,106,61,.25)}
+  .btn.primary:disabled{opacity:.45;cursor:wait;box-shadow:none}
+  .btn:not(.primary):hover{border-color:rgba(255,255,255,.3)}
+
+  /* ---------- event log ---------- */
+  .logwrap{flex:1;min-height:0;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .logwrap .blocklabel{padding:12px 18px 8px}
+  #log{flex:1;overflow-y:auto;padding:0 18px 14px;font-family:var(--mono);font-size:10.5px;
+       line-height:1.9;scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  #log::-webkit-scrollbar{width:4px}
+  #log::-webkit-scrollbar-thumb{background:var(--faint)}
+  .lg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:lgin .3s var(--ease) both}
+  @keyframes lgin{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+  .lg .ts{color:var(--faint)}
+  .lg.ok{color:var(--dim)} .lg.ok b{color:var(--lime);font-weight:500}
+  .lg.run{color:var(--cyan)}
+  .lg.err{color:var(--red)}
+  .lg.sys{color:var(--ember)}
+
+  /* ---------- graph canvas ---------- */
+  .graphwrap{flex:1;position:relative;min-height:0}
+  canvas#graph{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+  .hint{position:absolute;left:22px;top:16px;font-family:var(--mono);font-size:10px;
+        letter-spacing:.2em;color:var(--dim);text-transform:uppercase;pointer-events:none;
+        display:flex;gap:16px;align-items:center}
+  .legend{position:absolute;right:22px;top:16px;display:flex;gap:14px;font-family:var(--mono);
+          font-size:9px;color:var(--dim);pointer-events:none;letter-spacing:.08em}
+  .legend span{display:flex;align-items:center;gap:5px}
+  .lg-dot{width:8px;height:8px;border-radius:50%}
+
+  /* ---------- gantt ---------- */
+  .gantt{height:118px;border-top:1px solid var(--line);position:relative;flex:none}
+  canvas#gantt{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .ganttlabel{position:absolute;top:8px;left:22px;font-family:var(--mono);font-size:9px;
+              letter-spacing:.22em;color:var(--dim);text-transform:uppercase;z-index:2}
+  .gantttotal{position:absolute;top:8px;right:22px;font-family:var(--mono);font-size:9px;
+              color:var(--ember);z-index:2;letter-spacing:.1em}
+
+  /* ---------- node drawer ---------- */
+  #drawer{position:absolute;top:0;right:0;bottom:0;width:320px;background:rgba(13,16,22,.94);
+          border-left:1px solid var(--line);
+          transform:translateX(102%);transition:transform .45s var(--ease);z-index:10;
+          display:flex;flex-direction:column}
+  #drawer.show{transform:none}
+  .dhead{padding:18px 20px 12px;border-bottom:1px solid var(--line)}
+  .dhead .fn{font-family:var(--mono);font-size:15px;color:var(--ember)}
+  .dhead .meta{display:flex;gap:14px;margin-top:8px;font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .dhead .meta b{color:var(--ink);font-weight:500}
+  .statuspill{font-size:9px;padding:2px 8px;border-radius:20px;letter-spacing:.1em}
+  .sp-done{background:rgba(139,212,80,.12);color:var(--lime);border:1px solid rgba(139,212,80,.35)}
+  .sp-failed{background:rgba(240,82,74,.12);color:var(--red);border:1px solid rgba(240,82,74,.4)}
+  .sp-running{background:rgba(79,198,216,.12);color:var(--cyan);border:1px solid rgba(79,198,216,.4)}
+  .sp-idle{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid var(--line)}
+  .dbody{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:16px;
+         scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  .dbody::-webkit-scrollbar{width:4px}
+  .dbody::-webkit-scrollbar-thumb{background:var(--faint)}
+  .jlabel{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-bottom:6px}
+  pre.json{font-family:var(--mono);font-size:11px;line-height:1.75;color:#B9C0CB;
+           background:var(--panel);border:1px solid var(--line);padding:12px 14px;
+           overflow-x:auto;white-space:pre}
+  pre.json .k{color:var(--cyan)} pre.json .s{color:var(--lime)} pre.json .n{color:var(--ember)}
+  .dfoot{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px}
+  .dclose{position:absolute;top:14px;right:16px;width:26px;height:26px;border:1px solid var(--line);
+          background:transparent;color:var(--dim);cursor:pointer;font-family:var(--mono);font-size:12px;
+          transition:all .25s}
+  .dclose:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+
+  @media (max-width:860px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr;height:auto}
+    .left{border-right:0;border-bottom:1px solid var(--line)}
+    .graphwrap{min-height:52vh}
+    #drawer{width:min(320px,88vw)}
+    #log{max-height:180px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">No.02</span>
+    <span class="name">Tool Chain</span>
+    <span class="sub">Agent Toolchain Visualizer</span>
+  </div>
+  <div class="crumbs">
+    <span class="dotlive"></span><span>RUNTIME · SIMULATED</span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ LEFT ============ -->
+  <section class="left">
+    <div class="playbooks">
+      <div class="blocklabel">01 — Playbooks</div>
+      <div id="pblist"></div>
+    </div>
+
+    <div class="controls">
+      <div class="blocklabel">02 — Runtime</div>
+      <div class="slider-row">
+        <span class="k">speed</span>
+        <input type="range" id="speed" min="50" max="300" value="100">
+        <span class="v" id="speedv">1.0×</span>
+      </div>
+      <div class="toggle-row on" id="chaosrow">
+        <span class="tswitch"></span><span>chaos mode · 注入随机故障</span>
+      </div>
+    </div>
+
+    <div class="runrow">
+      <button class="btn primary" id="run">RUN CHAIN</button>
+      <button class="btn" id="reset" title="重置">RESET</button>
+    </div>
+
+    <div class="logwrap">
+      <div class="blocklabel">03 — Event Log</div>
+      <div id="log"><div class="lg sys"><span class="ts">--:--:--</span> 选择 Playbook 后按 RUN CHAIN 启动调用链</div></div>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT ============ -->
+  <section class="right">
+    <div class="graphwrap" id="graphwrap">
+      <canvas id="graph"></canvas>
+      <div class="hint">TOOL CALL GRAPH · CLICK NODE FOR PAYLOAD</div>
+      <div class="legend">
+        <span><i class="lg-dot" style="background:var(--cyan)"></i>LLM</span>
+        <span><i class="lg-dot" style="background:var(--ember)"></i>TOOL</span>
+        <span><i class="lg-dot" style="background:var(--red)"></i>FAILED</span>
+      </div>
+    </div>
+    <div class="gantt">
+      <span class="ganttlabel">Execution Timeline</span>
+      <span class="gantttotal" id="gantttotal"></span>
+      <canvas id="gantt"></canvas>
+    </div>
+
+    <!-- node detail drawer -->
+    <aside id="drawer">
+      <button class="dclose" id="dclose">×</button>
+      <div class="dhead">
+        <div class="fn" id="d-fn">—</div>
+        <div class="meta">
+          <span id="d-status"><span class="statuspill sp-idle">IDLE</span></span>
+          <span>latency <b id="d-lat">—</b></span>
+          <span>attempt <b id="d-att">—</b></span>
+        </div>
+      </div>
+      <div class="dbody">
+        <div><div class="jlabel">Arguments →</div><pre class="json" id="d-args">{}</pre></div>
+        <div><div class="jlabel">← Result</div><pre class="json" id="d-result">{}</pre></div>
+      </div>
+      <div class="dfoot">
+        <button class="btn primary" id="d-retry" style="display:none">RETRY NODE</button>
+      </div>
+    </aside>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+
+/* ================= playbook data ================= */
+const PLAYBOOKS=[
+ {id:"refund",name:"售后退款 Agent",desc:"7 节点 · 线性链路 · payment 环节易抖动",
+  nodes:[
+   {id:"intent", label:"parse_intent",      type:"llm", lat:420, args:{user_msg:"我上周买的耳机左耳没声音，想退"},                                          result:{intent:"refund_request",confidence:0.94,slots:{product:"TWS 耳机 Pro"}}},
+   {id:"order",  label:"crm.lookup_order",  type:"tool",lat:380, args:{user_id:"u_48210",sku:"TWS-PRO-BLK"},                                                result:{order_id:"OD-88231745",paid:899.00,status:"delivered",days_since:6}},
+   {id:"policy", label:"policy.check",      type:"tool",lat:240, args:{order_id:"OD-88231745",rule:"7d_no_reason"},                                         result:{eligible:true,window_left_h:18,restock_fee:0}},
+   {id:"risk",   label:"risk.score",        type:"tool",lat:300, args:{user_id:"u_48210",amount:899.00},                                                    result:{score:0.12,level:"low",fraud_signals:[]}},
+   {id:"pay",    label:"payment.refund",    type:"tool",lat:640, args:{order_id:"OD-88231745",amount:899.00,channel:"original"},                            result:{refund_id:"RF-20931",eta:"1-3 工作日",status:"accepted"}},
+   {id:"ticket", label:"logistics.pickup",  type:"tool",lat:350, args:{order_id:"OD-88231745",method:"door_pickup"},                                        result:{pickup_code:"PK-5518",slot:"明天 10:00-12:00"}},
+   {id:"reply",  label:"compose_reply",     type:"llm", lat:510, args:{tone:"empathetic",facts:["refund_id","pickup_code"]},                                result:{chars:96,template:"refund_confirm_v3",lang:"zh"}},
+  ],
+  edges:[["intent","order"],["order","policy"],["policy","risk"],["risk","pay"],["pay","ticket"],["ticket","reply"]],
+  failNode:"pay",failMsg:"504 gateway timeout · 支付通道拥塞"},
+ {id:"travel",name:"旅行规划 Agent",desc:"8 节点 · planner 扇出三路并行检索",
+  nodes:[
+   {id:"plan",   label:"planner.decompose", type:"llm", lat:560, args:{goal:"五一杭州 3 天 2 晚，两人，预算 4000"},                                          result:{subtasks:["transport","stay","poi"],constraints:{budget:4000,pax:2}}},
+   {id:"train",  label:"rail.search",       type:"tool",lat:480, args:{from:"上海",to:"杭州",date:"05-01"},                                                  result:{best:"G7317 08:12",price:73,left:12}},
+   {id:"hotel",  label:"hotel.search",      type:"tool",lat:520, args:{city:"杭州",near:"西湖",nights:2},                                                    result:{best:"湖滨君悦·湖景房",per_night:1080,rating:4.7}},
+   {id:"poi",    label:"poi.recommend",     type:"tool",lat:430, args:{city:"杭州",tags:["自然景观","茶馆"]},                                                result:{list:["九溪烟树","龙井村","茅家埠"],source:"editorial"}},
+   {id:"weather",label:"weather.forecast",  type:"tool",lat:200, args:{city:"杭州",days:3},                                                                  result:{summary:"多云转晴 18-26°C",rain_prob:0.15}},
+   {id:"budget", label:"budget.calc",       type:"tool",lat:150, args:{items:["rail","hotel","meals"]},                                                      result:{total:3766,under_budget:true,delta:234}},
+   {id:"route",  label:"route.optimize",    type:"tool",lat:610, args:{pois:3,days:2,mode:"walking+metro"},                                                  result:{km_saved:4.2,order:["九溪","龙井","茅家埠"]}},
+   {id:"reply",  label:"compose_plan",      type:"llm", lat:680, args:{format:"day_by_day",lang:"zh"},                                                       result:{sections:3,chars:412,with_map_links:true}},
+  ],
+  edges:[["plan","train"],["plan","hotel"],["plan","poi"],["plan","weather"],["train","budget"],["hotel","budget"],["poi","route"],["weather","route"],["budget","reply"],["route","reply"]],
+  failNode:"hotel",failMsg:"rate limit · 429 · 供应商接口限流"},
+ {id:"codefix",name:"代码修复 Agent",desc:"8 节点 · 检索→定位→补丁→验证闭环",
+  nodes:[
+   {id:"issue",  label:"issue.triage",      type:"llm", lat:390, args:{issue:"#2201 导出 CSV 中文乱码"},                                                     result:{area:"export/csv",severity:"P2",repro_conf:0.88}},
+   {id:"grep",   label:"repo.search",       type:"tool",lat:320, args:{q:"csv export encoding",path:"src/"},                                                 result:{hits:4,top:"src/export/csv.ts:87"}},
+   {id:"read",   label:"fs.read_file",      type:"tool",lat:120, args:{path:"src/export/csv.ts",range:[70,110]},                                             result:{lines:41,found:"missing BOM header"}},
+   {id:"test0",  label:"test.run",          type:"tool",lat:880, args:{suite:"export",filter:"csv"},                                                         result:{failed:1,passed:22,failing:"csv_unicode"}},
+   {id:"patch",  label:"editor.apply_patch",type:"tool",lat:350, args:{diff:"prepend BOM \\uFEFF",file:"csv.ts"},                                            result:{applied:true,hunks:1,lint:"clean"}},
+   {id:"test1",  label:"test.run",          type:"tool",lat:880, args:{suite:"export",filter:"csv"},                                                         result:{failed:0,passed:23,duration_s:14.2}},
+   {id:"review", label:"self.review",       type:"llm", lat:460, args:{diff_stat:"+1 -1",checklist:["edge_cases"]},                                          result:{approve:true,notes:"BOM 方案与 Excel 兼容"}},
+   {id:"pr",     label:"git.open_pr",       type:"tool",lat:410, args:{branch:"fix/csv-bom",base:"main"},                                                    result:{pr:"#2214",checks:"queued",url:"…/pull/2214"}},
+  ],
+  edges:[["issue","grep"],["grep","read"],["read","test0"],["test0","patch"],["patch","test1"],["test1","review"],["review","pr"]],
+  failNode:"test1",failMsg:"flaky test · snapshot 时区漂移"},
+];
+
+/* ================= state ================= */
+let PB=PLAYBOOKS[0];
+let nodes={};           // id -> runtime node
+let pulses=[];          // edge pulses
+let running=false, t0=0, speed=1, chaos=true;
+let selected=null, hover=null;
+let timeline=[];        // {id,start,end,status}
+
+const TYPE_COLOR={llm:"#4FC6D8",tool:"#FF6A3D"};
+
+function resetRun(){
+  nodes={};pulses=[];timeline=[];selected=null;
+  PB.nodes.forEach(n=>{
+    const preds=PB.edges.filter(e=>e[1]===n.id).map(e=>e[0]);
+    nodes[n.id]={...n,_preds:preds,status:"idle",attempt:0,start:0,end:0,x:0,y:0};
+  });
+  $("drawer").classList.remove("show");
+  $("gantttotal").textContent="";
+  layout();
+}
+
+/* ================= layout (layered DAG) ================= */
+let VW=0,VH=0;
+function layout(){
+  const depth={};
+  const adj={};PB.edges.forEach(([a,b])=>{(adj[a]=adj[a]||[]).push(b)});
+  const roots=PB.nodes.filter(n=>!PB.edges.some(e=>e[1]===n.id)).map(n=>n.id);
+  const q=[...roots];roots.forEach(r=>depth[r]=0);
+  while(q.length){const a=q.shift();(adj[a]||[]).forEach(b=>{
+    depth[b]=Math.max(depth[b]||0,(depth[a]||0)+1);q.push(b);});}
+  const layers={};let maxD=0;
+  PB.nodes.forEach(n=>{const d=depth[n.id]||0;maxD=Math.max(maxD,d);
+    (layers[d]=layers[d]||[]).push(n.id)});
+  const padX=70,padT=64,padB=30;
+  const gw=Math.max(80,VW-padX*2), gh=Math.max(80,VH-padT-padB);
+  for(let d=0;d<=maxD;d++){
+    const ids=layers[d]||[];
+    ids.forEach((id,i)=>{
+      const nd=nodes[id];
+      nd.x=padX+(maxD? (gw*d/maxD) : gw/2);
+      nd.y=padT+(ids.length>1? gh*i/(ids.length-1) : gh/2);
+    });
+  }
+}
+
+/* ================= event log ================= */
+function log(msg,cls){
+  const box=$("log");
+  const now=new Date;
+  const ts=[now.getMinutes(),now.getSeconds()].map(x=>String(x).padStart(2,"0")).join(":");
+  const el=document.createElement("div");
+  el.className="lg "+(cls||"ok");
+  el.innerHTML=`<span class="ts">${ts}</span> ${msg}`;
+  box.appendChild(el);
+  while(box.children.length>60)box.firstChild.remove();
+  box.scrollTop=box.scrollHeight;
+}
+
+/* ================= execution engine ================= */
+let timers=[];
+function after(ms,fn){timers.push(setTimeout(fn,ms/speed))}
+function clearTimers(){timers.forEach(clearTimeout);timers=[]}
+
+function runChain(){
+  if(running)return;
+  clearTimers();
+  resetRun();
+  running=true;
+  $("run").disabled=true;$("run").textContent="RUNNING…";
+  t0=performance.now();
+  log(`▶ chain started · playbook=<b>${PB.id}</b> chaos=${chaos?"on":"off"}`,"sys");
+  const roots=PB.nodes.filter(n=>!PB.edges.some(e=>e[1]===n.id)).map(n=>n.id);
+  roots.forEach(id=>startNode(id));
+}
+function startNode(id){
+  const nd=nodes[id];
+  if(!nd||nd.status==="running"||nd.status==="done")return;
+  if(nd._preds.some(p=>nodes[p].status!=="done"))return; // wait for predecessors
+  nd.status="running";nd.attempt++;nd.start=performance.now();
+  nd._preds.forEach(p=>{
+    pulses.push({from:p,to:id,t:0,dur:Math.min(600,nd.lat*.5)});
+  });
+  log(`→ <b>${id}</b> ${nd.label} <span style="color:var(--faint)">attempt ${nd.attempt}</span>`,"run");
+  const willFail=chaos&&nd.id===PB.failNode&&nd.attempt===1;
+  after(nd.lat,()=>{
+    nd.end=performance.now();
+    const latMs=Math.round(nd.lat/speed*(0.9+Math.random()*.2));
+    if(willFail){
+      nd.status="failed";
+      timeline.push({id,start:nd.start,end:nd.end,status:"failed"});
+      log(`✕ <b>${id}</b> ${PB.failMsg}`,"err");
+      log(`  chain paused · 点击失败节点，在抽屉中 RETRY`,"sys");
+      running=false;$("run").disabled=false;$("run").textContent="RESTART";
+      if(selected===id)renderDrawer();
+    }else{
+      nd.status="done";
+      nd.latMs=latMs;
+      timeline.push({id,start:nd.start,end:nd.end,status:"done"});
+      log(`✓ <b>${id}</b> 200 OK · ${latMs}ms`,"ok");
+      PB.edges.filter(e=>e[0]===id).forEach(([,b])=>{
+        if(nodes[b]._preds.every(p=>nodes[p].status==="done"))startNode(b);
+      });
+      if(PB.nodes.every(n=>nodes[n.id].status==="done"))finishChain();
+      if(selected===id)renderDrawer();
+    }
+  });
+}
+function finishChain(){
+  running=false;$("run").disabled=false;$("run").textContent="RUN CHAIN";
+  const total=((performance.now()-t0)/1000).toFixed(1);
+  $("gantttotal").textContent=`TOTAL ${total}s · ${PB.nodes.length} NODES`;
+  log(`■ chain complete · total ${total}s`,"sys");
+}
+function retryNode(id){
+  const nd=nodes[id];
+  if(!nd||nd.status!=="failed"||running)return;
+  nd.status="idle";
+  running=true;$("run").disabled=true;$("run").textContent="RUNNING…";
+  log(`↻ retry <b>${id}</b> ${nd.label}`,"sys");
+  startNode(id);
+}
+
+/* ================= canvases ================= */
+const gc=$("graph"),gx=gc.getContext("2d");
+const tc=$("gantt"),tx=tc.getContext("2d");
+function sizeCanvas(c,ctx){
+  const dpr=Math.min(2,devicePixelRatio||1);
+  const r=c.parentElement.getBoundingClientRect();
+  c.width=Math.max(1,r.width*dpr);c.height=Math.max(1,r.height*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function sizeAll(){
+  sizeCanvas(gc,gx);sizeCanvas(tc,tx);
+  const r=$("graphwrap").getBoundingClientRect();
+  VW=r.width;VH=r.height;layout();
+}
+addEventListener("resize",sizeAll);
+
+/* ---------- graph draw ---------- */
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+function drawGraph(now){
+  const w=gc.clientWidth,h=gc.clientHeight;
+  gx.clearRect(0,0,w,h);
+  // dotted backdrop grid
+  gx.fillStyle="rgba(255,255,255,.028)";
+  for(let x=34;x<w;x+=34)for(let y=34;y<h;y+=34)gx.fillRect(x,y,1,1);
+
+  const NODE_W=148,NODE_H=44;
+  // edges
+  PB.edges.forEach(([a,b])=>{
+    const na=nodes[a],nb=nodes[b];
+    if(!na||!nb)return;
+    const active=na.status==="done"||na.status==="running";
+    const reached=nb.status!=="idle";
+    gx.strokeStyle=reached?"rgba(255,255,255,.35)":active?"rgba(255,255,255,.16)":"rgba(255,255,255,.07)";
+    gx.lineWidth=reached?1.4:1;
+    gx.setLineDash(reached?[]:[3,5]);
+    const x1=na.x+NODE_W/2,y1=na.y,x2=nb.x-NODE_W/2,y2=nb.y;
+    const mx=(x1+x2)/2;
+    gx.beginPath();gx.moveTo(x1,y1);
+    gx.bezierCurveTo(mx,y1,mx,y2,x2,y2);gx.stroke();
+    gx.setLineDash([]);
+  });
+  // pulses
+  pulses=pulses.filter(p=>{
+    const na=nodes[p.from],nb=nodes[p.to];
+    p.t+=16/p.dur*speed;
+    if(p.t>=1)return false;
+    const x1=na.x+NODE_W/2,y1=na.y,x2=nb.x-NODE_W/2,y2=nb.y;
+    const mx=(x1+x2)/2,t=p.t,u=1-t;
+    const px=u*u*u*x1+3*u*u*t*mx+3*u*t*t*mx+t*t*t*x2;
+    const py=u*u*u*y1+3*u*u*t*y1+3*u*t*t*y2+t*t*t*y2;
+    const g=gx.createRadialGradient(px,py,0,px,py,9);
+    g.addColorStop(0,"rgba(255,255,255,.95)");g.addColorStop(1,"rgba(255,255,255,0)");
+    gx.fillStyle=g;gx.beginPath();gx.arc(px,py,9,0,7);gx.fill();
+    return true;
+  });
+  // nodes
+  PB.nodes.forEach(n=>{
+    const nd=nodes[n.id];
+    const x=nd.x-NODE_W/2,y=nd.y-NODE_H/2;
+    const isHover=hover===n.id,isSel=selected===n.id;
+    // running glow ring
+    if(nd.status==="running"){
+      const p=(Math.sin(now/280)+1)/2;
+      gx.strokeStyle=`rgba(79,198,216,${.25+p*.4})`;gx.lineWidth=1;
+      roundRect(gx,x-5-p*3,y-5-p*3,NODE_W+10+p*6,NODE_H+10+p*6,10);gx.stroke();
+    }
+    // body
+    gx.fillStyle=isSel?"#181C26":nd.status==="idle"?"#0F1218":"#141824";
+    gx.strokeStyle=
+      nd.status==="failed"?"rgba(240,82,74,.8)":
+      nd.status==="done"?"rgba(139,212,80,.5)":
+      nd.status==="running"?"rgba(79,198,216,.75)":
+      isHover?"rgba(255,255,255,.4)":"rgba(255,255,255,.14)";
+    gx.lineWidth=isSel?1.6:1.1;
+    roundRect(gx,x,y,NODE_W,NODE_H,7);gx.fill();gx.stroke();
+    // type dot
+    const dc=nd.status==="failed"?"#F0524A":nd.status==="done"?"#8BD450":
+            nd.status==="running"?"#4FC6D8":TYPE_COLOR[n.type];
+    gx.fillStyle=dc;gx.beginPath();gx.arc(x+15,nd.y,3.5,0,7);gx.fill();
+    if(nd.status==="running"){
+      gx.strokeStyle=`rgba(79,198,216,${(Math.sin(now/200)+1)/2*.6+.2})`;
+      gx.beginPath();gx.arc(x+15,nd.y,7,0,7);gx.stroke();
+    }
+    // label
+    gx.font="11px 'SF Mono',Menlo,monospace";
+    gx.fillStyle=nd.status==="idle"?"rgba(234,232,225,.5)":"#EAE8E1";
+    gx.textBaseline="middle";
+    gx.fillText(nd.label,x+26,nd.y-7,NODE_W-34);
+    // sub status
+    gx.font="9px 'SF Mono',Menlo,monospace";
+    const sub=nd.status==="done"?(nd.latMs+" ms"):
+              nd.status==="failed"?"FAILED · retry":
+              nd.status==="running"?"running…":n.type.toUpperCase();
+    gx.fillStyle=nd.status==="failed"?"rgba(240,82,74,.9)":"rgba(110,117,128,.9)";
+    gx.fillText(sub,x+26,nd.y+9,NODE_W-34);
+  });
+  requestAnimationFrame(drawGraph);
+}
+
+/* ---------- gantt draw ---------- */
+function drawGantt(){
+  const w=tc.clientWidth,h=tc.clientHeight;
+  tx.clearRect(0,0,w,h);
+  if(!t0){requestAnimationFrame(drawGantt);return}
+  const rows=PB.nodes.length;
+  const padL=22,padR=22,top=26,bot=14;
+  const rh=(h-top-bot)/rows;
+  const nowMs=performance.now();
+  const maxEnd=Math.max(nowMs-t0,...timeline.map(t=>t.end-t0),1);
+  const scale=(w-padL-padR)/Math.max(1000,maxEnd);
+  // grid seconds
+  tx.strokeStyle="rgba(255,255,255,.05)";tx.fillStyle="rgba(110,117,128,.7)";
+  tx.font="8px 'SF Mono',Menlo,monospace";tx.textBaseline="top";
+  const secs=Math.ceil(maxEnd/1000);
+  for(let s=0;s<=secs;s++){
+    const x=padL+s*1000*scale;
+    if(x>w-padR)break;
+    tx.beginPath();tx.moveTo(x,top-4);tx.lineTo(x,h-bot+4);tx.stroke();
+    tx.fillText(s+"s",x+3,h-bot+2);
+  }
+  PB.nodes.forEach((n,i)=>{
+    const y=top+i*rh+rh*.22,bh=rh*.56;
+    const nd=nodes[n.id];
+    tx.font="9px 'SF Mono',Menlo,monospace";tx.textBaseline="middle";
+    // running bar
+    if(nd.status==="running"){
+      const x=padL+(nd.start-t0)*scale;
+      const bw=Math.max(2,(nowMs-nd.start)*scale);
+      tx.fillStyle="rgba(79,198,216,.25)";tx.fillRect(x,y,bw,bh);
+      tx.fillStyle="rgba(79,198,216,.9)";tx.fillRect(x+bw-2,y,2,bh);
+    }
+    const seg=timeline.filter(t=>t.id===n.id);
+    seg.forEach(s=>{
+      const x=padL+(s.start-t0)*scale,bw=Math.max(3,(s.end-s.start)*scale);
+      tx.fillStyle=s.status==="failed"?"rgba(240,82,74,.85)":"rgba(255,106,61,.8)";
+      tx.fillRect(x,y,bw,bh);
+    });
+    if(seg.length||nd.status==="running"){
+      const lastX=seg.length?padL+(seg[seg.length-1].end-t0)*scale:padL+(nowMs-t0)*scale;
+      tx.fillStyle="rgba(234,232,225,.55)";
+      tx.fillText(n.label,Math.min(lastX+6,w-padR-60),y+bh/2);
+    }
+  });
+  requestAnimationFrame(drawGantt);
+}
+
+/* ---------- hover & click ---------- */
+function nodeAt(mx,my){
+  const NODE_W=148,NODE_H=44;
+  for(const n of PB.nodes){
+    const nd=nodes[n.id];
+    if(Math.abs(mx-nd.x)<NODE_W/2&&Math.abs(my-nd.y)<NODE_H/2)return n.id;
+  }
+  return null;
+}
+gc.addEventListener("mousemove",e=>{
+  const r=gc.getBoundingClientRect();
+  hover=nodeAt(e.clientX-r.left,e.clientY-r.top);
+  gc.style.cursor=hover?"pointer":"crosshair";
+});
+gc.addEventListener("click",e=>{
+  const r=gc.getBoundingClientRect();
+  const id=nodeAt(e.clientX-r.left,e.clientY-r.top);
+  if(id){selected=id;renderDrawer();$("drawer").classList.add("show");}
+});
+
+/* ---------- drawer ---------- */
+function syntaxJSON(obj){
+  let s=JSON.stringify(obj,null,2);
+  s=s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  return s.replace(/"([^"]+)":/g,'<span class="k">"$1"</span>:')
+          .replace(/: "([^"]*)"/g,': <span class="s">"$1"</span>')
+          .replace(/: (-?[\d.]+)/g,': <span class="n">$1</span>');
+}
+function renderDrawer(){
+  const id=selected;if(!id)return;
+  const nd=nodes[id];
+  $("d-fn").textContent=nd.label;
+  const st=nd.status;
+  $("d-status").innerHTML=`<span class="statuspill sp-${st}">${st.toUpperCase()}</span>`;
+  $("d-lat").textContent=nd.latMs?nd.latMs+" ms":"—";
+  $("d-att").textContent=nd.attempt||"—";
+  $("d-args").innerHTML=syntaxJSON(nd.args);
+  $("d-result").innerHTML=st==="done"?syntaxJSON(nd.result):
+    st==="failed"?`<span style="color:var(--red)">${PB.failMsg}</span>`:'<span style="color:var(--faint)">// pending…</span>';
+  $("d-retry").style.display=st==="failed"?"inline-flex":"none";
+}
+$("dclose").addEventListener("click",()=>$("drawer").classList.remove("show"));
+$("d-retry").addEventListener("click",()=>{if(selected)retryNode(selected)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("drawer").classList.remove("show")});
+
+/* ---------- left controls ---------- */
+function renderPBs(){
+  const box=$("pblist");box.innerHTML="";
+  PLAYBOOKS.forEach((p,i)=>{
+    const el=document.createElement("div");
+    el.className="pb"+(p.id===PB.id?" on":"");
+    el.innerHTML=`<div class="t">${p.name}</div><div class="d">${p.desc}</div><div class="n">0${i+1} / ${p.nodes.length}N</div>`;
+    el.addEventListener("click",()=>{
+      if(running)return;
+      PB=p;resetRun();
+      document.querySelectorAll(".pb").forEach(x=>x.classList.remove("on"));
+      el.classList.add("on");
+      log(`◆ playbook → <b>${p.id}</b> · ${p.nodes.length} nodes`,"sys");
+    });
+    box.appendChild(el);
+  });
+}
+$("speed").addEventListener("input",e=>{
+  speed=e.target.value/100;
+  $("speedv").textContent=speed.toFixed(1)+"×";
+});
+$("chaosrow").addEventListener("click",()=>{
+  chaos=!chaos;
+  $("chaosrow").classList.toggle("on",chaos);
+  if(!running)resetRun();
+});
+$("run").addEventListener("click",runChain);
+$("reset").addEventListener("click",()=>{
+  if(running)return;
+  clearTimers();t0=0;resetRun();
+  log(`◇ reset · graph cleared`,"sys");
+});
+
+/* ================= init ================= */
+renderPBs();
+sizeAll();
+resetRun();
+requestAnimationFrame(drawGraph);
+requestAnimationFrame(drawGantt);
+setTimeout(()=>{log(`◆ playbook → <b>${PB.id}</b> · ${PB.nodes.length} nodes`,"sys")},300);
+</script>
+</body>
+</html>

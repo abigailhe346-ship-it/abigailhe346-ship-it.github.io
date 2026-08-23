@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RELAY — API 编排设计器</title>
+<style>
+  :root{
+    --bg:#0E1013; --panel:#14171C; --panel2:#1A1E25; --line:#242833; --line2:#303643;
+    --ink:#DCE3EA; --dim:#7C8494; --faint:#4C5260;
+    --teal:#6CD4C5; --orange:#F2A65A; --red:#F2555A; --blue:#8FA3C8; --green:#3ECF8E;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow:hidden;display:flex;flex-direction:column}
+  ::selection{background:rgba(108,212,197,.25)}
+
+  header{flex:0 0 58px;display:flex;align-items:center;gap:16px;padding:0 20px;
+    border-bottom:1px solid var(--line);background:var(--panel);z-index:10}
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:.12em}
+  .brand .name{font-size:13px;font-weight:600;letter-spacing:.22em}
+  .brand .sub{font-size:11px;color:var(--dim)}
+  .spacer{flex:1}
+  .scen{display:flex;border:1px solid var(--line2);border-radius:3px;overflow:hidden}
+  .scen button{
+    font-family:var(--mono);font-size:11px;padding:8px 14px;background:transparent;
+    color:var(--dim);border:none;cursor:pointer;letter-spacing:.04em;transition:all .2s var(--ease)}
+  .scen button.active{background:var(--panel2);color:var(--teal);box-shadow:inset 0 -2px 0 var(--teal)}
+  .scen button:not(.active):hover{color:var(--ink)}
+  .btn{
+    font-size:11px;letter-spacing:.12em;color:#0B0D10;background:var(--teal);border:none;
+    border-radius:3px;padding:9px 18px;cursor:pointer;font-weight:600;transition:all .18s var(--ease)}
+  .btn:hover{background:#86E2D4;box-shadow:0 0 22px rgba(108,212,197,.35)}
+  .btn:active{transform:translateY(1px)}
+  .btn:disabled{opacity:.35;cursor:default;box-shadow:none}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line2);font-weight:400}
+  .btn.ghost:hover{border-color:var(--faint);box-shadow:none;background:var(--panel2)}
+  #status{
+    font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:3px;
+    border:1px solid var(--line2);color:var(--dim);letter-spacing:.06em;white-space:nowrap;
+    transition:all .3s}
+  #status.ok{color:var(--green);border-color:rgba(62,207,142,.4)}
+  #status.err{color:var(--red);border-color:rgba(242,85,90,.4)}
+  #status.run{color:var(--orange);border-color:rgba(242,166,90,.4)}
+
+  main{flex:1;position:relative;min-height:0}
+  #cv{position:absolute;inset:0;display:block;width:100%;height:100%;cursor:grab}
+  #cv.dragging{cursor:grabbing}
+
+  /* inspector */
+  #inspector{
+    position:absolute;top:16px;right:16px;width:250px;background:rgba(20,23,28,.92);
+    border:1px solid var(--line2);border-radius:4px;padding:18px;backdrop-filter:blur(8px);
+    transform:translateX(20px);opacity:0;pointer-events:none;
+    transition:all .35s var(--ease);z-index:5}
+  #inspector.show{transform:none;opacity:1;pointer-events:auto}
+  #inspector h3{font-size:13px;font-weight:600;letter-spacing:.04em;margin-bottom:2px}
+  #inspector .path{font-family:var(--mono);font-size:10.5px;color:var(--dim);margin-bottom:16px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .field{margin-bottom:14px}
+  .field label{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.14em;
+    color:var(--dim);margin-bottom:7px}
+  .field label output{font-family:var(--mono);color:var(--teal);font-size:10.5px}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;
+    background:var(--line2);border-radius:1px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;
+    border-radius:50%;background:var(--teal);border:2px solid var(--bg);
+    box-shadow:0 0 0 1px var(--teal);transition:transform .15s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--teal);border:2px solid var(--bg)}
+  .health{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .health span{font-size:10px;letter-spacing:.14em;color:var(--dim)}
+  .toggle{width:38px;height:20px;border-radius:10px;border:1px solid var(--line2);
+    background:var(--panel2);cursor:pointer;position:relative;transition:all .25s var(--ease)}
+  .toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;
+    border-radius:50%;background:var(--dim);transition:all .25s var(--ease)}
+  .toggle.on{border-color:var(--green);background:rgba(62,207,142,.12)}
+  .toggle.on::after{left:20px;background:var(--green)}
+  .toggle.off{border-color:var(--red);background:rgba(242,85,90,.1)}
+  .toggle.off::after{left:20px;background:var(--red)}
+  #inspector .meta{font-family:var(--mono);font-size:10px;color:var(--faint);line-height:1.9}
+  #inspector .meta b{color:var(--dim);font-weight:400}
+  #insp-close{position:absolute;top:10px;right:12px;background:none;border:none;color:var(--faint);
+    font-size:14px;cursor:pointer;font-family:var(--mono)}
+  #insp-close:hover{color:var(--ink)}
+
+  /* waterfall */
+  #wf-wrap{flex:0 0 auto;border-top:1px solid var(--line);background:var(--panel);
+    padding:10px 20px 8px;min-height:52px}
+  #wf-title{font-size:9.5px;letter-spacing:.18em;color:var(--faint);margin-bottom:7px;font-family:var(--mono)}
+  #wf{display:flex;gap:6px;align-items:flex-end;height:22px;overflow-x:auto}
+  .hop{flex:0 0 auto;display:flex;align-items:center;gap:6px}
+  .hop .bar{height:10px;border-radius:1px;min-width:2px;width:0;transition:width .45s var(--ease)}
+  .hop .lb{font-family:var(--mono);font-size:9.5px;color:var(--dim);white-space:nowrap}
+  .hop .lb b{font-weight:400;color:var(--ink)}
+  .wf-empty{font-family:var(--mono);font-size:10px;color:var(--faint)}
+
+  footer{flex:0 0 30px;display:flex;align-items:center;padding:0 20px;gap:22px;
+    border-top:1px solid var(--line);background:var(--panel);
+    font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em}
+  footer .sig{margin-left:auto}
+  .hint{position:absolute;left:20px;bottom:14px;font-family:var(--mono);font-size:10px;
+    color:var(--faint);letter-spacing:.08em;z-index:4;pointer-events:none}
+  @media (max-width:760px){
+    .brand .sub{display:none}
+    #inspector{width:calc(100vw - 32px)}
+    .scen button{padding:8px 8px;font-size:9.5px}
+    #reset-layout{display:none}
+    .hint{display:none}
+    header{gap:8px;padding:0 12px;flex-wrap:nowrap;overflow-x:auto}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·02</span>
+    <span class="name">RELAY</span>
+    <span class="sub">API 编排设计器</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="scen" id="scen">
+    <button data-s="users" class="active">GET /v1/users/42</button>
+    <button data-s="payments">POST /v1/payments</button>
+  </div>
+  <div id="status">IDLE</div>
+  <button class="btn" id="send">SEND REQUEST</button>
+  <button class="btn ghost" id="reset-layout">RESET</button>
+</header>
+
+<main>
+  <canvas id="cv"></canvas>
+  <div class="hint">拖动节点重排 · 拖空白平移 · 滚轮缩放 · 点击节点配置</div>
+
+  <div id="inspector">
+    <button id="insp-close">✕</button>
+    <h3 id="insp-name">—</h3>
+    <div class="path" id="insp-path">—</div>
+    <div class="field">
+      <label>TIMEOUT 倍率 <output id="insp-to-val">1.0×</output></label>
+      <input type="range" id="insp-to" min="0.5" max="3" step="0.1" value="1">
+    </div>
+    <div class="health">
+      <span>节点健康</span>
+      <button class="toggle on" id="insp-health"></button>
+    </div>
+    <div class="meta" id="insp-meta"></div>
+  </div>
+</main>
+
+<div id="wf-wrap">
+  <div id="wf-title">TRACE WATERFALL</div>
+  <div id="wf"><span class="wf-empty">发送请求后，每一跳的耗时会在这里形成瀑布。</span></div>
+</div>
+
+<footer>
+  <div>RELAY v2.4 · graph orchestrator</div>
+  <div class="sig">ATELIER M · 2026</div>
+</footer>
+
+<script>
+'use strict';
+/* ================= model ================= */
+const NODE_DEFS = [
+  {id:'client',   x:40,  y:280, title:'Web Client',    sub:'app.relay.dev',      method:null,   color:'#DCE3EA', baseMs:4},
+  {id:'gateway',  x:300, y:280, title:'Edge Gateway',  sub:'gw.relay.dev',       method:'ANY',  color:'#6CD4C5', baseMs:18},
+  {id:'auth',     x:560, y:120, title:'Auth Service',  sub:'POST /auth/verify',  method:'POST', color:'#F2A65A', baseMs:42},
+  {id:'users',    x:560, y:270, title:'Users API',     sub:'GET /v1/users/:id',  method:'GET',  color:'#6CD4C5', baseMs:36},
+  {id:'payments', x:560, y:420, title:'Payments API',  sub:'POST /v1/payments',  method:'POST', color:'#F2A65A', baseMs:58},
+  {id:'profileDb',x:830, y:270, title:'Postgres',      sub:'profiles · replica', method:'SQL',  color:'#8FA3C8', baseMs:22},
+  {id:'ledgerDb', x:830, y:380, title:'Ledger',        sub:'events · append',    method:'SQL',  color:'#8FA3C8', baseMs:28},
+  {id:'notify',   x:830, y:490, title:'Notify Worker', sub:'POST /webhooks',     method:'POST', color:'#F2A65A', baseMs:16},
+];
+const NW = 168, NH = 62;
+const EDGES = [
+  ['client','gateway'],['gateway','auth'],['auth','users'],['auth','payments'],
+  ['users','profileDb'],['payments','ledgerDb'],['payments','notify'],
+];
+const SCENARIOS = {
+  users:    {route:['client','gateway','auth','users','profileDb'], label:'GET /v1/users/42', ok:'200 OK'},
+  payments: {route:['client','gateway','auth','payments','ledgerDb','notify'], label:'POST /v1/payments', ok:'201 Created'},
+};
+let nodes = [];
+function freshNodes(){
+  return NODE_DEFS.map(d => ({...d, timeoutMult:1, degraded:false, flash:0, hop:-1}));
+}
+nodes = freshNodes();
+const byId = id => nodes.find(n=>n.id===id);
+let scenario = 'users';
+
+/* ================= view / canvas ================= */
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+const view = {x:0, y:0, s:1};
+let W=0, H=0, DPR=1, fitted=false;
+function resize(){
+  DPR = window.devicePixelRatio||1;
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W*DPR; cv.height = H*DPR;
+}
+function fitView(){
+  if(!W || !H) return;
+  view.s = Math.min(1, (W-60)/1030, (H-60)/640);
+  view.x = (W - 1030*view.s)/2;
+  view.y = (H - 640*view.s)/2 + 10;
+  fitted = true;
+}
+function ensureSize(){
+  if(cv.clientWidth>0 && (cv.clientWidth!==W || cv.clientHeight!==H)){
+    resize();
+    if(!fitted) fitView();
+  }
+}
+window.addEventListener('resize', ensureSize);
+resize(); fitView();
+
+const w2s = p => ({x:(p.x*view.s)+view.x, y:(p.y*view.s)+view.y});
+const s2w = p => ({x:(p.x-view.x)/view.s, y:(p.y-view.y)/view.s});
+const portOut = n => ({x:n.x+NW, y:n.y+NH/2});
+const portIn  = n => ({x:n.x,    y:n.y+NH/2});
+
+function edgePts(a,b){
+  const p0 = portOut(a), p1 = portIn(b);
+  const dx = Math.max(60, (p1.x-p0.x)*0.5);
+  return {p0, c0:{x:p0.x+dx,y:p0.y}, c1:{x:p1.x-dx,y:p1.y}, p1};
+}
+function bez(pts,t){
+  const u=1-t;
+  return {
+    x: u*u*u*pts.p0.x + 3*u*u*t*pts.c0.x + 3*u*t*t*pts.c1.x + t*t*t*pts.p1.x,
+    y: u*u*u*pts.p0.y + 3*u*u*t*pts.c0.y + 3*u*t*t*pts.c1.y + t*t*t*pts.p1.y
+  };
+}
+function rr(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+
+/* ================= run state ================= */
+let run = null; // {scen, hopIdx, t0, dur, hops:[{id,ms,fail}], failed}
+const sendBtn = document.getElementById('send');
+const statusEl = document.getElementById('status');
+
+function hopLatency(node){
+  let ms = node.baseMs * node.timeoutMult * (node.degraded?3:1);
+  ms *= 0.85 + Math.random()*0.3;
+  return Math.round(ms);
+}
+function startRun(){
+  if(run) return;
+  nodes.forEach(n=>{n.flash=0;n.hop=-1;});
+  run = {scen:SCENARIOS[scenario], hopIdx:0, t0:performance.now(), dur:0, hops:[], failed:false, packet:{x:0,y:0}, arrive:false};
+  const first = byId(run.scen.route[0]);
+  run.packet = {...portOut(first)};
+  beginHop();
+  sendBtn.disabled = true;
+  statusEl.textContent = 'RUNNING…'; statusEl.className = 'run';
+  buildWaterfallSkeleton();
+}
+function beginHop(){
+  const from = byId(run.scen.route[run.hopIdx]);
+  const to   = byId(run.scen.route[run.hopIdx+1]);
+  if(!to){ finishRun(); return; }
+  const ms = hopLatency(to);
+  run.curMs = ms;
+  run.dur = Math.min(1400, Math.max(320, ms*7));
+  run.t0 = performance.now();
+  run.edge = edgePts(from, to);
+  run.toNode = to;
+}
+function stepRun(now){
+  if(!run || run.arrive) return;
+  const t = Math.min(1, (now-run.t0)/run.dur);
+  const e = t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+  run.packet = bez(run.edge, e);
+  if(t>=1){
+    run.arrive = true;
+    const node = run.toNode;
+    node.flash = 1;
+    const fail = node.degraded && Math.random() < 0.38;
+    run.hops.push({id:node.id, ms:run.curMs, fail});
+    fillWaterfallHop(run.hops.length-1);
+    if(fail){
+      run.failed = true;
+      setTimeout(()=>finishRun(true), 500);
+    } else {
+      setTimeout(()=>{
+        run.hopIdx++; run.arrive = false;
+        if(run.hopIdx >= run.scen.route.length-1) finishRun();
+        else beginHop();
+      }, 140);
+    }
+  }
+}
+function finishRun(failed){
+  const total = run.hops.reduce((s,h)=>s+h.ms,0);
+  if(failed || run.failed){
+    statusEl.textContent = '502 Bad Gateway · '+run.toNode.title;
+    statusEl.className = 'err';
+  } else {
+    statusEl.textContent = run.scen.ok+' · '+total+'ms';
+    statusEl.className = 'ok';
+  }
+  run = null;
+  sendBtn.disabled = false;
+}
+
+/* ================= waterfall ================= */
+const wf = document.getElementById('wf');
+function buildWaterfallSkeleton(){
+  wf.innerHTML = '';
+  run.scen.route.slice(1).forEach((id,i)=>{
+    const n = byId(id);
+    const d = document.createElement('div');
+    d.className = 'hop';
+    d.innerHTML = '<span class="lb">'+n.title+'</span><div class="bar" style="background:'+n.color+'"></div><span class="lb"><b>…</b></span>';
+    wf.appendChild(d);
+  });
+}
+function fillWaterfallHop(i){
+  const h = run.hops[i];
+  const el = wf.children[i];
+  if(!el) return;
+  const bar = el.querySelector('.bar');
+  bar.style.width = Math.max(6, h.ms*1.4)+'px';
+  if(h.fail) bar.style.background = '#F2555A';
+  el.querySelectorAll('.lb b')[0].textContent = h.ms+'ms';
+  if(h.fail){ el.querySelectorAll('.lb')[0].style.color = '#F2555A'; }
+}
+
+/* ================= input: drag / pan / zoom / select ================= */
+let drag = null; // {type:'node'|'pan', node, offX, offY, startX, startY}
+let selected = null;
+cv.addEventListener('mousedown', e=>{
+  const w = s2w({x:e.offsetX, y:e.offsetY});
+  const hit = nodes.find(n => w.x>=n.x-6 && w.x<=n.x+NW+6 && w.y>=n.y-6 && w.y<=n.y+NH+6);
+  if(hit){
+    drag = {type:'node', node:hit, offX:w.x-hit.x, offY:w.y-hit.y, moved:false};
+    select(hit);
+  } else {
+    drag = {type:'pan', startX:e.clientX, startY:e.clientY, vx:view.x, vy:view.y, moved:false};
+    cv.classList.add('dragging');
+    select(null);
+  }
+});
+window.addEventListener('mousemove', e=>{
+  if(!drag) return;
+  if(drag.type==='node'){
+    const rect = cv.getBoundingClientRect();
+    const w = s2w({x:e.clientX-rect.left, y:e.clientY-rect.top});
+    drag.node.x = w.x - drag.offX;
+    drag.node.y = w.y - drag.offY;
+    drag.moved = true;
+  } else {
+    view.x = drag.vx + (e.clientX - drag.startX);
+    view.y = drag.vy + (e.clientY - drag.startY);
+    drag.moved = true;
+  }
+});
+window.addEventListener('mouseup', ()=>{ drag=null; cv.classList.remove('dragging'); });
+cv.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const f = Math.exp(-e.deltaY*0.0012);
+  const ns = Math.min(1.8, Math.max(0.45, view.s*f));
+  const m = {x:e.offsetX, y:e.offsetY};
+  view.x = m.x - (m.x-view.x)*(ns/view.s);
+  view.y = m.y - (m.y-view.y)*(ns/view.s);
+  view.s = ns;
+}, {passive:false});
+/* touch: single finger pan/drag */
+cv.addEventListener('touchstart', e=>{
+  const t = e.touches[0], rect = cv.getBoundingClientRect();
+  const w = s2w({x:t.clientX-rect.left, y:t.clientY-rect.top});
+  const hit = nodes.find(n => w.x>=n.x-6 && w.x<=n.x+NW+6 && w.y>=n.y-6 && w.y<=n.y+NH+6);
+  if(hit){ drag={type:'node',node:hit,offX:w.x-hit.x,offY:w.y-hit.y,moved:false}; select(hit); }
+  else { drag={type:'pan',startX:t.clientX,startY:t.clientY,vx:view.x,vy:view.y,moved:false}; select(null); }
+}, {passive:true});
+cv.addEventListener('touchmove', e=>{
+  if(!drag) return; e.preventDefault();
+  const t = e.touches[0], rect = cv.getBoundingClientRect();
+  if(drag.type==='node'){
+    const w = s2w({x:t.clientX-rect.left, y:t.clientY-rect.top});
+    drag.node.x = w.x-drag.offX; drag.node.y = w.y-drag.offY;
+  } else {
+    view.x = drag.vx + (t.clientX-drag.startX);
+    view.y = drag.vy + (t.clientY-drag.startY);
+  }
+}, {passive:false});
+cv.addEventListener('touchend', ()=>{ drag=null; });
+
+/* ================= inspector ================= */
+const insp = document.getElementById('inspector');
+function select(n){
+  selected = n;
+  if(!n){ insp.classList.remove('show'); return; }
+  document.getElementById('insp-name').textContent = n.title;
+  document.getElementById('insp-path').textContent = n.sub;
+  document.getElementById('insp-to').value = n.timeoutMult;
+  document.getElementById('insp-to-val').textContent = n.timeoutMult.toFixed(1)+'×';
+  const h = document.getElementById('insp-health');
+  h.className = 'toggle ' + (n.degraded ? 'off' : 'on');
+  updateInspMeta();
+  insp.classList.add('show');
+}
+function updateInspMeta(){
+  if(!selected) return;
+  document.getElementById('insp-meta').innerHTML =
+    'base latency <b>'+selected.baseMs+'ms</b><br>'+
+    'effective <b>'+Math.round(selected.baseMs*selected.timeoutMult*(selected.degraded?3:1))+'ms</b><br>'+
+    'region <b>ap-east-1</b> · replicas <b>3</b>';
+}
+document.getElementById('insp-to').addEventListener('input', e=>{
+  if(!selected) return;
+  selected.timeoutMult = +e.target.value;
+  document.getElementById('insp-to-val').textContent = selected.timeoutMult.toFixed(1)+'×';
+  updateInspMeta();
+});
+document.getElementById('insp-health').addEventListener('click', e=>{
+  if(!selected) return;
+  selected.degraded = !selected.degraded;
+  e.target.className = 'toggle ' + (selected.degraded ? 'off' : 'on');
+  updateInspMeta();
+});
+document.getElementById('insp-close').onclick = ()=>select(null);
+
+document.getElementById('scen').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b || run) return;
+  scenario = b.dataset.s;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('active', x===b));
+  statusEl.textContent = 'IDLE'; statusEl.className = '';
+  wf.innerHTML = '<span class="wf-empty">发送请求后，每一跳的耗时会在这里形成瀑布。</span>';
+});
+sendBtn.onclick = startRun;
+document.getElementById('reset-layout').onclick = ()=>{
+  if(run) return;
+  const keep = nodes;
+  nodes = freshNodes();
+  nodes.forEach((n,i)=>{ n.timeoutMult = keep[i].timeoutMult; n.degraded = keep[i].degraded; });
+  fitView(); select(null);
+};
+
+/* ================= render loop ================= */
+const ambient = EDGES.map((e,i)=>({e, t:(i*0.37)%1, sp:0.05+((i*13)%7)*0.008}));
+let lastT = performance.now();
+function tick(now){
+  ensureSize();
+  const dt = Math.min(0.05, (now-lastT)/1000); lastT = now;
+  stepRun(now);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+
+  /* grid */
+  ctx.fillStyle = 'rgba(255,255,255,.04)';
+  const gs = 28*view.s;
+  const ox = view.x%gs, oy = view.y%gs;
+  for(let x=ox; x<W; x+=gs) for(let y=oy; y<H; y+=gs) ctx.fillRect(x,y,1,1);
+
+  const activeEdges = new Set();
+  if(run){
+    const r = run.scen.route;
+    for(let i=0;i<r.length-1;i++) activeEdges.add(r[i]+'>'+r[i+1]);
+  }
+
+  /* edges */
+  EDGES.forEach(([a,b])=>{
+    const na = byId(a), nb = byId(b);
+    const pts = edgePts(na,nb);
+    const s0 = w2s(pts.p0), s1 = w2s(pts.p1);
+    const c0 = w2s(pts.c0), c1 = w2s(pts.c1);
+    const isActive = activeEdges.size && activeEdges.has(a+'>'+b);
+    const dimOther = activeEdges.size && !isActive;
+    ctx.beginPath();
+    ctx.moveTo(s0.x,s0.y); ctx.bezierCurveTo(c0.x,c0.y,c1.x,c1.y,s1.x,s1.y);
+    ctx.strokeStyle = isActive ? 'rgba(108,212,197,.65)' : dimOther ? 'rgba(60,66,80,.5)' : 'rgba(90,98,116,.6)';
+    ctx.lineWidth = isActive ? 1.6 : 1;
+    ctx.stroke();
+  });
+
+  /* ambient particles */
+  ambient.forEach(p=>{
+    p.t = (p.t + p.sp*dt) % 1;
+    const na = byId(p.e[0]), nb = byId(p.e[1]);
+    const pt = bez(edgePts(na,nb), p.t);
+    const s = w2s(pt);
+    ctx.beginPath(); ctx.arc(s.x,s.y,1.4,0,7);
+    ctx.fillStyle = 'rgba(108,212,197,.30)'; ctx.fill();
+  });
+
+  /* nodes */
+  nodes.forEach(n=>{
+    const p = w2s(n), w = NW*view.s, h = NH*view.s;
+    if(n.flash>0) n.flash = Math.max(0, n.flash - dt*2.2);
+    const isSel = selected===n;
+    ctx.save();
+    if(n.flash>0){ ctx.shadowColor = n.degraded?'rgba(242,85,90,.8)':'rgba(108,212,197,.7)'; ctx.shadowBlur = 26*n.flash; }
+    rr(p.x,p.y,w,h,7*view.s);
+    ctx.fillStyle = '#15181F'; ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = isSel ? '#6CD4C5' : n.flash>0 ? (n.degraded?'rgba(242,85,90,.8)':'rgba(108,212,197,.7)') : '#2A2E38';
+    ctx.lineWidth = isSel ? 1.4 : 1;
+    ctx.stroke();
+
+    /* method chip */
+    if(n.method){
+      const label = n.method;
+      ctx.font = '600 '+(9*view.s)+'px "SF Mono",Menlo,monospace';
+      const cw = ctx.measureText(label).width + 10*view.s;
+      const cx = p.x+10*view.s, cy = p.y+9*view.s, ch = 13*view.s;
+      rr(cx,cy,cw,ch,2.5*view.s);
+      ctx.fillStyle = n.color+'22'; ctx.fill();
+      ctx.strokeStyle = n.color+'66'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = n.color;
+      ctx.fillText(label, cx+5*view.s, cy+ch-3.6*view.s);
+    }
+    /* title + sub */
+    ctx.font = '600 '+(12*view.s)+'px -apple-system,"Helvetica Neue","PingFang SC",sans-serif';
+    ctx.fillStyle = '#DCE3EA';
+    ctx.fillText(n.title, p.x+10*view.s, p.y+(n.method?40:28)*view.s);
+    ctx.font = (9.5*view.s)+'px "SF Mono",Menlo,monospace';
+    ctx.fillStyle = '#7C8494';
+    ctx.fillText(n.sub, p.x+10*view.s, p.y+(n.method?53:43)*view.s);
+
+    /* degraded badge */
+    if(n.degraded){
+      ctx.beginPath(); ctx.arc(p.x+w-11*view.s, p.y+11*view.s, 3.4*view.s, 0, 7);
+      ctx.fillStyle = '#F2555A';
+      ctx.shadowColor = 'rgba(242,85,90,.9)'; ctx.shadowBlur = 8;
+      ctx.fill(); ctx.shadowBlur = 0;
+    }
+    /* ports */
+    [[0,NH/2],[NW,NH/2]].forEach(([px,py])=>{
+      ctx.beginPath();
+      ctx.arc(p.x+px*view.s, p.y+py*view.s, 3*view.s, 0, 7);
+      ctx.fillStyle = '#0E1013'; ctx.fill();
+      ctx.strokeStyle = 'rgba(124,132,148,.9)'; ctx.lineWidth = 1.2; ctx.stroke();
+    });
+    ctx.restore();
+  });
+
+  /* packet */
+  if(run && !run.arrive){
+    const s = w2s(run.packet);
+    ctx.save();
+    ctx.shadowColor = '#6CD4C5'; ctx.shadowBlur = 16;
+    ctx.beginPath(); ctx.arc(s.x,s.y,4.2*view.s+1.5,0,7);
+    ctx.fillStyle = '#BFF3EC'; ctx.fill();
+    ctx.restore();
+    /* hop label */
+    ctx.font = '10px "SF Mono",Menlo,monospace';
+    ctx.fillStyle = 'rgba(108,212,197,.85)';
+    ctx.fillText('hop '+(run.hopIdx+1)+'/'+ (run.scen.route.length-1), s.x+10, s.y-10);
+  }
+  if(run && run.arrive && run.failed){
+    const s = w2s(run.packet);
+    ctx.save();
+    ctx.shadowColor = '#F2555A'; ctx.shadowBlur = 18;
+    ctx.beginPath(); ctx.arc(s.x,s.y,5,0,7);
+    ctx.fillStyle = '#F2555A'; ctx.fill();
+    ctx.restore();
+  }
+
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+</script>
+</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOKEN VIZ — Token 化与注意力机制可视化</title>
+<style>
+  :root{
+    --bg:#0D0E12; --bg2:#12141A; --panel:#161922; --line:#262B36; --line2:#343B49;
+    --ink:#E8EAF0; --dim:#8B93A5; --faint:#565E70;
+    --mint:#6EF2C1; --amber:#FFB454; --pink:#F28BB4; --grey:#9BA3B0;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+  ::selection{background:rgba(110,242,193,.25)}
+
+  header{flex:0 0 auto;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:10px 18px;border-bottom:1px solid var(--line);background:var(--bg2)}
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--mint);letter-spacing:.14em}
+  .brand .name{font-size:15px;font-weight:700;letter-spacing:.22em}
+  .brand .sub{font-size:11px;color:var(--dim)}
+  .seg{display:flex;border:1px solid var(--line2)}
+  .seg button{font-family:var(--mono);font-size:10px;letter-spacing:.08em;padding:6px 11px;
+    background:transparent;border:none;color:var(--dim);cursor:pointer;transition:all .15s var(--ease)}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--mint);color:#0D0E12;font-weight:700}
+  .ctl{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:9.5px;
+    color:var(--dim);letter-spacing:.1em}
+  .ctl b{color:var(--amber);min-width:24px;text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:90px;height:2px;background:var(--line2);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;
+    background:var(--amber);border:2px solid var(--bg);box-shadow:0 0 0 1px var(--amber);border-radius:50%}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--amber);border:2px solid var(--bg);border-radius:50%}
+  .toggle{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;
+    color:var(--dim);letter-spacing:.1em;cursor:pointer;user-select:none}
+  .toggle .trk{width:30px;height:16px;border:1px solid var(--line2);border-radius:9px;position:relative;transition:all .2s var(--ease)}
+  .toggle .trk::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;
+    border-radius:50%;background:var(--faint);transition:all .2s var(--ease)}
+  .toggle.on .trk{border-color:var(--mint);background:rgba(110,242,193,.15)}
+  .toggle.on .trk::after{left:16px;background:var(--mint)}
+  header .spacer{flex:1}
+
+  main{flex:1;display:flex;flex-direction:column;min-height:0;overflow-y:auto}
+  .wrap{max-width:1180px;width:100%;margin:0 auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+
+  .panel{background:var(--panel);border:1px solid var(--line)}
+  .p-head{display:flex;align-items:baseline;gap:12px;padding:10px 14px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:var(--faint)}
+  .p-head .t{color:var(--dim);font-weight:600}
+  .p-head .right{margin-left:auto;color:var(--dim);letter-spacing:.06em}
+
+  #src{width:100%;resize:none;background:transparent;border:none;outline:none;color:var(--ink);
+    font-family:var(--mono);font-size:13.5px;line-height:1.8;padding:14px;min-height:58px}
+  #src::placeholder{color:var(--faint)}
+
+  .stats{display:flex;gap:0;border-top:1px solid var(--line)}
+  .stat{flex:1;padding:9px 14px;border-right:1px solid var(--line)}
+  .stat:last-child{border-right:none}
+  .stat .v{font-family:var(--mono);font-size:17px;font-weight:600;color:var(--mint)}
+  .stat .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.18em;color:var(--faint);margin-top:2px}
+
+  #arcs{display:block;width:100%;height:96px}
+  #strip{display:flex;flex-wrap:wrap;gap:5px;padding:0 14px 14px}
+  .tok{font-family:var(--mono);font-size:12px;padding:5px 8px 4px;cursor:crosshair;
+    border:1px solid var(--line2);position:relative;transition:all .14s var(--ease);line-height:1.4}
+  .tok .id{position:absolute;top:-7px;right:-4px;font-size:7.5px;color:var(--faint);
+    background:var(--panel);padding:0 2px;opacity:0;transition:opacity .15s}
+  .tok:hover .id{opacity:1}
+  .tok:hover,.tok.hot{transform:translateY(-2px);border-color:var(--ink)}
+  .tok.t-cn{color:var(--mint)} .tok.t-cn:hover,.tok.t-cn.hot{border-color:var(--mint)}
+  .tok.t-w{color:var(--amber)} .tok.t-w:hover,.tok.t-w.hot{border-color:var(--amber)}
+  .tok.t-c{color:var(--pink)} .tok.t-c:hover,.tok.t-c.hot{border-color:var(--pink)}
+  .tok.t-p{color:var(--grey)}
+  .tok.t-s{color:var(--faint);border-style:dashed}
+
+  .split{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}
+  @media (max-width:900px){.split{grid-template-columns:1fr}}
+  #heatWrap{padding:14px;overflow-x:auto}
+  #heat{display:block;margin:0 auto}
+  #detail{padding:12px 14px;font-family:var(--mono);font-size:11px;line-height:2}
+  #detail .big{font-size:13px;color:var(--ink)}
+  #detail .q{color:var(--amber)} #detail .k2{color:var(--mint)}
+  #detail .bar{height:5px;background:var(--line);margin:6px 0 2px}
+  #detail .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--mint),var(--amber));transition:width .12s}
+  #detail .note{color:var(--faint);font-size:9.5px;letter-spacing:.08em;line-height:1.8;margin-top:10px}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;padding:9px 14px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:9px;letter-spacing:.1em;color:var(--dim)}
+  .legend i{display:inline-block;width:9px;height:9px;margin-right:5px;vertical-align:-1px}
+
+  footer{flex:0 0 30px;display:flex;align-items:center;gap:22px;padding:0 18px;
+    border-top:1px solid var(--line);background:var(--bg2);
+    font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em}
+  footer b{color:var(--dim);font-weight:600}
+  footer .sig{margin-left:auto}
+  @media (max-width:860px){
+    header{padding:8px 10px;gap:7px}
+    .brand .sub{display:none}
+    footer .sig{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="no">N°03</span><span class="name">TOKEN VIZ</span><span class="sub">Token 化 × 注意力机制</span></div>
+  <div class="seg" id="headSeg">
+    <button data-h="0" class="on">头·邻</button>
+    <button data-h="1">头·首</button>
+    <button data-h="2">头·指</button>
+    <button data-h="3">头·散</button>
+  </div>
+  <div class="toggle on" id="causal"><span class="trk"></span>因果掩码</div>
+  <div class="ctl">锐度<input type="range" id="sharp" min="20" max="300" value="100"><b id="sharpV">1.0</b></div>
+  <div class="spacer"></div>
+  <div class="ctl">TOKENS <b id="hN" style="color:var(--mint)">0</b></div>
+</header>
+
+<main><div class="wrap">
+
+  <div class="panel">
+    <div class="p-head"><span class="t">INPUT</span><span>输入文本 · 实时切分</span><span class="right">贪心最长匹配 · 类 BPE</span></div>
+    <textarea id="src" rows="2" spellcheck="false">大语言模型把文字切成 token 来阅读。The unreasonable effectiveness of attention: 每个词都在看别的词。</textarea>
+    <div class="stats">
+      <div class="stat"><div class="v" id="sChars">0</div><div class="k">字符数 CHARS</div></div>
+      <div class="stat"><div class="v" id="sToks">0</div><div class="k">TOKEN 数</div></div>
+      <div class="stat"><div class="v" id="sRatio">0</div><div class="k">字/TOKEN 比</div></div>
+      <div class="stat"><div class="v" id="sMax">0</div><div class="k">最长 TOKEN</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="p-head"><span class="t">ATTENTION FLOW</span><span>悬停 token · 看它的视线落向谁</span><span class="right" id="arcInfo">—</span></div>
+    <canvas id="arcs"></canvas>
+    <div id="strip"></div>
+    <div class="legend">
+      <span><i style="background:var(--mint)"></i>汉字/词元</span>
+      <span><i style="background:var(--amber)"></i>子词·首</span>
+      <span><i style="background:var(--pink)"></i>子词·续</span>
+      <span><i style="background:var(--grey)"></i>标点</span>
+      <span><i style="background:var(--faint)"></i>空白</span>
+    </div>
+  </div>
+
+  <div class="split">
+    <div class="panel">
+      <div class="p-head"><span class="t">ATTENTION MATRIX</span><span>第 i 行 = 第 i 个 token 的注意力分布</span><span class="right" id="hmInfo">移动查看权重</span></div>
+      <div id="heatWrap"><canvas id="heat"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="p-head"><span class="t">INSPECTOR</span></div>
+      <div id="detail">
+        <div class="big">把光标移到热力图上</div>
+        <div class="note">Q → K 即「谁在看谁」。<br>行经过 softmax 归一，和恒为 1。<br>因果掩码开启时，token 只能回望过去——这正是 GPT 式自回归的纪律。</div>
+      </div>
+    </div>
+  </div>
+
+</div></main>
+
+<footer>
+  <span>HEAD <b id="fHead">LOCAL</b></span>
+  <span>MASK <b id="fMask">CAUSAL</b></span>
+  <span>SOFTMAX <b id="fSharp">τ 1.00</b></span>
+  <span class="sig">TOKEN VIZ · WORK 03 / AGENT-DEMOS</span>
+</footer>
+
+<script>
+"use strict";
+/* ============ tokenizer (greedy longest-match, BPE-flavored) ============ */
+const AFFIX_PRE=["un","re","pre","dis","mis","trans","inter","over","under","sub","anti","auto","co","de","en","fore","im","in","non","out","post","pro","semi","super"];
+const AFFIX_SUF=["ization","ational","iveness","fulness","ousness","ation","ition","tion","sion","ment","ness","able","ible","ings","ing","ers","er","est","ies","es","ed","ly","al","ic","ist","ity","ous","ive","less","ify","s","'s","'t"];
+function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))>>>0;return h;}
+function tokenize(text){
+  const toks=[]; let i=0;
+  while(i<text.length){
+    const ch=text[i];
+    if(ch===" "||ch==="\t"){ let j=i;while(j<text.length&&(text[j]===" "||text[j]==="\t"))j++;
+      toks.push({t:text.slice(i,j).replace(/ /g,"␣").replace(/\t/g,"⇥"),type:"s",raw:text.slice(i,j)});i=j;continue;}
+    if(ch==="\n"){ toks.push({t:"↵",type:"s",raw:"\n"});i++;continue;}
+    if(/[一-鿿　-〿＀-￯]/.test(ch)){ toks.push({t:ch,type:"cn",raw:ch});i++;continue;}
+    if(/[A-Za-z]/.test(ch)){
+      let j=i;while(j<text.length&&/[A-Za-z']/.test(text[j]))j++;
+      const word=text.slice(i,j), low=word.toLowerCase();
+      let rest=low, pos=0, first=true;
+      const caps=word[0]===word[0].toUpperCase();
+      while(rest.length>0){
+        let piece=null;
+        if(first){
+          for(const a of AFFIX_PRE)if(rest.startsWith(a)&&rest.length>a.length+2){piece=a;break;}
+          if(!piece){ piece=rest.slice(0,Math.min(rest.length,4)); }
+        } else {
+          for(const a of AFFIX_SUF)if(rest.endsWith(a)&&rest.length>=a.length){piece=a;break;}
+          if(!piece||rest.length<=4){ piece=rest; }
+          else piece=rest.slice(0,Math.ceil(rest.length/2));
+        }
+        if(first&&piece.length>=rest.length)piece=rest;
+        const show=(first?"":"##")+(first&&caps?piece[0].toUpperCase()+piece.slice(1):piece);
+        toks.push({t:show,type:first?"w":"c",raw:word.slice(pos,pos+piece.length)});
+        rest=rest.slice(piece.length);pos+=piece.length;first=false;
+      }
+      i=j;continue;
+    }
+    if(/[0-9]/.test(ch)){ let j=i;while(j<text.length&&/[0-9]/.test(text[j]))j++;
+      const num=text.slice(i,j);
+      for(let k=0;k<num.length;k+=3)toks.push({t:num.slice(k,k+3),type:"w",raw:num.slice(k,k+3)});
+      i=j;continue;}
+    toks.push({t:ch,type:"p",raw:ch});i++;
+  }
+  toks.forEach((t,idx)=>{ t.idx=idx; t.id=(hash(t.raw)%50000)+1000; });
+  return toks;
+}
+
+/* ============ synthetic attention ============ */
+let HEAD=0, CAUSAL=true, SHARP=1.0;
+const HEAD_NAMES=["LOCAL","GLOBAL-FIRST","ANAPHORA","DIFFUSE"];
+function rawScore(ti,tj,i,j,N){
+  const dist=Math.abs(i-j);
+  const noise=((hash(ti.raw+"§"+tj.raw)%1000)/1000)*0.35;
+  switch(HEAD){
+    case 0: return 2.6/(1+dist) + noise;                       // local
+    case 1: return (j===0?2.2:0)+(tj.type==="p"?1.1:0)+noise;  // to first & punct
+    case 2:{                                                     // anaphora-ish: look back at long content tokens
+      const back=j<i?(tj.raw.length>=3?1.5:0.2):0;
+      return back/(1+dist*0.25)+ (i===j?0.5:0)+noise;}
+    default: return 0.7+noise*1.8;                              // diffuse
+  }
+}
+function buildMatrix(toks){
+  const N=toks.length, M=[];
+  for(let i=0;i<N;i++){
+    const row=[]; let mx=-1e9;
+    for(let j=0;j<N;j++){
+      let s=(CAUSAL&&j>i)?-1e9:rawScore(toks[i],toks[j],i,j,N);
+      row.push(s); if(s>mx)mx=s;
+    }
+    let sum=0;
+    for(let j=0;j<N;j++){ row[j]=Math.exp((row[j]-mx)*SHARP); sum+=row[j]; }
+    for(let j=0;j<N;j++)row[j]/=sum;
+    M.push(row);
+  }
+  return M;
+}
+
+/* ============ state & dom ============ */
+let toks=[], MAT=[], pinned=-1;
+const src=document.getElementById("src"), strip=document.getElementById("strip");
+const arcs=document.getElementById("arcs"), actx=arcs.getContext("2d");
+const heat=document.getElementById("heat"), hctx=heat.getContext("2d");
+const DPR=Math.min(window.devicePixelRatio||1,2);
+
+function rebuild(){
+  toks=tokenize(src.value).slice(0,72);
+  MAT=buildMatrix(toks);
+  document.getElementById("sChars").textContent=src.value.length;
+  document.getElementById("sToks").textContent=toks.length;
+  document.getElementById("sRatio").textContent=(src.value.length/Math.max(1,toks.length)).toFixed(2);
+  document.getElementById("sMax").textContent=toks.reduce((m,t)=>Math.max(m,t.t.length),0);
+  document.getElementById("hN").textContent=toks.length;
+  buildStrip(); drawHeat(); drawArcs(-1);
+}
+let rT=null;
+src.addEventListener("input",()=>{ clearTimeout(rT); rT=setTimeout(()=>{pinned=-1;rebuild();},160); });
+
+/* ---- token strip ---- */
+function buildStrip(){
+  strip.innerHTML="";
+  toks.forEach(t=>{
+    const d=document.createElement("span");
+    d.className="tok t-"+t.type;
+    d.innerHTML=escapeHtml(t.t)+"<span class='id'>#"+t.id+"</span>";
+    d.addEventListener("mouseenter",()=>{ drawArcs(t.idx); markHot(t.idx); });
+    d.addEventListener("mouseleave",()=>{ drawArcs(pinned); markHot(pinned); });
+    d.addEventListener("click",()=>{ pinned=(pinned===t.idx?-1:t.idx); drawArcs(pinned); markHot(pinned); });
+    strip.appendChild(d);
+  });
+}
+function escapeHtml(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function markHot(i){
+  [...strip.children].forEach((el,k)=>el.classList.toggle("hot",k===i));
+  document.getElementById("arcInfo").textContent=i<0?"—":
+    "QUERY #"+i+" 「"+toks[i].t+"」 · 看向 "+(CAUSAL?i+1:toks.length)+" 个 KEY";
+}
+
+/* ---- arcs canvas ---- */
+function sizeArcs(){
+  const w=arcs.parentElement.getBoundingClientRect().width;
+  arcs.width=w*DPR; arcs.height=96*DPR;
+  arcs.style.width=w+"px"; arcs.style.height="96px";
+  actx.setTransform(DPR,0,0,DPR,0,0);
+}
+let arcAnim=null;
+function drawArcs(qi){
+  if(arcAnim)cancelAnimationFrame(arcAnim);
+  const w=arcs.width/DPR, h=96;
+  const kids=[...strip.children];
+  const centers=kids.map(el=>{
+    const r=el.getBoundingClientRect(), pr=strip.getBoundingClientRect();
+    return r.left-pr.left+r.width/2;
+  });
+  let t0=null;
+  function frame(ts){
+    if(!t0)t0=ts;
+    const p=Math.min(1,(ts-t0)/220), e=1-Math.pow(1-p,3);
+    actx.clearRect(0,0,w,h);
+    if(qi>=0&&toks[qi]){
+      const row=MAT[qi];
+      const jmax=(CAUSAL?qi:toks.length-1);
+      for(let j=0;j<=jmax;j++){
+        const wt=row[j];
+        if(wt<0.015)continue;
+        const x1=centers[qi], x2=centers[j];
+        const dist=Math.abs(x2-x1);
+        const ah=Math.min(74,14+dist*0.32);
+        const te=e; // arc progress
+        actx.beginPath();
+        const steps=24;
+        for(let s=0;s<=steps*te;s++){
+          const tt=s/steps;
+          const bx=(1-tt)*(1-tt)*x1+2*(1-tt)*tt*((x1+x2)/2)+tt*tt*x2;
+          const by=(1-tt)*(1-tt)*(h-2)+2*(1-tt)*tt*(h-2-ah*2)+tt*tt*(h-2);
+          s===0?actx.moveTo(bx,by):actx.lineTo(bx,by);
+        }
+        const strong=wt>0.18;
+        actx.strokeStyle=strong?"rgba(255,180,84,"+Math.min(1,wt*2.4)+")":"rgba(110,242,193,"+Math.min(0.9,wt*2.8)+")";
+        actx.lineWidth=Math.max(1,wt*10);
+        actx.stroke();
+      }
+      // query marker
+      const xq=centers[qi];
+      actx.fillStyle="#FFB454";
+      actx.beginPath();actx.moveTo(xq-5,h-1);actx.lineTo(xq+5,h-1);actx.lineTo(xq,h-8);actx.closePath();actx.fill();
+    }
+    if(p<1)arcAnim=requestAnimationFrame(frame);
+  }
+  arcAnim=requestAnimationFrame(frame);
+}
+
+/* ---- heatmap ---- */
+let hoverCell=null;
+function drawHeat(){
+  const N=toks.length;
+  if(N===0){heat.width=10;heat.height=10;return;}
+  const labelL=64, labelB=46;
+  const avail=Math.max(260,Math.min(640,document.getElementById("heatWrap").clientWidth-28-labelL));
+  const cell=Math.max(9,Math.min(26,Math.floor(avail/N)));
+  const W=labelL+cell*N+8, H=cell*N+labelB;
+  heat.width=W*DPR; heat.height=H*DPR;
+  heat.style.width=W+"px"; heat.style.height=H+"px";
+  hctx.setTransform(DPR,0,0,DPR,0,0);
+  hctx.clearRect(0,0,W,H);
+  // axis labels
+  hctx.font="8.5px 'SF Mono',Menlo,monospace";
+  hctx.textBaseline="middle";
+  for(let i=0;i<N;i++){
+    hctx.fillStyle=i===hoverCell?.i?"#FFB454":"#565E70";
+    const lbl=toks[i].t.length>6?toks[i].t.slice(0,6)+"…":toks[i].t;
+    hctx.textAlign="right";
+    hctx.fillText(lbl,labelL-6,cell*(i+0.5));
+    hctx.save();
+    hctx.translate(labelL+cell*(i+0.5),cell*N+8);
+    hctx.rotate(Math.PI/3);
+    hctx.textAlign="left";
+    hctx.fillStyle=i===hoverCell?.j?"#6EF2C1":"#565E70";
+    hctx.fillText(lbl,0,0);
+    hctx.restore();
+  }
+  for(let i=0;i<N;i++)for(let j=0;j<N;j++){
+    const x=labelL+j*cell, y=i*cell;
+    if(CAUSAL&&j>i){
+      hctx.fillStyle="#12141A";
+      hctx.fillRect(x,y,cell,cell);
+      hctx.strokeStyle="rgba(38,43,54,.6)";
+      hctx.strokeRect(x+.5,y+.5,cell-1,cell-1);
+      continue;
+    }
+    const v=MAT[i][j];
+    const hot=hoverCell&&hoverCell.i===i&&hoverCell.j===j;
+    hctx.fillStyle=heatColor(v);
+    hctx.fillRect(x,y,cell,cell);
+    if(hot){hctx.strokeStyle="#E8EAF0";hctx.lineWidth=1.5;hctx.strokeRect(x+.75,y+.75,cell-1.5,cell-1.5);hctx.lineWidth=1;}
+  }
+  // crosshair
+  if(hoverCell){
+    const{i,j}=hoverCell;
+    hctx.fillStyle="rgba(255,180,84,.08)";
+    hctx.fillRect(labelL,i*cell,cell*N,cell);
+    hctx.fillRect(labelL+j*cell,0,cell,cell*N+0);
+  }
+}
+function heatColor(v){
+  // 0 -> deep panel, 1 -> amber; mint mid-stop
+  const a=Math.min(1,v*1.6);
+  const r=Math.round(22+ (255-22)*a);
+  const g=Math.round(25+ (180-25)*a*a + (242-180)*Math.max(0,a-.6));
+  const b=Math.round(34+ (84-34)*a*a + (193-84)*Math.max(0,0.4-Math.abs(a-.4)));
+  return "rgb("+Math.min(255,r)+","+Math.min(255,g)+","+Math.min(255,b)+")";
+}
+heat.addEventListener("mousemove",e=>{
+  const r=heat.getBoundingClientRect();
+  const labelL=64;
+  const N=toks.length;
+  if(!N)return;
+  const cell=(heat.width/DPR-labelL-8)/N;
+  const j=Math.floor((e.clientX-r.left-labelL)/cell);
+  const i=Math.floor((e.clientY-r.top)/cell);
+  if(i>=0&&i<N&&j>=0&&j<N){
+    hoverCell={i,j};
+    const v=(CAUSAL&&j>i)?null:MAT[i][j];
+    document.getElementById("hmInfo").textContent="Q#"+i+" → K#"+j+(v==null?" · 被掩码":"");
+    const det=document.getElementById("detail");
+    if(v==null){
+      det.innerHTML="<div class='big'><span class='q'>「"+escapeHtml(toks[i].t)+"」</span> ⇢ <span class='k2'>「"+escapeHtml(toks[j].t)+"」</span></div>"
+        +"<div style='color:var(--pink)'>■ 因果掩码：未来不可见</div>"
+        +"<div class='note'>自回归模型只许回望——这一格被强制归零。</div>";
+    } else {
+      det.innerHTML="<div class='big'><span class='q'>「"+escapeHtml(toks[i].t)+"」</span> ⇢ <span class='k2'>「"+escapeHtml(toks[j].t)+"」</span></div>"
+        +"注意力权重 <b style='color:var(--amber)'>"+v.toFixed(4)+"</b>"
+        +"<div class='bar'><i style='width:"+Math.min(100,v*100*2)+"%'></i></div>"
+        +"占第 "+i+" 行分布的 "+(v*100).toFixed(1)+"%"
+        +"<div class='note'>"+HEAD_NAMES[HEAD]+" 头 · τ="+SHARP.toFixed(2)+(CAUSAL?" · 因果掩码":"")+"</div>";
+    }
+    drawHeat();
+  }
+});
+heat.addEventListener("mouseleave",()=>{ hoverCell=null; drawHeat();
+  document.getElementById("hmInfo").textContent="移动查看权重"; });
+
+/* ---- controls ---- */
+document.querySelectorAll("#headSeg button").forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll("#headSeg button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on"); HEAD=+b.dataset.h;
+    document.getElementById("fHead").textContent=HEAD_NAMES[HEAD];
+    MAT=buildMatrix(toks); drawHeat(); drawArcs(pinned);
+  };
+});
+const causalEl=document.getElementById("causal");
+causalEl.onclick=()=>{
+  CAUSAL=!CAUSAL; causalEl.classList.toggle("on",CAUSAL);
+  document.getElementById("fMask").textContent=CAUSAL?"CAUSAL":"FULL";
+  MAT=buildMatrix(toks); drawHeat(); drawArcs(pinned);
+};
+const sharpEl=document.getElementById("sharp");
+sharpEl.addEventListener("input",()=>{
+  SHARP=sharpEl.value/100;
+  document.getElementById("sharpV").textContent=SHARP.toFixed(1);
+  document.getElementById("fSharp").textContent="τ "+SHARP.toFixed(2);
+  MAT=buildMatrix(toks); drawHeat(); drawArcs(pinned);
+});
+window.addEventListener("resize",()=>{ sizeArcs(); drawHeat(); drawArcs(pinned); });
+sizeArcs(); rebuild();
+</script>
+</body>
+</html>

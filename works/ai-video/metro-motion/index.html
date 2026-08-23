@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>轨道生长 / Metro Motion — 02</title>
+<style>
+:root{
+  --paper:#f6f4ef; --ink:#141414; --red:#d0312d; --blue:#1b4f9c; --amber:#df9f00;
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:18px;padding:18px 28px 14px;border-bottom:2px solid var(--ink);flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:14px}
+.brand .no{font-family:var(--mono);font-size:10px;letter-spacing:.22em}
+.brand h1{font-family:var(--serif);font-weight:400;font-size:clamp(20px,2.6vw,30px);letter-spacing:.01em}
+.brand .en{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#6a665e}
+.legend{display:flex;gap:16px;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.08em}
+.legend .chip{display:flex;align-items:center;gap:6px}
+.legend .sw{width:22px;height:6px;display:inline-block}
+.mapwrap{flex:1;position:relative;min-height:0}
+svg#map{position:absolute;inset:0;width:100%;height:100%}
+.station{transform-box:fill-box;transform-origin:center;transform:scale(0);transition:transform .5s cubic-bezier(.2,1.6,.35,1)}
+.station.on{transform:scale(1)}
+.station circle{transition:r .2s}
+g.station:hover circle.face{stroke-width:5}
+g.station{cursor:pointer}
+.stlabel{font-family:var(--mono);font-size:13px;fill:var(--ink);letter-spacing:.04em;opacity:0;transition:opacity .4s .1s}
+.stlabel.on{opacity:1}
+.bar{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:14px 28px;border-top:1px solid rgba(20,20,20,.25)}
+.status{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#6a665e;flex:1;min-width:180px}
+.status b{color:var(--ink);font-weight:600}
+.ctl{display:flex;align-items:center;gap:10px}
+.ctl label{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#6a665e}
+input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:20px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;margin-top:-5px;background:var(--paper);border:2px solid var(--ink);border-radius:0}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--red)}
+input[type=range]::-moz-range-track{height:2px;background:var(--ink)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--paper);border:2px solid var(--ink);border-radius:0}
+button{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:9px 16px;background:transparent;color:var(--ink);border:2px solid var(--ink);cursor:pointer;transition:all .2s}
+button:hover{background:var(--ink);color:var(--paper)}
+button.primary{background:var(--ink);color:var(--paper)}
+button.primary:hover{background:var(--red);border-color:var(--red)}
+@media(max-width:720px){
+  header{padding:14px 18px 10px}
+  .bar{padding:12px 18px;gap:12px}
+  input[type=range]{width:90px}
+  .stlabel{font-size:16px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="no">02 / AI·VIDEO</span>
+    <h1>轨道生长</h1>
+    <span class="en">Metro Motion — a network draws itself</span>
+  </div>
+  <div class="legend" id="legend"></div>
+</header>
+<div class="mapwrap">
+  <svg id="map" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1380 980" preserveAspectRatio="xMidYMid meet" role="img" aria-label="生成的地铁线路图"></svg>
+</div>
+<div class="bar">
+  <div class="status" id="status">铺设中 · <b>LINE 1</b></div>
+  <div class="ctl"><label>速度 Speed</label><input id="speed" type="range" min="0.4" max="2.5" step="0.1" value="1"></div>
+  <button id="replay">重播 Replay</button>
+  <button id="regen" class="primary">随机路网</button>
+  <button id="export">导出 SVG</button>
+</div>
+<script>
+(function(){
+"use strict";
+var svg=document.getElementById('map');
+var NS='http://www.w3.org/2000/svg';
+var COLS=12,ROWS=8,CELL=100,OX=90,OY=90;
+var DIRS=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+var COLORS=['#d0312d','#1b4f9c','#df9f00'];
+var NAMES=["衡山路","北滩","白塔","杉林","江湾","旧港","南山","栖霞","云台","望江","石桥","麓湖","东篱","西津","南浦","北辰","汀洲","枫林","长桥","望月","临溪","鹤鸣","双塔","青梧","古渡","晴川","晓风","半山","闻莺","石泉"];
+var lines=[],speed=1,t0=performance.now(),done=false;
+var statusEl=document.getElementById('status');
+
+function rnd(n){return Math.floor(Math.random()*n);}
+function px(gx){return OX+gx*CELL;}
+function py(gy){return OY+gy*CELL;}
+function el(name,attrs,parent){var e=document.createElementNS(NS,name);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+
+function weightedOrder(cands){
+  var arr=cands.slice(),out=[];
+  while(arr.length){
+    var tot=0,i;for(i=0;i<arr.length;i++)tot+=arr[i].w;
+    var r=Math.random()*tot;
+    for(i=0;i<arr.length;i++){r-=arr[i].w;if(r<=0){out.push(arr.splice(i,1)[0]);break;}}
+  }
+  return out;
+}
+
+function genLine(gridUse){
+  for(var attempt=0;attempt<60;attempt++){
+    var x=1+rnd(COLS-1),y=1+rnd(ROWS-1);
+    var pts=[[x,y]],visited={};visited[x+','+y]=1;
+    var dir=DIRS[rnd(8)];
+    var segs=9+rnd(5);
+    for(var s=0;s<segs;s++){
+      var cands=[];
+      for(var di=0;di<DIRS.length;di++){
+        var d=DIRS[di];
+        if(d[0]===-dir[0]&&d[1]===-dir[1])continue; // no U-turn
+        var w=(d[0]===dir[0]&&d[1]===dir[1])?5:2;
+        var nx=x+d[0],ny=y+d[1];
+        if(nx<0||nx>COLS||ny<0||ny>ROWS)continue;
+        if(visited[nx+','+ny])continue;
+        if(gridUse[nx+','+ny])w+=3; // attract to other lines -> interchanges
+        cands.push({d:d,w:w});
+      }
+      if(!cands.length)break;
+      var pick=weightedOrder(cands)[0];
+      x+=pick.d[0];y+=pick.d[1];dir=pick.d;
+      visited[x+','+y]=1;pts.push([x,y]);
+    }
+    if(pts.length>=8)return pts;
+  }
+  return null;
+}
+
+function build(){
+  lines=[];done=false;
+  var gridUse={},namePool=NAMES.slice();
+  function takeName(){var i=rnd(namePool.length);return namePool.splice(i,1)[0];}
+  for(var li=0;li<3;li++){
+    var pts=genLine(gridUse);
+    if(!pts)continue;
+    pts.forEach(function(p){gridUse[p[0]+','+p[1]]=(gridUse[p[0]+','+p[1]]||0)+1;});
+    lines.push({id:li+1,pts:pts,color:COLORS[li],stations:[],len:0});
+  }
+  // cumulative distances + station objects
+  lines.forEach(function(L){
+    var cum=[0];
+    for(var i=1;i<L.pts.length;i++){
+      var dx=L.pts[i][0]-L.pts[i-1][0],dy=L.pts[i][1]-L.pts[i-1][1];
+      cum.push(cum[i-1]+Math.sqrt(dx*dx+dy*dy)*CELL);
+    }
+    L.len=cum[cum.length-1];
+    L.pts.forEach(function(p,i){
+      var shared=(gridUse[p[0]+','+p[1]]||0)>1;
+      L.stations.push({gx:p[0],gy:p[1],frac:cum[i]/L.len,inter:shared,
+        terminal:i===0||i===L.pts.length-1,name:takeName()});
+    });
+  });
+  render();
+  replay();
+}
+
+function render(){
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+  // faint grid dots
+  var dots=el('g',{},svg);
+  for(var gx=0;gx<=COLS;gx++)for(var gy=0;gy<=ROWS;gy++)
+    el('circle',{cx:px(gx),cy:py(gy),r:1.6,fill:'rgba(20,20,20,.14)'},dots);
+  var legend=document.getElementById('legend');legend.innerHTML='';
+  lines.forEach(function(L){
+    var chip=document.createElement('span');chip.className='chip';
+    chip.innerHTML='<span class="sw" style="background:'+L.color+'"></span>LINE '+L.id;
+    legend.appendChild(chip);
+    var dstr=L.pts.map(function(p,i){return (i?'L':'M')+px(p[0])+' '+py(p[1]);}).join(' ');
+    L.path=el('path',{d:dstr,fill:'none',stroke:L.color,'stroke-width':11,'stroke-linecap':'round','stroke-linejoin':'round'},svg);
+    L.path.style.strokeDasharray=L.len;
+    L.path.style.strokeDashoffset=L.len;
+    L.nodeEls=[];
+    L.stations.forEach(function(st){
+      var g=el('g',{'class':'station'},svg);
+      if(st.inter){
+        el('circle',{'class':'face',cx:px(st.gx),cy:py(st.gy),r:11,fill:'#f6f4ef',stroke:'#141414','stroke-width':4},g);
+        el('circle',{cx:px(st.gx),cy:py(st.gy),r:3.5,fill:'#141414'},g);
+      }else{
+        el('circle',{'class':'face',cx:px(st.gx),cy:py(st.gy),r:7.5,fill:'#f6f4ef',stroke:'#141414','stroke-width':3.5},g);
+      }
+      var showLabel=st.inter||st.terminal;
+      var anchor=px(st.gx)>690?'end':'start';
+      var lx=px(st.gx)+(anchor==='end'?-18:18);
+      var ly=py(st.gy)-16;
+      var txt=el('text',{'class':'stlabel'+(showLabel?' always':''),x:lx,y:ly,'text-anchor':anchor},g);
+      txt.textContent=st.name;
+      g.addEventListener('mouseenter',function(){
+        statusEl.innerHTML='<b>'+st.name+'站</b> · LINE '+L.id+(st.inter?' · 换乘站':'');
+        if(!showLabel)txt.classList.add('on');
+      });
+      g.addEventListener('mouseleave',function(){
+        if(!showLabel)txt.classList.remove('on');
+      });
+      L.nodeEls.push({frac:st.frac,node:g,label:showLabel?txt:null});
+    });
+  });
+}
+
+function replay(){
+  t0=performance.now();done=false;
+  lines.forEach(function(L){
+    L.path.style.strokeDashoffset=L.len;
+    L.nodeEls.forEach(function(n){
+      n.node.classList.remove('on');
+      if(n.label)n.label.classList.remove('on');
+    });
+  });
+}
+
+function frame(now){
+  var t=(now-t0)/1000*speed;
+  var allDone=true;
+  lines.forEach(function(L,i){
+    var delay=i*0.9;
+    var prog=Math.max(0,Math.min(1,(t-delay)/3.2));
+    if(prog<1)allDone=false;
+    L.path.style.strokeDashoffset=L.len*(1-prog);
+    L.nodeEls.forEach(function(n){
+      if(n.frac<=prog){n.node.classList.add('on');if(n.label)n.label.classList.add('on');}
+    });
+  });
+  if(allDone&&!done){done=true;statusEl.innerHTML='路网就绪 · <b>'+lines.length+' 条线路</b> · 悬停查看站点';}
+  else if(!done){
+    var cur=lines.find(function(L,i){return (t-i*0.9)<3.2;});
+    if(cur)statusEl.innerHTML='铺设中 · <b>LINE '+cur.id+'</b>';
+  }
+  requestAnimationFrame(frame);
+}
+
+document.getElementById('speed').addEventListener('input',function(e){speed=parseFloat(e.target.value);});
+document.getElementById('replay').addEventListener('click',replay);
+document.getElementById('regen').addEventListener('click',build);
+document.getElementById('export').addEventListener('click',function(){
+  var clone=svg.cloneNode(true);
+  clone.setAttribute('xmlns',NS);
+  var bg=document.createElementNS(NS,'rect');
+  bg.setAttribute('width','1380');bg.setAttribute('height','980');bg.setAttribute('fill','#f6f4ef');
+  clone.insertBefore(bg,clone.firstChild);
+  // bake current animation state into the export
+  lines.forEach(function(L,i){
+    var p=clone.querySelectorAll('path')[i];
+    if(p)p.style.strokeDashoffset=0;
+  });
+  var blob=new Blob([new XMLSerializer().serializeToString(clone)],{type:'image/svg+xml'});
+  var a=document.createElement('a');
+  a.download='metro-motion.svg';
+  a.href=URL.createObjectURL(blob);
+  a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+});
+
+build();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

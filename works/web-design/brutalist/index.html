@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAW™ — 毛坯结构工作室 / RAW STRUCTURE STUDIO</title>
+<style>
+  :root{
+    --yel:#FFD400;
+    --blk:#0A0A0A;
+    --wht:#FFFFFF;
+    --ease:cubic-bezier(.19,1,.22,1);
+    --mono:"SF Mono",Menlo,Consolas,"Courier New",monospace;
+    --sans:"Helvetica Neue",Helvetica,Arial,"PingFang SC",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--wht);
+    color:var(--blk);
+    font-family:var(--sans);
+    cursor:crosshair;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--blk);color:var(--yel)}
+  a,button,label{cursor:crosshair}
+
+  /* hazard tape utility */
+  .tape{
+    height:26px;
+    background:repeating-linear-gradient(-45deg,var(--blk) 0 22px,var(--yel) 22px 44px);
+    border-top:3px solid var(--blk);border-bottom:3px solid var(--blk);
+  }
+
+  /* top marquee */
+  .topbar{background:var(--blk);color:var(--yel);overflow:hidden;border-bottom:3px solid var(--blk)}
+  #mq{white-space:nowrap;display:inline-block;padding:10px 0;
+      font-family:var(--mono);font-size:13px;font-weight:700;letter-spacing:.08em;will-change:transform}
+  #mq span{padding:0 34px}
+  #mq b{color:var(--wht)}
+
+  /* corner chrome */
+  .chrome{position:fixed;z-index:60;font-family:var(--mono);font-size:11px;font-weight:700;
+    background:var(--blk);color:var(--yel);padding:6px 10px;letter-spacing:.06em;pointer-events:none}
+  .chrome.tl{top:0;left:0}
+  .chrome.tr{top:0;right:0;color:var(--wht)}
+
+  /* ============ hero ============ */
+  header{
+    position:relative;min-height:88vh;overflow:hidden;
+    border-bottom:3px solid var(--blk);
+    background:
+      linear-gradient(rgba(10,10,10,.055) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(10,10,10,.055) 1px,transparent 1px);
+    background-size:56px 56px;
+  }
+  .hero-inner{position:relative;padding:110px 5vw 120px;z-index:2}
+  .hero-kicker{
+    display:inline-block;background:var(--blk);color:var(--wht);
+    font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;
+    padding:8px 14px;margin-bottom:26px;
+  }
+  h1{
+    font-size:clamp(56px,12.5vw,190px);line-height:.86;font-weight:900;
+    letter-spacing:-.03em;text-transform:uppercase;
+  }
+  h1 .fill{text-shadow:6px 6px 0 var(--yel)}
+  h1 .hole{
+    color:var(--wht);
+    -webkit-text-stroke:3px var(--blk);
+    text-stroke:3px var(--blk);
+  }
+  h1 .yel{background:var(--yel);padding:0 2vw;display:inline-block;
+    box-shadow:8px 8px 0 var(--blk);transform:rotate(-1.2deg)}
+  .hero-sub{
+    margin-top:40px;max-width:520px;
+    font-family:var(--mono);font-size:14px;line-height:1.8;
+    border:3px solid var(--blk);background:var(--wht);
+    padding:18px 20px;box-shadow:8px 8px 0 var(--blk);
+  }
+  .hero-hint{
+    margin-top:18px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:#555;
+  }
+  .hero-hint b{background:var(--yel);padding:2px 6px;border:2px solid var(--blk);color:var(--blk)}
+
+  /* draggable stamps */
+  .stamp{
+    position:absolute;z-index:5;touch-action:none;user-select:none;
+    font-family:var(--mono);font-weight:900;text-transform:uppercase;
+    border:4px solid var(--blk);background:var(--wht);
+    padding:12px 18px;letter-spacing:.05em;line-height:1.15;text-align:center;
+    box-shadow:7px 7px 0 var(--blk);
+    transition:box-shadow .18s var(--ease), background .18s var(--ease);
+  }
+  .stamp:hover{background:var(--yel)}
+  .stamp.drag{box-shadow:2px 2px 0 var(--blk);background:var(--yel)}
+  .stamp.round{border-radius:50%;width:150px;height:150px;display:flex;align-items:center;justify-content:center;border-width:5px}
+  .stamp.yel{background:var(--yel)}
+  .stamp.blk{background:var(--blk);color:var(--yel);box-shadow:7px 7px 0 var(--yel)}
+  .stamp small{display:block;font-size:9px;font-weight:700;margin-top:4px}
+
+  /* ============ sections ============ */
+  section{border-bottom:3px solid var(--blk)}
+  .sec-tag{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:14px 5vw;border-bottom:3px solid var(--blk);
+    font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    background:var(--yel);
+  }
+  .sec-tag.inv{background:var(--blk);color:var(--wht)}
+
+  /* services */
+  .svc-grid{display:grid;grid-template-columns:repeat(3,1fr)}
+  .svc{
+    border-right:3px solid var(--blk);padding:44px 5vw 44px 28px;min-height:280px;
+    position:relative;background:var(--wht);
+    transition:background .25s var(--ease),color .25s var(--ease);
+  }
+  .svc:last-child{border-right:0}
+  .svc .num{font-family:var(--mono);font-size:12px;font-weight:700}
+  .svc h3{font-size:clamp(24px,3vw,40px);font-weight:900;text-transform:uppercase;
+    letter-spacing:-.02em;margin:70px 0 18px;line-height:1}
+  .svc p{font-family:var(--mono);font-size:13px;line-height:1.75;max-width:34ch}
+  .svc:hover{background:var(--blk);color:var(--wht)}
+  .svc:hover .num{color:var(--yel)}
+
+  /* works */
+  .work-row{
+    display:grid;grid-template-columns:90px 1fr auto;gap:24px;align-items:center;
+    padding:30px 5vw;border-bottom:3px solid var(--blk);
+    transition:background .22s var(--ease),color .22s var(--ease),padding-left .35s var(--ease);
+  }
+  .work-row:last-child{border-bottom:0}
+  .work-row .idx{font-family:var(--mono);font-size:13px;font-weight:700}
+  .work-row h3{font-size:clamp(26px,4.5vw,56px);font-weight:900;text-transform:uppercase;letter-spacing:-.02em;line-height:1}
+  .work-row .meta{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-align:right;line-height:1.9}
+  .work-row:hover{background:var(--blk);color:var(--wht);padding-left:7vw}
+  .work-row:hover .idx{color:var(--yel)}
+  .work-row:hover .meta{color:var(--yel)}
+
+  /* manifesto */
+  .manifesto{
+    padding:90px 5vw;background:var(--blk);color:var(--wht);
+    font-family:var(--mono);
+  }
+  .manifesto p{
+    font-size:clamp(18px,2.6vw,34px);line-height:1.6;font-weight:700;
+    max-width:26ch;text-transform:uppercase;letter-spacing:.01em;
+  }
+  .manifesto .y{color:var(--yel)}
+  .manifesto .o{color:#666;text-decoration:line-through}
+
+  /* contact */
+  .contact{display:grid;grid-template-columns:1fr 1fr;min-height:60vh}
+  .contact .left{
+    padding:70px 5vw;border-right:3px solid var(--blk);background:var(--yel);
+    display:flex;flex-direction:column;justify-content:space-between;gap:40px;
+  }
+  .contact h2{font-size:clamp(40px,6vw,88px);font-weight:900;line-height:.9;
+    text-transform:uppercase;letter-spacing:-.03em}
+  .contact .addr{font-family:var(--mono);font-size:13px;line-height:2;font-weight:700}
+  form{padding:70px 5vw;display:flex;flex-direction:column;gap:26px;background:var(--wht)}
+  .fld label{display:block;font-family:var(--mono);font-size:11px;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+  .fld input,.fld textarea{
+    width:100%;border:3px solid var(--blk);background:var(--wht);
+    font-family:var(--mono);font-size:14px;padding:13px 14px;outline:none;border-radius:0;
+    box-shadow:5px 5px 0 var(--blk);
+    transition:box-shadow .15s var(--ease),transform .15s var(--ease);
+  }
+  .fld input:focus,.fld textarea:focus{box-shadow:2px 2px 0 var(--blk);transform:translate(3px,3px);background:#fffbe0}
+  .fld textarea{min-height:110px;resize:vertical}
+  .send{
+    align-self:flex-start;border:3px solid var(--blk);background:var(--blk);color:var(--yel);
+    font-family:var(--mono);font-size:14px;font-weight:900;letter-spacing:.12em;
+    text-transform:uppercase;padding:16px 34px;border-radius:0;box-shadow:6px 6px 0 var(--yel);
+    transition:transform .12s var(--ease),box-shadow .12s var(--ease);
+  }
+  .send:hover{background:var(--yel);color:var(--blk);box-shadow:6px 6px 0 var(--blk)}
+  .send:active{transform:translate(6px,6px);box-shadow:0 0 0 var(--blk)}
+  .form-note{font-family:var(--mono);font-size:11px;color:#555;letter-spacing:.06em}
+
+  footer{background:var(--blk);color:var(--wht);padding:34px 5vw;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;
+    font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em}
+  footer .ctr{color:var(--yel)}
+
+  /* reveal */
+  .rv{opacity:0;transform:translateY(28px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+  .rv.in{opacity:1;transform:none}
+
+  @media(max-width:860px){
+    .svc-grid{grid-template-columns:1fr}
+    .svc{border-right:0;border-bottom:3px solid var(--blk);min-height:0;padding-bottom:34px}
+    .svc h3{margin-top:34px}
+    .contact{grid-template-columns:1fr}
+    .contact .left{border-right:0;border-bottom:3px solid var(--blk)}
+    .work-row{grid-template-columns:52px 1fr}
+    .work-row .meta{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="chrome tl">RAW™ N°02</div>
+<div class="chrome tr">EST.1998 — NO ROUNDED CORNERS</div>
+
+<div class="topbar"><div id="mq"></div></div>
+
+<header id="hero">
+  <div class="hero-inner">
+    <span class="hero-kicker">/// STUDIO FOR UNCOMFORTABLE WEBSITES ///</span>
+    <h1>
+      <span class="fill">RAW</span><br>
+      <span class="hole">STRUCT</span><span class="yel">URE</span><br>
+      <span class="fill">STUDIO</span>
+    </h1>
+    <div class="hero-sub">
+      我们盖网站，就像盖毛坯房：结构裸露、管线明装、拒绝吊顶。<br>
+      WE BUILD WEBSITES LIKE CONCRETE SHELLS — EXPOSED, HONEST, UNPAINTED.
+    </div>
+    <p class="hero-hint">提示：贴纸可以 <b>拖动</b>，点空白处会 <b>盖章</b>，滚动越快跑马灯越急。</p>
+  </div>
+
+  <!-- stamps -->
+  <div class="stamp yel" style="right:6vw;top:110px;transform:rotate(6deg)" data-x="0.78" data-y="0.12">WARNING<br>DESIGN<br>AHEAD</div>
+  <div class="stamp round" style="right:16vw;top:46%;transform:rotate(-9deg)" data-x="0.62" data-y="0.52">CERTIFIED<br>RAW<small>N°001-1998</small></div>
+  <div class="stamp blk" style="right:30vw;top:14%;transform:rotate(-4deg)" data-x="0.50" data-y="0.18">100%<br>CONCRETE</div>
+  <div class="stamp" style="right:8vw;bottom:12%;transform:rotate(3deg)" data-x="0.84" data-y="0.78">NO<br>GRADIENTS<br>ALLOWED</div>
+</header>
+
+<div class="tape"></div>
+
+<section>
+  <div class="sec-tag rv"><span>01 — 业务 / SERVICES</span><span>SCROLL ↓</span></div>
+  <div class="svc-grid">
+    <div class="svc rv">
+      <span class="num">S.01</span>
+      <h3>粗野网站</h3>
+      <p>边框 3px 起步，阴影不许模糊。交付物在浏览器里像一张施工图纸，验收时连 hover 都带着脾气。</p>
+    </div>
+    <div class="svc rv">
+      <span class="num">S.02</span>
+      <h3>视觉拆迁</h3>
+      <p>把你的品牌 VI 拆到只剩承重墙。圆角、渐变、毛玻璃，统统砸掉，剩下的才是你。</p>
+    </div>
+    <div class="svc rv">
+      <span class="num">S.03</span>
+      <h3>字体暴动</h3>
+      <p>等宽体当正文，标题放大到出血。排版不是装饰，是示威。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-tag inv rv"><span>02 — 项目 / SELECTED WORKS</span><span>2019—2026</span></div>
+  <div class="work-row rv"><span class="idx">W.01</span><h3>混凝土音乐节</h3><span class="meta">FESTIVAL SITE<br>2026 / 线上</span></div>
+  <div class="work-row rv"><span class="idx">W.02</span><h3>毛坯画廊</h3><span class="meta">GALLERY ARCHIVE<br>2025 / 线上</span></div>
+  <div class="work-row rv"><span class="idx">W.03</span><h3>反精致银行</h3><span class="meta">FINTECH REBRAND<br>2024 / 概念</span></div>
+  <div class="work-row rv"><span class="idx">W.04</span><h3>废墟出版社</h3><span class="meta">PUBLISHER PLATFORM<br>2023 / 线上</span></div>
+  <div class="work-row rv"><span class="idx">W.05</span><h3>无装修超市</h3><span class="meta">E-COMMERCE<br>2022 / 已下架</span></div>
+</section>
+
+<section>
+  <div class="sec-tag rv"><span>03 — 宣言 / MANIFESTO</span><span>READ IT LOUD</span></div>
+  <div class="manifesto rv">
+    <p>美不是<wbr>被磨出来的<span class="yel">。</span>
+      圆角是谎言<span class="o">，渐变是贿赂</span><span class="yel">。</span>
+      我们把<span class="yel">结构</span>暴露给你看，
+      因为<span class="yel">诚实</span>是唯一的装饰<span class="yel">。</span></p>
+  </div>
+</section>
+
+<section>
+  <div class="sec-tag inv rv"><span>04 — 联系 / CONTACT</span><span>NO SMALL TALK</span></div>
+  <div class="contact">
+    <div class="left rv">
+      <h2>说事。</h2>
+      <div class="addr">
+        RAW STRUCTURE STUDIO<br>
+        北京市朝阳区 毛坯路 3 号 未装修<br>
+        HELLO@RAW.STRUCTURE<br>
+        周一至周五 / 工地开放
+      </div>
+    </div>
+    <form id="cform" class="rv">
+      <div class="fld"><label for="f1">你的名字 / NAME</label><input id="f1" type="text" placeholder="张三" required></div>
+      <div class="fld"><label for="f2">邮箱 / EMAIL</label><input id="f2" type="email" placeholder="you@concrete.com" required></div>
+      <div class="fld"><label for="f3">要拆什么 / BRIEF</label><textarea id="f3" placeholder="我们的官网太圆了……"></textarea></div>
+      <button class="send" type="submit">砸过来 →</button>
+      <p class="form-note" id="fnote">* 提交即视为同意我们把你网站上的圆角全部铲掉。</p>
+    </form>
+  </div>
+</section>
+
+<footer>
+  <span>© 1998–2026 RAW STRUCTURE STUDIO</span>
+  <span class="ctr">VISITOR N°<span id="vc">000000</span></span>
+  <span>BUILT WITH 3PX BORDERS ONLY</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ velocity marquee ============ */
+var mq=document.getElementById('mq');
+var CHUNK='<span>粗野主义不是风格，是态度 <b>///</b> RAW STRUCTURE STUDIO <b>///</b> NO ROUNDED CORNERS <b>///</b> 毛坯即完成 <b>///</b> EXPOSE EVERYTHING <b>///</b> </span>';
+mq.innerHTML=CHUNK+CHUNK+CHUNK+CHUNK;
+var mqX=0, lastY=scrollY, vel=0;
+function mqLoop(){
+  var dy=scrollY-lastY; lastY=scrollY;
+  vel+=(Math.min(Math.abs(dy),80)-vel)*.08;
+  mqX-=1.1+vel*.25;
+  var w=mq.children[0].offsetWidth;
+  if(w>0&&-mqX>=w)mqX+=w;
+  mq.style.transform='translateX('+mqX+'px)';
+  requestAnimationFrame(mqLoop);
+}
+requestAnimationFrame(mqLoop);
+
+/* ============ draggable stamps ============ */
+var hero=document.getElementById('hero');
+var stamps=Array.prototype.slice.call(document.querySelectorAll('.stamp'));
+var zTop=10;
+
+stamps.forEach(function(st){
+  /* normalize to absolute px coords once sized */
+  var fx=parseFloat(st.dataset.x), fy=parseFloat(st.dataset.y);
+  var rot=(st.style.transform.match(/rotate\((-?[\d.]+)deg\)/)||[0,0])[1];
+  st.dataset.rot=rot;
+  position(st,fx,fy);
+  st.style.right='auto';st.style.bottom='auto';
+  makeDraggable(st);
+});
+function position(st,fx,fy){
+  var hr=hero.getBoundingClientRect();
+  var w=st.offsetWidth,h=st.offsetHeight;
+  st.dataset.fx=fx; st.dataset.fy=fy;
+  st.dataset.px=Math.min(Math.max(fx*hr.width,0),hr.width-w);
+  st.dataset.py=Math.min(Math.max(fy*hr.height,0),hr.height-h);
+  st.style.left=st.dataset.px+'px';
+  st.style.top=st.dataset.py+'px';
+}
+function makeDraggable(st){
+  var sx,sy,ox,oy,dragging=false;
+  st.addEventListener('pointerdown',function(e){
+    dragging=true; st.classList.add('drag');
+    st.setPointerCapture(e.pointerId);
+    st.style.zIndex=++zTop;
+    sx=e.clientX; sy=e.clientY;
+    ox=parseFloat(st.dataset.px); oy=parseFloat(st.dataset.py);
+    e.preventDefault();
+  });
+  st.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    var hr=hero.getBoundingClientRect();
+    var nx=ox+e.clientX-sx, ny=oy+e.clientY-sy;
+    nx=Math.min(Math.max(nx,-st.offsetWidth*.4),hr.width-st.offsetWidth*.6);
+    ny=Math.min(Math.max(ny,0),hr.height-st.offsetHeight*.4);
+    st.dataset.px=nx; st.dataset.py=ny;
+    st.style.left=nx+'px'; st.style.top=ny+'px';
+  });
+  st.addEventListener('pointerup',function(){
+    dragging=false; st.classList.remove('drag');
+    var hr=hero.getBoundingClientRect();
+    st.dataset.fx=parseFloat(st.dataset.px)/hr.width;
+    st.dataset.fy=parseFloat(st.dataset.py)/hr.height;
+  });
+  st.addEventListener('pointercancel',function(){
+    dragging=false; st.classList.remove('drag');
+  });
+}
+
+/* ============ click to stamp ============ */
+var STAMP_TEXTS=[['RAW',''],['APPROVED','FOR CONSTRUCTION'],['毛坯','ACCEPTED'],['LOAD','BEARING'],['DANGER','GOOD TASTE'],['SITE','N°'+Math.floor(Math.random()*900+100)]];
+var stampCount=0;
+hero.addEventListener('click',function(e){
+  if(e.target.closest('.stamp'))return;
+  var hr=hero.getBoundingClientRect();
+  var el=document.createElement('div');
+  var t=STAMP_TEXTS[stampCount%STAMP_TEXTS.length]; stampCount++;
+  el.className='stamp'+(stampCount%3===0?' yel':stampCount%3===1?' blk':'');
+  el.innerHTML=t[0]+(t[1]?'<br>'+t[1]:'');
+  el.style.zIndex=++zTop;
+  el.style.transform='rotate('+((Math.random()*24-12).toFixed(1))+'deg) scale(1.25)';
+  el.style.opacity='0';
+  hero.appendChild(el);
+  var px=e.clientX-hr.left-el.offsetWidth/2;
+  var py=e.clientY-hr.top-el.offsetHeight/2;
+  el.dataset.px=px; el.dataset.py=py;
+  el.dataset.x=px/hr.width; el.dataset.y=py/hr.height;
+  el.dataset.fx=px/hr.width; el.dataset.fy=py/hr.height;
+  el.style.left=px+'px'; el.style.top=py+'px';
+  requestAnimationFrame(function(){
+    el.style.transition='opacity .3s cubic-bezier(.19,1,.22,1), transform .3s cubic-bezier(.34,1.56,.64,1)';
+    el.style.opacity='1';
+    el.style.transform=el.style.transform.replace('scale(1.25)','scale(1)');
+  });
+  makeDraggable(el);
+});
+
+/* reposition stamps on resize (including dynamically added ones) */
+addEventListener('resize',function(){
+  document.querySelectorAll('.stamp').forEach(function(st){
+    var fx=parseFloat(st.dataset.fx)||0.5, fy=parseFloat(st.dataset.fy)||0.3;
+    position(st,Math.min(fx,.95),Math.min(fy,.9));
+  });
+});
+
+/* ============ form ============ */
+document.getElementById('cform').addEventListener('submit',function(e){
+  e.preventDefault();
+  var note=document.getElementById('fnote');
+  note.textContent='* 已收到。拆墙队 48 小时内上门。/ RECEIVED. DEMOLITION IN 48H.';
+  note.style.background='var(--yel)';
+  note.style.border='2px solid var(--blk)';
+  note.style.padding='6px 10px';
+  note.style.color='var(--blk)';
+});
+
+/* ============ visitor counter ============ */
+var vc=document.getElementById('vc');
+var target=130000+Math.floor(Math.random()*9000);
+var cStart=null;
+function countUp(t){
+  if(!cStart)cStart=t;
+  var p=Math.min(1,(t-cStart)/1800);
+  var v=Math.floor(target*(1-Math.pow(1-p,3)));
+  vc.textContent=String(v).padStart(6,'0');
+  if(p<1)requestAnimationFrame(countUp);
+}
+requestAnimationFrame(countUp);
+
+/* ============ reveal ============ */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});
+},{threshold:.1});
+document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

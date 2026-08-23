@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RISO PRESS — 丝网印刷海报机</title>
+<style>
+  :root{
+    --paper:#f7f3e9; --panel:#fffdf6; --line:#e0d8c4;
+    --ink:#1d1b16; --dim:#9a917c;
+    --pink:#ff48b0; --blue:#3255a4;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--pink);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px}
+  .sig h1{font-family:var(--serif);font-size:24px;font-weight:700;letter-spacing:.03em}
+  .sig h1 em{font-style:italic;color:var(--pink)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--pink);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.06em}
+  .rule{margin:14px 28px 0;border-top:2px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{
+    display:grid;grid-template-columns:1fr 300px;gap:24px;
+    padding:24px 28px 40px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .stage-wrap{display:flex;justify-content:center}
+  .stage{
+    position:relative;width:100%;max-width:520px;
+    box-shadow:10px 10px 0 rgba(29,27,22,.10);
+    border:1px solid var(--ink);background:#efe9db;
+    padding:14px;
+  }
+  .stage canvas{display:block;width:100%;height:auto}
+  .stage canvas.printing{animation:print .5s var(--ease)}
+  @keyframes print{
+    0%{opacity:0;transform:translateY(14px)}
+    100%{opacity:1;transform:none}
+  }
+
+  .dock{
+    background:var(--panel);border:1px solid var(--ink);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+  }
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl .lab{
+    display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:11px;letter-spacing:.1em;
+  }
+  .ctl .lab output{color:var(--pink)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:15px;height:15px;margin-top:-6.5px;
+    background:var(--paper);border:2px solid var(--ink);
+    transform:rotate(45deg);transition:background .2s var(--ease),border-color .2s var(--ease);
+  }
+  input[type=range]:hover::-webkit-slider-thumb{background:var(--pink);border-color:var(--pink)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--paper);border:2px solid var(--ink);border-radius:0}
+
+  .inks{display:flex;flex-direction:column;gap:8px}
+  .inkp{
+    display:flex;align-items:center;gap:10px;border:1px solid var(--line);
+    padding:8px 10px;cursor:pointer;background:transparent;
+    transition:all .25s var(--ease);text-align:left;
+  }
+  .inkp:hover{border-color:var(--ink)}
+  .inkp.on{border-color:var(--ink);box-shadow:3px 3px 0 rgba(29,27,22,.18)}
+  .inkp .chips{display:flex;flex:none}
+  .inkp .chips i{width:16px;height:16px;border-radius:50%;display:block;border:1px solid rgba(0,0,0,.2)}
+  .inkp .chips i + i{margin-left:-5px}
+  .inkp span{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em}
+
+  .txtin{
+    font-family:var(--mono);font-size:12px;letter-spacing:.04em;
+    border:1px solid var(--line);background:transparent;color:var(--ink);
+    padding:10px 12px;width:100%;outline:none;transition:border-color .25s var(--ease);
+  }
+  .txtin:focus{border-color:var(--pink)}
+
+  .seg{display:flex;border:1px solid var(--ink)}
+  .seg button{
+    flex:1;background:transparent;border:0;color:var(--dim);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+    padding:10px 4px;cursor:pointer;transition:all .25s var(--ease);
+  }
+  .seg button + button{border-left:1px solid var(--ink)}
+  .seg button.on{background:var(--ink);color:var(--paper);font-weight:700}
+  .seg button:not(.on):hover{color:var(--ink);background:rgba(29,27,22,.06)}
+
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    padding:12px 8px;cursor:pointer;border:1px solid var(--ink);
+    background:transparent;color:var(--ink);transition:all .25s var(--ease);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn svg{width:12px;height:12px;flex:none}
+  .btn:hover{background:var(--ink);color:var(--paper);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.primary{background:var(--pink);border-color:var(--pink);color:#fff;font-weight:700}
+  .btn.primary:hover{background:#e5399d;color:#fff}
+
+  footer{
+    padding:0 28px 28px;font-family:var(--mono);font-size:10px;color:var(--dim);
+    letter-spacing:.12em;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>Riso <em>Press</em></h1>
+    <span class="no">N°<b>05</b> — GEN-ART / 丝网印刷海报机</span>
+  </div>
+  <p class="tag">两种专色油墨，一次套准失误，一百份颗粒。Spot Ink · Overprint · Misregistration</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section class="stage-wrap">
+    <div class="stage">
+      <canvas id="cv"></canvas>
+    </div>
+  </section>
+
+  <aside class="dock">
+    <h2>Print Shop</h2>
+
+    <div class="ctl">
+      <div class="lab"><span>油墨组合 INK PAIR</span></div>
+      <div class="inks" id="inks"></div>
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>构图 COMPOSITION</span></div>
+      <div class="seg" id="segComp">
+        <button data-v="sun" class="on">日出</button>
+        <button data-v="tide">潮汐</button>
+        <button data-v="orbit">轨道</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>套准偏移 MISREG</span><output id="oReg">3</output></div>
+      <input type="range" id="rReg" min="0" max="10" value="3">
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>颗粒 GRAIN</span><output id="oGrain">40</output></div>
+      <input type="range" id="rGrain" min="0" max="100" value="40">
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>标题 TITLE</span></div>
+      <input class="txtin" id="tTitle" value="SOLSTICE" maxlength="16">
+      <div class="lab" style="margin-top:6px"><span>副题 SUBTITLE</span></div>
+      <input class="txtin" id="tSub" value="夏至 · 双色孔版印刷" maxlength="24">
+    </div>
+
+    <div class="btns">
+      <button class="btn primary" id="bRand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        随机再生
+      </button>
+      <button class="btn" id="bDl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        下载 PNG
+      </button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>RISO PRESS — edition of 200, each one slightly wrong</span>
+  <span>孔版双色套印模拟 · 无任何外部图片</span>
+</footer>
+
+<script>
+"use strict";
+/* ============================================================
+   RISO PRESS — 丝网印刷海报机
+   两个专色层（白形 → 油墨着色）multiply 叠印在纸面上，
+   带套准偏移、半调网点、颗粒与印刷标记。
+   ============================================================ */
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const stageCv = cv;
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const PW = 900, PH = 1273; // A 系纵向比例 1:√2
+
+const INKPAIRS = [
+  { name: '荧光粉 × 联邦蓝', a: '#ff48b0', b: '#3255a4' },
+  { name: '亮红 × 湖水绿',   a: '#ff4b33', b: '#007880' },
+  { name: '暖黄 × 墨黑',     a: '#ffb700', b: '#1d1b16' },
+  { name: '橘橙 × 葡萄紫',   a: '#ff6c2f', b: '#765ba7' }
+];
+const PAPER = '#f7f3e9';
+
+const S = {
+  inks: 0,
+  comp: 'sun',
+  reg: 3,
+  grain: 40,
+  title: 'SOLSTICE',
+  sub: '夏至 · 双色孔版印刷',
+  seed: Math.random() * 1e9
+};
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ---------- layer canvases (device-pixel sharp) ---------- */
+const layerA = document.createElement('canvas');
+const layerB = document.createElement('canvas');
+function sizeLayers(){
+  for (const lc of [layerA, layerB]){
+    lc.width = PW * DPR;
+    lc.height = PH * DPR;
+    lc.getContext('2d').setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+}
+sizeLayers();
+
+/* halftone dot fill inside current clip */
+function halftone(c, x, y, w, h, spacing, tone){
+  const rMax = spacing * .5 * .9;
+  c.beginPath();
+  for (let yy = y; yy < y + h; yy += spacing){
+    const rowOff = ((yy / spacing) | 0) % 2 ? spacing / 2 : 0;
+    for (let xx = x + rowOff; xx < x + w; xx += spacing){
+      const r = rMax * tone;
+      if (r < .3) continue;
+      c.moveTo(xx + r, yy);
+      c.arc(xx, yy, r, 0, 6.2832);
+    }
+  }
+  c.fill();
+}
+
+function asterisk(c, x, y, r, lw){
+  c.lineWidth = lw;
+  for (let i = 0; i < 3; i++){
+    const a = i * Math.PI / 3;
+    c.beginPath();
+    c.moveTo(x - Math.cos(a) * r, y - Math.sin(a) * r);
+    c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    c.stroke();
+  }
+}
+
+/* ============================================================
+   COMPOSITIONS — draw white shapes onto each layer
+   ============================================================ */
+function drawComposition(){
+  const R = mulberry32(S.seed);
+  for (const lc of [layerA, layerB]){
+    const c = lc.getContext('2d');
+    c.clearRect(0, 0, PW, PH);
+    c.fillStyle = c.strokeStyle = '#fff';
+  }
+  const A = layerA.getContext('2d');
+  const B = layerB.getContext('2d');
+  const cx = PW / 2;
+
+  if (S.comp === 'sun'){
+    // A: big sun (halftone), grounded arcs
+    const sunR = PW * (.26 + R() * .06);
+    const sunY = PH * (.30 + R() * .05);
+    A.save();
+    A.beginPath(); A.arc(cx, sunY, sunR, 0, 6.2832); A.clip();
+    halftone(A, cx - sunR, sunY - sunR, sunR * 2, sunR * 2, 14, .75 + R() * .2);
+    A.restore();
+    // ground arcs
+    A.lineWidth = 10;
+    for (let i = 0; i < 4; i++){
+      A.beginPath();
+      A.arc(cx, PH * 1.02, PW * (.34 + i * .11), Math.PI, 2 * Math.PI);
+      A.globalAlpha = .9 - i * .18;
+      A.stroke();
+    }
+    A.globalAlpha = 1;
+    // B: stripe cuts through sun + asterisks
+    B.save();
+    B.beginPath(); B.arc(cx, sunY, sunR * 1.15, 0, 6.2832); B.clip();
+    let yy = sunY - sunR;
+    while (yy < sunY + sunR){
+      const hh = 5 + R() * 10;
+      B.fillRect(cx - sunR * 1.2, yy, sunR * 2.4, hh);
+      yy += hh + 10 + R() * 16;
+    }
+    B.restore();
+    // waves at bottom
+    B.lineWidth = 4;
+    for (let band = 0; band < 3; band++){
+      B.beginPath();
+      const yb = PH * .78 + band * 26;
+      for (let x = 0; x <= PW; x += 6){
+        const y = yb + Math.sin(x * .02 + band * 1.5 + R() * .3) * 9;
+        x === 0 ? B.moveTo(x, y) : B.lineTo(x, y);
+      }
+      B.globalAlpha = .85 - band * .2;
+      B.stroke();
+    }
+    B.globalAlpha = 1;
+    for (let i = 0; i < 5; i++)
+      asterisk(B, R() * PW, PH * (.1 + R() * .5), 8 + R() * 10, 3);
+
+  } else if (S.comp === 'tide'){
+    // A: stacked tide bands
+    for (let band = 0; band < 6; band++){
+      const yb = PH * (.22 + band * .09);
+      A.beginPath();
+      A.moveTo(0, yb);
+      for (let x = 0; x <= PW; x += 6){
+        const y = yb + Math.sin(x * .012 + band * 2 + R() * .1) * (14 + band * 4);
+        A.lineTo(x, y);
+      }
+      A.lineTo(PW, yb + 60); A.lineTo(0, yb + 60); A.closePath();
+      A.globalAlpha = .32 + band * .1;
+      A.fill();
+    }
+    A.globalAlpha = 1;
+    // B: moon + vertical drizzle lines
+    const mx = PW * (.3 + R() * .4), my = PH * .24, mr = PW * .11;
+    B.save();
+    B.beginPath(); B.arc(mx, my, mr, 0, 6.2832); B.clip();
+    halftone(B, mx - mr, my - mr, mr * 2, mr * 2, 11, .9);
+    B.restore();
+    B.lineWidth = 3;
+    for (let i = 0; i < 26; i++){
+      const x = R() * PW;
+      const y0 = PH * .3 + R() * PH * .4;
+      B.globalAlpha = .3 + R() * .5;
+      B.beginPath(); B.moveTo(x, y0); B.lineTo(x, y0 + 20 + R() * 90); B.stroke();
+    }
+    B.globalAlpha = 1;
+    for (let i = 0; i < 4; i++)
+      asterisk(B, R() * PW, PH * (.08 + R() * .2), 7 + R() * 9, 3);
+
+  } else { // orbit
+    // A: concentric rings
+    const oy = PH * .38;
+    A.lineWidth = 8;
+    const nR = 5 + (R() * 3 | 0);
+    for (let i = 1; i <= nR; i++){
+      A.beginPath();
+      A.arc(cx, oy, i * PW * .075, 0, 6.2832);
+      A.globalAlpha = 1 - i * .07;
+      A.stroke();
+    }
+    A.globalAlpha = 1;
+    // core dot
+    A.save();
+    A.beginPath(); A.arc(cx, oy, PW * .05, 0, 6.2832); A.clip();
+    halftone(A, cx - PW * .05, oy - PW * .05, PW * .1, PW * .1, 9, 1);
+    A.restore();
+    // B: diagonal comet lines + planet
+    B.lineWidth = 5;
+    for (let i = 0; i < 7; i++){
+      const off = (i - 3) * 34;
+      B.globalAlpha = .25 + R() * .65;
+      B.beginPath();
+      B.moveTo(-50, oy + off + PW * .5);
+      B.lineTo(PW + 50, oy + off - PW * .5);
+      B.stroke();
+    }
+    B.globalAlpha = 1;
+    const px = cx + (R() - .5) * PW * .5, py = oy + (R() - .5) * PH * .3;
+    B.beginPath(); B.arc(px, py, PW * .035, 0, 6.2832); B.fill();
+    // dotted orbit ellipse
+    B.save();
+    B.translate(cx, oy); B.rotate(-.5);
+    for (let a = 0; a < 6.2832; a += .06){
+      const ex = Math.cos(a) * PW * .42, ey = Math.sin(a) * PW * .16;
+      B.beginPath(); B.arc(ex, ey, 2.2, 0, 6.2832); B.fill();
+    }
+    B.restore();
+  }
+
+  /* ---------- shared: frame + typography ---------- */
+  const margin = 46;
+  // thin frame in B
+  B.lineWidth = 3;
+  B.strokeRect(margin, margin, PW - margin * 2, PH - margin * 2);
+
+  // title in A (serif, huge)
+  const title = (S.title || 'SOLSTICE').toUpperCase();
+  let fs = 120;
+  A.textBaseline = 'alphabetic';
+  A.font = `700 ${fs}px Didot, "Bodoni MT", Georgia, serif`;
+  while (A.measureText(title).width > PW - margin * 2 - 40 && fs > 40){
+    fs -= 6;
+    A.font = `700 ${fs}px Didot, "Bodoni MT", Georgia, serif`;
+  }
+  A.fillText(title, margin + 16, PH - margin - 90);
+
+  // subtitle in B
+  B.font = `400 34px "Songti SC", Georgia, serif`;
+  B.fillText(S.sub || '', margin + 20, PH - margin - 34);
+
+  // vertical annotation in B
+  B.save();
+  B.translate(PW - margin - 14, margin + 24);
+  B.rotate(Math.PI / 2);
+  B.font = '400 20px "SF Mono", Menlo, monospace';
+  B.fillText('RISOGRAPH — 2 COLOR OVERPRINT', 0, 0);
+  B.restore();
+
+  // edition + date in A
+  const ed = String(1 + (mulberry32(S.seed ^ 7)() * 199 | 0)).padStart(3, '0');
+  A.font = '400 20px "SF Mono", Menlo, monospace';
+  A.fillText('ED. ' + ed + '/200', margin + 20, margin + 58);
+
+  // registration marks: crosshair circles in both inks, two corners
+  for (const [c, ox, oy] of [[A, margin - 16, margin - 16], [B, PW - margin + 16, margin - 16]]){
+    c.lineWidth = 2.5;
+    c.beginPath(); c.arc(ox, oy, 12, 0, 6.2832); c.stroke();
+    c.beginPath();
+    c.moveTo(ox - 20, oy); c.lineTo(ox + 20, oy);
+    c.moveTo(ox, oy - 20); c.lineTo(ox, oy + 20);
+    c.stroke();
+  }
+}
+
+/* ============================================================
+   PRINT — tint layers, multiply over paper, add grain
+   ============================================================ */
+function tint(layer, color){
+  const c = layer.getContext('2d');
+  c.save();
+  c.globalCompositeOperation = 'source-in';
+  c.fillStyle = color;
+  c.fillRect(0, 0, PW, PH);
+  c.restore();
+}
+
+let grainTile = null;
+function makeGrainTile(){
+  grainTile = document.createElement('canvas');
+  grainTile.width = grainTile.height = 160;
+  const c = grainTile.getContext('2d');
+  const im = c.createImageData(160, 160);
+  for (let i = 0; i < im.data.length; i += 4){
+    const v = 215 + Math.random() * 40 | 0; // near-white: multiplies as subtle darkening
+    im.data[i] = im.data[i+1] = im.data[i+2] = v;
+    im.data[i+3] = 255;
+  }
+  c.putImageData(im, 0, 0);
+}
+
+function printPoster(){
+  drawComposition();
+  tint(layerA, INKPAIRS[S.inks].a);
+  tint(layerB, INKPAIRS[S.inks].b);
+
+  // paper
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.fillStyle = PAPER;
+  ctx.fillRect(0, 0, PW, PH);
+
+  // paper texture: faint fibers
+  ctx.strokeStyle = 'rgba(120,105,80,.06)';
+  ctx.lineWidth = 1;
+  const R = mulberry32(S.seed ^ 3);
+  for (let i = 0; i < 90; i++){
+    const x = R() * PW, y = R() * PH, len = 8 + R() * 30, a = R() * Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
+    ctx.stroke();
+  }
+
+  // misregistration: random drift + slider magnitude, opposite directions
+  const Rd = mulberry32(S.seed ^ 11);
+  const m = S.reg * DPR;
+  const ax = (Rd() - .5) * m * 2, ay = (Rd() - .5) * m * 2;
+
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.globalAlpha = .92;
+  ctx.drawImage(layerA, ax, ay);
+  ctx.globalAlpha = .9;
+  ctx.drawImage(layerB, -ax, -ay);
+  ctx.globalAlpha = 1;
+
+  // grain
+  if (S.grain > 0 && grainTile){
+    ctx.globalAlpha = S.grain / 100 * .5;
+    ctx.fillStyle = ctx.createPattern(grainTile, 'repeat');
+    ctx.fillRect(0, 0, PW, PH);
+  }
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'source-over';
+
+  // re-trigger entrance animation
+  stageCv.classList.remove('printing');
+  void stageCv.offsetWidth;
+  stageCv.classList.add('printing');
+}
+
+/* ============================================================
+   SIZING
+   ============================================================ */
+function resize(){
+  cv.width = PW * DPR;
+  cv.height = PH * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  printPoster();
+}
+
+/* ============================================================
+   INTERACTIONS
+   ============================================================ */
+const $ = id => document.getElementById(id);
+
+// ink pair buttons
+const inksEl = $('inks');
+INKPAIRS.forEach((p, i) => {
+  const b = document.createElement('button');
+  b.className = 'inkp' + (i === 0 ? ' on' : '');
+  b.innerHTML = `<span class="chips"><i style="background:${p.a}"></i><i style="background:${p.b}"></i></span><span>${p.name}</span>`;
+  b.addEventListener('click', () => {
+    S.inks = i;
+    for (const [j, x] of [...inksEl.children].entries()) x.classList.toggle('on', j === i);
+    printPoster();
+  });
+  inksEl.appendChild(b);
+});
+
+$('segComp').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  for (const x of $('segComp').children) x.classList.toggle('on', x === b);
+  S.comp = b.dataset.v;
+  printPoster();
+});
+
+let regTimer = null;
+$('rReg').addEventListener('input', e => {
+  S.reg = +e.target.value; $('oReg').textContent = e.target.value;
+  clearTimeout(regTimer); regTimer = setTimeout(printPoster, 60);
+});
+let grainTimer = null;
+$('rGrain').addEventListener('input', e => {
+  S.grain = +e.target.value; $('oGrain').textContent = e.target.value;
+  clearTimeout(grainTimer); grainTimer = setTimeout(printPoster, 60);
+});
+
+let txtTimer = null;
+function txtBind(id, key){
+  $(id).addEventListener('input', e => {
+    S[key] = e.target.value;
+    clearTimeout(txtTimer); txtTimer = setTimeout(printPoster, 250);
+  });
+}
+txtBind('tTitle', 'title');
+txtBind('tSub', 'sub');
+
+$('bRand').addEventListener('click', () => {
+  S.seed = Math.random() * 1e9;
+  printPoster();
+});
+
+$('bDl').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.download = 'riso-poster.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+});
+
+let rsTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(rsTimer);
+  rsTimer = setTimeout(printPoster, 150);
+});
+
+/* ---------- boot ---------- */
+makeGrainTile();
+resize();
+</script>
+</body>
+</html>

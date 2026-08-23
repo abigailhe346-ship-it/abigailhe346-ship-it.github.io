@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TERRAIN-FLYOVER · 低空航测 / MIRA</title>
+<style>
+:root{
+  --paper:#e8ead6; --ink:#15221a; --ink-soft:#5c685c; --signal:#d54f1f;
+  --phosphor:#7fae4e; --line:rgba(21,34,26,.28);
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans)}
+header{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font:10px var(--mono);letter-spacing:.12em;text-transform:uppercase}
+a{color:inherit;text-decoration:none}
+.back{display:flex;align-items:center;gap:10px}
+.back b{font:400 18px var(--serif)}
+header .mid{color:var(--ink-soft)}
+.hero{padding:4.6vw 4vw 3vw;display:grid;grid-template-columns:1.35fr 1fr;gap:5vw;align-items:end}
+.kicker{font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--signal)}
+h1{font:400 clamp(52px,8.2vw,124px)/.82 var(--serif);letter-spacing:-.045em;margin:20px 0 24px}
+h1 em{font-style:italic;color:var(--signal)}
+.hero p{max-width:430px;font-size:14px;line-height:1.75;color:var(--ink-soft)}
+.spec{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;line-height:2;color:var(--ink-soft);text-align:right}
+.spec b{color:var(--ink);font-weight:400}
+.stage-wrap{padding:0 4vw 4vw}
+.stage{height:min(62vw,660px);min-height:400px;background:#101d13;position:relative;overflow:hidden;cursor:crosshair}
+.stage canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;inset:18px;pointer-events:none;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:#b7c9a6}
+.hud .top{display:flex;justify-content:space-between}
+.hud b{color:#e8f0d8;font-weight:400}
+.hud .sig{color:var(--signal)}
+.tele{position:absolute;left:18px;bottom:16px;font:10px var(--mono);letter-spacing:.08em;color:#cfe0b8;line-height:1.9;pointer-events:none}
+.tele b{color:#f2f7e4;font-weight:400}
+.reticle{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.frame-tick{position:absolute;width:14px;height:14px;border:1px solid rgba(207,224,184,.55)}
+.ft-tl{top:10px;left:10px;border-right:0;border-bottom:0}
+.ft-tr{top:10px;right:10px;border-left:0;border-bottom:0}
+.ft-bl{bottom:10px;left:10px;border-right:0;border-top:0}
+.ft-br{bottom:10px;right:10px;border-left:0;border-top:0}
+.panel{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 4vw;display:grid;grid-template-columns:1fr 1fr 1fr;gap:26px}
+.ctl label{display:flex;justify-content:space-between;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px}
+.ctl label b{color:var(--ink);font-weight:400}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:var(--ink);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:var(--paper);border:2px solid var(--ink);cursor:pointer;transition:background .2s}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--signal);border-color:var(--signal)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--paper);border:2px solid var(--ink);cursor:pointer}
+.tools{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 4vw 0;flex-wrap:wrap}
+.tools>span{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;background:transparent;color:var(--ink);border:1px solid var(--ink);padding:9px 16px;cursor:pointer;transition:all .25s cubic-bezier(.22,1,.36,1)}
+button:hover{background:var(--ink);color:var(--paper)}
+button.on{background:var(--signal);border-color:var(--signal);color:var(--paper)}
+.caption{padding:7vw 4vw;display:grid;grid-template-columns:1fr 1fr;gap:5vw;align-items:start}
+.caption h2{font:400 clamp(34px,4.4vw,64px)/1.05 var(--serif);letter-spacing:-.02em}
+.caption h2 em{font-style:italic;color:var(--signal)}
+.caption p{font-size:14px;line-height:1.8;color:var(--ink-soft);max-width:430px}
+footer{border-top:1px solid var(--line);padding:14px 4vw;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);display:flex;justify-content:space-between}
+@media(max-width:820px){
+  .hero,.caption{grid-template-columns:1fr;gap:28px}
+  .spec{text-align:left}
+  .panel{grid-template-columns:1fr;gap:20px}
+  .stage{min-height:340px}
+  .tele{font-size:9px}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a>
+  <span class="mid">N°02 / 05 · 3D Worlds</span>
+  <span>TERRAIN-FLYOVER</span>
+</header>
+<main>
+  <section class="hero">
+    <div>
+      <div class="kicker">Infinite Procedural Relief / Survey Flight</div>
+      <h1>TERRAIN-<br>FLYOVER <em>低空航测</em></h1>
+      <p>雾是这次飞行的边界。测量机以十五米净空掠过一片无限延伸的浮雕地形——山体由分形噪声即时生长，色带按等高线规则上墨，你永远飞不到这片地图的尽头。</p>
+    </div>
+    <div class="spec">
+      VALUE-NOISE FBM · 5 OCTAVES<br>
+      POSTERISED CONTOUR BANDING<br>
+      <b>SURVEY CAM 03 · LIVE</b>
+    </div>
+  </section>
+  <section class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="hud"><div class="top"><span>SURVEY CAM 03 / RELIEF SCAN</span><b class="sig">● REC</b></div></div>
+      <div class="reticle">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+          <circle cx="36" cy="36" r="17" stroke="#cfe0b8" stroke-width="1" opacity=".8"/>
+          <path d="M36 8v14M36 50v14M8 36h14M50 36h14" stroke="#cfe0b8" stroke-width="1"/>
+          <circle cx="36" cy="36" r="1.6" fill="#d54f1f"/>
+        </svg>
+      </div>
+      <div class="tele">
+        SPD <b id="t-spd">032</b> KT&nbsp;&nbsp;ALT <b id="t-alt">064</b> M&nbsp;&nbsp;HDG <b id="t-hdg">000</b>°<br>
+        GRID <b id="t-grd">+0000 / +0000</b>&nbsp;&nbsp;SEED <b id="t-seed">07</b>
+      </div>
+      <i class="frame-tick ft-tl"></i><i class="frame-tick ft-tr"></i><i class="frame-tick ft-bl"></i><i class="frame-tick ft-br"></i>
+    </div>
+    <div class="panel">
+      <div class="ctl"><label>速度 SPEED <b id="v-spd">34 KT</b></label><input type="range" id="p-spd" min="10" max="80" value="34"></div>
+      <div class="ctl"><label>雾距 VISIBILITY <b id="v-fog">460 M</b></label><input type="range" id="p-fog" min="200" max="720" value="460"></div>
+      <div class="ctl"><label>巡航高度 CRUISE <b id="v-crz">66 M</b></label><input type="range" id="p-crz" min="30" max="120" value="66"></div>
+    </div>
+    <div class="tools">
+      <span>移动鼠标转向与升降 · 自动保持地形净空</span>
+      <div class="btns">
+        <button id="pause">暂停</button>
+        <button id="random">随机再生</button>
+        <button id="dl">下载 PNG</button>
+      </div>
+    </div>
+  </section>
+  <section class="caption">
+    <h2>地图尚未绘制的部分，<br>由机器<em>边飞边长。</em></h2>
+    <p>传统航测记录已知的土地，而这一次，地形本身也是程序的产物：每一座山脊在被看见之前并不存在。雾距之外一无所有，雾距之内，等高线以每秒数十米的速度被即时测绘、上色、然后抛在身后。</p>
+  </section>
+</main>
+<footer><span>TERRAIN-FLYOVER · Survey Flight</span><span>MIRA / 2026</span></footer>
+<script src="../../../vendor/three.min.js"></script>
+<script>
+const stage=document.getElementById('stage');
+let SEED=7,speed=34,fogFar=460,cruise=66,paused=false;
+let yaw=0,camY=66,px=0,py=0,roll=0;
+
+// ---- noise ----
+function h2(x,y){
+  let n=Math.imul(x,374761393)^Math.imul(y,668265263)^Math.imul(SEED,974711);
+  n=Math.imul(n^(n>>>13),1274126177);
+  return ((n^(n>>>16))>>>0)/4294967295;
+}
+function sm(t){return t*t*(3-2*t)}
+function vnoise(x,y){
+  const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const a=h2(xi,yi),b=h2(xi+1,yi),c=h2(xi,yi+1),d=h2(xi+1,yi+1);
+  const u=sm(xf),v=sm(yf);
+  return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;
+}
+function fbm(x,y){
+  let s=0,amp=.5,f=1;
+  for(let i=0;i<5;i++){s+=amp*vnoise(x*f,y*f);amp*=.52;f*=2.03}
+  return s;
+}
+function heightAt(wx,wz){
+  const x=wx*.0038,z=wz*.0038;
+  const base=fbm(x+SEED*.73,z-SEED*.41);
+  const r=1-Math.abs(2*fbm(x*1.9+31.7,z*1.9+11.3)-1);
+  return base*30+r*r*36-16;
+}
+// ---- palette bands (posterised contours) ----
+const BANDS=[[-40,10,32,18],[4,26,52,30],[10,40,72,40],[18,62,94,54],[28,96,116,72],[38,148,146,104],[48,196,192,158],[60,233,229,205]];
+function bandColor(h,jit,out){
+  const q=Math.floor((h+jit*5)/1)*1;
+  let c=BANDS[0];
+  for(let i=BANDS.length-1;i>=0;i--){if(q>=BANDS[i][0]){c=BANDS[i];break}}
+  out[0]=c[1]/255;out[1]=c[2]/255;out[2]=c[3]/255;
+}
+// ---- scene ----
+const SIZE=1500,SEG=150,CELL=SIZE/SEG,WATER=5.5;
+let scene,camera,renderer,terrain,water,cx=0,cz=0;
+const tmpC=[0,0,0];
+
+function rebuild(nx,nz){
+  cx=nx;cz=nz;
+  const g=terrain.geometry,pos=g.attributes.position,col=g.attributes.color;
+  let i=0;
+  for(let vi=0;vi<pos.count;vi++){
+    const wx=pos.getX(vi)+cx,wz=pos.getZ(vi)+cz;
+    const h=heightAt(wx,wz);
+    pos.setY(vi,h);
+    bandColor(h,h2(Math.round(wx/CELL),Math.round(wz/CELL))-.5,tmpC);
+    col.setXYZ(vi,tmpC[0],tmpC[1],tmpC[2]);
+    i++;
+  }
+  pos.needsUpdate=true;col.needsUpdate=true;
+  g.computeVertexNormals();
+  terrain.position.set(cx,0,cz);
+  water.position.set(cx,WATER,cz);
+}
+function init(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0xc3d2b2);
+  scene.fog=new THREE.Fog(0xc3d2b2,40,fogFar);
+  camera=new THREE.PerspectiveCamera(62,stage.clientWidth/stage.clientHeight,.5,1100);
+  camera.rotation.order='YXZ';
+  renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(stage.clientWidth,stage.clientHeight);
+  stage.prepend(renderer.domElement);
+  const g=new THREE.PlaneGeometry(SIZE,SIZE,SEG,SEG);
+  g.rotateX(-Math.PI/2);
+  g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(g.attributes.position.count*3),3));
+  terrain=new THREE.Mesh(g,new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0,flatShading:true}));
+  scene.add(terrain);
+  water=new THREE.Mesh(new THREE.PlaneGeometry(SIZE,SIZE),new THREE.MeshStandardMaterial({color:0x2a4438,roughness:.35,metalness:.15,transparent:true,opacity:.92}));
+  water.rotation.x=-Math.PI/2;
+  scene.add(water);
+  scene.add(new THREE.HemisphereLight(0xdce8c8,0x1a2c1e,1.0));
+  const sun=new THREE.DirectionalLight(0xfff0d0,.85);sun.position.set(-.4,.55,.3);scene.add(sun);
+  rebuild(0,0);
+  camera.position.set(0,cruise,0);
+}
+// ---- steering ----
+stage.addEventListener('pointermove',e=>{
+  const r=stage.getBoundingClientRect();
+  px=((e.clientX-r.left)/r.width)*2-1;
+  py=((e.clientY-r.top)/r.height)*2-1;
+});
+stage.addEventListener('pointerleave',()=>{px=0;py=0});
+// ---- main loop ----
+let last=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  if(!paused){
+    yaw-=px*.9*dt;
+    const dist=speed*.55*dt;
+    camera.position.x-=Math.sin(yaw)*dist;
+    camera.position.z-=Math.cos(yaw)*dist;
+    camY+=-py*30*dt;
+    camY+=(cruise-camY)*.4*dt;
+    const ground=heightAt(camera.position.x,camera.position.z)+9;
+    camera.position.y+=(Math.max(camY,ground)-camera.position.y)*Math.min(1,6*dt);
+    roll+=(-px*.5-roll)*Math.min(1,4*dt);
+    camera.rotation.set(-py*.22,yaw,roll);
+    // recenter terrain in whole-cell steps
+    const dx=camera.position.x-cx,dz=camera.position.z-cz;
+    if(Math.abs(dx)>CELL||Math.abs(dz)>CELL){
+      rebuild(Math.round(camera.position.x/CELL)*CELL,Math.round(camera.position.z/CELL)*CELL);
+    }
+  }
+  renderer.render(scene,camera);
+  // telemetry
+  document.getElementById('t-spd').textContent=String(Math.round(speed)).padStart(3,'0');
+  document.getElementById('t-alt').textContent=String(Math.round(camera.position.y)).padStart(3,'0');
+  document.getElementById('t-hdg').textContent=String(Math.round(((-yaw*180/Math.PI)%360+360)%360)).padStart(3,'0');
+  document.getElementById('t-grd').textContent=(camera.position.x>=0?'+':'-')+String(Math.abs(Math.round(camera.position.x))).padStart(4,'0')+' / '+(camera.position.z>=0?'+':'-')+String(Math.abs(Math.round(camera.position.z))).padStart(4,'0');
+}
+// ---- controls ----
+function bind(id,fn){
+  const el=document.getElementById('p-'+id);
+  el.addEventListener('input',()=>fn(+el.value));
+}
+bind('spd',v=>{speed=v;document.getElementById('v-spd').textContent=v+' KT'});
+bind('fog',v=>{fogFar=v;scene.fog.far=v;document.getElementById('v-fog').textContent=v+' M'});
+bind('crz',v=>{cruise=v;document.getElementById('v-crz').textContent=v+' M'});
+document.getElementById('pause').addEventListener('click',e=>{
+  paused=!paused;e.target.classList.toggle('on',paused);
+  e.target.textContent=paused?'继续':'暂停';
+});
+document.getElementById('random').addEventListener('click',()=>{
+  SEED=1+Math.floor(Math.random()*98);
+  document.getElementById('t-seed').textContent=String(SEED).padStart(2,'0');
+  rebuild(cx,cz);
+});
+document.getElementById('dl').addEventListener('click',()=>{
+  renderer.render(scene,camera);
+  const a=document.createElement('a');
+  a.download='terrain-flyover.png';
+  a.href=renderer.domElement.toDataURL('image/png');
+  a.click();
+});
+new ResizeObserver(()=>{
+  camera.aspect=stage.clientWidth/stage.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(stage.clientWidth,stage.clientHeight);
+}).observe(stage);
+init();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

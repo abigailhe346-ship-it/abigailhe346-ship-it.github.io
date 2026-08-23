@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ocean Wave — Gerstner Shader · 03</title>
+<style>
+  :root{
+    --bg:#04141c; --panel:#06222ecc; --line:#0f3d4a;
+    --ink:#e6f4f2; --dim:#6fa0a8; --mono:'SF Mono',Menlo,monospace;
+    --teal:#2fd4c4; --sun:#ffd9a0; --deep:#0f5e6b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
+    font-family:-apple-system,'Helvetica Neue','PingFang SC',sans-serif;color:var(--ink)}
+  #stage{position:fixed;inset:0;cursor:grab}
+  #stage.grabbing{cursor:grabbing}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 40%,transparent 55%,rgba(1,8,12,.6) 100%)}
+  header{position:fixed;top:28px;left:32px;pointer-events:none;z-index:5}
+  .no{font-family:var(--mono);font-size:11px;letter-spacing:.35em;color:var(--teal);margin-bottom:8px}
+  h1{font-family:Didot,'Bodoni MT',Georgia,'Songti SC',serif;font-weight:400;
+     font-size:clamp(22px,3vw,34px);letter-spacing:.04em}
+  h1 em{font-style:italic;color:var(--sun)}
+  .sub{margin-top:8px;font-size:12px;color:var(--dim);letter-spacing:.12em}
+  #tod{position:fixed;top:34px;right:32px;z-index:5;text-align:right;
+    font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.15em;line-height:2}
+  #tod b{color:var(--ink);font-weight:400}
+  #panel{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;
+    display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:12px 20px;backdrop-filter:blur(8px);max-width:calc(100vw - 32px)}
+  .btn{appearance:none;border:1px solid var(--teal);background:transparent;color:var(--teal);
+    font-family:var(--mono);font-size:11px;letter-spacing:.2em;padding:9px 16px;border-radius:4px;
+    cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1)}
+  .btn:hover,.btn.on{background:var(--teal);color:#03211d;box-shadow:0 0 24px rgba(47,212,196,.3)}
+  .ctl{display:flex;align-items:center;gap:10px}
+  .ctl label{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100px;height:2px;
+    background:var(--line);border-radius:2px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:12px;height:12px;border-radius:50%;background:var(--teal);
+    border:2px solid #04141c;box-shadow:0 0 0 1px var(--teal);transition:transform .2s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;
+    background:var(--teal);border:2px solid #04141c;box-shadow:0 0 0 1px var(--teal)}
+  .hint{position:fixed;bottom:30px;left:32px;font-family:var(--mono);font-size:10px;
+    color:var(--dim);letter-spacing:.12em;line-height:1.9;pointer-events:none;z-index:4}
+  .hint b{color:var(--ink);font-weight:400}
+  @media (max-width:760px){
+    #tod,.hint{display:none}
+    header{top:18px;left:20px}#panel{bottom:14px;padding:10px 12px;gap:10px}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="vignette"></div>
+<header>
+  <div class="no">N°03 — GERSTNER WAVE SHADER</div>
+  <h1>Ocean Wave <em>潮汐之诗</em></h1>
+  <div class="sub">六波叠加 Gerstner 海浪 · 实时 GLSL 解算</div>
+</header>
+<div id="tod">
+  <div>MOMENT <b id="todVal">正午 NOON</b></div>
+  <div>SWELL <b id="swellVal">—</b></div>
+</div>
+<div class="hint"><b>拖拽</b> — 环绕视角 · <b>滚轮</b> — 缩放<br><b>点击海面</b> — 激起涟漪</div>
+<div id="panel">
+  <div class="ctl"><label>浪高 HEIGHT</label><input type="range" id="amp" min="10" max="100" value="45"></div>
+  <div class="ctl"><label>陡峭 CHOP</label><input type="range" id="chop" min="0" max="100" value="55"></div>
+  <div class="ctl"><label>风速 SPEED</label><input type="range" id="spd" min="10" max="200" value="80"></div>
+  <div class="ctl"><label>时刻 MOMENT</label><input type="range" id="time" min="0" max="100" value="50"></div>
+  <button class="btn" id="wire">网格 GRID</button>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+var stage=document.getElementById('stage');
+var renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.outputEncoding=THREE.sRGBEncoding;
+stage.appendChild(renderer.domElement);
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(55,window.innerWidth/window.innerHeight,.1,2000);
+
+/* ---------- palettes per moment ---------- */
+var MOMENTS=[
+  {n:'黎明 DAWN', sky:[0.98,0.62,0.42], zen:[0.35,0.28,0.45], deep:[0.04,0.13,0.20], shal:[0.15,0.38,0.42], sun:[1.0,0.75,0.5], sunEl:.12, fog:[0.55,0.42,0.45]},
+  {n:'正午 NOON', sky:[0.62,0.82,0.92], zen:[0.12,0.35,0.62], deep:[0.02,0.22,0.30], shal:[0.12,0.62,0.66], sun:[1.0,0.96,0.85], sunEl:.85, fog:[0.55,0.72,0.80]},
+  {n:'黄昏 DUSK', sky:[1.0,0.55,0.30], zen:[0.25,0.12,0.35], deep:[0.05,0.08,0.18], shal:[0.35,0.25,0.40], sun:[1.0,0.6,0.35], sunEl:.1, fog:[0.5,0.28,0.32]},
+  {n:'月夜 NIGHT',sky:[0.10,0.16,0.28], zen:[0.02,0.04,0.10], deep:[0.01,0.05,0.10], shal:[0.05,0.16,0.24], sun:[0.75,0.85,1.0], sunEl:.5, fog:[0.05,0.09,0.16]}
+];
+function lerpV(a,b,t){return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];}
+function momentAt(f){
+  var seg=f*(MOMENTS.length-1), i=Math.min(Math.floor(seg),MOMENTS.length-2), t=seg-i;
+  var A=MOMENTS[i],B=MOMENTS[i+1],o={};
+  ['sky','zen','deep','shal','sun','fog'].forEach(function(k){o[k]=lerpV(A[k],B[k],t);});
+  o.sunEl=A.sunEl+(B.sunEl-A.sunEl)*t;
+  o.n=t<.5?A.n:B.n;
+  return o;
+}
+
+/* ---------- shaders ---------- */
+var VERT=[
+'uniform float uTime;',
+'uniform float uAmp;',
+'uniform float uChop;',
+'uniform float uSpeed;',
+'uniform vec4 uRipples[4];',           // x, z, startTime, amp
+'varying vec3 vNormal;',
+'varying vec3 vWorld;',
+'varying float vCrest;',
+'vec3 gerstner(vec2 p, vec2 dir, float amp, float q, float len, float t, inout vec3 n, inout float crest){',
+'  float k=6.28318/len;',
+'  float c=sqrt(9.8/k)*uSpeed;',
+'  float a=amp*uAmp;',
+'  float Q=q*uChop;',
+'  float f=k*(dot(dir,p)-c*t);',
+'  float s=sin(f), co=cos(f);',
+'  n.x-=dir.x*a*k*co;',
+'  n.z-=dir.y*a*k*co;',
+'  n.y-=a*k*s*Q*1.5;',
+'  crest+=s*a*k*4.0*Q;',
+'  return vec3(dir.x*Q*a*co, dir.y*Q*a*co, a*s);',
+'}',
+'void main(){',
+'  vec3 pos=position;',
+'  vec3 n=vec3(0.0,1.0,0.0);',
+'  float crest=0.0;',
+'  vec2 p=pos.xy;',
+'  pos+=gerstner(p,normalize(vec2(1.0,0.2)),1.6,1.0,34.0,uTime,n,crest);',
+'  pos+=gerstner(p,normalize(vec2(0.8,-0.6)),0.9,0.9,19.0,uTime,n,crest);',
+'  pos+=gerstner(p,normalize(vec2(-0.3,1.0)),0.5,0.8,11.0,uTime,n,crest);',
+'  pos+=gerstner(p,normalize(vec2(0.5,0.9)),0.28,0.7,6.5,uTime,n,crest);',
+'  pos+=gerstner(p,normalize(vec2(-0.9,-0.4)),0.16,0.6,3.8,uTime,n,crest);',
+'  pos+=gerstner(p,normalize(vec2(0.1,-1.0)),0.09,0.5,2.3,uTime,n,crest);',
+'  for(int i=0;i<4;i++){',
+'    float age=uTime-uRipples[i].z;',
+'    if(age>0.0&&age<6.0&&uRipples[i].w>0.0){',
+'      float r=length(p-uRipples[i].xy);',
+'      float front=r-age*7.0;',
+'      float env=uRipples[i].w*exp(-age*0.9)*exp(-front*front*0.35);',
+'      pos.z+=env*sin(front*2.5);',
+'      n.y-=env*0.4*cos(front*2.5);',
+'    }',
+'  }',
+'  vNormal=normalize(n);',
+'  vCrest=crest;',
+'  vec4 w=modelMatrix*vec4(pos,1.0);',
+'  vWorld=w.xyz;',
+'  gl_Position=projectionMatrix*viewMatrix*w;',
+'}'
+].join('\n');
+
+var FRAG=[
+'precision highp float;',
+'uniform vec3 uSkyCol;',
+'uniform vec3 uZenCol;',
+'uniform vec3 uDeepCol;',
+'uniform vec3 uShalCol;',
+'uniform vec3 uSunCol;',
+'uniform vec3 uSunDir;',
+'uniform vec3 uFogCol;',
+'uniform float uTime;',
+'varying vec3 vNormal;',
+'varying vec3 vWorld;',
+'varying float vCrest;',
+'float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}',
+'float noise(vec2 p){vec2 i=floor(p);vec2 f=fract(p);f=f*f*(3.0-2.0*f);',
+'  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}',
+'void main(){',
+'  vec3 n=normalize(vNormal);',
+'  n.xz+=vec2(noise(vWorld.xz*1.4+uTime*0.35)-0.5,noise(vWorld.zx*1.4-uTime*0.3)-0.5)*0.18;',
+'  n=normalize(n);',
+'  vec3 view=normalize(cameraPosition-vWorld);',
+'  float fres=pow(1.0-max(dot(view,n),0.0),3.0);',
+'  vec3 skyRef=mix(uSkyCol,uZenCol,clamp(reflect(-view,n).y*1.4,0.0,1.0));',
+'  vec3 base=mix(uDeepCol,uShalCol,clamp(vCrest*0.4+0.3,0.0,1.0));',
+'  vec3 col=mix(base,skyRef,fres*0.75);',
+'  vec3 hv=normalize(view+uSunDir);',
+'  float spec=pow(max(dot(n,hv),0.0),260.0)*1.6+pow(max(dot(n,hv),0.0),40.0)*0.25;',
+'  col+=uSunCol*spec;',
+'  float foam=smoothstep(0.85,1.5,vCrest)*(0.5+0.5*noise(vWorld.xz*2.2+uTime*0.6));',
+'  col=mix(col,vec3(0.92,0.98,0.97),foam*0.45);',
+'  float dist=length(cameraPosition-vWorld);',
+'  col=mix(col,uFogCol,smoothstep(60.0,420.0,dist));',
+'  gl_FragColor=vec4(col,1.0);',
+'}'
+].join('\n');
+
+var SKY_VERT='varying vec3 vDir;void main(){vDir=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}';
+var SKY_FRAG=[
+'precision highp float;',
+'uniform vec3 uSkyCol;uniform vec3 uZenCol;uniform vec3 uSunCol;uniform vec3 uSunDir;',
+'varying vec3 vDir;',
+'void main(){',
+'  float h=clamp(vDir.y*1.6+0.15,0.0,1.0);',
+'  vec3 col=mix(uSkyCol,uZenCol,h);',
+'  float s=max(dot(normalize(vDir),uSunDir),0.0);',
+'  col+=uSunCol*(pow(s,600.0)*2.0+pow(s,24.0)*0.35);',
+'  gl_FragColor=vec4(col,1.0);',
+'}'
+].join('\n');
+
+/* ---------- uniforms ---------- */
+var ripples=[];
+for(var i=0;i<4;i++)ripples.push(new THREE.Vector4(0,0,-10,0));
+var U={
+  uTime:{value:0}, uAmp:{value:.45}, uChop:{value:.55}, uSpeed:{value:.8},
+  uSkyCol:{value:new THREE.Color()}, uZenCol:{value:new THREE.Color()},
+  uDeepCol:{value:new THREE.Color()}, uShalCol:{value:new THREE.Color()},
+  uSunCol:{value:new THREE.Color()}, uSunDir:{value:new THREE.Vector3(0,1,0)},
+  uFogCol:{value:new THREE.Color()}, uRipples:{value:ripples}
+};
+var oceanMat=new THREE.ShaderMaterial({uniforms:U,vertexShader:VERT,fragmentShader:FRAG});
+var SIZE=520, SEG=220;
+var ocean=new THREE.Mesh(new THREE.PlaneGeometry(SIZE,SIZE,SEG,SEG),oceanMat);
+ocean.rotation.x=-Math.PI/2;
+scene.add(ocean);
+var sky=new THREE.Mesh(new THREE.SphereGeometry(900,32,20),
+  new THREE.ShaderMaterial({uniforms:U,vertexShader:SKY_VERT,fragmentShader:SKY_FRAG,side:THREE.BackSide,depthWrite:false}));
+scene.add(sky);
+
+/* ---------- moment / palette ---------- */
+var todEl=document.getElementById('todVal');
+function setMoment(f){
+  var m=momentAt(f);
+  U.uSkyCol.value.setRGB(m.sky[0],m.sky[1],m.sky[2]);
+  U.uZenCol.value.setRGB(m.zen[0],m.zen[1],m.zen[2]);
+  U.uDeepCol.value.setRGB(m.deep[0],m.deep[1],m.deep[2]);
+  U.uShalCol.value.setRGB(m.shal[0],m.shal[1],m.shal[2]);
+  U.uSunCol.value.setRGB(m.sun[0],m.sun[1],m.sun[2]);
+  U.uFogCol.value.setRGB(m.fog[0],m.fog[1],m.fog[2]);
+  var az=.6+f*2.2;
+  U.uSunDir.value.set(Math.cos(az)*Math.cos(m.sunEl*Math.PI/2),Math.sin(m.sunEl*Math.PI/2),Math.sin(az)*Math.cos(m.sunEl*Math.PI/2)).normalize();
+  todEl.textContent=m.n;
+  scene.background=new THREE.Color(m.fog[0],m.fog[1],m.fog[2]);
+}
+
+/* ---------- camera & input ---------- */
+var cam={az:.5,pol:1.05,r:34,azT:.5,polT:1.05,rT:34};
+var dragging=false, moved=0;
+stage.addEventListener('pointerdown',function(e){dragging=true;moved=0;stage.classList.add('grabbing');stage.setPointerCapture(e.pointerId);});
+stage.addEventListener('pointermove',function(e){
+  if(!dragging)return;
+  moved+=Math.abs(e.movementX)+Math.abs(e.movementY);
+  cam.azT-=e.movementX*.005;
+  cam.polT=Math.max(.25,Math.min(1.45,cam.polT-e.movementY*.005));
+});
+var ray=new THREE.Raycaster();
+var seaPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0);
+stage.addEventListener('pointerup',function(e){
+  dragging=false;stage.classList.remove('grabbing');
+  if(moved<6){                              // click → ripple
+    var r=renderer.domElement.getBoundingClientRect();
+    var p=new THREE.Vector2(((e.clientX-r.left)/r.width)*2-1,-((e.clientY-r.top)/r.height)*2+1);
+    ray.setFromCamera(p,camera);
+    var hit=new THREE.Vector3();
+    if(ray.ray.intersectPlane(seaPlane,hit)&&hit.length()<SIZE/2){
+      ripples.shift();
+      ripples.push(new THREE.Vector4(hit.x,-hit.z,U.uTime.value,.9));
+      // plane is rotated: local z maps to world -z
+      ripples[3].y=-hit.z;
+    }
+  }
+});
+stage.addEventListener('wheel',function(e){e.preventDefault();
+  cam.rT=Math.max(10,Math.min(120,cam.rT+e.deltaY*.03));},{passive:false});
+
+/* ---------- UI ---------- */
+function bind(id,fn){document.getElementById(id).addEventListener('input',function(e){fn(+e.target.value);});}
+bind('amp',function(v){U.uAmp.value=v/100;
+  document.getElementById('swellVal').textContent=(v*0.06).toFixed(1)+' m';});
+bind('chop',function(v){U.uChop.value=v/100;});
+bind('spd',function(v){U.uSpeed.value=v/100;});
+bind('time',function(v){setMoment(v/100);});
+document.getElementById('wire').addEventListener('click',function(){
+  oceanMat.wireframe=!oceanMat.wireframe;
+  this.classList.toggle('on',oceanMat.wireframe);
+});
+document.getElementById('swellVal').textContent='2.7 m';
+
+/* ---------- loop ---------- */
+var clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  var dt=Math.min(clock.getDelta(),.05);
+  U.uTime.value+=dt;
+  var k=1-Math.exp(-dt*6);
+  cam.az+=(cam.azT-cam.az)*k;cam.pol+=(cam.polT-cam.pol)*k;cam.r+=(cam.rT-cam.r)*k;
+  camera.position.set(
+    cam.r*Math.sin(cam.pol)*Math.sin(cam.az),
+    cam.r*Math.cos(cam.pol)+2,
+    cam.r*Math.sin(cam.pol)*Math.cos(cam.az));
+  camera.lookAt(0,1.5,0);
+  renderer.render(scene,camera);
+}
+window.addEventListener('resize',function(){
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+setMoment(.5);
+animate();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mandala Engine — 曼陀罗分形生成器</title>
+<style>
+  :root{
+    --bg:#0E1116; --panel:#141922; --line:rgba(217,179,106,.14);
+    --gold:#D9B36A; --teal:#7FBFB5; --ink:#E9E4D8; --dim:#6E7681;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(217,179,106,.3)}
+
+  header{height:56px;display:flex;align-items:center;gap:16px;padding:0 22px;
+         border-bottom:1px solid var(--line);position:relative;z-index:5;background:var(--bg)}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.14em}
+  .brand .name{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.24em;text-transform:uppercase}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--mono);
+          font-size:11px;color:var(--dim)}
+  .dotlive{width:7px;height:7px;background:var(--teal);box-shadow:0 0 8px var(--teal);
+           animation:pulse 2.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  main{display:grid;grid-template-columns:1fr 300px;height:calc(100% - 56px)}
+  .stage{position:relative;overflow:hidden;cursor:pointer;
+         background:radial-gradient(120% 120% at 50% 50%, #131824 0%, var(--bg) 70%)}
+  canvas{display:block;position:absolute;inset:0}
+  .hint{position:absolute;left:22px;bottom:16px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);letter-spacing:.14em;text-transform:uppercase;pointer-events:none;
+        transition:opacity .6s}
+  .seedtag{position:absolute;right:22px;bottom:16px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);letter-spacing:.2em;pointer-events:none}
+
+  aside{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;
+        overflow-y:auto}
+  .panel{padding:20px 20px 8px}
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .field{margin-bottom:16px}
+  .field label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+               letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+  .field label .val{color:var(--gold)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:rgba(217,179,106,.2)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;
+      border-radius:50%;background:var(--gold);box-shadow:0 0 8px rgba(217,179,106,.6);
+      transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-track{height:2px;background:rgba(217,179,106,.2)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--gold);border:0}
+
+  .themes{display:flex;gap:10px}
+  .swatch{flex:1;height:44px;border:1px solid var(--line);cursor:pointer;position:relative;
+          transition:all .3s var(--ease);display:flex;align-items:flex-end;padding:6px}
+  .swatch span{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim)}
+  .swatch.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+  .swatch.on span{color:var(--gold)}
+  .swatch i{position:absolute;top:8px;left:8px;right:8px;height:10px}
+
+  .actions{margin-top:auto;padding:16px 20px 20px;border-top:1px solid var(--line);
+           display:flex;flex-direction:column;gap:10px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 0;
+       border:1px solid var(--gold);background:var(--gold);color:#14110A;
+       font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+       cursor:pointer;transition:all .3s var(--ease)}
+  .btn:hover{background:transparent;color:var(--gold)}
+  .btn.ghost{background:transparent;color:var(--gold)}
+  .btn.ghost:hover{background:var(--gold);color:#14110A}
+  .btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .credit{padding:0 20px 16px;font-family:var(--mono);font-size:9px;color:var(--dim);
+          letter-spacing:.14em;line-height:1.8;text-transform:uppercase}
+
+  @media (max-width:840px){
+    body{overflow:auto}
+    main{display:flex;flex-direction:column;height:auto}
+    .stage{height:60vh;min-height:400px}
+    aside{border-left:0;border-top:1px solid var(--line)}
+    header .sub{display:none}
+    .seedtag{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="no">GA·02</span>
+    <span class="name">Mandala Engine</span>
+    <span class="sub">Fractal Symmetry Studio</span>
+  </div>
+  <div class="crumbs"><span class="dotlive"></span><span>SEED · <span id="seedOut">0000</span></span></div>
+</header>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="hint" id="hint">CLICK TO RESEED · 点击画面重生纹样</div>
+    <div class="seedtag" id="seedTag"></div>
+  </div>
+
+  <aside>
+    <div class="panel">
+      <div class="blocklabel">Geometry · 几何</div>
+      <div class="field">
+        <label>Symmetry 对称 <span class="val" id="symVal">12</span></label>
+        <input type="range" id="sym" min="4" max="24" value="12">
+      </div>
+      <div class="field">
+        <label>Layers 层数 <span class="val" id="layVal">5</span></label>
+        <input type="range" id="lay" min="2" max="9" value="5">
+      </div>
+      <div class="field">
+        <label>Curl 卷曲 <span class="val" id="curlVal">55</span></label>
+        <input type="range" id="curl" min="0" max="100" value="55">
+      </div>
+      <div class="field">
+        <label>Bloom 疏密 <span class="val" id="bloomVal">50</span></label>
+        <input type="range" id="bloom" min="10" max="100" value="50">
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="blocklabel">Palette · 配色</div>
+      <div class="themes" id="themes">
+        <div class="swatch on" data-t="gilt"><i style="background:linear-gradient(90deg,#D9B36A,#7FBFB5)"></i><span>鎏金</span></div>
+        <div class="swatch" data-t="celadon"><i style="background:linear-gradient(90deg,#7FBFB5,#DCE8DF)"></i><span>青瓷</span></div>
+        <div class="swatch" data-t="rouge"><i style="background:linear-gradient(90deg,#D96A5A,#E8C9A0)"></i><span>绛纱</span></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="randomBtn">
+        <svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0 1 14-4.5M20 14a8 8 0 0 1-14 4.5"/></svg>
+        随机再生
+      </button>
+      <button class="btn ghost" id="dlBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>
+        下载 PNG
+      </button>
+    </div>
+    <div class="credit">Mandala Engine — procedural symmetry,<br>drawn line by line, never repeated. © MMXXVI</div>
+  </aside>
+</main>
+
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage'), cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+var off=document.createElement('canvas'), octx=off.getContext('2d');
+var DPR=1, W=0, H=0;
+
+var P={sym:12, lay:5, curl:55, bloom:50, theme:'gilt'};
+var seed=20260, reveal=0, rot=0, rotTarget=0;
+var mouse={x:0.5,y:0.5,sx:0.5,sy:0.5};
+
+var THEME={
+  gilt:   {a:'#D9B36A', b:'#7FBFB5', bg0:'#131824', bg1:'#0E1116'},
+  celadon:{a:'#7FBFB5', b:'#DCE8DF', bg0:'#101A18', bg1:'#0B1211'},
+  rouge:  {a:'#D96A5A', b:'#E8C9A0', bg0:'#1B1214', bg1:'#120C0E'}
+};
+
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=stage.clientWidth; H=stage.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  off.width=W*DPR; off.height=H*DPR;
+  octx.setTransform(DPR,0,0,DPR,0,0);
+  renderMandala();
+}
+window.addEventListener('resize',resize);
+
+/* ---------- mandala renderer ---------- */
+function renderMandala(){
+  var rng=mulberry(seed);
+  var T=THEME[P.theme];
+  octx.clearRect(0,0,W,H);
+  var cx=W/2, cy=H/2;
+  var R=Math.min(W,H)*0.46;
+  var curl=P.curl/100, bloom=P.bloom/100;
+  var n=P.sym, layers=P.lay;
+
+  octx.save();
+  octx.translate(cx,cy);
+  octx.lineCap='round';
+
+  /* outer dashed halo */
+  octx.strokeStyle=T.a; octx.globalAlpha=0.35; octx.lineWidth=1;
+  octx.setLineDash([2,7]);
+  octx.beginPath(); octx.arc(0,0,R*1.04,0,Math.PI*2); octx.stroke();
+  octx.setLineDash([]);
+  octx.globalAlpha=1;
+
+  var r0=R*0.05;
+  for(var L=0;L<layers;L++){
+    var f0=L/layers, f1=(L+1)/layers;
+    var ri=r0+(R-r0)*(f0*f0*0.5+f0*0.5)*bloom + (R-r0)*f0*(1-bloom);
+    var ro=r0+(R-r0)*(f1*f1*0.5+f1*0.5)*bloom + (R-r0)*f1*(1-bloom);
+    var col = L%2===0 ? T.a : T.b;
+    var style = rng();
+    octx.strokeStyle=col;
+    octx.fillStyle=col;
+    octx.lineWidth=Math.max(0.8, 2.2-L*0.22);
+
+    for(var k=0;k<n;k++){
+      var a0=(k/n)*Math.PI*2;
+      octx.save();
+      octx.rotate(a0);
+      var half=Math.PI/n; /* half sector angle */
+      var bend=curl*half*1.6*(rng()<0.5?1:-1)*(L%2===0?1:-1);
+      if(style<0.55){
+        /* petal: two mirrored beziers */
+        var mx=ro, ctrl1x=ri+(ro-ri)*0.35, ctrl2x=ri+(ro-ri)*0.75;
+        var spread=Math.tan(half)*(ri+ro)*0.42;
+        octx.beginPath();
+        octx.moveTo(ri,0);
+        octx.bezierCurveTo(ctrl1x, spread+bend*ro, ctrl2x, spread*0.4+bend*ro, ro, bend*ro*0.4);
+        octx.bezierCurveTo(ctrl2x, -spread*0.4+bend*ro, ctrl1x, -spread+bend*ro, ri, 0);
+        if(L===layers-1 && rng()<0.5){ octx.globalAlpha=0.14; octx.fill(); octx.globalAlpha=1; }
+        octx.stroke();
+        /* petal vein */
+        if(rng()<0.6){
+          octx.globalAlpha=0.5; octx.lineWidth*=0.6;
+          octx.beginPath(); octx.moveTo(ri,0);
+          octx.quadraticCurveTo((ri+ro)/2, bend*ro*0.5, ro, bend*ro*0.4);
+          octx.stroke();
+          octx.globalAlpha=1;
+        }
+      }else if(style<0.8){
+        /* spikes + tip dots */
+        octx.beginPath();
+        octx.moveTo(ri,0);
+        octx.lineTo(ro, bend*ro*0.3);
+        octx.stroke();
+        octx.beginPath();
+        octx.arc(ro, bend*ro*0.3, Math.max(1.2,2.4-L*0.2), 0, Math.PI*2);
+        octx.fill();
+      }else{
+        /* scallop arcs */
+        var rm=(ri+ro)/2;
+        octx.beginPath();
+        octx.arc(rm, 0, (ro-ri)/2*(0.7+curl*0.5), -half*0.8, half*0.8);
+        octx.stroke();
+      }
+      octx.restore();
+    }
+
+    /* ring separators */
+    octx.globalAlpha=0.55; octx.lineWidth=0.8;
+    octx.strokeStyle = L%2===0 ? T.b : T.a;
+    octx.beginPath(); octx.arc(0,0,ri,0,Math.PI*2); octx.stroke();
+    /* ring of dots */
+    if(rng()<0.7){
+      var dn=n*(rng()<0.5?1:2);
+      octx.fillStyle=T.a;
+      for(var d=0;d<dn;d++){
+        var da=(d/dn)*Math.PI*2 + (L%2)*Math.PI/dn;
+        octx.beginPath();
+        octx.arc(Math.cos(da)*ri, Math.sin(da)*ri, 1.1, 0, Math.PI*2);
+        octx.fill();
+      }
+    }
+    octx.globalAlpha=1;
+  }
+
+  /* center */
+  octx.fillStyle=T.a;
+  octx.beginPath(); octx.arc(0,0,r0*0.55,0,Math.PI*2); octx.fill();
+  octx.strokeStyle=T.b; octx.lineWidth=1;
+  octx.beginPath(); octx.arc(0,0,r0*0.9,0,Math.PI*2); octx.stroke();
+  octx.restore();
+}
+
+/* ---------- loop ---------- */
+var last=performance.now();
+function frame(now){
+  var dt=Math.min((now-last)/1000,0.05); last=now;
+  /* eased reveal + perpetual slow rotation */
+  reveal=Math.min(1, reveal+dt/1.6);
+  var e=1-Math.pow(1-reveal,3);
+  rot += dt*0.05 + (rotTarget-rot)*0.02;
+
+  mouse.sx+=(mouse.x-mouse.sx)*0.05;
+  mouse.sy+=(mouse.y-mouse.sy)*0.05;
+  var px=(mouse.sx-0.5)*14, py=(mouse.sy-0.5)*14;
+
+  var T=THEME[P.theme];
+  var g=ctx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*0.7);
+  g.addColorStop(0,T.bg0); g.addColorStop(1,T.bg1);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+
+  ctx.save();
+  ctx.translate(W/2+px,H/2+py);
+  ctx.rotate(rot + (1-e)*-0.6);
+  var s=(0.82+0.18*e)*(1+Math.sin(now/1000*0.6)*0.008);
+  ctx.scale(s,s);
+  ctx.globalAlpha=e;
+  ctx.drawImage(off, -W/2, -H/2, W, H);
+  ctx.restore();
+
+  requestAnimationFrame(frame);
+}
+
+/* ---------- events ---------- */
+function reseed(newSeed){
+  seed=newSeed===undefined?Math.floor(Math.random()*89999)+10000:newSeed;
+  document.getElementById('seedOut').textContent=seed;
+  document.getElementById('seedTag').textContent='SPECIMEN · '+seed+' · '+P.sym+'-FOLD';
+  reveal=0; rotTarget=rot+0.9;
+  renderMandala();
+}
+stage.addEventListener('click',function(){ reseed(); document.getElementById('hint').style.opacity=0; });
+stage.addEventListener('pointermove',function(e){
+  var r=stage.getBoundingClientRect();
+  mouse.x=(e.clientX-r.left)/r.width; mouse.y=(e.clientY-r.top)/r.height;
+});
+
+function bindRange(id,key,label,redraw){
+  var el=document.getElementById(id);
+  el.addEventListener('input',function(){
+    P[key]=+el.value; document.getElementById(label).textContent=el.value;
+    if(redraw) renderMandala();
+  });
+}
+bindRange('sym','sym','symVal',true);
+bindRange('lay','lay','layVal',true);
+bindRange('curl','curl','curlVal',true);
+bindRange('bloom','bloom','bloomVal',true);
+
+document.getElementById('themes').addEventListener('click',function(e){
+  var s=e.target.closest('.swatch'); if(!s)return;
+  document.querySelectorAll('.swatch').forEach(function(x){x.classList.remove('on');});
+  s.classList.add('on'); P.theme=s.dataset.t; renderMandala();
+});
+
+document.getElementById('randomBtn').addEventListener('click',function(){
+  var rng=mulberry(Date.now()%2147483647);
+  P.sym=6+Math.floor(rng()*13);
+  P.lay=3+Math.floor(rng()*6);
+  P.curl=20+Math.floor(rng()*70);
+  P.bloom=25+Math.floor(rng()*70);
+  [['sym','symVal'],['lay','layVal'],['curl','curlVal'],['bloom','bloomVal']].forEach(function(p){
+    document.getElementById(p[0]).value=P[p[0]];
+    document.getElementById(p[1]).textContent=P[p[0]];
+  });
+  reseed();
+});
+
+document.getElementById('dlBtn').addEventListener('click',function(){
+  /* compose a square export: mandala on themed bg */
+  var S=1600, ex=document.createElement('canvas');
+  ex.width=ex.height=S;
+  var c=ex.getContext('2d'), T=THEME[P.theme];
+  var g=c.createRadialGradient(S/2,S/2,0,S/2,S/2,S*0.75);
+  g.addColorStop(0,T.bg0); g.addColorStop(1,T.bg1);
+  c.fillStyle=g; c.fillRect(0,0,S,S);
+  var mS=Math.min(off.width,off.height);
+  c.save(); c.translate(S/2,S/2); c.rotate(rot);
+  c.drawImage(off,(off.width-mS)/2,(off.height-mS)/2,mS,mS,-S/2,-S/2,S,S);
+  c.restore();
+  ex.toBlob(function(blob){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='mandala-'+seed+'.png';
+    a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+});
+
+resize();
+reseed(seed);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

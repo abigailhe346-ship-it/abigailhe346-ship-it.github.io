@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FOLIO N°47 — 纸上编辑部 · 漫长的特写</title>
+<style>
+  :root{
+    --paper:#F7F4EE;
+    --ink:#161513;
+    --red:#C13B2A;
+    --grey:#8d867b;
+    --line:#ddd5c8;
+    --serif:Didot,"Bodoni MT","Songti SC","STSong",Georgia,serif;
+    --sans:"Helvetica Neue",Helvetica,Arial,"PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.25,.46,.45,.94);
+    --fs:17px;
+  }
+  body.night{
+    --paper:#14120f;
+    --ink:#e8e2d5;
+    --grey:#7d766a;
+    --line:#35302a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:var(--serif);
+    transition:background .6s var(--ease),color .6s var(--ease);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--red);color:#fff}
+  canvas{display:block}
+
+  /* ============ masthead ============ */
+  .mast{
+    position:fixed;top:0;left:0;right:0;z-index:60;
+    background:var(--paper);border-bottom:1px solid var(--line);
+    transition:background .6s var(--ease);
+  }
+  .mast-in{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 26px;font-family:var(--sans);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  }
+  .mast .brand{font-family:var(--serif);font-size:18px;letter-spacing:.02em;text-transform:none;font-weight:700}
+  .mast .brand i{font-style:italic;color:var(--red)}
+  .mast nav{display:flex;gap:26px}
+  .mast nav a{
+    color:var(--ink);text-decoration:none;position:relative;padding:2px 0;transition:color .3s var(--ease);
+  }
+  .mast nav a::after{
+    content:'';position:absolute;left:0;bottom:-2px;width:0;height:1px;background:var(--red);
+    transition:width .35s var(--ease);
+  }
+  .mast nav a:hover::after,.mast nav a.spy::after{width:100%}
+  .mast nav a.spy{color:var(--red)}
+  .mast .tools{display:flex;align-items:center;gap:16px}
+  #pct{font-family:var(--mono);font-size:11px;color:var(--grey);min-width:4ch;text-align:right}
+  #daynight{
+    font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    background:none;border:1px solid var(--ink);color:var(--ink);padding:5px 12px;cursor:pointer;
+    border-radius:99px;transition:all .3s var(--ease);
+  }
+  #daynight:hover{background:var(--ink);color:var(--paper)}
+  #pbar{height:2px;background:var(--red);width:0%}
+
+  /* ============ hero ============ */
+  .hero{padding:120px 26px 0;max-width:1280px;margin:0 auto}
+  .hero .kicker{
+    display:flex;justify-content:space-between;border-top:1px solid var(--ink);border-bottom:1px solid var(--line);
+    padding:10px 0;font-family:var(--sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--grey);
+  }
+  .hero h1{
+    font-size:clamp(52px,9.5vw,150px);font-weight:400;line-height:.98;letter-spacing:-.01em;
+    margin:56px 0 30px;
+  }
+  .hero h1 em{font-style:italic;color:var(--red)}
+  .standfirst{
+    max-width:620px;font-size:clamp(17px,1.8vw,22px);line-height:1.9;font-style:italic;color:#55503f;
+    margin-bottom:56px;
+  }
+  body.night .standfirst{color:#b3ab9b}
+  #cover{width:100%;height:min(64vh,600px)}
+  .credit{
+    display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--ink);
+    font-family:var(--sans);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--grey);
+  }
+
+  /* ============ contents ============ */
+  .toc{max-width:1280px;margin:0 auto;padding:100px 26px 0}
+  .toc h2{font-family:var(--sans);font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--grey);margin-bottom:34px}
+  .toc-row{
+    display:grid;grid-template-columns:70px 1fr auto auto;gap:26px;align-items:baseline;
+    padding:30px 0;border-top:1px solid var(--line);cursor:pointer;
+    transition:padding-left .45s var(--ease);
+  }
+  .toc-row:last-child{border-bottom:1px solid var(--line)}
+  .toc-row:hover{padding-left:22px}
+  .toc-row .no{font-family:var(--mono);font-size:12px;color:var(--red)}
+  .toc-row h3{font-size:clamp(26px,4vw,52px);font-weight:400;line-height:1.05}
+  .toc-row .cat{font-family:var(--sans);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--grey)}
+  .toc-row .pg{font-family:var(--mono);font-size:11px;color:var(--grey)}
+  #preview{
+    position:fixed;z-index:55;width:min(300px,42vw);height:min(200px,28vw);
+    pointer-events:none;opacity:0;transform:scale(.92) rotate(-2deg);
+    transition:opacity .3s var(--ease),transform .45s var(--ease);
+    box-shadow:0 24px 60px rgba(0,0,0,.28);
+  }
+  #preview.on{opacity:1;transform:scale(1) rotate(-2deg)}
+
+  /* ============ articles ============ */
+  article{max-width:1280px;margin:0 auto;padding:130px 26px 0}
+  .art-head{display:grid;grid-template-columns:1fr 2fr;gap:60px;margin-bottom:70px;align-items:end}
+  .art-head .meta{font-family:var(--sans);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--grey);line-height:2.4}
+  .art-head .meta b{color:var(--red);font-weight:400}
+  .art-head h2{font-size:clamp(38px,5.5vw,80px);font-weight:400;line-height:1.04;letter-spacing:-.01em}
+  .art-head h2 em{font-style:italic;color:var(--red)}
+
+  .cols{columns:2;column-gap:60px;column-rule:1px solid var(--line)}
+  .cols p{
+    font-size:var(--fs);line-height:2.05;margin-bottom:1.4em;text-align:justify;
+    break-inside:avoid-column;
+  }
+  .cols p.first::first-letter{
+    font-size:5.2em;float:left;line-height:.78;padding:.06em .12em 0 0;
+    color:var(--red);font-weight:400;
+  }
+  .pull{
+    break-inside:avoid-column;
+    font-size:clamp(24px,2.6vw,32px);line-height:1.5;font-style:italic;
+    border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+    padding:30px 0;margin:2em 0;text-align:left;
+  }
+  .pull span{color:var(--red)}
+  .fig{break-inside:avoid-column;margin:2em 0}
+  .fig canvas{width:100%;height:340px}
+  .fig figcaption{
+    font-family:var(--sans);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--grey);padding-top:12px;border-top:1px solid var(--line);margin-top:12px;
+  }
+  .fn{font-size:12px;color:var(--grey);line-height:2;font-family:var(--sans);letter-spacing:.04em;
+    border-top:1px solid var(--line);padding-top:18px;margin-top:2em;columns:1}
+  sup{color:var(--red);font-family:var(--mono);font-size:.62em}
+
+  /* wide visual */
+  .wide{max-width:1280px;margin:0 auto;padding:0 26px}
+  .wide canvas{width:100%;height:min(62vh,560px)}
+
+  /* ============ colophon ============ */
+  footer{
+    margin-top:140px;border-top:1px solid var(--ink);
+    padding:60px 26px 46px;font-family:var(--sans);
+  }
+  .foot-in{max-width:1280px;margin:0 auto;display:flex;justify-content:space-between;flex-wrap:wrap;gap:30px}
+  footer .big{font-family:var(--serif);font-size:clamp(40px,6vw,84px);font-style:italic;line-height:1}
+  footer .col{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--grey);line-height:2.6}
+  footer .col b{color:var(--ink);font-weight:700}
+  .baseline{max-width:1280px;margin:60px auto 0;padding-top:16px;border-top:1px solid var(--line);
+    font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--grey);display:flex;justify-content:space-between}
+
+  .rv{opacity:0;transform:translateY(30px);transition:opacity 1.1s var(--ease),transform 1.1s var(--ease)}
+  .rv.in{opacity:1;transform:none}
+
+  @media(max-width:860px){
+    .mast nav{display:none}
+    .cols{columns:1}
+    .art-head{grid-template-columns:1fr;gap:26px}
+    .toc-row{grid-template-columns:44px 1fr auto}
+    .toc-row .pg{display:none}
+  }
+</style>
+</head>
+<body>
+
+<div class="mast">
+  <div class="mast-in">
+    <span class="brand">FOLIO <i>N°47</i></span>
+    <nav>
+      <a href="#a1" data-spy="a1">特写</a>
+      <a href="#a2" data-spy="a2">专栏</a>
+      <a href="#a3" data-spy="a3">视觉</a>
+      <a href="#a4" data-spy="a4">手记</a>
+    </nav>
+    <div class="tools">
+      <span id="pct">0%</span>
+      <button id="daynight">夜间 · NIGHT</button>
+    </div>
+  </div>
+  <div id="pbar"></div>
+</div>
+
+<canvas id="preview"></canvas>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="kicker"><span>独立出版 · 季刊</span><span>二〇二六年 · 春</span><span>定价：一个下午</span></div>
+  <h1 class="rv">漫长的<br><em>特写。</em></h1>
+  <p class="standfirst rv">本刊只刊登慢的东西：慢的店、慢的手艺、慢的电台。在一个一切都被加速的时代，我们坚持用三千字写一杯咖啡凉掉的过程。</p>
+  <canvas id="cover" class="rv"></canvas>
+  <div class="credit"><span>封面 —《缓慢的截面》/ 生成艺术</span><span>本刊所有插图均由算法现场绘制</span></div>
+</header>
+
+<!-- ================= TOC ================= -->
+<section class="toc">
+  <h2 class="rv">目录 / Contents — 悬停以预览</h2>
+  <div class="toc-row rv" data-art="0" onclick="location.hash='a1'">
+    <span class="no">01</span><h3>最后一家手工排字房</h3><span class="cat">特写 · Profile</span><span class="pg">P.004</span>
+  </div>
+  <div class="toc-row rv" data-art="1" onclick="location.hash='a2'">
+    <span class="no">02</span><h3>天桥下的植物学</h3><span class="cat">专栏 · Column</span><span class="pg">P.012</span>
+  </div>
+  <div class="toc-row rv" data-art="2" onclick="location.hash='a3'">
+    <span class="no">03</span><h3>午夜电台的频谱</h3><span class="cat">视觉 · Visual</span><span class="pg">P.020</span>
+  </div>
+  <div class="toc-row rv" data-art="3" onclick="location.hash='a4'">
+    <span class="no">04</span><h3>一杯咖啡凉掉的全过程</h3><span class="cat">手记 · Notes</span><span class="pg">P.026</span>
+  </div>
+</section>
+
+<!-- ================= ARTICLE 1 ================= -->
+<article id="a1">
+  <div class="art-head rv">
+    <div class="meta">特写 / PROFILE<br><b>最后一家手工排字房</b><br>文 — 沈既白<br>图 — 算法现场绘制<br>阅读约 6 分钟</div>
+    <h2>铅字落定之前，<br>每一个字都有<em>重量。</em></h2>
+  </div>
+  <div class="cols rv">
+    <p class="first">老周的古籍印刷铺开在一条连导航都会失灵的巷子里。推开那扇漆成暗绿色的木门，先闻到的不是墨香，是金属——一万两千枚铅活字立在木架上，像一支沉默的军队。他今年六十七岁，是这座城里最后一个还会手工排字的师傅。「年轻人说这个叫非遗，」他把一枚「永」字嵌进排字盘，「我说这就是上班。」</p>
+    <p>排字的逻辑和打字正好相反：不是从空白里造出字，而是从一万两千个现成的字里，把你要的那一个找出来。老周找字不用看，他的手比眼睛快。「『之乎者也』在高处，用得少；『的了是我』在手边，弯腰就到。」字架的高度，就是一部汉语的使用频率表。</p>
+    <div class="pull">「屏幕上的字没有重量，<br><span>铅字有。</span>一个字三分重，<br>一句诗掂得出来。」</div>
+    <p>最忙的时候是上世纪八十年代。出版社的清样雪片一样飞来，铺子里四个师傅轮班，铅字在排字盘里哗啦哗啦地响，像下雨。后来激光照排来了，雨就停了。师傅们改行的改行，退休的退休，只有老周把字架留了下来，接一些「不划算」的活：诗人的自选集、婚礼的请柬、还有人不肯用机器印的遗书。</p>
+    <p>有人问他为什么守着。他想了半天，给了一个不太浪漫的答案：「机器印的字，每一笔都一样深；铅字印出来，捺脚会吃得深一点，因为那里的铅多。」他顿了顿，又补充道：「<strong>不均匀，才是手。</strong>」<sup>1</sup></p>
+    <figure class="fig"><canvas data-art="0"></canvas><figcaption>图 1 —《字架的高度即频率》/ 生成图像，算法编号 04-A</figcaption></figure>
+    <p>铺子如今的收入，一半来自体验课。来上课的年轻人把「永」字排反，印出来才发现——铅字是镜像的，排字师傅一生都在和反字打交道。「所以他们很少写错别字，」老周说，「因为每个字都倒着看过一遍，骨头缝都认识了。」</p>
+    <p>采访结束时，他送我们一张刚印的书签，纸上只有四个字：慢不得矣。墨还没有完全干，他用一张废报纸把它隔开，动作轻得像在合上一本书。「下周还有一批铅要化掉，」他说，「我不怪他们。铅有铅的去处，字有字的去处。」</p>
+    <div class="fn">1. 老周所说的「不均匀」，在印刷学上称为压印痕（impression），是活版印刷在纸面形成的轻微凹陷，如今被数码印刷刻意模仿，成为名为「凸版效果」的滤镜。</div>
+  </div>
+</article>
+
+<!-- ================= ARTICLE 2 ================= -->
+<article id="a2">
+  <div class="art-head rv">
+    <div class="meta">专栏 / COLUMN<br><b>天桥下的植物学</b><br>文 — 苔原<br>阅读约 4 分钟</div>
+    <h2>城市最野的花园，<br>长在<em>没人浇水</em>的地方。</h2>
+  </div>
+  <div class="cols rv">
+    <p class="first">如果给这座城市的植物画一张权力地图，公园是被治理得最好的省份，而立交桥底是无政府状态的飞地。没有园艺师修剪，没有铭牌命名，狗尾草、酢浆草和葎草在那里实行纯粹的丛林法则——更准确地说，是纯粹的混凝土法则：谁能把根扎进两毫米的裂缝，谁就拥有阳光。</p>
+    <p>植物学家管这叫「隙地植被」，出租车司机管这叫「野草」。但在出租车司机等客的二十分钟里，一株醡浆草完成的开合，比整座立交桥的车流更有秩序。它们的时间表写在基因里：日出展叶，日落合拢，比城市的任何一块钟表都守时。</p>
+    <div class="pull">所谓杂草，<br>不过是<span>长错了地方</span>的植物——<br>而「错的地方」，都是人划的。</div>
+    <p>我数过，东四环某座桥底有十七种植物。最多的是马齿笕，最少的是一棵桑树，据说来自十年前某个乘客吐出的桑葚。它现在三米高，每年结果，喂饱了两种鸟和一位环卫工。没有人种它，但它显然属于这里——或许比立交桥还属于这里，毕竟桥会拆，而桑葚每年都有人吐。<sup>2</sup></p>
+    <figure class="fig"><canvas data-art="1"></canvas><figcaption>图 2 —《裂缝十七种》/ 生成图像，算法编号 12-C</figcaption></figure>
+    <p>下次堵车的时候，可以看看窗外。那些被尾气熏得发亮的叶子上，有一整套不向任何人汇报的生态系统。它不需要被喜欢，只需要不被铲除——这大概是城市里最接近自由的生存方式。</p>
+    <div class="fn">2. 据《北京植物志》，桑树是城市隙地最常见的「逃逸物种」之一，其传播者通常为鸟类，偶尔为乘客。</div>
+  </div>
+</article>
+
+<!-- ================= ARTICLE 3 (visual) ================= -->
+<article id="a3">
+  <div class="art-head rv">
+    <div class="meta">视觉 / VISUAL<br><b>午夜电台的频谱</b><br>图 — 算法现场绘制<br>文 — 值班编辑</div>
+    <h2>凌晨三点，<br>还有人在<em>调频</em>。</h2>
+  </div>
+  <div class="cols rv">
+    <p class="first">调频 97.4，凌晨一点的节目叫《不睡之城》。主持人的声音低得像怕吵醒谁——尽管收听这个节目的人，恰恰都醒着。失眠的程序员、下夜班的护士、在阳台抽烟的父亲，电波把这些人串在同一频率上，像一串各自发光的灯泡。</p>
+    <p>我们为这档节目绘制了它的「声音肖像」：每一道弧线是一通电话的波形，每一个红点是一次欲言又止的停顿。数据是假的，但每一个听过午夜电台的人都知道，图是真的。</p>
+  </div>
+</article>
+<div class="wide rv"><canvas data-art="2"></canvas>
+  <p class="credit" style="border-bottom:none;padding:12px 0 0"><span>图 3 —《不睡之城频谱》/ 生成图像，算法编号 97-F</span><span>FM 97.4 · 01:00–05:00</span></p>
+</div>
+
+<!-- ================= ARTICLE 4 ================= -->
+<article id="a4">
+  <div class="art-head rv">
+    <div class="meta">手记 / NOTES<br><b>一杯咖啡凉掉的全过程</b><br>文 — 编辑部<br>阅读约 2 分钟</div>
+    <h2>热的尽头不是凉，<br>是<em>另一个味道。</em></h2>
+  </div>
+  <div class="cols rv">
+    <p class="first">九十二度，它是宣言；七十度，它是饮料；五十五度以下，它才开始说实话。酸质先浮上来，像退潮后露出的礁石；然后是甜，一种被高温压住嗓门的甜，此刻终于能被听见。咖啡师们私下承认：检验一支豆子的方式不是趁热喝，而是把它忘掉。</p>
+    <p>所以本刊的下午茶有个规矩：谁也不许催。杯子空了可以续，话没说完不许走。在这个栏目里，我们记录那些被忘掉的咖啡，和因为忘掉咖啡才说完的话。本期无大事发生，特此声明。</p>
+    <figure class="fig"><canvas data-art="3"></canvas><figcaption>图 4 —《九十二度到室温》/ 生成图像，算法编号 55-B</figcaption></figure>
+  </div>
+</article>
+
+<footer>
+  <div class="foot-in">
+    <div>
+      <p class="big">FOLIO <i style="color:var(--red)">N°47</i></p>
+      <p class="col" style="margin-top:18px"><b>纸上编辑部</b><br>创刊于某个下雨的周四<br>本刊插图全部由算法绘制，<br>如有雷同，纯属种子相同。</p>
+    </div>
+    <div class="col"><b>本期人员</b><br>特写 — 沈既白<br>专栏 — 苔原<br>视觉 — 值班编辑<br>排印 — 老周（远程）</div>
+    <div class="col"><b>技术说明</b><br>字体 — Didot / 宋体 系统字栈<br>图像 — Canvas 2D 生成<br>阅读进度 — 实时计算<br>本刊不含任何外链</div>
+  </div>
+  <div class="baseline"><span>FOLIO — Work N°05 · Editorial</span><span>© 2026 纸上编辑部</span></div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var DPR=Math.min(devicePixelRatio||1,2);
+var RED='#C13B2A', INK='#161513', PAPER='#F7F4EE';
+
+/* ============ seeded random ============ */
+function rng(seed){return function(){seed=(seed*9301+49297)%233280;return seed/233280;};}
+
+/* ============ generative duotone art ============ */
+function drawArt(cv,seed){
+  var r=cv.getBoundingClientRect();
+  var W=Math.max(r.width,10),H=Math.max(r.height,10);
+  cv.width=W*DPR;cv.height=H*DPR;
+  var c=cv.getContext('2d');
+  c.setTransform(DPR,0,0,DPR,0,0);
+  var rand=rng(seed*7919+13);
+  c.fillStyle=PAPER;c.fillRect(0,0,W,H);
+  /* ink grain lines */
+  c.globalAlpha=.06;
+  for(var g=0;g<40;g++){
+    c.strokeStyle=INK;c.lineWidth=1;
+    var gy=rand()*H;
+    c.beginPath();c.moveTo(0,gy);c.lineTo(W,gy+(rand()*20-10));c.stroke();
+  }
+  c.globalAlpha=1;
+  /* big ink arcs */
+  var nA=3+Math.floor(rand()*3);
+  for(var i=0;i<nA;i++){
+    c.strokeStyle=INK;c.lineWidth=1+rand()*2.5;
+    c.beginPath();
+    c.arc(rand()*W,rand()*H,40+rand()*Math.min(W,H)*.45,rand()*6.28,rand()*6.28+2+rand()*3);
+    c.stroke();
+  }
+  /* red solid disc */
+  c.fillStyle=RED;
+  c.beginPath();
+  c.arc(W*(.2+rand()*.6),H*(.25+rand()*.5),Math.min(W,H)*(.06+rand()*.1),0,7);
+  c.fill();
+  /* red half-moon outline */
+  c.strokeStyle=RED;c.lineWidth=2;
+  c.beginPath();
+  c.arc(rand()*W,rand()*H,Math.min(W,H)*(.14+rand()*.12),Math.PI*rand(),Math.PI*(1+rand()));
+  c.stroke();
+  /* hatch block */
+  var hx=rand()*W*.6,hy=rand()*H*.6,hw=W*.16+rand()*W*.14,hh=H*.2+rand()*H*.2;
+  c.save();c.beginPath();c.rect(hx,hy,hw,hh);c.clip();
+  c.strokeStyle=INK;c.lineWidth=1;
+  for(var d=-hh;d<hw+hh;d+=6){
+    c.beginPath();c.moveTo(hx+d,hy);c.lineTo(hx+d+hh,hy+hh);c.stroke();
+  }
+  c.restore();
+  /* dot register marks */
+  c.fillStyle=INK;
+  for(var k=0;k<4;k++)c.fillRect(14+k*16,H-16,6,2);
+}
+var artCanvases=document.querySelectorAll('canvas[data-art]');
+var cover=document.getElementById('cover');
+function drawAll(){
+  artCanvases.forEach(function(cv){drawArt(cv,+cv.dataset.art+1);});
+  if(cover)drawArt(cover,47);
+}
+drawAll();
+addEventListener('resize',function(){drawAll();});
+
+/* ============ reading progress ============ */
+var pbar=document.getElementById('pbar'),pct=document.getElementById('pct');
+function onScroll(){
+  var max=document.documentElement.scrollHeight-innerHeight;
+  var p=max>0?Math.min(scrollY/max,1):0;
+  pbar.style.width=(p*100)+'%';
+  pct.textContent=Math.round(p*100)+'%';
+}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+/* ============ TOC spy ============ */
+var links=document.querySelectorAll('[data-spy]');
+var secs=['a1','a2','a3','a4'].map(function(id){return document.getElementById(id);});
+function spy(){
+  var cur=-1;
+  secs.forEach(function(s,i){if(s&&s.getBoundingClientRect().top<innerHeight*.5)cur=i;});
+  links.forEach(function(l,i){l.classList.toggle('spy',i===cur);});
+}
+addEventListener('scroll',spy,{passive:true});spy();
+
+/* ============ TOC hover preview follows mouse ============ */
+var pv=document.getElementById('preview');
+var pvOn=false,pvx=0,pvy=0,tx=0,ty=0;
+document.querySelectorAll('.toc-row').forEach(function(row){
+  row.addEventListener('mouseenter',function(){
+    drawArt(pv,+row.dataset.art+101);
+    pv.classList.add('on');pvOn=true;
+  });
+  row.addEventListener('mouseleave',function(){
+    pv.classList.remove('on');pvOn=false;
+  });
+});
+addEventListener('mousemove',function(e){tx=e.clientX;ty=e.clientY;});
+(function pvLoop(){
+  pvx+=(tx-pvx)*.14;pvy+=(ty-pvy)*.14;
+  if(pvOn)pv.style.transform='';
+  pv.style.left=(pvx+26)+'px';
+  pv.style.top=Math.min(Math.max(pvy-100,70),innerHeight-240)+'px';
+  requestAnimationFrame(pvLoop);
+})();
+
+/* ============ day / night ============ */
+var btn=document.getElementById('daynight');
+btn.addEventListener('click',function(){
+  var night=document.body.classList.toggle('night');
+  btn.textContent=night?'日间 · DAY':'夜间 · NIGHT';
+  /* re-paint art for new paper colour */
+  INK=night?'#e8e2d5':'#161513';
+  PAPER=night?'#14120f':'#F7F4EE';
+  RED=night?'#e0532f':'#C13B2A';
+  drawAll();
+});
+
+/* ============ reveal ============ */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});
+},{threshold:.1});
+document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

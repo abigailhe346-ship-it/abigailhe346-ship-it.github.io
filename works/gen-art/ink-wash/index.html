@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INK WASH — 雾山行</title>
+<style>
+  :root{
+    --paper:#f5f0e4; --panel:#efe8d6; --line:#d6ccb2;
+    --ink:#2a2b26; --dim:#8f8870;
+    --moss:#5f6b58; --shu:#b03a2e;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--moss);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .sig h1{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.04em}
+  .sig h1 em{font-style:italic;color:var(--moss)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--shu);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.06em;max-width:400px;text-align:right;line-height:1.7}
+  .rule{margin:14px 28px 0;border-top:1px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{
+    display:grid;grid-template-columns:284px minmax(0,1fr);gap:24px;
+    padding:24px 28px 40px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .dock{
+    background:var(--panel);border:1px solid var(--ink);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+    display:flex;justify-content:space-between;
+  }
+  .dock h2 span{color:var(--shu)}
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;letter-spacing:.04em;
+  }
+  .ctl label output{font-family:var(--mono);font-size:11px;color:var(--moss)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-6px;
+    background:var(--paper);border:1px solid var(--ink);border-radius:50%;
+    box-shadow:2px 2px 0 var(--shu);transition:transform .15s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;background:var(--paper);border:1px solid var(--ink);
+    border-radius:50%;box-shadow:2px 2px 0 var(--shu);
+  }
+
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:16px;border-top:1px solid var(--line)}
+  .btn{
+    appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    padding:11px 8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    cursor:pointer;text-transform:uppercase;position:relative;overflow:hidden;
+    transition:color .18s var(--ease);
+  }
+  .btn::before{
+    content:"";position:absolute;inset:0;background:var(--ink);
+    transform:translateY(101%);transition:transform .22s var(--ease);z-index:0;
+  }
+  .btn:hover::before{transform:translateY(0)}
+  .btn:hover{color:var(--paper)}
+  .btn span{position:relative;z-index:1}
+  .btn.prime{background:var(--moss);border-color:var(--moss);color:#fff}
+  .btn.prime::before{background:var(--ink)}
+
+  .stage{
+    position:relative;background:#f7f2e6;border:1px solid var(--ink);
+    box-shadow:8px 8px 0 rgba(42,43,38,.10);overflow:hidden;
+  }
+  .stage canvas{display:block;width:100%;height:auto;cursor:crosshair;touch-action:none}
+  .vtitle{
+    position:absolute;left:14px;top:16px;writing-mode:vertical-rl;
+    font-family:var(--serif);font-size:20px;letter-spacing:.42em;color:var(--ink);
+    pointer-events:none;opacity:.82;
+  }
+  .vtitle small{
+    font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--dim);
+    margin-top:10px;
+  }
+  .hanko{
+    position:absolute;right:16px;top:16px;width:34px;height:34px;
+    background:var(--shu);color:#f7f2e6;display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:15px;letter-spacing:0;line-height:1;
+    writing-mode:vertical-rl;pointer-events:none;
+    box-shadow:2px 2px 0 rgba(42,43,38,.18);
+  }
+  .hint{
+    position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;color:rgba(42,43,38,.5);pointer-events:none;text-transform:uppercase;
+  }
+  .count{
+    position:absolute;right:16px;bottom:12px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.16em;color:rgba(42,43,38,.55);pointer-events:none;text-transform:uppercase;
+  }
+
+  footer{
+    padding:0 28px 26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+  }
+  @media (max-width:640px){
+    header{padding:18px 18px 0}
+    header p.tag{text-align:left;max-width:100%}
+    .rule{margin:12px 18px 0}
+    main{padding:18px 18px 32px}
+    footer{padding:0 18px 22px}
+    .vtitle{font-size:16px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>Ink <em>Wash</em></h1>
+    <span class="no">N°<b>19</b> — GEN-ART / 雾山行 · Living Scroll</span>
+  </div>
+  <p class="tag">远山含黛,雾在流动,舟自横。点一滴墨,落成新峰。</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <aside class="dock">
+    <h2>画案 — Studio <span>山</span></h2>
+
+    <div class="ctl">
+      <label>山层 · Ranges<output id="oLayers">6</output></label>
+      <input type="range" id="rLayers" min="4" max="9" step="1" value="6">
+    </div>
+    <div class="ctl">
+      <label>云雾 · Mist<output id="oMist">0.55</output></label>
+      <input type="range" id="rMist" min="0" max="100" step="1" value="55">
+    </div>
+    <div class="ctl">
+      <label>留白 · Void<output id="oVoid">0.40</output></label>
+      <input type="range" id="rVoid" min="15" max="70" step="1" value="40">
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="btnRandom"><span>随机再生</span></button>
+      <button class="btn prime" id="btnSave"><span>下载 PNG</span></button>
+    </div>
+  </aside>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" width="1400" height="900"></canvas>
+    <div class="vtitle">霧山行<small>INK WASH</small></div>
+    <div class="hanko">山水</div>
+    <div class="hint">移动观山 · 点按落墨 — Gaze / Ink</div>
+    <div class="count" id="count">卷 SCROLL N°01</div>
+  </div>
+</main>
+
+<footer>
+  <span>Ink Wash — 雾山行</span>
+  <span>Atmospheric Ink · MMXXVI</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var W = 1400, H = 900, MARGIN = 80;
+  var LW = W + MARGIN*2;           /* layer width (for parallax) */
+  var cv = document.getElementById("cv");
+  var ctx = cv.getContext("2d");
+  var DPR = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W*DPR; cv.height = H*DPR;
+
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function makeNoise(seed){
+    var rng = mulberry32(seed);
+    var perm = new Uint8Array(512);
+    var p = [];
+    for (var i=0;i<256;i++) p[i]=i;
+    for (var j=255;j>0;j--){
+      var k = Math.floor(rng()*(j+1));
+      var tmp = p[j]; p[j]=p[k]; p[k]=tmp;
+    }
+    for (var m=0;m<512;m++) perm[m]=p[m&255];
+    function fade(t){ return t*t*t*(t*(t*6-15)+10); }
+    function grad(h,x,y){
+      switch(h&7){
+        case 0: return  x+y; case 1: return  x-y;
+        case 2: return -x+y; case 3: return -x-y;
+        case 4: return  x;   case 5: return -x;
+        case 6: return  y;   default:return -y;
+      }
+    }
+    return function(x,y){
+      var X = Math.floor(x), Y = Math.floor(y);
+      var xf = x-X, yf = y-Y;
+      X &= 255; Y &= 255;
+      var aa = perm[perm[X]+Y], ab = perm[perm[X]+Y+1];
+      var ba = perm[perm[X+1]+Y], bb = perm[perm[X+1]+Y+1];
+      var u = fade(xf), v = fade(yf);
+      var x1 = grad(aa,xf,yf)   + u*(grad(ba,xf-1,yf)  -grad(aa,xf,yf));
+      var x2 = grad(ab,xf,yf-1) + u*(grad(bb,xf-1,yf-1)-grad(ab,xf,yf-1));
+      return x1 + v*(x2-x1);
+    };
+  }
+  /* ridged 1D fbm — mountain silhouette */
+  function ridge(noise, x, oct){
+    var a = 0, amp = 1, f = 1, norm = 0;
+    for (var o=0;o<oct;o++){
+      var n = noise(x*f, o*13.7);
+      a += (1-Math.abs(n))*amp;
+      norm += amp;
+      amp *= 0.52; f *= 2.1;
+    }
+    return a/norm; /* 0..~1 */
+  }
+
+  var state = { layers:6, mist:0.55, void:0.40, seed:1 };
+  var scrollNo = 0;
+
+  var paperC = document.createElement("canvas");
+  var washC  = document.createElement("canvas");   /* settled ink blooms */
+  var mistC  = document.createElement("canvas");
+  paperC.width=W; paperC.height=H;
+  washC.width=W;  washC.height=H;
+  mistC.width=W+240; mistC.height=H;
+  var layers = [];   /* {c:canvas, alpha, baseY, off} */
+  var boat = { x:-100, y:0, s:1 };
+  var flock = { x:-200, y:200, n:4, gap:34, active:false };
+  var blooms = [];   /* animating ink drops */
+  var mouseX = 0.5, parX = 0;
+
+  function makePaper(rng){
+    var p = paperC.getContext("2d");
+    p.fillStyle = "#f7f2e6";
+    p.fillRect(0,0,W,H);
+    var img = p.getImageData(0,0,W,H);
+    var d = img.data;
+    for (var i=0;i<d.length;i+=4){
+      var n = (rng()-0.5)*9;
+      d[i]   = Math.max(0,Math.min(255, d[i]+n));
+      d[i+1] = Math.max(0,Math.min(255, d[i+1]+n));
+      d[i+2] = Math.max(0,Math.min(255, d[i+2]+n*0.9));
+    }
+    p.putImageData(img,0,0);
+    var g = p.createRadialGradient(W/2,H/2,H*0.34, W/2,H/2,H*0.92);
+    g.addColorStop(0,"rgba(110,95,60,0)");
+    g.addColorStop(1,"rgba(110,95,60,.13)");
+    p.fillStyle = g;
+    p.fillRect(0,0,W,H);
+  }
+
+  function drawPine(g, x, y, s, alpha, rng){
+    g.strokeStyle = "rgba(42,43,38,"+alpha+")";
+    g.lineCap = "round";
+    /* trunk */
+    g.lineWidth = s*0.09;
+    g.beginPath();
+    g.moveTo(x, y);
+    g.quadraticCurveTo(x + s*0.22, y - s*0.6, x + s*0.06, y - s*1.25);
+    g.stroke();
+    /* needle clusters */
+    var clusters = 4;
+    for (var c=0;c<clusters;c++){
+      var cy = y - s*(0.55 + c*0.22);
+      var cx = x + s*(0.16 - c*0.045);
+      var spread = s*(0.5 - c*0.07);
+      var needles = 9;
+      for (var n=0;n<needles;n++){
+        var a = Math.PI + (n/(needles-1))*Math.PI; /* fan downward-out */
+        var len = spread*(0.6+rng()*0.5);
+        g.lineWidth = s*0.028;
+        g.beginPath();
+        g.moveTo(cx, cy);
+        g.lineTo(cx + Math.cos(a)*len, cy + Math.sin(a)*len*0.55);
+        g.stroke();
+      }
+    }
+  }
+
+  function compose(){
+    var rng = mulberry32(state.seed);
+    var noise = makeNoise(state.seed);
+    scrollNo++;
+    makePaper(rng);
+    washC.getContext("2d").clearRect(0,0,W,H);
+    blooms = [];
+    layers = [];
+
+    var n = state.layers;
+    var skyTop = H*(0.08 + state.void*0.42);      /* 留白: higher void -> lower first ridge */
+    var span = H*0.94 - skyTop;
+
+    for (var i=0;i<n;i++){
+      var depth = n===1 ? 1 : i/(n-1);            /* 0 far -> 1 near */
+      var baseY = skyTop + span*Math.pow(depth,1.25);
+      var amp = H*(0.05 + 0.16*depth) * (0.75+rng()*0.5);
+      var alpha = 0.05 + 0.62*Math.pow(depth,1.7);
+      var c = document.createElement("canvas");
+      c.width = LW; c.height = H;
+      var g = c.getContext("2d");
+      var f0 = 0.0016 + rng()*0.0012;
+      var seedOff = rng()*100;
+
+      /* ridge path */
+      g.beginPath();
+      var minY = H;
+      for (var x=0;x<=LW;x+=5){
+        var r = ridge(noise, (x+seedOff*311)*f0, 4);
+        var y = baseY - Math.pow(r,1.6)*amp;
+        if (y<minY) minY = y;
+        if (x===0) g.moveTo(x,y); else g.lineTo(x,y);
+      }
+      g.lineTo(LW,H); g.lineTo(0,H);
+      g.closePath();
+
+      /* wash fill: strong at ridge, dissolving downward */
+      var grad = g.createLinearGradient(0, minY-10, 0, baseY + H*0.24);
+      grad.addColorStop(0, "rgba(42,43,38,"+alpha.toFixed(3)+")");
+      grad.addColorStop(0.55, "rgba(42,43,38,"+(alpha*0.42).toFixed(3)+")");
+      grad.addColorStop(1, "rgba(42,43,38,0)");
+      g.fillStyle = grad;
+      g.fill();
+
+      /* crisp ridge line, dry-brushed twice */
+      g.lineWidth = 1.1;
+      for (var pass=0;pass<2;pass++){
+        g.strokeStyle = "rgba(42,43,38,"+(alpha*(pass?0.35:0.85)).toFixed(3)+")";
+        g.beginPath();
+        for (var x2=0;x2<=LW;x2+=5){
+          var r2 = ridge(noise, (x2+seedOff*311)*f0, 4);
+          var y2 = baseY - Math.pow(r2,1.6)*amp + (pass? 1.6:0);
+          if (x2===0) g.moveTo(x2,y2); else g.lineTo(x2,y2);
+        }
+        g.stroke();
+      }
+
+      /* waterfall: a pale ribbon erased from a middle ridge, tapering out */
+      if (i === Math.floor(n*0.55) && rng()<0.85){
+        var wx = LW*(0.3+rng()*0.4);
+        var wr = ridge(noise, (wx+seedOff*311)*f0, 4);
+        var wy = baseY - Math.pow(wr,1.6)*amp;
+        var wlen = H*(0.1+rng()*0.06);
+        g.save();
+        g.globalCompositeOperation = "destination-out";
+        var wg = g.createLinearGradient(0, wy+2, 0, wy+wlen);
+        wg.addColorStop(0,"rgba(0,0,0,.7)");
+        wg.addColorStop(0.7,"rgba(0,0,0,.45)");
+        wg.addColorStop(1,"rgba(0,0,0,0)");
+        g.fillStyle = wg;
+        g.beginPath();
+        g.moveTo(wx-5, wy+2);
+        g.quadraticCurveTo(wx-7, wy+wlen*0.5, wx-4, wy+wlen);
+        g.lineTo(wx+4, wy+wlen);
+        g.quadraticCurveTo(wx+7, wy+wlen*0.5, wx+5, wy+2);
+        g.closePath();
+        g.fill();
+        g.restore();
+      }
+
+      /* foreground cliff + pines on nearest layer */
+      if (i === n-1){
+        g.fillStyle = "rgba(42,43,38,.9)";
+        var cliffX = rng()<0.5 ? LW*0.12 : LW*0.85;
+        g.beginPath();
+        g.moveTo(cliffX-70, H);
+        g.quadraticCurveTo(cliffX-50, H*0.82, cliffX, H*0.8);
+        g.quadraticCurveTo(cliffX+46, H*0.83, cliffX+70, H);
+        g.closePath();
+        g.fill();
+        var pines = 2+Math.floor(rng()*2);
+        for (var pn=0;pn<pines;pn++){
+          drawPine(g, cliffX-20+pn*26+rng()*10, H*0.815, 40+rng()*26, 0.85, rng);
+        }
+      }
+
+      layers.push({ c:c, depth:depth });
+    }
+
+    /* mist banks between layers */
+    var mg = mistC.getContext("2d");
+    mg.clearRect(0,0,mistC.width,H);
+    var nMist = Math.round(2 + state.mist*4);
+    for (var m2=0;m2<nMist;m2++){
+      var my = skyTop + span*(m2+0.7)/(nMist+0.6) + (rng()-0.5)*30;
+      var mw = 300 + rng()*420;
+      var mx = rng()*mistC.width;
+      var mh = 26 + rng()*36;
+      var grd = mg.createRadialGradient(mx,my,0, mx,my,mw/2);
+      grd.addColorStop(0,"rgba(247,242,230,.75)");
+      grd.addColorStop(1,"rgba(247,242,230,0)");
+      mg.save();
+      mg.translate(mx,my);
+      mg.scale(1, mh/(mw/2));
+      mg.translate(-mx,-my);
+      mg.fillStyle = grd;
+      mg.beginPath(); mg.arc(mx,my,mw/2,0,6.29); mg.fill();
+      mg.restore();
+    }
+
+    /* pale sun */
+    var sg = washC.getContext("2d");
+    sg.beginPath();
+    sg.arc(W*(0.2+rng()*0.6), H*(0.12+rng()*0.1), 26+rng()*14, 0, 6.29);
+    sg.fillStyle = "rgba(176,58,46,.5)";
+    sg.fill();
+
+    boat = { x: rng()*W, y: H*0.905, s: 0.8+rng()*0.4, speed: 6+rng()*5 };
+    flock = { x:-200, y:H*(0.14+rng()*0.16), n:3+Math.floor(rng()*3), gap:30+rng()*14, active:true, speed:26+rng()*16 };
+
+    document.getElementById("count").textContent = "卷 SCROLL N°"+String(scrollNo).padStart(2,"0");
+  }
+
+  /* ---------- render ---------- */
+  function drawBoat(g, t){
+    var bx = ((boat.x + t*boat.speed) % (W+240)) - 120;
+    var by = boat.y + Math.sin(t*1.3)*2;
+    g.save();
+    g.translate(bx, by);
+    g.scale(boat.s, boat.s);
+    g.strokeStyle = "rgba(42,43,38,.85)";
+    g.fillStyle = "rgba(42,43,38,.85)";
+    g.lineWidth = 1.6;
+    /* hull */
+    g.beginPath();
+    g.moveTo(-26, 0);
+    g.quadraticCurveTo(0, 7, 28, -2);
+    g.lineTo(22, 1);
+    g.quadraticCurveTo(0, 4, -20, 2);
+    g.closePath();
+    g.fill();
+    /* canopy */
+    g.beginPath();
+    g.arc(2, -2, 9, Math.PI, 0);
+    g.stroke();
+    /* figure */
+    g.beginPath(); g.arc(-12, -5, 2.4, 0, 6.29); g.fill();
+    g.beginPath(); g.moveTo(-12, -3); g.lineTo(-10, 3); g.stroke();
+    g.restore();
+    /* reflection ripple */
+    g.strokeStyle = "rgba(42,43,38,.18)";
+    g.beginPath();
+    g.moveTo(bx-30, by+10); g.lineTo(bx+30, by+10);
+    g.stroke();
+  }
+
+  function drawFlock(g, t){
+    if (!flock.active) return;
+    flock.x += flock.speed*0.016;
+    if (flock.x > W+120){ flock.x = -200; flock.y = H*(0.1+Math.random()*0.2); }
+    g.strokeStyle = "rgba(42,43,38,.7)";
+    g.lineWidth = 1.6;
+    g.lineCap = "round";
+    for (var i=0;i<flock.n;i++){
+      var bx = flock.x - i*flock.gap;
+      var by = flock.y + Math.sin(i*1.3)*10 + Math.sin(t*1.1+i)*3;
+      var flap = Math.sin(t*7 + i)*0.5;
+      g.beginPath();
+      g.moveTo(bx-7, by - 3 - flap*3);
+      g.quadraticCurveTo(bx-2, by, bx, by);
+      g.quadraticCurveTo(bx+2, by, bx+7, by - 3 + flap*3);
+      g.stroke();
+    }
+  }
+
+  function render(now){
+    var t = now/1000;
+    parX += (mouseX-0.5 - parX)*0.04;
+
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.drawImage(paperC, 0, 0, W, H);
+    ctx.drawImage(washC, 0, 0, W, H);
+
+    /* blooming ink drops (animated) */
+    for (var b=blooms.length-1;b>=0;b--){
+      var bl = blooms[b];
+      var p = Math.min(1, (now-bl.born)/2200);
+      var e = 1-Math.pow(1-p,3);
+      for (var k=0;k<bl.lobes.length;k++){
+        var lb = bl.lobes[k];
+        var rr = lb.r*e;
+        var grd = ctx.createRadialGradient(bl.x+lb.ox*e, bl.y+lb.oy*e, 0, bl.x+lb.ox*e, bl.y+lb.oy*e, rr);
+        grd.addColorStop(0,"rgba(42,43,38,"+(0.16*(1-p*0.5)).toFixed(3)+")");
+        grd.addColorStop(1,"rgba(42,43,38,0)");
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.arc(bl.x+lb.ox*e, bl.y+lb.oy*e, rr, 0, 6.29);
+        ctx.fill();
+      }
+      if (p>=1){
+        /* settle permanently into the wash layer */
+        var wg2 = washC.getContext("2d");
+        for (var k2=0;k2<bl.lobes.length;k2++){
+          var lb2 = bl.lobes[k2];
+          var g2 = wg2.createRadialGradient(bl.x+lb2.ox, bl.y+lb2.oy, 0, bl.x+lb2.ox, bl.y+lb2.oy, lb2.r);
+          g2.addColorStop(0,"rgba(42,43,38,.08)");
+          g2.addColorStop(1,"rgba(42,43,38,0)");
+          wg2.fillStyle = g2;
+          wg2.beginPath();
+          wg2.arc(bl.x+lb2.ox, bl.y+lb2.oy, lb2.r, 0, 6.29);
+          wg2.fill();
+        }
+        blooms.splice(b,1);
+      }
+    }
+
+    /* mountain layers with parallax */
+    for (var i=0;i<layers.length;i++){
+      var L = layers[i];
+      var off = -MARGIN + parX*(L.depth-0.4)*46;
+      ctx.drawImage(L.c, off, 0, LW, H);
+      /* drifting mist in front of every other layer */
+      if (state.mist > 0.02 && i%2===1){
+        var drift = (t*6*(0.5+L.depth)) % (mistC.width);
+        ctx.globalAlpha = state.mist*(0.55+0.25*Math.sin(t*0.4+i));
+        ctx.drawImage(mistC, -120+drift-mistC.width, 0);
+        ctx.drawImage(mistC, -120+drift, 0);
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    /* water ripples */
+    ctx.strokeStyle = "rgba(42,43,38,.14)";
+    ctx.lineWidth = 1;
+    for (var r3=0;r3<5;r3++){
+      var ry = H*(0.9 + r3*0.018);
+      var seg = 40 + r3*22;
+      ctx.beginPath();
+      for (var x3=((r3*137)%seg)-seg; x3<W; x3+=seg*1.9){
+        var len = seg*(0.5+0.4*Math.sin(t*0.7+r3+x3*0.01));
+        ctx.moveTo(x3, ry + Math.sin(t+x3*0.02)*1.4);
+        ctx.lineTo(x3+len, ry + Math.sin(t+x3*0.02)*1.4);
+      }
+      ctx.stroke();
+    }
+
+    drawBoat(ctx, t);
+    drawFlock(ctx, t);
+
+    requestAnimationFrame(frame);
+  }
+  function frame(now){ render(now); }
+
+  /* ---------- pointer ---------- */
+  function toLocal(e){
+    var r = cv.getBoundingClientRect();
+    return { x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H };
+  }
+  cv.addEventListener("pointermove", function(e){
+    var p = toLocal(e);
+    mouseX = Math.max(0, Math.min(1, p.x/W));
+  });
+  cv.addEventListener("pointerdown", function(e){
+    var p = toLocal(e);
+    var lobes = [];
+    var nL = 4+Math.floor(Math.random()*3);
+    for (var i=0;i<nL;i++){
+      var a = Math.random()*6.28;
+      lobes.push({
+        ox: Math.cos(a)*Math.random()*26,
+        oy: Math.sin(a)*Math.random()*20,
+        r: 26+Math.random()*46
+      });
+    }
+    blooms.push({ x:p.x, y:p.y, born:performance.now(), lobes:lobes });
+    if (blooms.length>6) blooms.shift();
+  });
+
+  /* ---------- controls ---------- */
+  function bindSlider(id, out, fn, fmt){
+    document.getElementById(id).addEventListener("input", function(){
+      fn(parseFloat(this.value));
+      document.getElementById(out).textContent = fmt(parseFloat(this.value));
+      compose();
+    });
+  }
+  bindSlider("rLayers","oLayers", function(v){ state.layers=v|0; }, function(v){ return v|0; });
+  bindSlider("rMist","oMist", function(v){ state.mist=v/100; }, function(v){ return (v/100).toFixed(2); });
+  bindSlider("rVoid","oVoid", function(v){ state.void=v/100; }, function(v){ return (v/100).toFixed(2); });
+
+  document.getElementById("btnRandom").addEventListener("click", function(){
+    state.seed = Math.floor(Math.random()*1e9);
+    compose();
+  });
+  document.getElementById("btnSave").addEventListener("click", function(){
+    var a = document.createElement("a");
+    a.download = "ink-wash-"+String(scrollNo).padStart(2,"0")+".png";
+    a.href = cv.toDataURL("image/png");
+    a.click();
+  });
+
+  /* ---------- boot ---------- */
+  state.seed = Math.floor(Math.random()*1e9);
+  compose();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

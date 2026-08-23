@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>POTTER'S WHEEL · 陶土拉坯机 / MIRA</title>
+<style>
+:root{
+  --paper:#f0e7d6; --stage:#1c130c; --ink:#261b11; --ink-soft:#7a6a54;
+  --clay:#b14a28; --line:rgba(38,27,17,.28);
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans)}
+header{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font:10px var(--mono);letter-spacing:.12em;text-transform:uppercase}
+a{color:inherit;text-decoration:none}
+.back{display:flex;align-items:center;gap:10px}
+.back b{font:400 18px var(--serif)}
+header .mid{color:var(--ink-soft)}
+.hero{padding:4.6vw 4vw 3vw;display:grid;grid-template-columns:1.35fr 1fr;gap:5vw;align-items:end}
+.kicker{font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--clay)}
+h1{font:400 clamp(52px,8.6vw,124px)/.84 var(--serif);letter-spacing:-.045em;margin:20px 0 24px}
+h1 em{font-style:italic;color:var(--clay)}
+.hero p{max-width:430px;font-size:14px;line-height:1.75;color:var(--ink-soft)}
+.spec{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;line-height:2;color:var(--ink-soft);text-align:right}
+.spec b{color:var(--ink);font-weight:400}
+.stage-wrap{padding:0 4vw 4vw}
+.stage{height:min(62vw,660px);min-height:400px;background:var(--stage);position:relative;overflow:hidden;cursor:grab}
+.stage:active{cursor:grabbing}
+.stage.sculpt{cursor:crosshair}
+.stage canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;inset:18px;pointer-events:none;display:flex;justify-content:space-between;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:rgba(240,231,214,.55)}
+.hud b{color:#e8a37c;font-weight:400}
+.corner{position:absolute;width:14px;height:14px;border:1px solid rgba(240,231,214,.4)}
+.c-tl{top:10px;left:10px;border-right:0;border-bottom:0}
+.c-tr{top:10px;right:10px;border-left:0;border-bottom:0}
+.c-bl{bottom:10px;left:10px;border-right:0;border-top:0}
+.c-br{bottom:10px;right:10px;border-left:0;border-top:0}
+.panel{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:18px 4vw;display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+.ctl label{display:flex;justify-content:space-between;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:10px}
+.ctl label b{color:var(--ink);font-weight:400}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:var(--ink);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:var(--paper);border:2px solid var(--ink);cursor:pointer;transition:background .2s}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--clay);border-color:var(--clay)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--paper);border:2px solid var(--ink);cursor:pointer}
+.tools{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 4vw 0;flex-wrap:wrap}
+.tools>span{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:10px var(--mono);letter-spacing:.1em;text-transform:uppercase;background:transparent;color:var(--ink);border:1px solid var(--ink);padding:9px 16px;cursor:pointer;transition:all .25s cubic-bezier(.22,1,.36,1)}
+button:hover{background:var(--ink);color:var(--paper)}
+button.on{background:var(--clay);border-color:var(--clay);color:var(--paper)}
+.caption{padding:7vw 4vw;display:grid;grid-template-columns:1fr 1fr;gap:5vw;align-items:start}
+.caption h2{font:400 clamp(34px,4.4vw,64px)/1.05 var(--serif);letter-spacing:-.02em}
+.caption h2 em{font-style:italic;color:var(--clay)}
+.caption p{font-size:14px;line-height:1.8;color:var(--ink-soft);max-width:430px}
+footer{border-top:1px solid var(--line);padding:14px 4vw;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);display:flex;justify-content:space-between}
+@media(max-width:820px){
+  .hero,.caption{grid-template-columns:1fr;gap:28px}
+  .spec{text-align:left}
+  .panel{grid-template-columns:1fr 1fr;gap:20px}
+  .stage{min-height:340px}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a>
+  <span class="mid">N°01 / 05 · 3D Worlds</span>
+  <span>POTTER'S WHEEL</span>
+</header>
+<main>
+  <section class="hero">
+    <div>
+      <div class="kicker">Interactive Ceramics / Throwing Simulator</div>
+      <h1>POTTER'S<br>WHEEL <em>陶土拉坯</em></h1>
+      <p>拉坯是一场离心力与指尖的谈判。按住坯体拖动——你的手就是工具：向外推，腹部隆起；向内收，颈部收紧。陶轮不停，泥坯便永远记得你上一次触碰的位置。</p>
+    </div>
+    <div class="spec">
+      LATHE PROFILE · 56 CONTROL RINGS<br>
+      GAUSSIAN PRESSURE FALLOFF<br>
+      GLAZES — <b>TERRACOTTA / CELADON / TENMOKU</b><br>
+      DRAG CLAY TO SCULPT · DRAG VOID TO ORBIT
+    </div>
+  </section>
+  <div class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="hud">
+        <span>WHEEL <b id="hudSpeed">1.0×</b></span>
+        <span>PROFILE <b id="hudProfile">H 2.40 · R MAX 0.90</b></span>
+      </div>
+      <i class="corner c-tl"></i><i class="corner c-tr"></i><i class="corner c-bl"></i><i class="corner c-br"></i>
+    </div>
+  </div>
+  <section class="panel">
+    <div class="ctl"><label>转速 Wheel Speed <b id="vSpeed">1.0×</b></label><input type="range" id="sSpeed" min="0" max="3" step="0.05" value="1"></div>
+    <div class="ctl"><label>坯高 Clay Height <b id="vHeight">2.40</b></label><input type="range" id="sHeight" min="1.4" max="3.2" step="0.02" value="2.4"></div>
+    <div class="ctl"><label>手作感 Handmade <b id="vNoise">0.35</b></label><input type="range" id="sNoise" min="0" max="1" step="0.01" value="0.35"></div>
+    <div class="ctl"><label>指宽 Finger Width <b id="vSigma">0.32</b></label><input type="range" id="sSigma" min="0.12" max="0.7" step="0.01" value="0.32"></div>
+  </section>
+  <div class="tools">
+    <span>Glaze / 釉色</span>
+    <div class="btns">
+      <button id="gTerra" class="on">赤陶 Terracotta</button>
+      <button id="gCeladon">青瓷 Celadon</button>
+      <button id="gTenmoku">黑釉 Tenmoku</button>
+      <button id="bWire">线框 Wire</button>
+      <button id="bReset">重新揉泥 Reset</button>
+    </div>
+  </div>
+  <section class="caption">
+    <h2>泥会记住<em>每一次触碰</em></h2>
+    <p>坯体由 56 道环形剖面实时旋成。你的按压以高斯曲线向上下衰减，如同指腹在湿泥上推开一道棱。调低转速可以精雕口沿，拉高转速则适合大开大合地起筒。烧窑之前，没有哪一道弧线是不可撤销的——除了你犹豫的那一道。</p>
+  </section>
+</main>
+<footer>
+  <span>POTTER'S WHEEL — N°01</span>
+  <span>THREE.JS r128 · LATHE / RAYCAST SCULPTING</span>
+  <span>MIRA · AI PORTFOLIO</span>
+</footer>
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+var stage=document.getElementById('stage');
+var W=stage.clientWidth,H=stage.clientHeight;
+var renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(W,H);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+stage.appendChild(renderer.domElement);
+
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0x1c130c);
+scene.fog=new THREE.Fog(0x1c130c,9,22);
+
+var camera=new THREE.PerspectiveCamera(34,W/H,0.1,60);
+var camYaw=0.55,camPitch=0.34,camDist=7.2;
+function placeCam(){
+  camera.position.set(
+    Math.sin(camYaw)*Math.cos(camPitch)*camDist,
+    1.2+Math.sin(camPitch)*camDist,
+    Math.cos(camYaw)*Math.cos(camPitch)*camDist);
+  camera.lookAt(0,1.15,0);
+}
+placeCam();
+
+/* ---------- studio lighting ---------- */
+scene.add(new THREE.AmbientLight(0xffe8d0,0.22));
+var key=new THREE.DirectionalLight(0xffd9b0,1.15);
+key.position.set(4,7,3);
+key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);
+key.shadow.camera.left=-5;key.shadow.camera.right=5;
+key.shadow.camera.top=6;key.shadow.camera.bottom=-3;
+scene.add(key);
+var rim=new THREE.DirectionalLight(0x8fb4d8,0.5);
+rim.position.set(-5,4,-4);
+scene.add(rim);
+var fill=new THREE.PointLight(0xb14a28,0.35,18);
+fill.position.set(0,0.6,4.5);
+scene.add(fill);
+
+/* ---------- floor ---------- */
+var floor=new THREE.Mesh(
+  new THREE.CircleGeometry(16,48),
+  new THREE.MeshStandardMaterial({color:0x160e08,roughness:0.95}));
+floor.rotation.x=-Math.PI/2;
+floor.receiveShadow=true;
+scene.add(floor);
+
+/* faint throwing-guide rings on floor */
+for(var g=0;g<4;g++){
+  var ring=new THREE.Mesh(
+    new THREE.RingGeometry(1.4+g*1.15,1.42+g*1.15,72),
+    new THREE.MeshBasicMaterial({color:0x2c1e12,transparent:true,opacity:0.55-g*0.1,side:THREE.DoubleSide}));
+  ring.rotation.x=-Math.PI/2;ring.position.y=0.002;
+  scene.add(ring);
+}
+
+/* ---------- wheel ---------- */
+var wheel=new THREE.Group();
+scene.add(wheel);
+var metal=new THREE.MeshStandardMaterial({color:0x3a3d42,roughness:0.35,metalness:0.85});
+var head=new THREE.Mesh(new THREE.CylinderGeometry(2.05,2.05,0.16,72),metal);
+head.position.y=0.28;head.castShadow=true;head.receiveShadow=true;
+wheel.add(head);
+var headRing=new THREE.Mesh(new THREE.TorusGeometry(1.55,0.012,6,80),
+  new THREE.MeshBasicMaterial({color:0x565a61}));
+headRing.rotation.x=Math.PI/2;headRing.position.y=0.361;wheel.add(headRing);
+var stem=new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.42,0.24,32),metal);
+stem.position.y=0.12;wheel.add(stem);
+var base=new THREE.Mesh(new THREE.CylinderGeometry(1.1,1.25,0.08,48),
+  new THREE.MeshStandardMaterial({color:0x241a12,roughness:0.9}));
+base.position.y=0.04;base.receiveShadow=true;wheel.add(base);
+
+/* ---------- clay profile ---------- */
+var N=56,clayH=2.4,noiseAmt=0.35,sigma=0.32;
+var radii=new Float32Array(N);
+function defaultProfile(){
+  for(var i=0;i<N;i++){
+    var t=i/(N-1);
+    var r=0.34
+      +0.62*Math.exp(-Math.pow((t-0.34)/0.24,2))   // belly
+      -0.18*Math.exp(-Math.pow((t-0.78)/0.10,2))   // neck
+      +0.20*Math.exp(-Math.pow((t-0.97)/0.05,2));  // lip flare
+    radii[i]=Math.max(0.10,r);
+  }
+}
+defaultProfile();
+
+var GLAZES={
+  terra:{color:0xb14a28,rough:0.62,metal:0.02},
+  celadon:{color:0x8fa893,rough:0.24,metal:0.05},
+  tenmoku:{color:0x211a15,rough:0.14,metal:0.12}
+};
+var clayMat=new THREE.MeshStandardMaterial({
+  color:GLAZES.terra.color,roughness:GLAZES.terra.rough,metalness:GLAZES.terra.metal,
+  side:THREE.DoubleSide});
+var clayMesh=null;
+
+function noiseAt(a,y){
+  return Math.sin(a*3.0+y*5.2)*0.5+Math.sin(a*7.0-y*9.1+1.7)*0.3+Math.sin(a*13.0+y*2.3+4.1)*0.2;
+}
+function rebuild(){
+  var pts=[new THREE.Vector2(0.02,0)];
+  for(var i=0;i<N;i++){
+    pts.push(new THREE.Vector2(radii[i],i/(N-1)*clayH));
+  }
+  var geo=new THREE.LatheGeometry(pts,120);
+  /* handmade asymmetry */
+  if(noiseAmt>0.001){
+    var pos=geo.attributes.position;
+    for(var v=0;v<pos.count;v++){
+      var x=pos.getX(v),y=pos.getY(v),z=pos.getZ(v);
+      var rr=Math.sqrt(x*x+z*z);
+      if(rr>0.03){
+        var a=Math.atan2(z,x);
+        var d=noiseAt(a,y)*0.016*noiseAmt*Math.min(1,y/0.4+0.2);
+        var s=(rr+d)/rr;
+        pos.setX(v,x*s);pos.setZ(v,z*s);
+      }
+    }
+    geo.computeVertexNormals();
+  }
+  if(clayMesh){
+    clayMesh.geometry.dispose();
+    clayMesh.geometry=geo;
+  }else{
+    clayMesh=new THREE.Mesh(geo,clayMat);
+    clayMesh.position.y=0.36;
+    clayMesh.castShadow=true;
+    wheel.add(clayMesh);
+  }
+  updateHud();
+}
+function updateHud(){
+  var rMax=0;
+  for(var i=0;i<N;i++)rMax=Math.max(rMax,radii[i]);
+  document.getElementById('hudProfile').textContent=
+    'H '+clayH.toFixed(2)+' · R MAX '+rMax.toFixed(2);
+}
+
+/* ---------- fingertip ring ---------- */
+var tool=new THREE.Mesh(
+  new THREE.TorusGeometry(1,0.014,8,72),
+  new THREE.MeshBasicMaterial({color:0xe8a37c}));
+tool.rotation.x=Math.PI/2;
+tool.visible=false;
+scene.add(tool);
+
+/* ---------- interaction ---------- */
+var ray=new THREE.Raycaster();
+var ptr=new THREE.Vector2();
+var sculpting=false,orbiting=false,lastX=0,lastY=0;
+function setPtr(e){
+  var r=stage.getBoundingClientRect();
+  ptr.x=((e.clientX-r.left)/r.width)*2-1;
+  ptr.y=-((e.clientY-r.top)/r.height)*2+1;
+}
+function hitClay(e){
+  setPtr(e);
+  ray.setFromCamera(ptr,camera);
+  var hits=ray.intersectObject(clayMesh);
+  return hits.length?hits[0]:null;
+}
+function radiusAt(y){
+  var t=Math.max(0,Math.min(1,(y-0.36)/clayH));
+  var f=t*(N-1),i0=Math.floor(f),i1=Math.min(N-1,i0+1);
+  return radii[i0]+(radii[i1]-radii[i0])*(f-i0);
+}
+stage.addEventListener('pointerdown',function(e){
+  if(hitClay(e)){
+    sculpting=true;stage.classList.add('sculpt');
+  }else{
+    orbiting=true;
+  }
+  lastX=e.clientX;lastY=e.clientY;
+  stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove',function(e){
+  var hit=hitClay(e);
+  if(sculpting){
+    var dx=(e.clientX-lastX)*0.0032;
+    if(hit){
+      var y0=hit.point.y-0.36;
+      var widen=(e.movementX!==undefined)?e.movementX:(e.clientX-lastX);
+      /* push out when dragging away from centre axis on screen-right, in otherwise */
+      var sign=(ptr.x>=0)?1:-1;
+      var dr=widen*0.0032*sign;
+      for(var i=0;i<N;i++){
+        var yi=i/(N-1)*clayH;
+        var w=Math.exp(-Math.pow((yi-y0)/sigma,2));
+        radii[i]+=dr*w;
+      }
+      /* smoothing pass keeps walls throw-able */
+      for(var k=1;k<N-1;k++){
+        radii[k]=radii[k]*0.7+(radii[k-1]+radii[k+1])*0.15;
+        radii[k]=Math.max(0.07,Math.min(1.6,radii[k]));
+      }
+      rebuild();
+    }
+  }else if(orbiting){
+    camYaw-=(e.clientX-lastX)*0.005;
+    camPitch=Math.max(0.02,Math.min(1.2,camPitch+(e.clientY-lastY)*0.004));
+    placeCam();
+  }else if(hit){
+    var hy=hit.point.y;
+    tool.visible=true;
+    tool.position.y=hy;
+    var rr=radiusAt(hy)*1.06+0.05;
+    tool.scale.set(rr,rr,1);
+  }else{
+    tool.visible=false;
+  }
+  lastX=e.clientX;lastY=e.clientY;
+});
+stage.addEventListener('pointerup',function(e){
+  sculpting=false;orbiting=false;
+  stage.classList.remove('sculpt');
+});
+stage.addEventListener('pointerleave',function(){tool.visible=false;});
+
+/* ---------- controls ---------- */
+var speed=1.0;
+function bind(id,vid,fmt,fn){
+  var el=document.getElementById(id);
+  el.addEventListener('input',function(){
+    var v=parseFloat(el.value);
+    document.getElementById(vid).textContent=fmt(v);
+    fn(v);
+  });
+}
+bind('sSpeed','vSpeed',function(v){return v.toFixed(2)+'×';},function(v){
+  speed=v;document.getElementById('hudSpeed').textContent=v.toFixed(2)+'×';
+});
+bind('sHeight','vHeight',function(v){return v.toFixed(2);},function(v){clayH=v;rebuild();});
+bind('sNoise','vNoise',function(v){return v.toFixed(2);},function(v){noiseAmt=v;rebuild();});
+bind('sSigma','vSigma',function(v){return v.toFixed(2);},function(v){sigma=v;});
+
+function glaze(name,btn){
+  var gz=GLAZES[name];
+  clayMat.color.setHex(gz.color);
+  clayMat.roughness=gz.rough;
+  clayMat.metalness=gz.metal;
+  ['gTerra','gCeladon','gTenmoku'].forEach(function(id){
+    document.getElementById(id).classList.remove('on');
+  });
+  document.getElementById(btn).classList.add('on');
+}
+document.getElementById('gTerra').addEventListener('click',function(){glaze('terra','gTerra');});
+document.getElementById('gCeladon').addEventListener('click',function(){glaze('celadon','gCeladon');});
+document.getElementById('gTenmoku').addEventListener('click',function(){glaze('tenmoku','gTenmoku');});
+document.getElementById('bWire').addEventListener('click',function(){
+  clayMat.wireframe=!clayMat.wireframe;
+  this.classList.toggle('on',clayMat.wireframe);
+});
+document.getElementById('bReset').addEventListener('click',function(){
+  defaultProfile();rebuild();
+});
+
+/* ---------- loop ---------- */
+rebuild();
+var last=performance.now();
+function tick(now){
+  var dt=Math.min(0.05,(now-last)/1000);last=now;
+  wheel.rotation.y+=speed*dt*1.6;
+  if(tool.visible&&!sculpting){
+    /* keep ring glued to the clay while it spins */
+  }
+  renderer.render(scene,camera);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+window.addEventListener('resize',function(){
+  W=stage.clientWidth;H=stage.clientHeight;
+  camera.aspect=W/H;camera.updateProjectionMatrix();
+  renderer.setSize(W,H);
+});
+})();
+</script>
+</body>
+</html>

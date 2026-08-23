@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>草木标本索引 Herbarium Index</title>
+<style>
+:root{
+  --paper:#F2ECDF; --sheet:#EDE5D2; --ink:#2C3A2E; --moss:#5A7250;
+  --ochre:#B0793C; --line:rgba(44,58,46,.28); --fade:rgba(44,58,46,.58);
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+  --ease:cubic-bezier(.22,.9,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:40;opacity:.5;mix-blend-mode:multiply;
+  background-image:radial-gradient(rgba(44,58,46,.05) 1px,transparent 1px);background-size:5px 5px}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+
+/* ---------- header ---------- */
+.top{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:14px 28px;border-bottom:1px solid var(--line);background:rgba(242,236,223,.9);backdrop-filter:blur(8px);
+  font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase}
+.top .back{display:flex;align-items:center;gap:10px;transition:opacity .25s}
+.top .back:hover{opacity:.55}
+.top .sig{line-height:1.7;text-align:center}
+.top .sig b{font:700 11px var(--mono);letter-spacing:.2em}
+.top .right{text-align:right}
+@media(max-width:720px){.top .right{display:none}.top{padding:12px 16px}}
+
+/* ---------- hero ---------- */
+.hero{display:grid;grid-template-columns:1fr auto;align-items:end;gap:30px;padding:64px 28px 34px;max-width:1280px;margin:0 auto}
+.hero .kicker{font:10px var(--mono);letter-spacing:.3em;color:var(--ochre);text-transform:uppercase;margin-bottom:18px}
+.hero h1{font:400 clamp(44px,7vw,96px)/.95 var(--serif);letter-spacing:-.02em}
+.hero h1 em{font-style:italic;color:var(--moss)}
+.hero p{max-width:340px;font-size:13px;line-height:1.9;color:var(--fade)}
+.hero .stamp{width:92px;height:92px;border:1px solid var(--ochre);border-radius:50%;display:grid;place-items:center;
+  font:9px var(--mono);letter-spacing:.18em;color:var(--ochre);text-align:center;transform:rotate(8deg);flex:none}
+@media(max-width:720px){.hero{grid-template-columns:1fr;padding:40px 16px 24px}.hero .stamp{display:none}}
+
+/* ---------- layout ---------- */
+.layout{display:grid;grid-template-columns:230px 1fr;gap:0;max-width:1280px;margin:0 auto;padding:0 28px 90px}
+aside{border-right:1px solid var(--line);padding:26px 26px 26px 0}
+aside h3{font:10px var(--mono);letter-spacing:.26em;text-transform:uppercase;color:var(--fade);margin:0 0 14px}
+.fam{display:flex;align-items:center;justify-content:space-between;width:100%;text-align:left;
+  padding:11px 0;border-bottom:1px dashed var(--line);transition:padding .3s var(--ease),opacity .3s}
+.fam .fname{display:flex;align-items:center;gap:10px;font-size:13px}
+.fam .dot{width:8px;height:8px;border-radius:50%;border:1px solid var(--ink);flex:none;transition:.3s}
+.fam .lat{font:italic 11px var(--serif);color:var(--fade)}
+.fam .cnt{font:10px var(--mono);color:var(--fade)}
+.fam:hover{padding-left:6px}
+.fam.on .dot{background:var(--ochre);border-color:var(--ochre)}
+.fam.on .fname{color:var(--ochre)}
+.fam.dim{opacity:.35}
+.aside-note{margin-top:30px;font:10px/1.9 var(--mono);color:var(--fade)}
+.aside-note b{color:var(--ochre)}
+@media(max-width:860px){
+  .layout{grid-template-columns:1fr;padding:0 16px 70px}
+  aside{border-right:none;border-bottom:1px solid var(--line);padding:16px 0;display:flex;gap:4px 18px;flex-wrap:wrap;align-items:baseline}
+  aside h3{width:100%;margin-bottom:6px}
+  .fam{width:auto;border-bottom:none;padding:7px 12px;border:1px solid var(--line);border-radius:99px}
+  .fam .cnt{display:none}
+  .fam.on{border-color:var(--ochre)}
+  .aside-note{display:none}
+}
+
+/* ---------- grid & cards ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:22px;padding:26px 0 26px 26px}
+@media(max-width:860px){.grid{padding:20px 0}}
+.card{position:relative;background:var(--sheet);border:1px solid var(--line);padding:18px 18px 14px;cursor:pointer;
+  opacity:0;transform:translateY(18px) scale(.97);transition:opacity .5s var(--ease),transform .5s var(--ease),box-shadow .35s var(--ease)}
+.card.show{opacity:1;transform:none}
+.card:hover{box-shadow:0 18px 40px -18px rgba(44,58,46,.45);transform:translateY(-4px)}
+.card.hide{display:none}
+.card .tape{position:absolute;top:-9px;width:56px;height:18px;background:rgba(176,121,60,.22);border:1px solid rgba(176,121,60,.18)}
+.card .tape.l{left:16px;transform:rotate(-4deg)}
+.card .tape.r{right:16px;transform:rotate(3deg)}
+.card .no{position:absolute;top:10px;right:12px;font:9px var(--mono);letter-spacing:.14em;color:var(--fade)}
+.plate{height:230px;display:grid;place-items:center;border-bottom:1px solid var(--line);margin-bottom:12px;overflow:hidden}
+.plate svg{height:215px;width:auto;transition:transform .6s var(--ease)}
+.card:hover .plate svg{transform:scale(1.06) rotate(-1deg)}
+.card h4{font:400 22px/1.1 var(--serif);letter-spacing:.01em}
+.card .latin{font:italic 12px var(--serif);color:var(--moss);margin:4px 0 10px}
+.card .meta{display:flex;justify-content:space-between;font:9px var(--mono);letter-spacing:.1em;color:var(--fade);text-transform:uppercase}
+.card .meta .famtag{color:var(--ochre)}
+
+/* ---------- overlay ---------- */
+.overlay{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:4vmin;
+  background:rgba(44,58,46,.45);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+.overlay.open{opacity:1;pointer-events:auto}
+.sheet{position:relative;width:min(880px,100%);max-height:92vh;overflow:auto;background:var(--sheet);border:1px solid var(--line);
+  box-shadow:0 40px 90px -30px rgba(20,28,22,.6);transform:translateY(26px) rotate(.6deg);transition:transform .45s var(--ease)}
+.overlay.open .sheet{transform:none}
+.sheet-inner{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.sheet .big{padding:40px 30px;display:grid;place-items:center;border-right:1px solid var(--line);min-height:420px}
+.sheet .big svg{height:min(430px,52vh);width:auto}
+.sheet .info{padding:34px 32px 28px;display:flex;flex-direction:column;gap:0}
+.sheet .info .kicker{font:9px var(--mono);letter-spacing:.3em;color:var(--ochre);text-transform:uppercase}
+.sheet .info h2{font:400 40px/1 var(--serif);margin:12px 0 4px}
+.sheet .info .latin{font:italic 15px var(--serif);color:var(--moss);margin-bottom:20px}
+.spec-row{display:flex;justify-content:space-between;font:11px var(--mono);letter-spacing:.08em;
+  padding:9px 0;border-top:1px dashed var(--line);color:var(--fade)}
+.spec-row b{color:var(--ink);font-weight:400}
+.note{margin:18px 0 8px;font-size:12.5px;line-height:2;color:var(--ink);border-left:2px solid var(--ochre);padding-left:14px;font-style:normal}
+.sheet .navrow{margin-top:auto;display:flex;gap:10px;padding-top:18px}
+.sbtn{border:1px solid var(--ink);padding:10px 18px;font:10px var(--mono);letter-spacing:.18em;text-transform:uppercase;
+  transition:background .25s,color .25s}
+.sbtn:hover{background:var(--ink);color:var(--paper)}
+.sbtn.ghost{border-color:var(--line);color:var(--fade)}
+.sbtn.ghost:hover{border-color:var(--ink);color:var(--ink);background:none}
+.close-x{position:absolute;top:12px;right:14px;font:18px var(--mono);color:var(--fade);padding:6px;z-index:2}
+.close-x:hover{color:var(--ochre)}
+@media(max-width:720px){.sheet-inner{grid-template-columns:1fr}.sheet .big{border-right:none;border-bottom:1px solid var(--line);min-height:300px}}
+
+footer{border-top:1px solid var(--line);padding:22px 28px;display:flex;justify-content:space-between;gap:14px;
+  font:9px var(--mono);letter-spacing:.16em;color:var(--fade);text-transform:uppercase;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <a class="back" href="../../../index.html#work">← 返回总目</a>
+  <div class="sig"><b>№ 06 · HERBARIUM INDEX</b><br>草木标本索引 — 纸上植物园</div>
+  <div class="right">EST. 1954 · 华东植物档案室<br>12 SPECIMENS / 5 FAMILIES</div>
+</header>
+
+<section class="hero">
+  <div>
+    <div class="kicker">INDEX OF PRESSED THINGS · 压制物索引</div>
+    <h1>草木<em>标本室</em></h1>
+  </div>
+  <p>每一枚标本都是一次被压平的春天。这里收存十二份山野采集记录——按科属翻检，点开任何一张卡片，读它的采集手记。</p>
+  <div class="stamp">ARCHIVE<br>华东<br>1954</div>
+</section>
+
+<div class="layout">
+  <aside>
+    <h3>科属索引 / Families</h3>
+    <div id="famList"></div>
+    <div class="aside-note">采集季 <b>1986—1991</b><br>压制方式 · 吸水纸干压<br>保存地 · 三楼恒湿柜 B<br><br>点击标本卡查看<br>完整采集记录</div>
+  </aside>
+  <section class="grid" id="grid"></section>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet" role="dialog" aria-modal="true">
+    <button class="close-x" id="closeX" aria-label="关闭">×</button>
+    <div class="sheet-inner" id="sheetInner"></div>
+  </div>
+</div>
+
+<footer>
+  <span>HERBARIUM INDEX · № 06 / WEB DESIGN</span>
+  <span>标本插画为程序生成 SVG · 无任何外部图片</span>
+  <span>翻检愉快</span>
+</footer>
+
+<script>
+/* ---------------- data ---------------- */
+const FAMS = {
+  pter:{cn:"蕨科",la:"Pteridaceae"},
+  rosa:{cn:"蔷薇科",la:"Rosaceae"},
+  aster:{cn:"菊科",la:"Asteraceae"},
+  faba:{cn:"豆科",la:"Fabaceae"},
+  lili:{cn:"百合科",la:"Liliaceae"}
+};
+const PLANTS = [
+ {id:"HB-001",cn:"铁线蕨",la:"Adiantum capillus-veneris",fam:"pter",type:"fern",flower:null,seed:7,
+  place:"莫干山阴谷",date:"1987.06.12",h:"18—40 cm",bloom:"孢子期 夏",note:"叶柄细如铁丝，得名的由来。生于滴水的岩壁，采下时扇形小叶还在往下滴水，压了九天才干透。"},
+ {id:"HB-002",cn:"凤尾蕨",la:"Pteris cretica",fam:"pter",type:"fern2",flower:null,seed:21,
+  place:"天目山溪边",date:"1988.08.03",h:"30—60 cm",bloom:"孢子期 夏秋",note:"羽片排得像一把收拢的绿羽毛扇。老周说这是他入行第一年采过的第一种蕨，如今溪边已修了步道。"},
+ {id:"HB-003",cn:"野蔷薇",la:"Rosa multiflora",fam:"rosa",type:"rose",flower:"#D98E9B",seed:4,
+  place:"临安山坡灌丛",date:"1986.05.20",h:"1—3 m 攀援",bloom:"花期 5—6月",note:"白色小花成簇，香得很淡。压花时失水最快的是花瓣，两小时就半透明了，要勤换吸水纸。"},
+ {id:"HB-004",cn:"蛇莓",la:"Duchesnea indica",fam:"rosa",type:"berry",flower:"#D9B23C",seed:11,
+  place:"杭州九溪",date:"1989.04.28",h:"匍匐 10—30 cm",bloom:"花果期 4—7月",note:"黄花红果，贴地生长。果压得扁平，像一枚褪色的印章。老人家说它治蛇咬，其实只能看。"},
+ {id:"HB-005",cn:"棣棠",la:"Kerria japonica",fam:"rosa",type:"rose",flower:"#D9A83C",seed:33,
+  place:"西湖孤山",date:"1987.04.15",h:"1—2 m 灌木",bloom:"花期 4—5月",note:"重瓣者不入药，单瓣才是原生种。这一株采自孤山北麓，枝条青绿，冬天下雪时最显眼。"},
+ {id:"HB-006",cn:"一年蓬",la:"Erigeron annuus",fam:"aster",type:"daisy",flower:"#E8E4D8",seed:9,
+  place:"校园围墙外",date:"1990.06.30",h:"30—90 cm",bloom:"花果期 6—8月",note:"最寻常的野草，舌状花细得像梳齿。外来种，六十年前才登陆，如今每条田埂都有它。"},
+ {id:"HB-007",cn:"蒲公英",la:"Taraxacum mongolicum",fam:"aster",type:"dandelion",flower:"#D9B23C",seed:15,
+  place:"海宁盐官草甸",date:"1988.04.09",h:"10—25 cm",bloom:"花果期 3—6月",note:"采它要赶在绒球散开之前。这一份连根带花葶，根有苦味，晒干了可以冒充咖啡。"},
+ {id:"HB-008",cn:"紫菀",la:"Aster tataricus",fam:"aster",type:"daisy",flower:"#9A7BB8",seed:27,
+  place:"大明山山顶",date:"1991.09.14",h:"40—120 cm",bloom:"花期 7—9月",note:"海拔一千一百米处采得。紫色舌状花在压制后会褪成灰蓝，像旧信封上的邮戳颜色。"},
+ {id:"HB-009",cn:"紫云英",la:"Astragalus sinicus",fam:"faba",type:"pea",flower:"#C77B9A",seed:18,
+  place:"绍兴稻田",date:"1987.04.22",h:"10—30 cm",bloom:"花期 3—5月",note:"稻田绿肥，花开时整片田是粉紫色的。农户叫它红花草，春天犁田就把它翻进泥里。"},
+ {id:"HB-010",cn:"野豌豆",la:"Vicia sepium",fam:"faba",type:"pea",flower:"#8B7BB8",seed:25,
+  place:"富春江堤",date:"1989.05.11",h:"30—80 cm 蔓生",bloom:"花果期 5—7月",note:"卷须抓住什么就往上爬。豆荚压扁后排列整齐，是标本台上最好看的一类果实。"},
+ {id:"HB-011",cn:"萱草",la:"Hemerocallis fulva",fam:"lili",type:"lily",flower:"#C77B4A",seed:6,
+  place:"庭院旧宅",date:"1986.07.19",h:"60—100 cm",bloom:"花期 6—8月",note:"一日花，朝开暮合。古人叫它忘忧草，种在北堂。这一朵是黄昏前摘的，颜色还留着半分烫。"},
+ {id:"HB-012",cn:"玉簪",la:"Hosta plantaginea",fam:"lili",type:"hosta",flower:"#E8E4D8",seed:31,
+  place:"灵隐寺墙角",date:"1990.08.25",h:"30—50 cm",bloom:"花期 8—9月",note:"花白如玉簪，夜里最香。喜阴，寺墙根下年年自己长出来，僧人从不锄它。"}
+];
+
+/* deterministic pseudo-random */
+function rng(seed){let s=seed*9301+49297;return()=>{s=(s*9301+49297)%233280;return s/233280}}
+const STEM="#5A7250",LEAF="#46603F",LEAF2="#6E8560";
+
+/* ---------------- SVG plant illustrators ---------------- */
+function leaf(x,y,len,ang,w,col){return `<path d="M${x} ${y} q ${Math.cos(ang)*len*.5-w} ${Math.sin(ang)*len*.5-w*.6} ${Math.cos(ang)*len} ${Math.sin(ang)*len} q ${-w} ${w*.7} ${-Math.cos(ang)*len} ${-Math.sin(ang)*len} z" fill="${col}" opacity=".88"/>`}
+function fern(r,variant){
+  let s=`<path d="M100 250 Q ${variant?96:104} 150 100 60" stroke="${STEM}" stroke-width="2.2" fill="none"/>`;
+  const n=variant?9:12;
+  for(let i=0;i<n;i++){
+    const t=i/n,y=245-t*180,len=(variant?44:52)*(1-t*.75),a=Math.PI/2-.25+t*.15;
+    s+=`<path d="M100 ${y} q ${len*.6} ${-len*.3} ${len} ${-len*.55}" stroke="${STEM}" stroke-width="1.4" fill="none"/>`;
+    s+=`<path d="M100 ${y} q ${-len*.6} ${-len*.3} ${-len} ${-len*.55}" stroke="${STEM}" stroke-width="1.4" fill="none"/>`;
+    const leaflets=5+Math.floor(r()*3);
+    for(const dir of[1,-1]){
+      for(let j=1;j<=leaflets;j++){
+        const tt=j/leaflets,x=100+dir*len*tt*.98,yy=y-len*.55*tt*tt-len*.05;
+        const ll=(variant?9:7)*(1-tt*.6)*(1-t*.5);
+        s+=leaf(x,yy,ll,dir>0?-.5:-Math.PI+.5,3.4,r()>.5?LEAF:LEAF2);
+      }
+    }
+  }
+  s+=`<circle cx="100" cy="57" r="6" fill="none" stroke="${STEM}" stroke-width="2"/>`;
+  return s;
+}
+function compound(r,flower,nLeaf){
+  let s=`<path d="M100 250 Q 94 170 102 90" stroke="${STEM}" stroke-width="2.4" fill="none"/>`;
+  for(let i=0;i<nLeaf;i++){
+    const t=i/nLeaf,y=235-t*130,side=i%2?1:-1,len=34-t*14;
+    s+=`<path d="M${100+side*2} ${y} L ${100+side*len} ${y-10}" stroke="${STEM}" stroke-width="1.6"/>`;
+    for(let j=0;j<3;j++){
+      const bx=100+side*(len*.3+len*.28*j),by=y-3-8*j;
+      s+=leaf(bx,by,13-t*5,-.9,5,r()>.5?LEAF:LEAF2);
+      s+=leaf(bx,by,13-t*5,-2.2,5,r()>.5?LEAF2:LEAF);
+    }
+    s+=leaf(100+side*len,y-10,14-t*5,-1.5,5,LEAF);
+  }
+  if(flower){
+    const fx=102,fy=78;
+    for(let p=0;p<5;p++){
+      const a=p/5*Math.PI*2-Math.PI/2;
+      s+=`<ellipse cx="${fx+Math.cos(a)*11}" cy="${fy+Math.sin(a)*11}" rx="9.5" ry="6.5" fill="${flower}" opacity=".9" transform="rotate(${a*180/Math.PI} ${fx+Math.cos(a)*11} ${fy+Math.sin(a)*11})"/>`;
+    }
+    s+=`<circle cx="${fx}" cy="${fy}" r="5.5" fill="#B0793C"/>`;
+    for(let st=0;st<7;st++){const a=st/7*Math.PI*2;s+=`<line x1="${fx}" y1="${fy}" x2="${fx+Math.cos(a)*9}" y2="${fy+Math.sin(a)*9}" stroke="#8A6A30" stroke-width=".8"/>`}
+  }
+  return s;
+}
+function daisy(r,petal,disk,variant){
+  let s=`<path d="M100 250 Q 98 180 100 120" stroke="${STEM}" stroke-width="2.2" fill="none"/>`;
+  s+=leaf(100,215,26,-2.6,6,LEAF2);s+=leaf(100,190,22,-.6,5,LEAF);
+  const fx=100,fy=92,n=variant?26:14,R=variant?30:26;
+  for(let p=0;p<n;p++){
+    const a=p/n*Math.PI*2,rr=R*(0.9+r()*.2);
+    s+=`<ellipse cx="${fx+Math.cos(a)*rr*.72}" cy="${fy+Math.sin(a)*rr*.72}" rx="${variant?3:8.5}" ry="${variant?10:4.5}" fill="${petal}" opacity="${variant?.75:.92}" transform="rotate(${a*180/Math.PI+90} ${fx+Math.cos(a)*rr*.72} ${fy+Math.sin(a)*rr*.72})"/>`;
+  }
+  s+=`<circle cx="${fx}" cy="${fy}" r="${variant?9:7}" fill="${disk}"/>`;
+  if(variant==="dandelion"){
+    s+=`<g stroke="${STEM}" stroke-width="1" opacity=".7">`;
+    for(let p=0;p<10;p++){const a=p/10*Math.PI*2;s+=`<line x1="150" y1="70" x2="${150+Math.cos(a)*14}" y2="${70+Math.sin(a)*14}"/>`}
+    s+=`</g><circle cx="150" cy="70" r="3" fill="${STEM}"/>`;
+  }
+  return s;
+}
+function pea(r,col){
+  let s=`<path d="M100 250 Q 106 180 98 110" stroke="${STEM}" stroke-width="2" fill="none"/>`;
+  for(let i=0;i<4;i++){
+    const y=225-i*30,side=i%2?1:-1;
+    s+=`<path d="M100 ${y} L ${100+side*26} ${y-8}" stroke="${STEM}" stroke-width="1.4"/>`;
+    s+=leaf(100+side*26,y-8,12,-1.2,5,LEAF);s+=leaf(100+side*26,y-8,12,-1.9,5,LEAF2);
+  }
+  s+=`<path d="M98 110 q 14 -8 18 4 q 6 14 -8 16 q -16 2 -16 -8 q 0 -9 6 -12 z" fill="${col}" opacity=".92"/>`;
+  s+=`<path d="M98 108 q 4 -14 14 -12 q 8 2 4 12" fill="${col}" opacity=".7"/>`;
+  const fx=100,fy=66;
+  s+=`<path d="M100 100 Q 100 80 ${fx} ${fy+14}" stroke="${STEM}" stroke-width="1.4" fill="none"/>`;
+  s+=`<path d="M${fx} ${fy} q 12 -10 20 0 q -2 12 -20 8 z" fill="${col}"/>`;
+  s+=`<path d="M${fx} ${fy} q -12 -10 -20 0 q 2 12 20 8 z" fill="${col}" opacity=".8"/>`;
+  s+=`<path d="M${fx} ${fy-4} q 0 -14 10 -16 q 6 8 -2 16 z" fill="${col}" opacity=".65"/>`;
+  return s;
+}
+function lily(r,col,hosta){
+  let s="";
+  if(hosta){
+    for(let i=0;i<5;i++){
+      const a=-Math.PI/2+(i-2)*.45;
+      s+=`<path d="M100 250 q ${Math.cos(a)*60} ${Math.sin(a)*60-30} ${Math.cos(a)*95} ${Math.sin(a)*150}" stroke="${STEM}" stroke-width="1.8" fill="none"/>`;
+      s+=`<ellipse cx="${100+Math.cos(a)*95}" cy="${250+Math.sin(a)*150}" rx="13" ry="26" fill="${i%2?LEAF:LEAF2}" opacity=".85" transform="rotate(${a*180/Math.PI+90} ${100+Math.cos(a)*95} ${250+Math.sin(a)*150})"/>`;
+    }
+  }
+  s+=`<path d="M100 250 Q 102 170 100 110" stroke="${STEM}" stroke-width="2.4" fill="none"/>`;
+  if(!hosta){s+=leaf(100,210,30,-2.7,5,LEAF2);s+=leaf(100,180,26,-.5,5,LEAF)}
+  const fx=100,fy=88;
+  for(let p=0;p<6;p++){
+    const a=p/6*Math.PI*2-Math.PI/2;
+    s+=`<ellipse cx="${fx+Math.cos(a)*17}" cy="${fy+Math.sin(a)*17}" rx="18" ry="7" fill="${col}" opacity=".9" transform="rotate(${a*180/Math.PI} ${fx+Math.cos(a)*17} ${fy+Math.sin(a)*17})"/>`;
+  }
+  for(let st=0;st<6;st++){const a=st/6*Math.PI*2-Math.PI/2;
+    s+=`<line x1="${fx}" y1="${fy}" x2="${fx+Math.cos(a)*20}" y2="${fy+Math.sin(a)*20}" stroke="#8A6A30" stroke-width="1"/><circle cx="${fx+Math.cos(a)*20}" cy="${fy+Math.sin(a)*20}" r="1.8" fill="#8A6A30"/>`}
+  s+=`<circle cx="${fx}" cy="${fy}" r="4" fill="#B0793C"/>`;
+  return s;
+}
+function plantSVG(p,size){
+  const r=rng(p.seed);let body="";
+  switch(p.type){
+    case"fern":body=fern(r,0);break;
+    case"fern2":body=fern(r,1);break;
+    case"rose":body=compound(r,p.flower,4);break;
+    case"berry":body=compound(r,p.flower,3)+`<circle cx="70" cy="238" r="8" fill="#B0503C"/><circle cx="132" cy="242" r="7" fill="#B0503C"/>`;break;
+    case"daisy":body=daisy(r,p.flower,"#B0793C");break;
+    case"dandelion":body=daisy(r,p.flower,"#8A6A30","dandelion");break;
+    case"pea":body=pea(r,p.flower);break;
+    case"lily":body=lily(r,p.flower,false);break;
+    case"hosta":body=lily(r,p.flower,true);break;
+  }
+  return `<svg viewBox="0 0 200 270" role="img" aria-label="${p.cn}插画">${body}
+  <line x1="40" y1="252" x2="160" y2="252" stroke="rgba(44,58,46,.3)" stroke-width="1"/></svg>`;
+}
+
+/* ---------------- render grid ---------------- */
+const grid=document.getElementById("grid");
+function cardHTML(p){
+  return `<article class="card" data-fam="${p.fam}" data-id="${p.id}" tabindex="0" role="button" aria-label="查看${p.cn}标本">
+    <span class="tape l"></span><span class="tape r"></span><span class="no">${p.id}</span>
+    <div class="plate">${plantSVG(p)}</div>
+    <h4>${p.cn}</h4><div class="latin">${p.la}</div>
+    <div class="meta"><span class="famtag">${FAMS[p.fam].cn}</span><span>${p.place}</span></div>
+  </article>`;
+}
+grid.innerHTML=PLANTS.map(cardHTML).join("");
+const cards=[...grid.children];
+requestAnimationFrame(()=>cards.forEach((c,i)=>setTimeout(()=>c.classList.add("show"),40*i)));
+
+/* ---------------- family filter ---------------- */
+const famList=document.getElementById("famList");
+const allBtn=`<button class="fam on" data-fam="all"><span class="fname"><span class="dot"></span>全部 <span class="lat">All</span></span><span class="cnt">${PLANTS.length}</span></button>`;
+famList.innerHTML=allBtn+Object.entries(FAMS).map(([k,f])=>
+ `<button class="fam" data-fam="${k}"><span class="fname"><span class="dot"></span>${f.cn} <span class="lat">${f.la}</span></span><span class="cnt">${PLANTS.filter(p=>p.fam===k).length}</span></button>`).join("");
+famList.addEventListener("click",e=>{
+  const b=e.target.closest(".fam");if(!b)return;
+  famList.querySelectorAll(".fam").forEach(x=>{x.classList.toggle("on",x===b);x.classList.toggle("dim",x!==b&&b.dataset.fam!=="all"&&x.dataset.fam!=="all")});
+  const f=b.dataset.fam;let shown=0;
+  cards.forEach(c=>{
+    const ok=f==="all"||c.dataset.fam===f;
+    if(ok){c.classList.remove("hide");c.classList.remove("show");setTimeout(()=>c.classList.add("show"),50+shown*45);shown++}
+    else c.classList.add("hide");
+  });
+});
+
+/* ---------------- detail overlay ---------------- */
+const overlay=document.getElementById("overlay"),sheetInner=document.getElementById("sheetInner");
+let cur=0;
+function openSheet(id){
+  cur=PLANTS.findIndex(p=>p.id===id);const p=PLANTS[cur],f=FAMS[p.fam];
+  sheetInner.innerHTML=`
+   <div class="big">${plantSVG(p,1)}</div>
+   <div class="info">
+     <div class="kicker">${p.id} · ${f.cn} ${f.la}</div>
+     <h2>${p.cn}</h2><div class="latin">${p.la}</div>
+     <div class="spec-row"><span>采集地</span><b>${p.place}</b></div>
+     <div class="spec-row"><span>采集日期</span><b>${p.date}</b></div>
+     <div class="spec-row"><span>株高</span><b>${p.h}</b></div>
+     <div class="spec-row"><span>物候</span><b>${p.bloom}</b></div>
+     <p class="note">${p.note}</p>
+     <div class="navrow">
+       <button class="sbtn" id="prevB">← 上一份</button>
+       <button class="sbtn" id="nextB">下一份 →</button>
+     </div>
+   </div>`;
+  overlay.classList.add("open");document.body.style.overflow="hidden";
+  document.getElementById("prevB").onclick=()=>openSheet(PLANTS[(cur-1+PLANTS.length)%PLANTS.length].id);
+  document.getElementById("nextB").onclick=()=>openSheet(PLANTS[(cur+1)%PLANTS.length].id);
+}
+function closeSheet(){overlay.classList.remove("open");document.body.style.overflow=""}
+grid.addEventListener("click",e=>{const c=e.target.closest(".card");if(c)openSheet(c.dataset.id)});
+grid.addEventListener("keydown",e=>{if(e.key==="Enter"){const c=e.target.closest(".card");if(c)openSheet(c.dataset.id)}});
+document.getElementById("closeX").onclick=closeSheet;
+overlay.addEventListener("click",e=>{if(e.target===overlay)closeSheet()});
+document.addEventListener("keydown",e=>{
+  if(!overlay.classList.contains("open"))return;
+  if(e.key==="Escape")closeSheet();
+  if(e.key==="ArrowLeft")openSheet(PLANTS[(cur-1+PLANTS.length)%PLANTS.length].id);
+  if(e.key==="ArrowRight")openSheet(PLANTS[(cur+1)%PLANTS.length].id);
+});
+</script>
+</body>
+</html>

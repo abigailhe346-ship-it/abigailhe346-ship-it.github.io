@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRACTURE PRINT — 金缮碎瓷生成海报</title>
+<style>
+  :root{
+    --paper:#f3efe6; --panel:#ece7da; --line:#d8d1c0;
+    --ink:#2a2520; --dim:#8f867a;
+    --gold:#c19a3f; --seal:#b3452e;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--gold);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:26px 32px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .sig h1{
+    font-family:var(--serif);font-size:clamp(22px,3vw,30px);
+    font-weight:700;letter-spacing:.05em;
+  }
+  .sig h1 em{font-style:italic;color:var(--gold)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--seal);font-weight:400}
+  header p.tag{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.18em;text-transform:uppercase}
+  .rule{margin:16px 32px 0;border-top:1px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{
+    display:grid;grid-template-columns:minmax(0,620px) 300px;gap:32px;
+    padding:26px 32px 44px;max-width:1100px;margin:0 auto;
+    justify-content:center;
+  }
+  @media (max-width:920px){main{grid-template-columns:1fr}}
+
+  .print{
+    position:relative;background:#fbf8f1;border:1px solid var(--ink);
+    box-shadow:10px 10px 0 rgba(42,37,32,.08);
+    padding:14px;
+  }
+  .print canvas{
+    display:block;width:100%;height:auto;cursor:crosshair;
+  }
+  .stamp{
+    position:absolute;right:22px;top:22px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.18em;color:var(--ink);border:1px solid var(--ink);
+    padding:4px 8px;background:rgba(243,239,230,.9);pointer-events:none;
+    text-transform:uppercase;
+  }
+  .hint{
+    position:absolute;left:22px;bottom:20px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;color:rgba(42,37,32,.5);pointer-events:none;text-transform:uppercase;
+  }
+
+  .dock{
+    align-self:start;position:sticky;top:20px;
+    border:1px solid var(--ink);background:var(--panel);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+  }
+  @media (max-width:920px){.dock{position:static}}
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+  }
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl .lab{
+    display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;
+  }
+  .ctl .lab output{color:var(--seal)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:15px;height:15px;margin-top:-6.5px;
+    background:var(--gold);border:1px solid var(--ink);border-radius:50%;
+    transition:transform .15s var(--ease);
+  }
+  input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.2)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;background:var(--gold);border:1px solid var(--ink);border-radius:50%}
+
+  .seg{display:flex;border:1px solid var(--ink)}
+  .seg button{
+    flex:1;background:transparent;border:0;color:var(--dim);font-family:var(--mono);
+    font-size:11px;letter-spacing:.06em;padding:11px 4px;cursor:pointer;
+    transition:all .2s var(--ease);
+  }
+  .seg button + button{border-left:1px solid var(--ink)}
+  .seg button.on{background:var(--ink);color:var(--paper)}
+  .seg button:not(.on):hover{color:var(--ink);background:rgba(42,37,32,.06)}
+
+  .btns{display:flex;gap:10px}
+  .btn{
+    flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    padding:13px 8px;cursor:pointer;background:transparent;color:var(--ink);
+    border:1px solid var(--ink);border-radius:0;transition:all .2s var(--ease);
+  }
+  .btn:hover{background:var(--ink);color:var(--paper)}
+  .btn:active{transform:translateY(2px)}
+  .btn.pri{background:var(--seal);border-color:var(--seal);color:#fff;font-weight:700}
+  .btn.pri:hover{background:#8f3624;border-color:#8f3624}
+
+  .note{
+    font-family:var(--mono);font-size:10px;color:var(--dim);
+    letter-spacing:.08em;line-height:1.9;border-top:1px dashed var(--line);padding-top:12px;
+  }
+
+  footer{
+    margin:0 32px 30px;padding-top:14px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10px;color:var(--dim);
+    letter-spacing:.18em;text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="sig">
+    <h1>FRACTURE <em>PRINT</em> 金缮海报</h1>
+    <span class="no">N°<b>13</b> — GEN-ART / 金缮碎瓷生成海报</span>
+  </div>
+  <p class="tag">Voronoi · Kintsugi · Wabi-Sabi</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section class="print">
+    <canvas id="cv" width="1800" height="2400"></canvas>
+    <span class="stamp" id="stamp">PRINT #0000</span>
+    <span class="hint">点击瓷盘添一道裂 · CLICK PLATE TO CRACK</span>
+  </section>
+
+  <aside class="dock">
+    <h2>修缮参数 RESTORATION</h2>
+
+    <div class="ctl">
+      <div class="lab"><span>裂度 FRACTURE</span><output id="oFrac">18</output></div>
+      <input type="range" id="rFrac" min="6" max="42" value="18" step="1">
+    </div>
+    <div class="ctl">
+      <div class="lab"><span>金线 GOLD WEIGHT</span><output id="oGold">1.0</output></div>
+      <input type="range" id="rGold" min="40" max="200" value="100" step="5">
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>瓷色 WARE</span></div>
+      <div class="seg" id="segWare">
+        <button data-w="celadon" class="on">青瓷</button>
+        <button data-w="white">白瓷</button>
+        <button data-w="ink">墨瓷</button>
+      </div>
+    </div>
+
+    <div class="note" id="stat">— 片碎瓷 SHARDS<br>— 道金缮 SEAMS</div>
+
+    <div class="btns">
+      <button class="btn pri" id="bRegen">随机再生 ↻</button>
+      <button class="btn" id="bSave">下载 PNG</button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>FRACTURE PRINT — KINTSUGI POSTER GENERATOR</span>
+  <span>侘寂 WABI-SABI EDITION</span>
+</footer>
+
+<script>
+"use strict";
+/* ============ FRACTURE PRINT — kintsugi voronoi poster ============ */
+const LW = 900, LH = 1200;               // logical poster size
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+ctx.scale(2, 2);                          // backing 1800x2400
+
+const PLATE = { x: 450, y: 470, r: 345 };
+const WARES = {
+  celadon: { base: [196, 216, 204], vary: 0.05, bg: "#f3efe6" },
+  white:   { base: [232, 228, 218], vary: 0.035, bg: "#f3efe6" },
+  ink:     { base: [74, 82, 84],    vary: 0.06, bg: "#efe9dc" }
+};
+
+const state = {
+  frac: 18,
+  gold: 1.0,
+  ware: "celadon",
+  seed: Math.floor(Math.random() * 1e6),
+  seeds: [],
+  cells: [],
+  reveal: 1,           // crack reveal animation 0..1
+  revealing: false
+};
+
+function mulberry32(a){
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ---------- seeds: poisson-ish scatter inside the plate ---------- */
+function buildSeeds(extra){
+  const rng = mulberry32(state.seed);
+  const pts = [];
+  const target = state.frac;
+  let guard = 0;
+  while (pts.length < target && guard++ < 4000){
+    const a = rng() * Math.PI * 2;
+    const r = Math.sqrt(rng()) * (PLATE.r - 26);
+    const p = [PLATE.x + Math.cos(a) * r, PLATE.y + Math.sin(a) * r];
+    const minD = (PLATE.r * 2) / Math.sqrt(target) * 0.28;
+    if (pts.every((q) => (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2 > minD * minD)){
+      pts.push(p);
+    }
+  }
+  if (extra) pts.push(extra);
+  state.seeds = pts;
+}
+
+/* ---------- voronoi via half-plane clipping ---------- */
+function clipPoly(poly, a, b){
+  const mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+  const nx = b[0] - a[0], ny = b[1] - a[1];
+  const inside = (p) => (p[0] - mx) * nx + (p[1] - my) * ny <= 1e-9;
+  const out = [];
+  for (let i = 0; i < poly.length; i++){
+    const p = poly[i], q = poly[(i + 1) % poly.length];
+    const pin = inside(p), qin = inside(q);
+    if (pin) out.push(p);
+    if (pin !== qin){
+      const dx = q[0] - p[0], dy = q[1] - p[1];
+      const t = ((mx - p[0]) * nx + (my - p[1]) * ny) / (dx * nx + dy * ny);
+      out.push([p[0] + dx * t, p[1] + dy * t]);
+    }
+  }
+  return out;
+}
+function buildCells(){
+  const S = PLATE.r + 30;
+  const box = [[PLATE.x - S, PLATE.y - S], [PLATE.x + S, PLATE.y - S],
+               [PLATE.x + S, PLATE.y + S], [PLATE.x - S, PLATE.y + S]];
+  state.cells = state.seeds.map((s, i) => {
+    let poly = box.slice();
+    for (let j = 0; j < state.seeds.length && poly.length; j++){
+      if (j !== i) poly = clipPoly(poly, s, state.seeds[j]);
+    }
+    return poly;
+  });
+}
+
+/* ---------- paper grain ---------- */
+let grainPat = null;
+function makeGrain(){
+  const g = document.createElement("canvas");
+  g.width = g.height = 128;
+  const gc = g.getContext("2d");
+  const img = gc.createImageData(128, 128);
+  for (let i = 0; i < img.data.length; i += 4){
+    const v = 120 + Math.random() * 135;
+    img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+    img.data[i + 3] = 22;
+  }
+  gc.putImageData(img, 0, 0);
+  grainPat = ctx.createPattern(g, "repeat");
+}
+
+/* ---------- render ---------- */
+function tintFor(rng, ware){
+  const [r, g, b] = ware.base;
+  const d = (rng() - 0.5) * 2 * ware.vary;
+  const adj = (v) => Math.round(Math.min(255, Math.max(0, v * (1 + d))));
+  const blue = rng() < 0.18 ? 1.05 : 1;       // occasional cooler shard
+  return "rgb(" + adj(r) + "," + adj(g * blue) + "," + adj(b * blue) + ")";
+}
+
+function render(){
+  const ware = WARES[state.ware];
+  const rng = mulberry32(state.seed ^ 0x77aa);
+
+  /* paper */
+  ctx.fillStyle = ware.bg;
+  ctx.fillRect(0, 0, LW, LH);
+  ctx.fillStyle = grainPat;
+  ctx.fillRect(0, 0, LW, LH);
+
+  /* plate drop shadow */
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(PLATE.x + 10, PLATE.y + 16, PLATE.r, PLATE.r * 0.99, 0, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(42,37,32,.13)";
+  ctx.fill();
+  ctx.restore();
+
+  /* cells, clipped to plate circle */
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(PLATE.x, PLATE.y, PLATE.r, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.fillStyle = "rgb(" + ware.base.join(",") + ")";
+  ctx.fillRect(PLATE.x - PLATE.r, PLATE.y - PLATE.r, PLATE.r * 2, PLATE.r * 2);
+
+  for (const poly of state.cells){
+    if (!poly.length) continue;
+    ctx.beginPath();
+    ctx.moveTo(poly[0][0], poly[0][1]);
+    for (let k = 1; k < poly.length; k++) ctx.lineTo(poly[k][0], poly[k][1]);
+    ctx.closePath();
+    ctx.fillStyle = tintFor(rng, ware);
+    ctx.fill();
+  }
+
+  /* porcelain light: soft sheen top-left, rim shade bottom */
+  const sheen = ctx.createRadialGradient(
+    PLATE.x - PLATE.r * 0.4, PLATE.y - PLATE.r * 0.45, PLATE.r * 0.1,
+    PLATE.x, PLATE.y, PLATE.r * 1.05);
+  sheen.addColorStop(0, "rgba(255,255,255,.20)");
+  sheen.addColorStop(0.55, "rgba(255,255,255,0)");
+  sheen.addColorStop(1, "rgba(42,37,32,.16)");
+  ctx.fillStyle = sheen;
+  ctx.fillRect(PLATE.x - PLATE.r, PLATE.y - PLATE.r, PLATE.r * 2, PLATE.r * 2);
+
+  /* gold seams — two passes, revealed progressively by cell index */
+  const upto = Math.ceil(state.cells.length * state.reveal);
+  const lw1 = 3.4 * state.gold, lw2 = 1.2 * state.gold;
+  for (let i = 0; i < upto; i++){
+    const poly = state.cells[i];
+    if (!poly || !poly.length) continue;
+    const ox = (rng() - 0.5) * 1.6, oy = (rng() - 0.5) * 1.6;
+    ctx.beginPath();
+    ctx.moveTo(poly[0][0] + ox, poly[0][1] + oy);
+    for (let k = 1; k < poly.length; k++) ctx.lineTo(poly[k][0] + ox, poly[k][1] + oy);
+    ctx.closePath();
+    ctx.lineJoin = "round";
+    ctx.strokeStyle = "rgba(150,110,40,.85)";
+    ctx.lineWidth = lw1;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(238,214,138,.95)";
+    ctx.lineWidth = lw2;
+    ctx.stroke();
+    /* gold pools at random vertices */
+    for (const p of poly){
+      if (rng() < 0.16){
+        ctx.beginPath();
+        ctx.arc(p[0], p[1], 2.2 * state.gold * (0.6 + rng()), 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(212,175,90,.9)";
+        ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
+
+  /* plate rims */
+  ctx.beginPath();
+  ctx.arc(PLATE.x, PLATE.y, PLATE.r, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(42,37,32,.55)";
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(PLATE.x, PLATE.y, PLATE.r - 7, 0, Math.PI * 2);
+  ctx.strokeStyle = "rgba(193,154,63,.5)";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+
+  drawTypography();
+}
+
+function drawTypography(){
+  const serial = (state.seed % 65536).toString(16).toUpperCase().padStart(4, "0");
+
+  /* top masthead */
+  ctx.fillStyle = "#2a2520";
+  ctx.font = "11px Menlo, monospace";
+  ctx.fillText("KINTSUGI FRACTURE STUDY — 金缮研究所", 60, 66);
+  ctx.textAlign = "right";
+  ctx.fillText("N°13 / GEN-ART", LW - 60, 66);
+  ctx.textAlign = "left";
+  ctx.strokeStyle = "rgba(42,37,32,.8)";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(60, 78); ctx.lineTo(LW - 60, 78); ctx.stroke();
+
+  /* vertical title left margin */
+  ctx.font = "700 44px Didot, 'Songti SC', serif";
+  ctx.fillStyle = "#2a2520";
+  ctx.fillText("金", 56, 150);
+  ctx.fillText("缮", 56, 200);
+
+  /* bottom block */
+  ctx.font = "700 58px Didot, 'Songti SC', serif";
+  ctx.fillText("碎瓷成金", 60, 1090);
+  ctx.font = "11px Menlo, monospace";
+  ctx.fillStyle = "#8f867a";
+  ctx.fillText("FRACTURE & GOLD — A BROKEN THING, MADE PRECIOUS", 62, 1122);
+  ctx.fillStyle = "#2a2520";
+  ctx.fillText("PRINT №" + serial + " · SHARDS " + state.seeds.length +
+               " · " + state.ware.toUpperCase() + " WARE", 62, 1144);
+
+  /* red seal */
+  ctx.fillStyle = "#b3452e";
+  ctx.fillRect(LW - 116, 1062, 56, 56);
+  ctx.fillStyle = "#f3efe6";
+  ctx.font = "700 30px 'Songti SC', serif";
+  ctx.textAlign = "center";
+  ctx.fillText("缮", LW - 88, 1102);
+  ctx.textAlign = "left";
+}
+
+/* ---------- crack reveal animation ---------- */
+function revealAnim(){
+  state.reveal = Math.min(1, state.reveal + 0.045);
+  render();
+  if (state.reveal < 1) requestAnimationFrame(revealAnim);
+  else state.revealing = false;
+}
+function rebuild(newSeed){
+  if (newSeed) state.seed = Math.floor(Math.random() * 1e6);
+  buildSeeds(null);
+  buildCells();
+  state.reveal = 0;
+  state.revealing = true;
+  updateStat();
+  const serial = (state.seed % 65536).toString(16).toUpperCase().padStart(4, "0");
+  document.getElementById("stamp").textContent = "PRINT #" + serial;
+  requestAnimationFrame(revealAnim);
+}
+function updateStat(){
+  document.getElementById("stat").innerHTML =
+    state.seeds.length + " 片碎瓷 SHARDS<br>" +
+    state.cells.length + " 道金缮 SEAMS";
+}
+
+/* ---------- interactions ---------- */
+cv.addEventListener("click", (e) => {
+  const r = cv.getBoundingClientRect();
+  const x = ((e.clientX - r.left) / r.width) * LW;
+  const y = ((e.clientY - r.top) / r.height) * LH;
+  const dx = x - PLATE.x, dy = y - PLATE.y;
+  if (dx * dx + dy * dy > (PLATE.r - 14) * (PLATE.r - 14)) return;
+  state.seeds.push([x, y]);
+  buildCells();
+  state.frac = state.seeds.length;
+  document.getElementById("rFrac").value = Math.min(42, state.frac);
+  document.getElementById("oFrac").textContent = state.seeds.length;
+  updateStat();
+  render();               // 新裂缝即时出现
+});
+
+const rFrac = document.getElementById("rFrac");
+rFrac.addEventListener("input", () => {
+  state.frac = +rFrac.value;
+  document.getElementById("oFrac").textContent = state.frac;
+  buildSeeds(null);
+  buildCells();
+  updateStat();
+  render();
+});
+const rGold = document.getElementById("rGold");
+rGold.addEventListener("input", () => {
+  state.gold = +rGold.value / 100;
+  document.getElementById("oGold").textContent = state.gold.toFixed(2);
+  render();
+});
+
+const seg = document.getElementById("segWare");
+seg.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  seg.querySelectorAll("button").forEach((x) => x.classList.remove("on"));
+  b.classList.add("on");
+  state.ware = b.dataset.w;
+  render();
+});
+
+document.getElementById("bRegen").addEventListener("click", () => rebuild(true));
+document.getElementById("bSave").addEventListener("click", () => {
+  const a = document.createElement("a");
+  a.download = "fracture-print-" + state.seed + ".png";
+  a.href = cv.toDataURL("image/png");
+  a.click();
+});
+
+makeGrain();
+rebuild(false);
+</script>
+</body>
+</html>

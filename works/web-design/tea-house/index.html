@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-season="winter">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>露地 ROJI 茶室 — 侘寂之庭</title>
+<style>
+  :root{
+    --ink:#2B2926;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --serif:"Songti SC","Didot","Bodoni MT",Georgia,serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  html[data-season="spring"]{--bg:#F4EFE3;--accent:#A9747A;--accent-soft:rgba(169,116,122,.14);}
+  html[data-season="summer"]{--bg:#EDF0E2;--accent:#5C7053;--accent-soft:rgba(92,112,83,.14);}
+  html[data-season="autumn"]{--bg:#F2E9DA;--accent:#A8552F;--accent-soft:rgba(168,85,47,.14);}
+  html[data-season="winter"]{--bg:#EBEDE7;--accent:#46545F;--accent-soft:rgba(70,84,95,.14);}
+
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:var(--serif);overflow-x:hidden;
+    transition:background 1.2s var(--ease);-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--accent);color:var(--bg);}
+
+  #grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:40;opacity:.5;}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:20px 4vw;pointer-events:none;}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.14em;line-height:1.8;}
+  .sig .no{color:var(--accent);font-weight:700;transition:color 1.2s var(--ease);}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-align:right;line-height:2.1;color:rgba(43,41,38,.55);}
+
+  /* ---- season rail ---- */
+  #rail{position:fixed;right:3vw;top:50%;transform:translateY(-50%);z-index:50;
+    display:flex;flex-direction:column;gap:26px;}
+  #rail button{background:none;border:none;cursor:pointer;font-family:var(--serif);
+    font-size:17px;color:rgba(43,41,38,.4);writing-mode:vertical-rl;letter-spacing:.3em;
+    padding:6px 2px;position:relative;transition:color .6s var(--ease);}
+  #rail button::before{content:"";position:absolute;left:50%;top:-14px;width:1px;height:0;
+    background:var(--accent);transition:height .5s var(--ease);}
+  #rail button.on{color:var(--accent);}
+  #rail button.on::before{height:8px;}
+  #rail button small{font-family:var(--mono);font-size:8px;letter-spacing:.2em;color:rgba(43,41,38,.35);}
+
+  /* ---- hero ---- */
+  .hero{min-height:100vh;position:relative;display:flex;align-items:center;padding:0 8vw;}
+  .v-col{writing-mode:vertical-rl;letter-spacing:.18em;}
+  .hero .main-char{font-size:clamp(72px,11vw,170px);line-height:1.16;font-weight:600;}
+  .hero .side-char{font-size:clamp(13px,1.1vw,16px);color:rgba(43,41,38,.6);margin-right:34px;
+    padding-top:8px;letter-spacing:.4em;}
+  #enso{position:absolute;right:6vw;top:50%;transform:translateY(-52%);width:min(52vw,560px);height:min(52vw,560px);}
+  .hero .foot{position:absolute;bottom:6vh;left:8vw;right:8vw;height:64px;display:flex;justify-content:space-between;
+    align-items:flex-end;border-top:1px solid rgba(43,41,38,.25);padding-top:18px;flex-wrap:wrap;gap:10px;}
+  .hero .foot p{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(43,41,38,.55);line-height:2.2;}
+  #seasonNote{font-size:14px;letter-spacing:.28em;color:var(--accent);transition:color 1.2s var(--ease);}
+
+  /* ---- sections ---- */
+  section{padding:14vh 8vw;position:relative;}
+  .sec-k{font-family:var(--mono);font-size:10px;letter-spacing:.5em;color:var(--accent);margin-bottom:5vh;
+    transition:color 1.2s var(--ease);}
+  .sec-t{font-size:clamp(34px,4.5vw,64px);font-weight:600;letter-spacing:.14em;margin-bottom:8vh;}
+  .sec-t small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:rgba(43,41,38,.5);margin-top:16px;}
+
+  /* menu */
+  .menu{display:grid;grid-template-columns:1fr 340px;gap:6vw;align-items:start;}
+  .tea-item{display:grid;grid-template-columns:70px 1fr auto;align-items:baseline;gap:24px;
+    padding:30px 8px;border-bottom:1px solid rgba(43,41,38,.2);cursor:pointer;
+    transition:background .5s var(--ease),padding .5s var(--ease);}
+  .tea-item .no{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(43,41,38,.45);}
+  .tea-item .nm{font-size:clamp(24px,2.6vw,38px);letter-spacing:.24em;font-weight:600;}
+  .tea-item .nm small{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(43,41,38,.5);margin-left:18px;}
+  .tea-item .pr{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:rgba(43,41,38,.6);}
+  .tea-item:hover{padding-left:22px;background:var(--accent-soft);}
+  .tea-item.on{background:var(--accent-soft);}
+  .tea-item.on .no{color:var(--accent);}
+  .tea-detail{position:sticky;top:16vh;border:1px solid rgba(43,41,38,.3);padding:34px 30px;background:rgba(255,255,255,.28);}
+  .tea-detail .v-jp{writing-mode:vertical-rl;font-size:15px;letter-spacing:.3em;color:var(--accent);
+    position:absolute;top:24px;right:22px;transition:color 1.2s var(--ease);}
+  .tea-detail h3{font-size:30px;letter-spacing:.3em;margin-bottom:6px;}
+  .tea-detail .en{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(43,41,38,.5);}
+  .tea-detail p{margin:22px 0;font-size:14px;line-height:2.3;color:rgba(43,41,38,.8);min-height:8em;}
+  .tea-detail .rowline{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+    letter-spacing:.2em;border-top:1px solid rgba(43,41,38,.25);padding-top:14px;color:rgba(43,41,38,.65);}
+  .fadein{animation:fd .7s var(--ease);}
+  @keyframes fd{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}
+
+  /* reserve */
+  .reserve{text-align:center;padding:18vh 8vw;}
+  .reserve .big{font-size:clamp(26px,3.4vw,48px);letter-spacing:.3em;line-height:2.1;font-weight:600;}
+  #reserveBtn{margin-top:7vh;font-family:var(--mono);font-size:12px;letter-spacing:.4em;cursor:pointer;
+    background:transparent;color:var(--ink);border:1px solid var(--ink);padding:20px 54px;
+    transition:all .5s var(--ease);}
+  #reserveBtn:hover{background:var(--ink);color:var(--bg);}
+  #stamp{opacity:0;transform:scale(1.6) rotate(-8deg);transition:all .45s cubic-bezier(.34,1.56,.64,1);
+    margin:6vh auto 0;width:110px;height:110px;border:3px solid var(--accent);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-size:44px;letter-spacing:0;
+    transition:color 1.2s var(--ease),border-color 1.2s var(--ease),opacity .45s,transform .45s cubic-bezier(.34,1.56,.64,1);}
+  #stamp.show{opacity:1;transform:scale(1) rotate(-8deg);}
+  #stampMsg{margin-top:26px;font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:rgba(43,41,38,.6);
+    opacity:0;transition:opacity .8s var(--ease) .3s;}
+  #stampMsg.show{opacity:1;}
+
+  footer{border-top:1px solid rgba(43,41,38,.25);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    padding:20px 4vw;font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:rgba(43,41,38,.5);}
+
+  @media(max-width:900px){
+    .menu{grid-template-columns:1fr;}
+    .tea-detail{position:relative;top:0;}
+    #enso{position:relative;right:auto;top:auto;transform:none;margin:6vh auto 0;display:block;
+      width:min(70vw,340px);height:min(70vw,340px);}
+    .hero{flex-direction:column;justify-content:flex-start;align-items:flex-start;padding-top:16vh;}
+    .hero .side-char{display:none;}
+    .hero .foot{height:96px;}
+    #rail{right:auto;left:0;top:auto;bottom:0;transform:none;flex-direction:row;gap:0;width:100%;
+      justify-content:space-around;background:var(--bg);border-top:1px solid rgba(43,41,38,.2);padding:10px 0;}
+    #rail button{writing-mode:horizontal-tb;font-size:15px;}
+    .hright{display:none;}
+    body{padding-bottom:60px;}
+  }
+</style>
+</head>
+<body>
+<canvas id="grain"></canvas>
+
+<header>
+  <div class="sig"><span class="no">№ 08</span> · <b>露地 ROJI 茶室</b><br>WEB DESIGN / WABI-SABI TEA HOUSE</div>
+  <div class="hright">京都 · 裏千家流<br>一席 四客 · 申时开始<br>唯有抹茶与菓子</div>
+</header>
+
+<nav id="rail" aria-label="四季">
+  <button data-s="spring">春<small>HARU</small></button>
+  <button data-s="summer">夏<small>NATSU</small></button>
+  <button data-s="autumn">秋<small>AKI</small></button>
+  <button data-s="winter" class="on">冬<small>FUYU</small></button>
+</nav>
+
+<!-- ============ HERO ============ -->
+<section class="hero" style="padding-top:0;">
+  <div class="v-col side-char" id="heroPoem">炭火微红，釜鸣如松风</div>
+  <div class="v-col main-char">一期一会</div>
+  <canvas id="enso" width="560" height="560"></canvas>
+  <div class="foot">
+    <p>露地 ROJI — 穿过青苔小径，尘心先洗一遍<br>ICHIGO ICHIE · 这一盏，此生只有一次</p>
+    <span id="seasonNote">冬之阵 · 墨</span>
+  </div>
+</section>
+
+<!-- ============ MENU ============ -->
+<section id="menu">
+  <div class="sec-k">MENU — お品書き</div>
+  <h2 class="sec-t">茶单<small>FOUR BOWLS · 随四季更换菓子</small></h2>
+  <div class="menu">
+    <div id="teaList"></div>
+    <div class="tea-detail">
+      <span class="v-jp" id="dJp">抹茶道</span>
+      <h3 id="dName">薄茶</h3>
+      <div class="en" id="dEn">USUCHA</div>
+      <p id="dDesc">—</p>
+      <div class="rowline"><span id="dTemp">汤温 75°C</span><span id="dPrice">¥ 68 / 碗</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RESERVE ============ -->
+<section class="reserve">
+  <div class="sec-k" style="margin-bottom:3vh;">RESERVATION — 留席</div>
+  <p class="big">庭中只设一席，<br>一席只容四客。</p>
+  <button id="reserveBtn">留一席 RESERVE</button>
+  <div id="stamp">留</div>
+  <div id="stampMsg">已为您留席 — <span id="stampSeason">冬</span>之阵 · 申时 · 请携静心而来</div>
+</section>
+
+<footer>
+  <span>露地 ROJI 茶室 — 侘寂之庭</span>
+  <span>四季流转 · 茶味如一</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+/* ============ seasons ============ */
+var SEASONS={
+  spring:{note:"春之阵 · 樱",poem:"风带来远山的樱云",stamp:"春",seed:11},
+  summer:{note:"夏之阵 · 苔",poem:"苔痕上阶，凉意自生",stamp:"夏",seed:47},
+  autumn:{note:"秋之阵 · 柿",poem:"一枚柿果，半庭红叶",stamp:"秋",seed:83},
+  winter:{note:"冬之阵 · 墨",poem:"炭火微红，釜鸣如松风",stamp:"冬",seed:129}
+};
+var cur="winter";
+
+/* ============ grain ============ */
+function grain(){
+  var c=document.getElementById("grain"),ctx=c.getContext("2d");
+  var dpr=Math.min(window.devicePixelRatio||1,1.5);
+  c.width=innerWidth*dpr;c.height=innerHeight*dpr;
+  ctx.clearRect(0,0,c.width,c.height);
+  var n=Math.floor(c.width*c.height/1400),i;
+  ctx.fillStyle="rgba(43,41,38,.05)";
+  for(i=0;i<n;i++)ctx.fillRect(Math.random()*c.width,Math.random()*c.height,dpr,dpr);
+  ctx.fillStyle="rgba(255,255,255,.06)";
+  for(i=0;i<n/2;i++)ctx.fillRect(Math.random()*c.width,Math.random()*c.height,dpr,dpr);
+}
+grain();
+
+/* ============ enso ============ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+
+var enso=document.getElementById("enso");
+var ensoRAF=null;
+function accent(){
+  return getComputedStyle(document.documentElement).getPropertyValue("--accent").trim();
+}
+function drawEnso(seed){
+  if(ensoRAF)cancelAnimationFrame(ensoRAF);
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  var size=enso.clientWidth||560;
+  enso.width=size*dpr;enso.height=size*dpr;
+  var ctx=enso.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,size,size);
+  var R=mulberry32(seed);
+  var cx=size/2,cy=size/2,r=size*0.36;
+  var col=accent()||"#46545F";
+  var gap=0.06+R()*0.1; // open gap of the circle
+  var a0=-Math.PI/2+R()*0.5;
+  var a1=a0+Math.PI*2*(1-gap);
+  var wBase=size*(0.028+R()*0.02);
+  var start=null,DUR=1800;
+  function frame(ts){
+    if(!start)start=ts;
+    var t=Math.min((ts-start)/DUR,1);
+    var e=1-Math.pow(1-t,4);
+    var aEnd=a0+(a1-a0)*e;
+    ctx.clearRect(0,0,size,size);
+    ctx.strokeStyle=col;ctx.lineCap="round";
+    var steps=420,i;
+    for(i=0;i<steps;i++){
+      var p0=i/steps,p1=(i+1)/steps;
+      var aa0=a0+(aEnd-a0)*p0,aa1=a0+(aEnd-a0)*p1;
+      // dry brush: width waxes then wanes, with jitter
+      var jitter=Math.sin(i*12.9898+seed)*43758.5453;jitter-=Math.floor(jitter);
+      var wgt=wBase*(0.35+0.9*Math.sin(Math.PI*Math.min(p0*1.15,1)))*(0.75+jitter*0.5);
+      var rr=r+Math.sin(i*0.7+seed)*size*0.004+jitter*size*0.006;
+      ctx.lineWidth=Math.max(wgt,0.4);
+      ctx.globalAlpha=0.55+jitter*0.4;
+      ctx.beginPath();
+      ctx.moveTo(cx+Math.cos(aa0)*rr,cy+Math.sin(aa0)*rr);
+      ctx.lineTo(cx+Math.cos(aa1)*rr,cy+Math.sin(aa1)*rr);
+      ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    if(t<1)ensoRAF=requestAnimationFrame(frame);
+  }
+  ensoRAF=requestAnimationFrame(frame);
+}
+enso.addEventListener("click",function(){drawEnso(SEASONS[cur].seed+Math.floor(Math.random()*900));});
+
+/* ============ season switching ============ */
+var railBtns=document.querySelectorAll("#rail button");
+function setSeason(s){
+  cur=s;
+  document.documentElement.setAttribute("data-season",s);
+  railBtns.forEach(function(b){b.classList.toggle("on",b.dataset.s===s);});
+  document.getElementById("seasonNote").textContent=SEASONS[s].note;
+  document.getElementById("heroPoem").textContent=SEASONS[s].poem;
+  document.getElementById("stampSeason").textContent=SEASONS[s].stamp;
+  setTimeout(function(){drawEnso(SEASONS[s].seed);},350); // wait for accent var to apply
+}
+railBtns.forEach(function(b){b.addEventListener("click",function(){setSeason(b.dataset.s);});});
+
+/* ============ tea menu ============ */
+var TEAS=[
+ {no:"一",name:"薄茶",en:"USUCHA",jp:"点てるは一心",
+  desc:"茶筅八十击，沫饽如雪。入口先苦，苦尽回甘——像冬天把话说完，春天才开口。",
+  temp:"汤温 75°C",price:"¥ 68 / 碗"},
+ {no:"二",name:"浓茶",en:"KOICHA",jp:"練るは無心",
+  desc:"茶粉三倍，慢揉成绸。四人传饮一碗，碗沿转两次，谦让是这碗茶真正的味道。",
+  temp:"汤温 55°C",price:"¥ 128 / 碗"},
+ {no:"三",name:"煎茶",en:"SENCHA",jp:"淹れるは恒心",
+  desc:"玉露之後的日常茶。第一煎清，第二煎厚，第三煎淡如水——淡，并不是没有味道。",
+  temp:"汤温 80°C",price:"¥ 48 / 壶"},
+ {no:"四",name:"焙茶",en:"HOUJICHA",jp:"焙るは安心",
+  desc:"番茶以炭火焙至焦糖色。咖啡因尽去，留给夜里还想喝一碗的人。",
+  temp:"汤温 95°C",price:"¥ 42 / 壶"}
+];
+var teaList=document.getElementById("teaList");
+var items=[];
+TEAS.forEach(function(t,i){
+  var el=document.createElement("div");
+  el.className="tea-item"+(i===0?" on":"");
+  el.innerHTML='<span class="no">'+t.no+'</span>'+
+    '<span class="nm">'+t.name+'<small>'+t.en+'</small></span>'+
+    '<span class="pr">'+t.price+'</span>';
+  el.addEventListener("click",function(){selectTea(i);});
+  teaList.appendChild(el);items.push(el);
+});
+function selectTea(i){
+  items.forEach(function(e,j){e.classList.toggle("on",j===i);});
+  var t=TEAS[i];
+  var box=document.querySelector(".tea-detail");
+  box.classList.remove("fadein");void box.offsetWidth;box.classList.add("fadein");
+  document.getElementById("dJp").textContent=t.jp;
+  document.getElementById("dName").textContent=t.name;
+  document.getElementById("dEn").textContent=t.en;
+  document.getElementById("dDesc").textContent=t.desc;
+  document.getElementById("dTemp").textContent=t.temp;
+  document.getElementById("dPrice").textContent=t.price;
+}
+selectTea(0);
+
+/* ============ reserve ============ */
+document.getElementById("reserveBtn").addEventListener("click",function(){
+  var st=document.getElementById("stamp"),msg=document.getElementById("stampMsg");
+  st.classList.remove("show");msg.classList.remove("show");
+  void st.offsetWidth;
+  setTimeout(function(){st.classList.add("show");msg.classList.add("show");},80);
+  this.textContent="已留席 RESERVED";
+  this.style.pointerEvents="none";
+  this.style.opacity=".55";
+});
+
+/* ============ resize + init ============ */
+var rt;
+window.addEventListener("resize",function(){
+  clearTimeout(rt);
+  rt=setTimeout(function(){grain();drawEnso(SEASONS[cur].seed);},200);
+});
+drawEnso(SEASONS.winter.seed);
+})();
+</script>
+</body>
+</html>

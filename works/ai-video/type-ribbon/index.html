@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>文字缎带 / Type Ribbon — 04</title>
+<style>
+:root{
+  --bg:#f1efe7; --ink:#0e0e0e; --acid:#d9ff2e; --line:#0e0e0e;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+body.dark{--bg:#0e0e0e;--ink:#f1efe7;--line:#f1efe7}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;transition:background .5s,color .5s}
+.wm{position:fixed;right:-2vw;bottom:-6vh;font-family:var(--mono);font-weight:700;font-size:44vh;line-height:1;color:transparent;-webkit-text-stroke:2px var(--ink);opacity:.1;pointer-events:none;user-select:none}
+header{position:fixed;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:stretch;border-bottom:3px solid var(--line);background:var(--bg);transition:background .5s,border-color .5s}
+header .cell{padding:14px 22px;display:flex;align-items:center;gap:14px}
+header .cell+.cell{border-left:3px solid var(--line)}
+.no{font-family:var(--mono);font-size:10px;letter-spacing:.2em}
+h1{font-family:var(--mono);font-weight:700;font-size:clamp(16px,2.2vw,24px);letter-spacing:.06em;text-transform:uppercase}
+h1 em{font-style:normal;background:var(--acid);color:#0e0e0e;padding:0 6px}
+.tag{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;opacity:.65}
+.scene{position:fixed;inset:0;perspective:1000px;cursor:grab;touch-action:none}
+.scene:active{cursor:grabbing}
+.stage{position:absolute;left:50%;top:50%;width:0;height:0;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.3,.9,.3,1)}
+.stage.dragging{transition:none}
+.ring{position:absolute;left:0;top:0;transform-style:preserve-3d;animation:spin var(--dur,18s) linear infinite}
+.ring.r2{animation-direction:reverse;animation-duration:calc(var(--dur,18s)*1.5)}
+.ring.paused{animation-play-state:paused}
+@keyframes spin{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+.ch{position:absolute;left:0;top:0;font-family:var(--mono);font-weight:700;font-size:clamp(42px,8.5vmin,92px);line-height:1;white-space:pre;backface-visibility:visible}
+.r2 .ch{color:transparent;-webkit-text-stroke:1.5px var(--ink)}
+.ch.acid{background:var(--acid);color:#0e0e0e;-webkit-text-stroke:0}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;flex-wrap:wrap;align-items:stretch;border-top:3px solid var(--line);background:var(--bg);transition:background .5s,border-color .5s}
+.bar .cell{padding:12px 20px;display:flex;align-items:center;gap:12px;border-right:3px solid var(--line)}
+.bar label{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;opacity:.7}
+#txt{border:2px solid var(--line);background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:13px;letter-spacing:.06em;padding:8px 12px;width:min(300px,42vw);outline:none;transition:background .5s,color .5s}
+#txt:focus{background:var(--acid);color:#0e0e0e}
+input[type=range]{-webkit-appearance:none;appearance:none;width:130px;height:22px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--line)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;margin-top:-6.5px;background:var(--acid);border:2px solid #0e0e0e;border-radius:0}
+input[type=range]::-moz-range-track{height:3px;background:var(--line)}
+input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--acid);border:2px solid #0e0e0e;border-radius:0}
+button{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:10px 18px;background:var(--bg);color:var(--ink);border:2px solid var(--line);box-shadow:4px 4px 0 var(--line);cursor:pointer;transition:all .15s}
+button:hover{background:var(--acid);color:#0e0e0e}
+button:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--line)}
+.bar .btns{display:flex;gap:12px}
+@media(max-width:720px){
+  header .cell{padding:10px 14px}
+  .tag{display:none}
+  .bar .cell{padding:10px 12px;border-right-width:2px}
+  #txt{width:34vw}
+  input[type=range]{width:84px}
+  button{padding:9px 12px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="cell"><span class="no">04 / AI·VIDEO</span><h1>文字缎带 <em>TYPE RIBBON</em></h1></div>
+  <div class="cell"><span class="tag">Infinite scroll · CSS 3D cylinder</span></div>
+</header>
+<div class="scene" id="scene">
+  <div class="stage" id="stage">
+    <div class="ring r1" id="ring1"></div>
+    <div class="ring r2" id="ring2"></div>
+  </div>
+</div>
+<div class="wm">04</div>
+<div class="bar">
+  <div class="cell"><label for="txt">文本 Text</label><input id="txt" type="text" value="KINETIC TYPE 动态字体 " maxlength="60" autocomplete="off" spellcheck="false"></div>
+  <div class="cell"><label>速度 Speed</label><input id="speed" type="range" min="0" max="3" step="0.1" value="1"><span class="tag" id="speedOut" style="display:inline;opacity:1">1.0×</span></div>
+  <div class="cell btns">
+    <button id="flip">翻转 Flip</button>
+    <button id="invert">反相 Invert</button>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage');
+var ring1=document.getElementById('ring1'),ring2=document.getElementById('ring2');
+var scene=document.getElementById('scene');
+var txt=document.getElementById('txt');
+var baseRx=-10,baseRz=0,flipX=0;
+
+function applyTilt(){
+  stage.style.transform='rotateX('+(baseRx+flipX)+'deg) rotateZ('+baseRz+'deg)';
+}
+
+function build(text){
+  var s=(text||'').replace(/\s+$/,'')||'TYPE';
+  s=(s+' · ').toUpperCase(); // latin up, CJK unaffected
+  [ring1,ring2].forEach(function(ring){
+    ring.innerHTML='';
+    var spans=[],i,total=0;
+    for(i=0;i<s.length;i++){
+      var c=document.createElement('span');
+      c.className='ch'+(i%9===4?' acid':'');
+      c.textContent=s[i]===' '?'\u00A0':s[i];
+      c.style.transform='translate(-50%,-50%)';
+      ring.appendChild(c);spans.push(c);
+    }
+    // measure, then lay out on cylinder with per-char angles
+    var widths=spans.map(function(c){return c.offsetWidth||20;});
+    total=widths.reduce(function(a,b){return a+b;},0);
+    var r=Math.max(170,total/(2*Math.PI));
+    var acc=0;
+    spans.forEach(function(c,i){
+      var a=(acc+widths[i]/2)/total*360;
+      acc+=widths[i];
+      c.style.transform='translate(-50%,-50%) rotateY('+a+'deg) translateZ('+r+'px)';
+    });
+  });
+}
+
+function setSpeed(v){
+  var dur=v<=0?1e5:22/v;
+  document.documentElement.style.setProperty('--dur',dur+'s');
+  ring1.classList.toggle('paused',v<=0);
+  ring2.classList.toggle('paused',v<=0);
+  document.getElementById('speedOut').textContent=v<=0?'停':v.toFixed(1)+'×';
+}
+
+txt.addEventListener('input',function(){build(txt.value);});
+document.getElementById('speed').addEventListener('input',function(e){setSpeed(parseFloat(e.target.value));});
+document.getElementById('flip').addEventListener('click',function(){
+  flipX=flipX?0:180;applyTilt();
+});
+document.getElementById('invert').addEventListener('click',function(){
+  document.body.classList.toggle('dark');
+});
+
+// drag to tilt
+var dragging=false,sx=0,sy=0,orx=0,orz=0;
+scene.addEventListener('pointerdown',function(e){
+  dragging=true;sx=e.clientX;sy=e.clientY;orx=baseRx;orz=baseRz;
+  stage.classList.add('dragging');scene.setPointerCapture(e.pointerId);
+});
+scene.addEventListener('pointermove',function(e){
+  if(!dragging)return;
+  baseRx=Math.max(-55,Math.min(55,orx-(e.clientY-sy)*.25));
+  baseRz=Math.max(-40,Math.min(40,orz+(e.clientX-sx)*.15));
+  applyTilt();
+});
+scene.addEventListener('pointerup',function(){dragging=false;stage.classList.remove('dragging');});
+
+window.addEventListener('resize',function(){build(txt.value);});
+build(txt.value);setSpeed(1);applyTilt();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ASCII/CAM — 字符画生成器</title>
+<style>
+  :root{
+    --bg:#0a0c0a; --panel:#0f130f; --line:#1e2a1e;
+    --ink:#c8e6c9; --dim:#5b7a5e;
+    --grn:#3aff7a; --amb:#ffb000; --cyn:#35d0ff;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--grn);color:#06210f}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px}
+  .sig h1{
+    font-family:var(--mono);font-size:15px;font-weight:700;letter-spacing:.18em;
+    text-transform:uppercase;text-shadow:0 0 12px rgba(58,255,122,.5);
+  }
+  .sig h1 em{font-style:normal;color:var(--grn)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--grn);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.06em}
+  .rule{margin:16px 28px 0;height:1px;background:var(--line);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:-1px;width:64px;height:3px;background:var(--grn)}
+
+  main{
+    display:grid;grid-template-columns:1fr 300px;gap:24px;
+    padding:24px 28px 40px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+  main>*,.stage,canvas{min-width:0}
+
+  /* terminal window */
+  .term{
+    border:1px solid var(--line);background:#000;overflow:hidden;
+    box-shadow:0 0 60px rgba(58,255,122,.06), inset 0 0 80px rgba(0,0,0,.6);
+  }
+  .term-bar{
+    display:flex;align-items:center;gap:8px;padding:9px 12px;
+    background:var(--panel);border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.12em;
+  }
+  .term-bar i{width:9px;height:9px;border-radius:50%;display:block}
+  .term-bar i:nth-child(1){background:#ff5f56}
+  .term-bar i:nth-child(2){background:#ffbd2e}
+  .term-bar i:nth-child(3){background:#27c93f}
+  .term-bar span{margin-left:8px}
+  .term-bar b{margin-left:auto;color:var(--grn);font-weight:400}
+  .stage{position:relative;display:flex;background:#000;min-height:300px}
+  .stage canvas{display:block;width:100%;height:auto;cursor:none}
+  .cursor-ring{
+    position:absolute;width:120px;height:120px;border:1px solid rgba(58,255,122,.5);
+    border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);
+    opacity:0;transition:opacity .3s var(--ease);
+  }
+  .stage:hover .cursor-ring{opacity:.8}
+
+  .dock{
+    background:var(--panel);border:1px solid var(--line);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+  }
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl .lab{
+    display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:11px;letter-spacing:.1em;
+  }
+  .ctl .lab output{color:var(--grn)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-6px;
+    background:var(--bg);border:2px solid var(--grn);
+    transition:background .2s var(--ease);
+  }
+  input[type=range]:hover::-webkit-slider-thumb{background:var(--grn)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--bg);border:2px solid var(--grn);border-radius:0}
+
+  .seg{display:flex;flex-wrap:wrap;border:1px solid var(--line)}
+  .seg button{
+    flex:1 1 50%;background:transparent;border:0;color:var(--dim);
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+    padding:10px 4px;cursor:pointer;transition:all .25s var(--ease);
+  }
+  .seg button:nth-child(2n){border-left:1px solid var(--line)}
+  .seg button:nth-child(n+3){border-top:1px solid var(--line)}
+  .seg button.on{background:var(--grn);color:#06210f;font-weight:700}
+  .seg button:not(.on):hover{color:var(--ink);background:rgba(58,255,122,.07)}
+
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{
+    font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+    padding:12px 8px;cursor:pointer;border:1px solid var(--line);
+    background:transparent;color:var(--ink);transition:all .25s var(--ease);
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .btn svg{width:12px;height:12px;flex:none}
+  .btn:hover{border-color:var(--grn);color:var(--grn);transform:translateY(-1px)}
+  .btn:active{transform:translateY(0)}
+  .btn.primary{background:var(--grn);border-color:var(--grn);color:#06210f;font-weight:700}
+  .btn.primary:hover{background:#62ff95;color:#06210f}
+  .btn.wide{grid-column:1/-1}
+
+  footer{
+    padding:0 28px 28px;font-family:var(--mono);font-size:10px;color:var(--dim);
+    letter-spacing:.12em;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>ASCII<em>/</em>CAM</h1>
+    <span class="no">N°<b>03</b> — GEN-ART / ASCII 字符画生成器</span>
+  </div>
+  <p class="tag">亮度即字符。三个实时场景，渲染进终端的字符矩阵。</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section class="term">
+    <div class="term-bar">
+      <i></i><i></i><i></i>
+      <span>ascii-cam — live feed</span>
+      <b id="fps">-- FPS</b>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <div class="cursor-ring" id="ring"></div>
+    </div>
+  </section>
+
+  <aside class="dock">
+    <h2>Terminal Config</h2>
+
+    <div class="ctl">
+      <div class="lab"><span>信号源 SCENE</span></div>
+      <div class="seg" id="segScene">
+        <button data-v="plasma" class="on">等离子体</button>
+        <button data-v="torus">旋转圆环</button>
+        <button data-v="flow">粒子流场</button>
+        <button data-v="wave">正弦浪涌</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>字符集 CHARSET</span></div>
+      <div class="seg" id="segChar">
+        <button data-v="std" class="on">标准 .:-=+*#%@</button>
+        <button data-v="blocks">方块 ░▒▓█</button>
+        <button data-v="digits">数字 01</button>
+        <button data-v="dots">圆点 ·•●</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>色彩 COLOR</span></div>
+      <div class="seg" id="segColor">
+        <button data-v="green" class="on">磷光绿</button>
+        <button data-v="amber">琥珀</button>
+        <button data-v="full">全彩</button>
+        <button data-v="inv">反相</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>字符格 CELL PX</span><output id="oCell">10</output></div>
+      <input type="range" id="rCell" min="6" max="20" value="10">
+    </div>
+
+    <div class="btns">
+      <button class="btn primary" id="bSeed">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
+        随机参数
+      </button>
+      <button class="btn" id="bPng">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        PNG
+      </button>
+      <button class="btn wide" id="bTxt">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+        下载 TXT 字符稿
+      </button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>ASCII/CAM — every pixel becomes a glyph</span>
+  <span>移动鼠标：光标透镜提亮局部字符</span>
+</footer>
+
+<script>
+"use strict";
+/* ============================================================
+   ASCII/CAM — 字符画生成器
+   低分辨率实时场景（等离子/圆环/流场/浪涌）
+   → 亮度采样 → 字符映射 → 终端渲染
+   ============================================================ */
+
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const stage = document.getElementById('stage');
+const ring = document.getElementById('ring');
+const fpsEl = document.getElementById('fps');
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const ASPECT = 16 / 10;
+let W = 0, H = 0;
+
+const CHARSETS = {
+  std:    ' .:-=+*#%@',
+  blocks: ' ░▒▓█',
+  digits: ' 0011',
+  dots:   ' ·•●'
+};
+const MONOS = {
+  green: ['#0e2a16', '#3aff7a'],
+  amber: ['#2a1c05', '#ffb000']
+};
+
+const S = {
+  scene: 'plasma',
+  charset: 'std',
+  color: 'green',
+  cell: 10,
+  seed: Math.random() * 1e9,
+  mouse: { x: -9999, y: -9999 },
+  sceneP: {} // per-scene randomized params
+};
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+function reseed(){
+  const R = mulberry32(S.seed);
+  S.sceneP = {
+    pa: .5 + R() * 1.6, pb: .4 + R() * 1.4, pc: .3 + R() * 1.2, pd: .5 + R() * 2,
+    hue: R() * 360,
+    rotX: R() * Math.PI, rotZ: R() * Math.PI,
+    spin: .3 + R() * .7,
+    flowN: 900 + (R() * 1400 | 0),
+    flowHue: R() * 360,
+    waveA: .6 + R() * 1.2, waveB: .5 + R()
+  };
+  flowInit = false;
+}
+
+/* ============================================================
+   1) SCENES — rendered to a low-res canvas at grid resolution
+   ============================================================ */
+const scCv = document.createElement('canvas');
+let COLS = 0, ROWS = 0;
+let flowInit = false, flowPts = [];
+
+function scenePlasma(sc, t){
+  const p = S.sceneP;
+  const img = sc.createImageData(COLS, ROWS);
+  const d = img.data;
+  const tt = t * .0006;
+  for (let y = 0; y < ROWS; y++){
+    for (let x = 0; x < COLS; x++){
+      const nx = x / COLS * 6, ny = y / ROWS * 4;
+      let v = Math.sin(nx * p.pa + tt)
+            + Math.sin(ny * p.pb - tt * 1.3)
+            + Math.sin((nx + ny) * p.pc + tt * .7)
+            + Math.sin(Math.hypot(nx - 3, ny - 2) * p.pd - tt * 1.7);
+      v = (v + 4) / 8; // 0..1
+      const hue = (p.hue + v * 120) % 360;
+      const i = (y * COLS + x) * 4;
+      const [r, g, b] = hsl2rgb(hue, .75, .08 + v * .5);
+      d[i] = r; d[i+1] = g; d[i+2] = b; d[i+3] = 255;
+    }
+  }
+  sc.putImageData(img, 0, 0);
+}
+
+function hsl2rgb(h, s, l){
+  h /= 360;
+  const q = l < .5 ? l * (1 + s) : l + s - l * s;
+  const p = 2 * l - q;
+  const f = t => {
+    if (t < 0) t += 1; if (t > 1) t -= 1;
+    if (t < 1/6) return p + (q - p) * 6 * t;
+    if (t < 1/2) return q;
+    if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+    return p;
+  };
+  return [Math.round(f(h + 1/3) * 255), Math.round(f(h) * 255), Math.round(f(h - 1/3) * 255)];
+}
+
+// donut.c-style torus with z-buffer
+function sceneTorus(sc, t){
+  const p = S.sceneP;
+  sc.fillStyle = '#000';
+  sc.fillRect(0, 0, COLS, ROWS);
+  const zb = new Float32Array(COLS * ROWS);
+  const lum = new Float32Array(COLS * ROWS);
+  const A = p.rotX + t * .0009 * p.spin;
+  const B = p.rotZ + t * .0006 * p.spin;
+  const cA = Math.cos(A), sA = Math.sin(A), cB = Math.cos(B), sB = Math.sin(B);
+  const R1 = 1, R2 = 2, K2 = 5;
+  const K1 = ROWS * K2 * 3 / (8 * (R1 + R2)) * 1.6;
+  for (let th = 0; th < 6.28; th += .11){
+    const ct = Math.cos(th), st = Math.sin(th);
+    for (let ph = 0; ph < 6.28; ph += .05){
+      const cp = Math.cos(ph), sp = Math.sin(ph);
+      const cx = R2 + R1 * ct, cy = R1 * st;
+      const x = cx * (cB * cp + sA * sB * sp) - cy * cA * sB;
+      const y = cx * (sB * cp - sA * cB * sp) + cy * cA * cB;
+      const z = K2 + cA * cx * sp + cy * sA;
+      const ooz = 1 / z;
+      const xp = Math.round(COLS / 2 + K1 * ooz * x);
+      const yp = Math.round(ROWS / 2 - K1 * ooz * y);
+      const L = cp * ct * sB - cA * ct * sp - sA * st + cB * (cA * st - ct * sA * sp);
+      if (L > 0 && xp >= 0 && xp < COLS && yp >= 0 && yp < ROWS){
+        const idx = yp * COLS + xp;
+        if (ooz > zb[idx]){ zb[idx] = ooz; lum[idx] = L / Math.SQRT2; }
+      }
+    }
+  }
+  const img = sc.createImageData(COLS, ROWS);
+  const d = img.data;
+  for (let i = 0; i < lum.length; i++){
+    const v = lum[i];
+    const [r, g, b] = hsl2rgb((p.hue + 30) % 360, .55, v * .62);
+    d[i*4] = r; d[i*4+1] = g; d[i*4+2] = b; d[i*4+3] = 255;
+  }
+  sc.putImageData(img, 0, 0);
+}
+
+function sceneFlow(sc, t){
+  const p = S.sceneP;
+  if (!flowInit || flowPts.length !== p.flowN){
+    flowPts = [];
+    for (let i = 0; i < p.flowN; i++)
+      flowPts.push({ x: Math.random() * COLS, y: Math.random() * ROWS, s: .3 + Math.random() });
+    flowInit = true;
+    sc.fillStyle = '#000'; sc.fillRect(0, 0, COLS, ROWS);
+  }
+  // fade trails
+  sc.globalCompositeOperation = 'source-over';
+  sc.fillStyle = 'rgba(0,0,0,.08)';
+  sc.fillRect(0, 0, COLS, ROWS);
+  const tt = t * .0004;
+  sc.fillStyle = `hsl(${p.flowHue}, 80%, 55%)`;
+  for (const pt of flowPts){
+    const a = Math.sin(pt.x * .09 + tt) + Math.cos(pt.y * .11 - tt * 1.3)
+            + Math.sin((pt.x + pt.y) * .05 + tt * .6);
+    pt.x += Math.cos(a * Math.PI) * pt.s;
+    pt.y += Math.sin(a * Math.PI) * pt.s;
+    if (pt.x < 0) pt.x += COLS; if (pt.x >= COLS) pt.x -= COLS;
+    if (pt.y < 0) pt.y += ROWS; if (pt.y >= ROWS) pt.y -= ROWS;
+    sc.fillRect(pt.x | 0, pt.y | 0, 1, 1);
+  }
+}
+
+function sceneWave(sc, t){
+  const p = S.sceneP;
+  sc.fillStyle = '#000';
+  sc.fillRect(0, 0, COLS, ROWS);
+  const tt = t * .0012;
+  for (let band = 0; band < 5; band++){
+    const hue = (p.hue + band * 26) % 360;
+    const [r, g, b] = hsl2rgb(hue, .7, .28 + band * .08);
+    sc.fillStyle = `rgb(${r},${g},${b})`;
+    const yBase = ROWS * (.25 + band * .14);
+    for (let x = 0; x < COLS; x++){
+      const nx = x / COLS * Math.PI * 2;
+      const y = yBase
+        + Math.sin(nx * 2 * p.waveA + tt * (1 + band * .2)) * ROWS * .07
+        + Math.sin(nx * 5 * p.waveB - tt * 1.6) * ROWS * .035;
+      sc.fillRect(x, Math.round(y), 1, Math.max(1, ROWS * .05 | 0));
+    }
+  }
+}
+
+const SCENES = { plasma: scenePlasma, torus: sceneTorus, flow: sceneFlow, wave: sceneWave };
+
+/* ============================================================
+   2) ASCII RENDERER
+   ============================================================ */
+let lastTxt = '';
+
+function frame(t){
+  const sc = scCv.getContext('2d', { willReadFrequently: true });
+  SCENES[S.scene](sc, t);
+
+  const data = sc.getImageData(0, 0, COLS, ROWS).data;
+  const ramp = CHARSETS[S.charset];
+  const rMax = ramp.length - 1;
+  const cell = S.cell * DPR;
+  const inv = S.color === 'inv';
+  const mono = MONOS[S.color];
+
+  // background
+  ctx.fillStyle = inv ? '#e8e8e0' : (mono ? mono[0] : '#000');
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.font = `${cell * .92}px "SF Mono", Menlo, monospace`;
+  ctx.textBaseline = 'top';
+
+  const mx = S.mouse.x * DPR, my = S.mouse.y * DPR;
+  const lensR = 130 * DPR;
+  let txt = '';
+  let lastFill = null;
+
+  for (let y = 0; y < ROWS; y++){
+    let line = '';
+    for (let x = 0; x < COLS; x++){
+      const i = (y * COLS + x) * 4;
+      const r = data[i], g = data[i+1], b = data[i+2];
+      let v = (r * .299 + g * .587 + b * .114) / 255;
+
+      // cursor lens: boost brightness locally
+      const px = x * cell + cell / 2, py = y * cell + cell / 2;
+      const dist = Math.hypot(px - mx, py - my);
+      if (dist < lensR) v = Math.min(1, v * (1 + (1 - dist / lensR) * 1.1) + (1 - dist / lensR) * .15);
+
+      if (inv) v = 1 - v;
+      const ci = Math.min(rMax, Math.max(0, Math.round(v * rMax)));
+      const ch = ramp[ci];
+      line += ch;
+      if (ch === ' ') continue;
+
+      let fill;
+      if (S.color === 'full') fill = `rgb(${r},${g},${b})`;
+      else if (mono) fill = mono[1];
+      else fill = '#101210';
+      if (fill !== lastFill){ ctx.fillStyle = fill; lastFill = fill; }
+      ctx.fillText(ch, x * cell, y * cell);
+    }
+    txt += line + '\n';
+  }
+  lastTxt = txt;
+
+  // scanline sweep (subtle CRT feel)
+  const sy = (t * .06) % (H + 200) - 100;
+  const sweep = ctx.createLinearGradient(0, sy - 60, 0, sy + 60);
+  sweep.addColorStop(0, 'rgba(255,255,255,0)');
+  sweep.addColorStop(.5, inv ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.045)');
+  sweep.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = sweep;
+  ctx.fillRect(0, sy - 60, W, 120);
+
+  frames++;
+  requestAnimationFrame(frame);
+}
+
+// fps meter
+let frames = 0, fpsT = performance.now();
+setInterval(() => {
+  const now = performance.now();
+  fpsEl.textContent = Math.round(frames / ((now - fpsT) / 1000)) + ' FPS';
+  frames = 0; fpsT = now;
+}, 1000);
+
+/* ============================================================
+   3) SIZING
+   ============================================================ */
+function resize(){
+  const cw = Math.min(stage.clientWidth, 1150);
+  W = Math.round(cw * DPR);
+  H = Math.round(W / ASPECT);
+  cv.width = W; cv.height = H;
+  let cell = S.cell * DPR;
+  // cap grid size for perf
+  let cols = Math.floor(W / cell), rows = Math.floor(H / cell);
+  const maxCells = 9000;
+  while (cols * rows > maxCells && cell < 28 * DPR){
+    cell += DPR; cols = Math.floor(W / cell); rows = Math.floor(H / cell);
+  }
+  COLS = cols; ROWS = rows;
+  scCv.width = COLS; scCv.height = ROWS;
+  flowInit = false;
+}
+
+/* ============================================================
+   4) INTERACTIONS
+   ============================================================ */
+const $ = id => document.getElementById(id);
+
+function segBind(id, key, after){
+  $(id).addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    for (const x of $(id).children) x.classList.toggle('on', x === b);
+    S[key] = b.dataset.v;
+    if (after) after();
+  });
+}
+segBind('segScene', 'scene', () => { flowInit = false; });
+segBind('segChar', 'charset');
+segBind('segColor', 'color');
+
+$('rCell').addEventListener('input', e => {
+  S.cell = +e.target.value;
+  $('oCell').textContent = e.target.value;
+  resize();
+});
+
+$('bSeed').addEventListener('click', () => {
+  S.seed = Math.random() * 1e9;
+  reseed();
+});
+
+$('bPng').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.download = 'ascii-cam.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+});
+
+$('bTxt').addEventListener('click', () => {
+  const blob = new Blob([lastTxt], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.download = 'ascii-cam.txt';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+
+stage.addEventListener('pointermove', e => {
+  const r = cv.getBoundingClientRect();
+  S.mouse.x = e.clientX - r.left;
+  S.mouse.y = e.clientY - r.top;
+  ring.style.left = (e.clientX - stage.getBoundingClientRect().left) + 'px';
+  ring.style.top = (e.clientY - stage.getBoundingClientRect().top) + 'px';
+});
+stage.addEventListener('pointerleave', () => { S.mouse.x = S.mouse.y = -9999; });
+
+let rsTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(rsTimer);
+  rsTimer = setTimeout(resize, 150);
+});
+
+/* ---------- boot ---------- */
+reseed();
+resize();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

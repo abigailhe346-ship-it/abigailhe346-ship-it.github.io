@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morph Organism — 形变有机体 No.02</title>
+<style>
+  :root{
+    --bg:#0a0c10;
+    --panel:#10141a;
+    --line:#232c36;
+    --coral:#ff6a5c;
+    --mint:#6df0c2;
+    --ink:#efeae0;
+    --dim:#5d6a76;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);}
+  body{font-family:"SF Mono",Menlo,"Courier New",monospace;color:var(--ink);
+       -webkit-font-smoothing:antialiased;}
+  #stage{position:fixed;inset:0;cursor:crosshair;}
+  #stage canvas{display:block;width:100%;height:100%;}
+
+  .plate{position:fixed;top:24px;left:26px;z-index:10;pointer-events:none;}
+  .plate .no{font-size:10px;letter-spacing:.4em;color:var(--coral);}
+  .plate h1{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+            font-size:22px;font-weight:400;letter-spacing:.12em;margin-top:6px;color:var(--ink);}
+  .plate .sub{font-size:10px;letter-spacing:.3em;color:var(--dim);margin-top:5px;}
+  .plate .rule{width:64px;height:1px;background:linear-gradient(90deg,var(--coral),transparent);margin-top:10px;}
+
+  .readout{position:fixed;top:26px;right:26px;z-index:10;text-align:right;pointer-events:none;
+           font-size:10px;letter-spacing:.22em;color:var(--dim);line-height:2.0;}
+  .readout b{color:var(--mint);font-weight:400;}
+  .readout .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--coral);
+                margin-right:8px;vertical-align:1px;animation:pulse 2.2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+  .hint{position:fixed;left:26px;bottom:24px;z-index:10;pointer-events:none;
+        font-size:10px;letter-spacing:.26em;color:var(--dim);line-height:2.1;}
+  .hint em{font-style:normal;color:var(--ink);}
+
+  .console{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:10;
+           display:flex;align-items:stretch;
+           background:linear-gradient(180deg,rgba(16,20,26,.9),rgba(10,12,16,.94));
+           border:1px solid var(--line);backdrop-filter:blur(8px);
+           box-shadow:0 0 0 1px rgba(0,0,0,.5),0 20px 60px rgba(0,0,0,.6);
+           max-width:min(960px,calc(100vw - 28px));}
+  .console::before,.console::after{content:"";position:absolute;width:10px;height:10px;
+           border:1px solid var(--mint);opacity:.85;}
+  .console::before{top:-4px;left:-4px;border-right:none;border-bottom:none;}
+  .console::after{bottom:-4px;right:-4px;border-left:none;border-top:none;}
+  .cell{padding:13px 18px;border-right:1px solid var(--line);display:flex;
+        flex-direction:column;justify-content:center;gap:9px;min-width:0;}
+  .cell:last-child{border-right:none;}
+  .label{font-size:9px;letter-spacing:.32em;color:var(--dim);white-space:nowrap;}
+
+  .btn{appearance:none;border:1px solid var(--coral);background:transparent;color:var(--coral);
+       font-family:inherit;font-size:10px;letter-spacing:.28em;padding:11px 15px 10px;cursor:pointer;
+       text-transform:uppercase;transition:background .2s cubic-bezier(.2,.7,.3,1),color .2s;}
+  .btn:hover{background:var(--coral);color:#0a0c10;}
+  .btn.ghost{border-color:var(--line);color:var(--ink);}
+  .btn.ghost:hover{background:var(--ink);color:#0a0c10;border-color:var(--ink);}
+  .btn:active{transform:translateY(1px);}
+  .btnrow{display:flex;gap:9px;}
+
+  .swatches{display:flex;gap:8px;align-items:center;}
+  .sw{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.22);
+      cursor:pointer;transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s;}
+  .sw:hover{transform:scale(1.18);}
+  .sw.on{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--ink);}
+
+  .slider{display:flex;align-items:center;gap:11px;min-width:150px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:110px;height:1px;
+       background:var(--line);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+       width:11px;height:15px;background:var(--mint);border:none;cursor:ew-resize;
+       box-shadow:0 0 10px rgba(109,240,194,.5);}
+  input[type=range]::-moz-range-thumb{width:11px;height:15px;background:var(--mint);
+       border:none;cursor:ew-resize;}
+  .sval{font-size:10px;color:var(--mint);letter-spacing:.08em;width:34px;text-align:right;}
+
+  .vignette{position:fixed;inset:0;z-index:5;pointer-events:none;
+            background:radial-gradient(ellipse at center,transparent 52%,rgba(4,5,8,.6) 100%);}
+
+  @media (max-width:820px){
+    .console{flex-wrap:wrap;bottom:12px;}
+    .cell{padding:10px 13px;border-right:none;border-top:1px solid var(--line);flex:1 1 42%;}
+    .cell:first-child{border-top:none;}
+    .hint{display:none;}
+    .plate h1{font-size:18px;}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="vignette"></div>
+
+<div class="plate">
+  <div class="no">No.02 — THREE.JS / GLSL NOISE</div>
+  <h1>Morph Organism</h1>
+  <div class="sub">形变有机体 · 一颗有呼吸的噪声生命</div>
+  <div class="rule"></div>
+</div>
+
+<div class="readout">
+  <span class="dot"></span>ORGANISM ALIVE<br>
+  VERTS <b id="rVerts">—</b><br>
+  FORM <b id="rForm">—</b><br>
+  FPS <b id="rFps">—</b>
+</div>
+
+<div class="hint">
+  <em>移动鼠标</em> 触碰表皮 · <em>按住</em> 注入能量<br>
+  <em>拖拽背景</em> 旋转 · <em>空格</em> 一次心跳
+</div>
+
+<div class="console">
+  <div class="cell">
+    <div class="label">表皮 / SKIN</div>
+    <div class="swatches" id="swatches"></div>
+  </div>
+  <div class="cell">
+    <div class="label">起伏 AMPLITUDE</div>
+    <div class="slider">
+      <input type="range" id="sAmp" min="10" max="120" step="2" value="55">
+      <span class="sval" id="vAmp">.55</span>
+    </div>
+  </div>
+  <div class="cell">
+    <div class="label">纹理 TEXTURE</div>
+    <div class="slider">
+      <input type="range" id="sFreq" min="40" max="300" step="5" value="130">
+      <span class="sval" id="vFreq">1.3</span>
+    </div>
+  </div>
+  <div class="cell">
+    <div class="label">流速 FLOW</div>
+    <div class="slider">
+      <input type="range" id="sSpeed" min="0" max="150" step="5" value="55">
+      <span class="sval" id="vSpeed">.55</span>
+    </div>
+  </div>
+  <div class="cell">
+    <div class="btnrow">
+      <button class="btn" id="btnRandom">随机形态</button>
+      <button class="btn ghost" id="btnPulse">心跳</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ================= skins ================= */
+  var SKINS = [
+    { name:"虹彩 PRISM", base:"#1b2030", accent:"#6df0c2", rim:"#ff6a5c", holo:1.0 },
+    { name:"珊瑚 CORAL", base:"#2a1216", accent:"#ff6a5c", rim:"#ffd9a0", holo:0.0 },
+    { name:"夜苔 MOSS",  base:"#0e1c1a", accent:"#6df0c2", rim:"#d8f7ff", holo:0.0 }
+  ];
+
+  var state = { skin:0, amp:0.55, freq:1.3, speed:0.55, seedOff:0 };
+  var pulse = 0;           /* heartbeat impulse */
+  var mousePow = 0, mousePowTarget = 0;
+  var mouseDir = new THREE.Vector3(0, 0, 1);
+  var mouseDirTarget = new THREE.Vector3(0, 0, 1);
+
+  /* ================= renderer ================= */
+  var stage = document.getElementById("stage");
+  var renderer = new THREE.WebGLRenderer({ antialias:true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x0a0c10, 1);
+  stage.appendChild(renderer.domElement);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+  camera.position.set(0, 0, 5.4);
+
+  var orbit = { theta: 0, phi: Math.PI/2, tTheta: 0, tPhi: Math.PI/2 };
+
+  /* ================= shader ================= */
+  var NOISE = [
+    "vec3 mod289(vec3 x){return x - floor(x*(1.0/289.0))*289.0;}",
+    "vec4 mod289(vec4 x){return x - floor(x*(1.0/289.0))*289.0;}",
+    "vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}",
+    "vec4 taylorInvSqrt(vec4 r){return 1.79284291400159 - 0.85373472095314*r;}",
+    "float snoise(vec3 v){",
+    "  const vec2 C = vec2(1.0/6.0, 1.0/3.0);",
+    "  const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);",
+    "  vec3 i  = floor(v + dot(v, C.yyy));",
+    "  vec3 x0 = v - i + dot(i, C.xxx);",
+    "  vec3 g = step(x0.yzx, x0.xyz);",
+    "  vec3 l = 1.0 - g;",
+    "  vec3 i1 = min(g.xyz, l.zxy);",
+    "  vec3 i2 = max(g.xyz, l.zxy);",
+    "  vec3 x1 = x0 - i1 + C.xxx;",
+    "  vec3 x2 = x0 - i2 + C.yyy;",
+    "  vec3 x3 = x0 - D.yyy;",
+    "  i = mod289(i);",
+    "  vec4 p = permute(permute(permute(i.z + vec4(0.0,i1.z,i2.z,1.0)) + i.y + vec4(0.0,i1.y,i2.y,1.0)) + i.x + vec4(0.0,i1.x,i2.x,1.0));",
+    "  float n_ = 0.142857142857;",
+    "  vec3 ns = n_ * D.wyz - D.xzx;",
+    "  vec4 j = p - 49.0 * floor(p * ns.z * ns.z);",
+    "  vec4 x_ = floor(j * ns.z);",
+    "  vec4 y_ = floor(j - 7.0 * x_);",
+    "  vec4 x = x_ * ns.x + ns.yyyy;",
+    "  vec4 y = y_ * ns.x + ns.yyyy;",
+    "  vec4 h = 1.0 - abs(x) - abs(y);",
+    "  vec4 b0 = vec4(x.xy, y.xy);",
+    "  vec4 b1 = vec4(x.zw, y.zw);",
+    "  vec4 s0 = floor(b0)*2.0 + 1.0;",
+    "  vec4 s1 = floor(b1)*2.0 + 1.0;",
+    "  vec4 sh = -step(h, vec4(0.0));",
+    "  vec4 a0 = b0.xzyw + s0.xzyw*sh.xxyy;",
+    "  vec4 a1 = b1.xzyw + s1.xzyw*sh.zzww;",
+    "  vec3 p0 = vec3(a0.xy, h.x);",
+    "  vec3 p1 = vec3(a0.zw, h.y);",
+    "  vec3 p2 = vec3(a1.xy, h.z);",
+    "  vec3 p3 = vec3(a1.zw, h.w);",
+    "  vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));",
+    "  p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;",
+    "  vec4 m = max(0.6 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);",
+    "  m = m * m;",
+    "  return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));",
+    "}"
+  ].join("\n");
+
+  var uniforms = {
+    uTime:    { value: 0 },
+    uAmp:     { value: state.amp },
+    uFreq:    { value: state.freq },
+    uSeedOff: { value: 0 },
+    uMouse:   { value: new THREE.Vector3(0,0,1) },
+    uMousePow:{ value: 0 },
+    uPulse:   { value: 0 },
+    uBase:    { value: new THREE.Color(SKINS[0].base) },
+    uAccent:  { value: new THREE.Color(SKINS[0].accent) },
+    uRim:     { value: new THREE.Color(SKINS[0].rim) },
+    uHolo:    { value: SKINS[0].holo }
+  };
+  var baseTarget = uniforms.uBase.value.clone();
+  var accentTarget = uniforms.uAccent.value.clone();
+  var rimTarget = uniforms.uRim.value.clone();
+  var holoTarget = SKINS[0].holo;
+
+  var VERT = NOISE + "\n" + [
+    "uniform float uTime, uAmp, uFreq, uSeedOff, uMousePow, uPulse;",
+    "uniform vec3 uMouse;",
+    "varying float vDisp;",
+    "varying vec3 vN, vWorldPos;",
+    "float height(vec3 p){",
+    "  vec3 q = normalize(p);",
+    "  float t = uTime + uSeedOff * 17.0;",
+    "  float n = snoise(q * uFreq + vec3(t * 0.35, -t * 0.22, t * 0.28));",
+    "  n += 0.45 * snoise(q * uFreq * 2.4 - vec3(t * 0.4));",
+    "  float m = pow(max(dot(q, uMouse), 0.0), 5.0) * uMousePow;",
+    "  return uAmp * n * 0.5 + m + uPulse * 0.35;",
+    "}",
+    "vec3 displaced(vec3 p){",
+    "  vec3 q = normalize(p);",
+    "  return q * (1.35 + height(q));",
+    "}",
+    "void main(){",
+    "  vec3 q0 = normalize(position);",
+    "  vec3 up = abs(q0.y) > 0.98 ? vec3(1.0,0.0,0.0) : vec3(0.0,1.0,0.0);",
+    "  vec3 t1 = normalize(cross(up, q0));",
+    "  vec3 t2 = normalize(cross(q0, t1));",
+    "  float e = 0.012;",
+    "  vec3 p0 = displaced(q0);",
+    "  vec3 p1 = displaced(normalize(q0 + t1 * e));",
+    "  vec3 p2 = displaced(normalize(q0 + t2 * e));",
+    "  vN = normalize(cross(p1 - p0, p2 - p0));",
+    "  if (dot(vN, q0) < 0.0) vN = -vN;",
+    "  vDisp = height(q0);",
+    "  vec4 wp = modelMatrix * vec4(p0, 1.0);",
+    "  vWorldPos = wp.xyz;",
+    "  gl_Position = projectionMatrix * viewMatrix * wp;",
+    "}"
+  ].join("\n");
+
+  var FRAG = [
+    "uniform vec3 uBase, uAccent, uRim;",
+    "uniform float uHolo, uTime;",
+    "varying float vDisp;",
+    "varying vec3 vN, vWorldPos;",
+    "void main(){",
+    "  vec3 N = normalize(vN);",
+    "  vec3 V = normalize(cameraPosition - vWorldPos);",
+    "  vec3 L = normalize(vec3(0.6, 0.9, 0.8));",
+    "  float diff = max(dot(N, L), 0.0);",
+    "  float fres = pow(1.0 - max(dot(N, V), 0.0), 2.4);",
+    "  float h = smoothstep(-0.5, 0.7, vDisp);",
+    "  vec3 col = mix(uBase, uAccent, h) * (0.35 + 0.75 * diff);",
+    "  vec3 rimCol = uRim;",
+    "  if (uHolo > 0.01) {",
+    "    rimCol = 0.5 + 0.5 * cos(6.2831 * (fres * 1.4 + uTime * 0.06 + vec3(0.0, 0.33, 0.67)));",
+    "    rimCol = mix(uRim, rimCol, uHolo);",
+    "  }",
+    "  col += rimCol * fres * 0.9;",
+    "  col += uAccent * pow(max(dot(reflect(-L, N), V), 0.0), 24.0) * 0.6;",
+    "  gl_FragColor = vec4(col, 1.0);",
+    "}"
+  ].join("\n");
+
+  var geo = new THREE.IcosahedronGeometry(1, 64);
+  document.getElementById("rVerts").textContent =
+    (geo.attributes.position.count / 1000).toFixed(1) + "K";
+  var mat = new THREE.ShaderMaterial({
+    vertexShader: VERT, fragmentShader: FRAG, uniforms: uniforms
+  });
+  var blob = new THREE.Mesh(geo, mat);
+  scene.add(blob);
+
+  /* halo particles drifting around */
+  (function halo(){
+    var n = 500, p = new Float32Array(n * 3), i;
+    for (i = 0; i < n; i++){
+      var th = Math.random()*Math.PI*2, ph = Math.acos(2*Math.random()-1);
+      var rr = 2.6 + Math.random()*2.6;
+      p[i*3]   = rr*Math.sin(ph)*Math.cos(th);
+      p[i*3+1] = rr*Math.cos(ph)*0.6;
+      p[i*3+2] = rr*Math.sin(ph)*Math.sin(th);
+    }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(p, 3));
+    var m = new THREE.PointsMaterial({ color:0x6df0c2, size:0.02, transparent:true,
+                                       opacity:0.4, depthWrite:false,
+                                       blending:THREE.AdditiveBlending });
+    var pts = new THREE.Points(g, m);
+    pts.name = "halo";
+    scene.add(pts);
+  })();
+
+  /* ================= interaction ================= */
+  var ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  var overBlob = false, holding = false;
+  var dragging = false, px = 0, py = 0, moved = 0;
+
+  stage.addEventListener("pointermove", function(e){
+    ndc.x = (e.clientX / window.innerWidth) * 2 - 1;
+    ndc.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    ray.setFromCamera(ndc, camera);
+    mouseDirTarget.copy(ray.ray.direction).normalize();
+
+    var hit = ray.intersectObject(blob);
+    overBlob = hit.length > 0;
+
+    if (dragging && !overBlob){
+      var dx = e.clientX - px, dy = e.clientY - py;
+      moved += Math.abs(dx) + Math.abs(dy);
+      orbit.tTheta -= dx * 0.006;
+      orbit.tPhi = Math.max(0.3, Math.min(Math.PI - 0.3, orbit.tPhi - dy * 0.004));
+    }
+    px = e.clientX; py = e.clientY;
+  });
+  stage.addEventListener("pointerdown", function(e){
+    dragging = true; moved = 0; px = e.clientX; py = e.clientY;
+    holding = true;
+  });
+  window.addEventListener("pointerup", function(){
+    dragging = false; holding = false;
+  });
+
+  /* ================= controls ================= */
+  var swatches = document.getElementById("swatches");
+  SKINS.forEach(function(sk, i){
+    var el = document.createElement("div");
+    el.className = "sw" + (i === state.skin ? " on" : "");
+    el.title = sk.name;
+    el.style.background = "radial-gradient(circle at 35% 35%," + sk.accent + "," + sk.base + ")";
+    el.addEventListener("click", function(){ setSkin(i); });
+    swatches.appendChild(el);
+  });
+  function setSkin(i){
+    state.skin = i;
+    var sk = SKINS[i];
+    baseTarget.set(sk.base); accentTarget.set(sk.accent); rimTarget.set(sk.rim);
+    holoTarget = sk.holo;
+    document.getElementById("rForm").textContent = sk.name.split(" ")[0];
+    Array.prototype.forEach.call(swatches.children, function(c, j){
+      c.classList.toggle("on", j === i);
+    });
+  }
+
+  function bind(id, vid, fmt, apply){
+    var s = document.getElementById(id), v = document.getElementById(vid);
+    s.addEventListener("input", function(){
+      var x = parseFloat(s.value);
+      apply(x); v.textContent = fmt(x);
+    });
+  }
+  bind("sAmp", "vAmp", function(x){ return (x/100).toFixed(2).slice(1); }, function(x){ state.amp = x/100; });
+  bind("sFreq","vFreq",function(x){ return (x/100).toFixed(1); },           function(x){ state.freq = x/100; });
+  bind("sSpeed","vSpeed",function(x){ return (x/100).toFixed(2).slice(1); }, function(x){ state.speed = x/100; });
+
+  function heartbeat(){ pulse = 1.0; }
+  document.getElementById("btnPulse").addEventListener("click", heartbeat);
+  document.getElementById("btnRandom").addEventListener("click", randomize);
+  function randomize(){
+    state.seedOff = Math.random() * 100;
+    uniforms.uSeedOff.value = state.seedOff;
+    state.amp = 0.25 + Math.random() * 0.85;
+    state.freq = 0.5 + Math.random() * 2.4;
+    state.speed = 0.15 + Math.random() * 1.2;
+    setSkin((Math.random() * SKINS.length) | 0);
+    syncSliders();
+    heartbeat();
+  }
+  function syncSliders(){
+    document.getElementById("sAmp").value = state.amp * 100;
+    document.getElementById("vAmp").textContent = state.amp.toFixed(2).slice(1);
+    document.getElementById("sFreq").value = state.freq * 100;
+    document.getElementById("vFreq").textContent = state.freq.toFixed(1);
+    document.getElementById("sSpeed").value = state.speed * 100;
+    document.getElementById("vSpeed").textContent = state.speed.toFixed(2).slice(1);
+  }
+
+  window.addEventListener("keydown", function(e){
+    if (e.code === "Space"){ e.preventDefault(); heartbeat(); }
+  });
+
+  window.addEventListener("resize", function(){
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  /* ================= loop ================= */
+  var clock = new THREE.Clock();
+  var frames = 0, fpsT = 0;
+
+  function tick(){
+    requestAnimationFrame(tick);
+    var dt = Math.min(clock.getDelta(), 0.05);
+    var t = clock.elapsedTime;
+
+    uniforms.uTime.value += dt * state.speed;
+
+    pulse *= Math.pow(0.06, dt);            /* fast decay heartbeat */
+    uniforms.uPulse.value = pulse;
+
+    mousePowTarget = holding ? 0.85 : (overBlob ? 0.28 : 0.0);
+    mousePow += (mousePowTarget - mousePow) * 0.08;
+    uniforms.uMousePow.value = mousePow;
+    mouseDir.lerp(mouseDirTarget, 0.1);
+    uniforms.uMouse.value.copy(mouseDir);
+
+    /* smooth skin transition */
+    uniforms.uBase.value.lerp(baseTarget, 0.06);
+    uniforms.uAccent.value.lerp(accentTarget, 0.06);
+    uniforms.uRim.value.lerp(rimTarget, 0.06);
+    uniforms.uHolo.value += (holoTarget - uniforms.uHolo.value) * 0.06;
+
+    /* idle breathe + slow self-rotation */
+    var breathe = 1 + Math.sin(t * 0.9) * 0.02 + pulse * 0.12;
+    blob.scale.setScalar(breathe);
+    blob.rotation.y += dt * 0.12;
+    var halo = scene.getObjectByName("halo");
+    if (halo) halo.rotation.y -= dt * 0.05;
+
+    orbit.theta += (orbit.tTheta - orbit.theta) * 0.07;
+    orbit.phi   += (orbit.tPhi   - orbit.phi)   * 0.07;
+    var r = 5.4;
+    camera.position.set(
+      r * Math.sin(orbit.phi) * Math.sin(orbit.theta),
+      r * Math.cos(orbit.phi),
+      r * Math.sin(orbit.phi) * Math.cos(orbit.theta)
+    );
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+
+    frames++; fpsT += dt;
+    if (fpsT >= 0.5){
+      document.getElementById("rFps").textContent = Math.round(frames / fpsT);
+      frames = 0; fpsT = 0;
+    }
+  }
+
+  setSkin(0);
+  tick();
+})();
+</script>
+</body>
+</html>

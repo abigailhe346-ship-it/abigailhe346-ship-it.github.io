@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TSA 太垣航天局 — XUANYUAN-3 轩辕三号 · 小行星采样返回</title>
+<style>
+  :root{
+    --space:#05070D;
+    --space2:#0A0E16;
+    --signal:#FF4D2E;
+    --ice:#E6EDF3;
+    --dim:#5A6B7E;
+    --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--space);color:var(--ice);font-family:var(--sans);overflow-x:hidden;}
+  ::selection{background:var(--signal);color:var(--space);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:20px 3.5vw;border-bottom:1px solid rgba(230,237,243,.08);backdrop-filter:blur(8px);background:rgba(5,7,13,.6);}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.16em;line-height:1.8;}
+  .sig .no{color:var(--signal);}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-align:right;line-height:1.9;color:var(--dim);}
+  .hright b{color:var(--signal);font-weight:400;}
+  .blink{animation:blink 1.2s steps(2) infinite;}
+  @keyframes blink{50%{opacity:.2;}}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;min-height:100vh;display:flex;align-items:flex-end;overflow:hidden;}
+  #stars{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .hero-grid{position:absolute;inset:0;pointer-events:none;
+    background-image:linear-gradient(rgba(230,237,243,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(230,237,243,.04) 1px,transparent 1px);
+    background-size:80px 80px;}
+  .hero-inner{position:relative;z-index:2;width:100%;padding:0 3.5vw 8vh;}
+  .mission-tag{display:inline-flex;align-items:center;gap:12px;font-family:var(--mono);font-size:10px;letter-spacing:.34em;
+    color:var(--signal);border:1px solid rgba(255,77,46,.4);padding:10px 18px;margin-bottom:4vh;}
+  .mission-tag .dot{width:7px;height:7px;background:var(--signal);border-radius:50%;animation:blink 1.4s steps(2) infinite;}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(52px,8.5vw,140px);line-height:.95;letter-spacing:.005em;}
+  h1 .cn{display:block;font-size:.32em;letter-spacing:.5em;color:var(--dim);margin-top:2vh;font-family:var(--mono);}
+  .hero-bottom{display:flex;justify-content:space-between;align-items:flex-end;gap:4vw;flex-wrap:wrap;margin-top:5vh;}
+  .hero-sub{font-size:14px;line-height:2.1;color:rgba(230,237,243,.62);max-width:46ch;}
+  .countdown{font-family:var(--mono);}
+  .countdown .lbl{font-size:9px;letter-spacing:.34em;color:var(--dim);margin-bottom:10px;}
+  .cd-row{display:flex;gap:2px;}
+  .cd-cell{background:rgba(230,237,243,.06);border:1px solid rgba(230,237,243,.14);padding:14px 10px;min-width:76px;text-align:center;}
+  .cd-cell .v{font-size:30px;letter-spacing:.04em;color:var(--ice);font-variant-numeric:tabular-nums;}
+  .cd-cell .u{font-size:8px;letter-spacing:.3em;color:var(--dim);margin-top:6px;}
+  .cd-cell.sig .v{color:var(--signal);}
+  @media(max-width:640px){.cd-cell{min-width:58px;padding:10px 6px;}.cd-cell .v{font-size:20px;}}
+
+  /* ---------- sections ---------- */
+  section{padding:13vh 3.5vw;max-width:1440px;margin:0 auto;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    border-bottom:1px solid rgba(230,237,243,.14);padding-bottom:20px;margin-bottom:7vh;}
+  .sec-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(30px,4vw,58px);line-height:1;}
+  .sec-head h2 em{color:var(--signal);font-style:normal;}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.28em;color:var(--dim);}
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+  .reveal.on{opacity:1;transform:none;}
+
+  /* ---------- telemetry ---------- */
+  .tele-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2px;background:rgba(230,237,243,.12);}
+  .tele{background:var(--space);padding:30px 24px;}
+  .tele .tl{font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--dim);margin-bottom:16px;}
+  .tele .tv{font-family:var(--mono);font-size:clamp(26px,2.4vw,36px);letter-spacing:.02em;font-variant-numeric:tabular-nums;}
+  .tele .tv i{font-style:normal;font-size:.5em;color:var(--dim);margin-left:6px;}
+  .tele .tb{margin-top:16px;height:2px;background:rgba(230,237,243,.1);position:relative;overflow:hidden;}
+  .tele .tb b{position:absolute;left:0;top:0;bottom:0;background:var(--signal);transition:width .8s var(--ease);}
+  .dsn{margin-top:2px;background:var(--space);border:1px solid rgba(230,237,243,.12);padding:26px 24px;}
+  .dsn .dl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--dim);margin-bottom:16px;}
+  .dsn .dl b{color:var(--signal);font-weight:400;}
+  #wave{width:100%;height:90px;display:block;}
+
+  /* ---------- trajectory ---------- */
+  .traj-wrap{position:relative;border:1px solid rgba(230,237,243,.12);background:var(--space2);}
+  #traj{width:100%;height:min(62vh,560px);display:block;}
+  .traj-hud{position:absolute;top:18px;left:20px;font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+    color:var(--dim);line-height:2.2;pointer-events:none;}
+  .traj-hud b{color:var(--ice);font-weight:400;}
+  .traj-hud .sig{color:var(--signal);}
+  .scrub{display:flex;align-items:center;gap:20px;margin-top:26px;flex-wrap:wrap;}
+  .scrub .sl-lbl{font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--dim);white-space:nowrap;}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:180px;height:2px;background:rgba(230,237,243,.2);outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;background:var(--signal);
+    border-radius:50%;cursor:pointer;box-shadow:0 0 0 5px rgba(255,77,46,.18);}
+  input[type=range]::-moz-range-thumb{width:16px;height:16px;background:var(--signal);border:none;border-radius:50%;cursor:pointer;}
+  .scrub .day{font-family:var(--mono);font-size:13px;letter-spacing:.1em;color:var(--signal);min-width:110px;font-variant-numeric:tabular-nums;}
+  .play-btn{border:1px solid rgba(230,237,243,.3);background:none;color:var(--ice);font-family:var(--mono);
+    font-size:10px;letter-spacing:.26em;padding:12px 22px;cursor:pointer;transition:.3s;}
+  .play-btn:hover{border-color:var(--signal);color:var(--signal);}
+
+  /* ---------- phases ---------- */
+  .phases{display:grid;grid-template-columns:280px 1fr;gap:5vw;align-items:start;}
+  @media(max-width:880px){.phases{grid-template-columns:1fr;}}
+  .phase-list{display:flex;flex-direction:column;gap:2px;}
+  .ph-btn{background:var(--space2);border:1px solid rgba(230,237,243,.12);color:var(--dim);text-align:left;
+    padding:18px 20px;cursor:pointer;transition:.35s var(--ease);font-family:var(--mono);display:flex;gap:16px;align-items:baseline;}
+  .ph-btn .pn{font-size:10px;letter-spacing:.2em;}
+  .ph-btn .pt{font-family:var(--serif);font-size:19px;letter-spacing:.02em;color:var(--ice);}
+  .ph-btn small{display:block;font-size:9px;letter-spacing:.2em;margin-top:5px;}
+  .ph-btn:hover{border-color:rgba(255,77,46,.5);}
+  .ph-btn.active{border-color:var(--signal);color:var(--signal);background:rgba(255,77,46,.06);}
+  .ph-panel .pt-big{font-family:var(--serif);font-size:clamp(28px,3.4vw,48px);line-height:1.15;}
+  .ph-panel .pt-big em{color:var(--signal);font-style:normal;}
+  .ph-panel .pd{margin-top:3vh;font-size:14px;line-height:2.2;color:rgba(230,237,243,.68);max-width:58ch;}
+  .ph-stats{margin-top:4.5vh;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:2px;background:rgba(230,237,243,.12);}
+  .ph-stat{background:var(--space);padding:20px;}
+  .ph-stat .v{font-family:var(--mono);font-size:22px;color:var(--signal);}
+  .ph-stat .l{font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:var(--dim);margin-top:8px;}
+  .fade-swap{animation:swap .6s var(--ease);}
+  @keyframes swap{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+
+  /* ---------- craft ---------- */
+  .craft{display:grid;grid-template-columns:1fr 1fr;gap:6vw;align-items:center;}
+  @media(max-width:880px){.craft{grid-template-columns:1fr;}}
+  #craftSvg{width:100%;height:auto;display:block;}
+  .spec-row{display:flex;justify-content:space-between;gap:20px;padding:18px 4px;border-bottom:1px solid rgba(230,237,243,.12);
+    font-family:var(--mono);transition:.3s;}
+  .spec-row:hover{background:rgba(255,77,46,.05);padding-left:12px;}
+  .spec-row .k{font-size:10px;letter-spacing:.26em;color:var(--dim);align-self:center;}
+  .spec-row .v{font-size:13px;letter-spacing:.06em;text-align:right;}
+
+  footer{border-top:1px solid rgba(230,237,243,.12);padding:9vh 3.5vw 6vh;max-width:1440px;margin:0 auto;
+    display:flex;justify-content:space-between;gap:6vw;flex-wrap:wrap;}
+  footer .big{font-family:var(--serif);font-size:clamp(30px,4vw,58px);line-height:1.15;}
+  footer .big em{color:var(--signal);font-style:normal;}
+  footer .info{font-family:var(--mono);font-size:10px;letter-spacing:.24em;line-height:2.6;color:var(--dim);}
+  footer .info b{color:var(--ice);font-weight:400;}
+  .copyright{max-width:1440px;margin:0 auto;padding:0 3.5vw 5vh;font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:rgba(90,107,126,.6);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">Nº 022</span><br>TAIYUAN SPACE AGENCY<br>太垣航天局</div>
+  <div class="hright"><b class="blink">●</b> DSN LINK ACTIVE<br>MISSION XUANYUAN-3 · SOL 214</div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <canvas id="stars"></canvas>
+  <div class="hero-grid"></div>
+  <div class="hero-inner">
+    <div class="mission-tag"><span class="dot"></span>MISSION IN PROGRESS · 任务进行中</div>
+    <h1>XUANYUAN-3<span class="cn">轩辕三号 · 小行星采样返回</span></h1>
+    <div class="hero-bottom">
+      <p class="hero-sub">探测器正在 2.4 亿公里之外追赶小行星 2020-QR7。它要带回来一把 45 亿年前的尘埃——太阳系诞生时的建筑材料。</p>
+      <div class="countdown">
+        <div class="lbl">NEXT EVENT — 样品舱再入大气 / SAMPLE RETURN</div>
+        <div class="cd-row">
+          <div class="cd-cell sig"><div class="v" id="cdD">000</div><div class="u">DAYS</div></div>
+          <div class="cd-cell"><div class="v" id="cdH">00</div><div class="u">HRS</div></div>
+          <div class="cd-cell"><div class="v" id="cdM">00</div><div class="u">MIN</div></div>
+          <div class="cd-cell"><div class="v" id="cdS">00</div><div class="u">SEC</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TELEMETRY -->
+<section>
+  <div class="sec-head reveal"><h2>遥测 <em>数据流</em></h2><div class="idx">01 — LIVE TELEMETRY / DSN-43</div></div>
+  <div class="tele-grid reveal" id="teleGrid"></div>
+  <div class="dsn reveal">
+    <div class="dl"><span>DOWNLINK CARRIER · 8.4 GHz · X-BAND</span><span><b>LOCKED</b> · SNR 12.4 dB</span></div>
+    <canvas id="wave"></canvas>
+  </div>
+</section>
+
+<!-- TRAJECTORY -->
+<section>
+  <div class="sec-head reveal"><h2>轨道 <em>转移图</em></h2><div class="idx">02 — HOHMANN TRANSFER / HELIOCENTRIC</div></div>
+  <div class="traj-wrap reveal">
+    <canvas id="traj"></canvas>
+    <div class="traj-hud">
+      FRAME: HELIOCENTRIC J2000<br>
+      PROBE: <b class="sig" id="hudProbe">XY-3</b> · POS <b id="hudPos">—</b><br>
+      TARGET: <b>2020-QR7</b> · RENDEZVOUS SOL <b>412</b>
+    </div>
+  </div>
+  <div class="scrub reveal">
+    <span class="sl-lbl">MISSION ELAPSED</span>
+    <input type="range" id="dayScrub" min="0" max="560" value="214">
+    <span class="day" id="dayReadout">SOL 214</span>
+    <button class="play-btn" id="autoBtn">自动巡航 ▸</button>
+  </div>
+</section>
+
+<!-- PHASES -->
+<section>
+  <div class="sec-head reveal"><h2>任务 <em>阶段</em></h2><div class="idx">03 — MISSION PHASES 06</div></div>
+  <div class="phases">
+    <div class="phase-list reveal" id="phaseList"></div>
+    <div class="ph-panel reveal" id="phasePanel"></div>
+  </div>
+</section>
+
+<!-- SPACECRAFT -->
+<section>
+  <div class="sec-head reveal"><h2>探测器 <em>档案</em></h2><div class="idx">04 — SPACECRAFT / XY-3 BUS</div></div>
+  <div class="craft">
+    <svg id="craftSvg" viewBox="0 0 460 360" class="reveal" aria-label="探测器结构图">
+      <g stroke="#E6EDF3" stroke-width="1" fill="none" opacity=".9">
+        <rect x="180" y="130" width="100" height="100"/>
+        <rect x="195" y="145" width="70" height="70" stroke-dasharray="3 4"/>
+        <rect x="20" y="160" width="140" height="40" fill="rgba(255,77,46,.12)" stroke="#FF4D2E"/>
+        <rect x="300" y="160" width="140" height="40" fill="rgba(255,77,46,.12)" stroke="#FF4D2E"/>
+        <line x1="90" y1="165" x2="90" y2="195" stroke="#FF4D2E"/><line x1="125" y1="165" x2="125" y2="195" stroke="#FF4D2E"/>
+        <line x1="335" y1="165" x2="335" y2="195" stroke="#FF4D2E"/><line x1="370" y1="165" x2="370" y2="195" stroke="#FF4D2E"/>
+        <circle cx="230" cy="95" r="34"/>
+        <line x1="230" y1="129" x2="230" y2="61"/>
+        <line x1="230" y1="230" x2="230" y2="290"/><circle cx="230" cy="306" r="16"/>
+        <line x1="180" y1="180" x2="160" y2="180"/><line x1="280" y1="180" x2="300" y2="180"/>
+      </g>
+      <g font-family="SF Mono,Menlo,monospace" font-size="9" fill="#5A6B7E" letter-spacing="2">
+        <text x="20" y="150">SOLAR ARRAY −P</text>
+        <text x="330" y="150">SOLAR ARRAY +P</text>
+        <text x="270" y="70">HGA · 高增益天线</text>
+        <text x="255" y="312">采样机械臂 SARM</text>
+        <text x="290" y="184">XY-3 BUS</text>
+      </g>
+      <g stroke="#FF4D2E" stroke-width="1" fill="none">
+        <path d="M230 95 L 305 78" stroke-dasharray="2 3"/><circle cx="305" cy="78" r="2" fill="#FF4D2E"/>
+        <path d="M230 306 L 250 306" stroke-dasharray="2 3" opacity="0"/>
+      </g>
+    </svg>
+    <div class="reveal">
+      <div class="spec-row"><span class="k">发射质量 / MASS</span><span class="v">2,140 kg</span></div>
+      <div class="spec-row"><span class="k">推进 / PROPULSION</span><span class="v">离子电推 ×2 · NEXIS</span></div>
+      <div class="spec-row"><span class="k">电力 / POWER</span><span class="v">3.4 kW @ 1 AU</span></div>
+      <div class="spec-row"><span class="k">采样量 / SAMPLE</span><span class="v">≥ 60 g 小行星风化层</span></div>
+      <div class="spec-row"><span class="k">通讯 / COMMS</span><span class="v">X 波段 · 深空网 DSN-43</span></div>
+      <div class="spec-row"><span class="k">巡航速度 / CRUISE</span><span class="v" id="specVel">—</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="big">我们带回的不是石头，<br><em>是时间本身。</em></div>
+  <div class="info">
+    <b>TAIYUAN SPACE AGENCY 太垣航天局</b><br>
+    深空探测部 · 小行星计划<br>
+    发射 2025-03-11 · 文昌<br>
+    样品返回 2027-09-04 · 四子王旗
+  </div>
+</footer>
+<div class="copyright">© 2026 TSA · WEB DESIGN Nº 022 · AI PORTFOLIO · ALL VECTORS NOMINAL</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ starfield ============ */
+var cv=document.getElementById('stars'),cx=cv.getContext('2d');
+var W=0,H=0,DPR=Math.min(window.devicePixelRatio||1,2);
+function rs(){W=cv.clientWidth;H=cv.clientHeight;cv.width=W*DPR;cv.height=H*DPR;cx.setTransform(DPR,0,0,DPR,0,0);}
+rs();window.addEventListener('resize',rs);
+var stars=[];
+for(var i=0;i<260;i++)stars.push({x:Math.random(),y:Math.random(),z:.3+Math.random()*.7,r:Math.random()*1.3+.3,ph:Math.random()*6.28});
+var shoots=[],nextShoot=3000;
+var mx=.5,my=.5;
+window.addEventListener('mousemove',function(e){mx=e.clientX/window.innerWidth;my=e.clientY/window.innerHeight;});
+var t0=performance.now();
+function drawStars(now){
+  var t=(now-t0)/1000;
+  cx.clearRect(0,0,W,H);
+  var g0=cx.createRadialGradient(W*.78,H*.22,0,W*.78,H*.22,W*.5);
+  g0.addColorStop(0,'rgba(255,77,46,.07)');g0.addColorStop(1,'rgba(5,7,13,0)');
+  cx.fillStyle=g0;cx.fillRect(0,0,W,H);
+  var px=(mx-.5),py=(my-.5);
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i],tw=.5+.5*Math.sin(t*1.4*s.z+s.ph);
+    cx.globalAlpha=(.25+.75*tw)*s.z;
+    cx.fillStyle='#E6EDF3';
+    cx.beginPath();cx.arc(s.x*W-px*40*s.z,s.y*H-py*40*s.z,s.r*s.z,0,7);cx.fill();
+  }
+  cx.globalAlpha=1;
+  /* shooting stars */
+  if(now-t0>nextShoot){
+    nextShoot=now-t0+4000+Math.random()*6000;
+    shoots.push({x:Math.random()*W*.8,y:Math.random()*H*.4,vx:5+Math.random()*4,vy:2+Math.random()*2,life:1});
+  }
+  for(var j=shoots.length-1;j>=0;j--){
+    var sh=shoots[j];sh.x+=sh.vx;sh.y+=sh.vy;sh.life-=.02;
+    if(sh.life<=0){shoots.splice(j,1);continue;}
+    var lg=cx.createLinearGradient(sh.x,sh.y,sh.x-sh.vx*10,sh.y-sh.vy*10);
+    lg.addColorStop(0,'rgba(230,237,243,'+(.8*sh.life)+')');lg.addColorStop(1,'rgba(230,237,243,0)');
+    cx.strokeStyle=lg;cx.lineWidth=1.2;
+    cx.beginPath();cx.moveTo(sh.x,sh.y);cx.lineTo(sh.x-sh.vx*10,sh.y-sh.vy*10);cx.stroke();
+  }
+  requestAnimationFrame(drawStars);
+}
+requestAnimationFrame(drawStars);
+
+/* ============ countdown ============ */
+var target=Date.now()+(378*86400+11*3600+42*60+9)*1000;
+function cd(){
+  var d=Math.max(0,target-Date.now())/1000;
+  var D=Math.floor(d/86400),Hh=Math.floor(d%86400/3600),M=Math.floor(d%3600/60),S=Math.floor(d%60);
+  document.getElementById('cdD').textContent=String(D).padStart(3,'0');
+  document.getElementById('cdH').textContent=String(Hh).padStart(2,'0');
+  document.getElementById('cdM').textContent=String(M).padStart(2,'0');
+  document.getElementById('cdS').textContent=String(S).padStart(2,'0');
+}
+cd();setInterval(cd,1000);
+
+/* ============ telemetry ============ */
+var teles=[
+ {l:'距离地球 RANGE',v:241.6,u:'M km',dv:.02,min:241.2,max:242.1,p:64},
+ {l:'巡航速度 VELOCITY',v:12.84,u:'km/s',dv:.01,min:12.7,max:13.0,p:48},
+ {l:'信号时延 ONE-WAY LIGHT TIME',v:13.4,u:'min',dv:.01,min:13.2,max:13.6,p:55},
+ {l:'星体温度 BUS TEMP',v:-42.3,u:'°C',dv:.3,min:-46,max:-38,p:72},
+ {l:'燃料余量 XENON',v:31.7,u:'%',dv:-.002,min:31,max:32,p:31},
+ {l:'太阳阵输出 ARRAY',v:2.9,u:'kW',dv:.02,min:2.8,max:3.1,p:85}
+];
+var tg=document.getElementById('teleGrid'),tEls=[];
+teles.forEach(function(t,i){
+  var d=document.createElement('div');d.className='tele';
+  d.innerHTML='<div class="tl">'+t.l+'</div><div class="tv"><span id="tv'+i+'">—</span><i>'+t.u+'</i></div><div class="tb"><b id="tb'+i+'"></b></div>';
+  tg.appendChild(d);tEls.push(i);
+});
+function tickTele(){
+  teles.forEach(function(t,i){
+    t.v+=(Math.random()-.5)*2*t.dv;
+    if(t.v<t.min)t.v=t.min;if(t.v>t.max)t.v=t.max;
+    var el=document.getElementById('tv'+i);
+    el.textContent=t.u==='%'?t.v.toFixed(1):(Math.abs(t.v)>=100?t.v.toFixed(1):t.v.toFixed(2));
+    document.getElementById('tb'+i).style.width=t.p+'%';
+  });
+  document.getElementById('specVel').textContent=teles[1].v.toFixed(2)+' km/s';
+}
+tickTele();setInterval(tickTele,1200);
+
+/* ============ DSN waveform ============ */
+var wv=document.getElementById('wave'),wx=wv.getContext('2d');
+function wvRs(){wv.width=wv.clientWidth*DPR;wv.height=wv.clientHeight*DPR;wx.setTransform(DPR,0,0,DPR,0,0);}
+wvRs();window.addEventListener('resize',wvRs);
+var wt=0;
+function drawWave(){
+  wt+=.03;
+  var w=wv.clientWidth,h=wv.clientHeight;
+  wx.clearRect(0,0,w,h);
+  wx.strokeStyle='rgba(230,237,243,.15)';wx.lineWidth=1;
+  wx.beginPath();wx.moveTo(0,h/2);wx.lineTo(w,h/2);wx.stroke();
+  for(var layer=0;layer<2;layer++){
+    wx.strokeStyle=layer?'rgba(255,77,46,.75)':'rgba(230,237,243,.35)';
+    wx.lineWidth=layer?1.4:1;
+    wx.beginPath();
+    for(var x=0;x<=w;x+=2){
+      var n=Math.sin(x*.02+wt*2)*Math.sin(x*.005-wt)*(.5+.5*Math.sin(x*.001+wt*.3));
+      var spk=(Math.random()<.004)?(Math.random()-.5)*h*.5:0;
+      var y=h/2+n*h*.28*(layer?1:.5)+spk*(layer?1:0);
+      x===0?wx.moveTo(x,y):wx.lineTo(x,y);
+    }
+    wx.stroke();
+  }
+  requestAnimationFrame(drawWave);
+}
+requestAnimationFrame(drawWave);
+
+/* ============ trajectory ============ */
+var tc=document.getElementById('traj'),tx=tc.getContext('2d');
+function trRs(){tc.width=tc.clientWidth*DPR;tc.height=tc.clientHeight*DPR;tx.setTransform(DPR,0,0,DPR,0,0);}
+trRs();window.addEventListener('resize',trRs);
+var SOL=214,AUTO=false;
+var scrub=document.getElementById('dayScrub');
+scrub.addEventListener('input',function(){SOL=+scrub.value;AUTO=false;autoBtn.textContent='自动巡航 ▸';});
+var autoBtn=document.getElementById('autoBtn');
+autoBtn.addEventListener('click',function(){
+  AUTO=!AUTO;autoBtn.textContent=AUTO?'暂停巡航 ❚❚':'自动巡航 ▸';
+});
+/* Kepler-ish: Earth orbit r=1, target orbit r=1.62, transfer ellipse between */
+function orbitPos(a,e,ang){var r=a*(1-e*e)/(1+e*Math.cos(ang));return{x:r*Math.cos(ang),y:r*Math.sin(ang)};}
+function drawTraj(){
+  if(AUTO){SOL=(SOL+.6)%561;scrub.value=SOL|0;}
+  var w=tc.clientWidth,h=tc.clientHeight,cxp=w*.5,cyp=h*.52,sc=Math.min(w,h)*.27;
+  tx.clearRect(0,0,w,h);
+  /* sun */
+  var sg=tx.createRadialGradient(cxp,cyp,0,cxp,cyp,26);
+  sg.addColorStop(0,'rgba(255,214,140,1)');sg.addColorStop(.3,'rgba(255,150,60,.85)');sg.addColorStop(1,'rgba(255,77,46,0)');
+  tx.fillStyle=sg;tx.beginPath();tx.arc(cxp,cyp,26,0,7);tx.fill();
+  /* orbits */
+  function orbitPath(a,e,rot,color,dash){
+    tx.strokeStyle=color;tx.lineWidth=1;tx.setLineDash(dash||[]);
+    tx.beginPath();
+    for(var i=0;i<=128;i++){var p=orbitPos(a,e,i/128*Math.PI*2);
+      var X=cxp+(p.x*Math.cos(rot)-p.y*Math.sin(rot))*sc,Y=cyp+(p.x*Math.sin(rot)+p.y*Math.cos(rot))*sc;
+      i===0?tx.moveTo(X,Y):tx.lineTo(X,Y);}
+    tx.stroke();tx.setLineDash([]);
+  }
+  orbitPath(1,0.0167,0,'rgba(230,237,243,.35)');
+  orbitPath(1.62,0.21,.9,'rgba(255,77,46,.4)',[4,4]);
+  orbitPath(1.31,0.236,.9,'rgba(230,237,243,.55)',[2,4]);
+  /* bodies */
+  var eA=SOL/365*Math.PI*2;
+  var ep={x:cxp+Math.cos(eA)*1*sc,y:cyp+Math.sin(eA)*1*sc};
+  var tA=.9+Math.PI*.2+SOL/686*Math.PI*2;
+  var tp=orbitPos(1.62,.21,tA);
+  var tpx=cxp+(tp.x*Math.cos(.9)-tp.y*Math.sin(.9))*sc,tpy=cyp+(tp.x*Math.sin(.9)+tp.y*Math.cos(.9))*sc;
+  /* probe along transfer: day 0 → departure(ang .9+π), day ~560 → arrival */
+  var frac=Math.min(SOL/560,1);
+  var pAng=.9+Math.PI+frac*Math.PI*1.06;
+  var pp=orbitPos(1.31,.236,pAng);
+  var ppx=cxp+(pp.x*Math.cos(.9)-pp.y*Math.sin(.9))*sc,ppy=cyp+(pp.x*Math.sin(.9)+pp.y*Math.cos(.9))*sc;
+  /* earth */
+  tx.fillStyle='#7FA8D8';tx.beginPath();tx.arc(ep.x,ep.y,5,0,7);tx.fill();
+  label(ep.x+12,ep.y+4,'EARTH 地球','#7FA8D8');
+  /* asteroid */
+  tx.fillStyle='#FF4D2E';tx.save();tx.translate(tpx,tpy);tx.rotate(SOL*.05);
+  tx.fillRect(-4,-2.5,8,5);tx.restore();
+  label(tpx+12,tpy+4,'2020-QR7','#FF4D2E');
+  /* probe + trail */
+  tx.strokeStyle='rgba(255,214,140,.5)';tx.lineWidth=1.2;tx.beginPath();
+  for(var i2=0;i2<=frac*100;i2++){
+    var a2=.9+Math.PI+(i2/100)*Math.PI*1.06;
+    var q=orbitPos(1.31,.236,a2);
+    var qx=cxp+(q.x*Math.cos(.9)-q.y*Math.sin(.9))*sc,qy=cyp+(q.x*Math.sin(.9)+q.y*Math.cos(.9))*sc;
+    i2===0?tx.moveTo(qx,qy):tx.lineTo(qx,qy);
+  }
+  tx.stroke();
+  tx.fillStyle='#FFD68C';tx.beginPath();tx.arc(ppx,ppy,4,0,7);tx.fill();
+  tx.strokeStyle='rgba(255,214,140,.5)';tx.beginPath();tx.arc(ppx,ppy,9+Math.sin(SOL*.4)*2,0,7);tx.stroke();
+  label(ppx+12,ppy-8,'XY-3','#FFD68C');
+  /* hud */
+  document.getElementById('dayReadout').textContent='SOL '+(SOL|0);
+  document.getElementById('hudPos').textContent=(pp.x>=0?'+':'')+pp.x.toFixed(2)+' / '+(pp.y>=0?'+':'')+pp.y.toFixed(2)+' AU';
+  requestAnimationFrame(drawTraj);
+}
+function label(x,y,txt,color){
+  tx.font='9px "SF Mono",Menlo,monospace';tx.fillStyle=color;
+  tx.fillText(txt,x,y);
+  tx.strokeStyle='rgba(230,237,243,.25)';tx.beginPath();tx.moveTo(x-4,y-3);tx.lineTo(x-10,y-3);tx.stroke();
+}
+requestAnimationFrame(drawTraj);
+
+/* ============ phases ============ */
+var phases=[
+ {n:'01',t:'发射',s:'LAUNCH · SOL 0',big:'长征八号，<em>一箭入轨</em>',
+  d:'2025 年 3 月 11 日凌晨，文昌航天发射场。火箭把 2.1 吨的探测器直接送入日心转移轨道——它此后再也没有见过地球。',
+  st:[['CZ-8 Y5','运载火箭'],['622 s','主动段'],['+11.2 km/s','逃逸速度']]},
+ {n:'02',t:'巡航',s:'CRUISE · SOL 4 — 380',big:'两亿公里的<em>静默飞行</em>',
+  d:'离子发动机以 0.2 牛的推力持续工作十四个月——推力只相当于一张纸的重量，但足以把速度一寸寸推到每秒 12.8 公里。',
+  st:[['0.2 N','离子推力'],['92%','占空比'],['14 mo','持续点火']]},
+ {n:'03',t:'交会',s:'RENDEZVOUS · SOL 412',big:'在黑暗中<em>追上黑暗</em>',
+  d:'2020-QR7 只有 340 米宽，反照率比煤炭还低。探测器靠星敏感器与激光测距，在距离 20 公里处第一次看清了它的形状——一颗歪土豆。',
+  st:[['340 m','目标直径'],['0.04','反照率'],['20 km','捕获距离']]},
+ {n:'04',t:'采样',s:'TAG · SOL 433',big:'六秒钟的<em>触碰</em>',
+  d:'机械臂末端接触表面 6 秒，氮气喷流卷起风化层尘埃。这是人类航天器第一次在这颗小行星上留下指纹，然后立刻离开。',
+  st:[['6 s','接触时长'],['60 g','采样质量'],['3 min','安全撤离']]},
+ {n:'05',t:'返程',s:'RETURN · SOL 440 — 900',big:'把 45 亿年<em>寄回地球</em>',
+  d:'样品舱被密封在双层钛壳里。返程途中，探测器每天向深空网发送一次心跳信号——8.4 GHz 的一声“我还好”。',
+  st:[['2×Ti','样品舱'],['8.4 GHz','心跳载波'],['24 h','心跳周期']]},
+ {n:'06',t:'再入',s:'RE-ENTRY · SOL 907',big:'四子王旗上空的<em>第二颗流星</em>',
+  d:'样品舱以每秒 11.8 公里的速度再入大气，承受 3000°C 的气动加热后开伞着陆。探测器本体将掠过地球，继续飞向下一颗小行星。',
+  st:[['11.8 km/s','再入速度'],['3000°C','峰值温度'],['∞','探测器余生']]}
+];
+var pl=document.getElementById('phaseList'),pp2=document.getElementById('phasePanel');
+phases.forEach(function(p,i){
+  var b=document.createElement('button');b.className='ph-btn'+(i===1?' active':'');
+  b.innerHTML='<span class="pn">'+p.n+'</span><span><span class="pt">'+p.t+'</span><small>'+p.s+'</small></span>';
+  b.addEventListener('click',function(){
+    pl.querySelectorAll('.ph-btn').forEach(function(x){x.classList.remove('active');});
+    b.classList.add('active');renderPhase(i);
+  });
+  pl.appendChild(b);
+});
+function renderPhase(i){
+  var p=phases[i];
+  pp2.classList.remove('fade-swap');void pp2.offsetWidth;pp2.classList.add('fade-swap');
+  pp2.innerHTML='<div class="pt-big">'+p.big+'</div><p class="pd">'+p.d+'</p>'+
+    '<div class="ph-stats">'+p.st.map(function(s){return '<div class="ph-stat"><div class="v">'+s[0]+'</div><div class="l">'+s[1]+'</div></div>';}).join('')+'</div>';
+}
+renderPhase(1);
+
+/* ============ reveal ============ */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target);}});
+},{threshold:.15});
+document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

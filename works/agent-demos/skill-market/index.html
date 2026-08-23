@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKILL MARKET — Agent 技能市场</title>
+<style>
+  :root{
+    --paper:#F5EFE2; --paper2:#EFE7D3; --ink:#1B1710;
+    --orange:#FF4D2E; --teal:#007F7B; --blue:#2B50C8; --pink:#FF7BAC;
+    --sans:"Helvetica Neue",Helvetica,-apple-system,"PingFang SC",Arial,sans-serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT","Songti SC",Georgia,serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow-x:clip}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;min-height:100vh;display:flex;flex-direction:column}
+  ::selection{background:var(--orange);color:var(--paper)}
+  #grain{position:fixed;inset:0;pointer-events:none;z-index:90;opacity:.5;mix-blend-mode:multiply}
+
+  /* ---------- masthead ---------- */
+  .mast{position:relative;border-bottom:3px solid var(--ink);padding:20px 32px 22px;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(27,23,16,.16) 1px, transparent 1.6px) 0 0/9px 9px,
+      var(--paper2);
+    overflow:hidden}
+  .mast-top{display:flex;align-items:baseline;gap:14px;position:relative;z-index:2}
+  .brand .no{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--orange)}
+  .brand .sub{font-family:var(--mono);font-size:10px;color:rgba(27,23,16,.55);letter-spacing:.1em}
+  .mast .spacer{flex:1}
+  .stamp{font-family:var(--mono);font-size:9px;letter-spacing:.2em;border:2px solid var(--teal);
+    color:var(--teal);padding:6px 10px;transform:rotate(3deg);mix-blend-mode:multiply}
+  h1.display{position:relative;z-index:2;margin-top:12px;font-weight:900;
+    font-size:clamp(40px,7.5vw,96px);line-height:.92;letter-spacing:-.01em;text-transform:uppercase}
+  h1.display .l1, h1.display .l2{position:relative;display:inline-block}
+  h1.display .l1{color:var(--ink);text-shadow:4px 4px 0 var(--orange)}
+  h1.display .l2{color:transparent;-webkit-text-stroke:2px var(--ink);text-shadow:5px 3px 0 rgba(0,127,123,.55)}
+  .mast-sub{position:relative;z-index:2;margin-top:14px;display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
+  .mast-sub .cn{font-family:var(--serif);font-size:17px;letter-spacing:.14em}
+  .mast-sub .en{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:rgba(27,23,16,.55)}
+  .mast-tag{position:absolute;right:-30px;bottom:-46px;width:190px;height:190px;border-radius:50%;
+    background:var(--orange);opacity:.85;mix-blend-mode:multiply;z-index:1}
+  .mast-tag2{position:absolute;right:96px;bottom:-70px;width:130px;height:130px;border-radius:50%;
+    background:var(--teal);opacity:.7;mix-blend-mode:multiply;z-index:1}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{display:flex;align-items:center;gap:10px;padding:14px 32px;border-bottom:2px solid var(--ink);
+    flex-wrap:wrap;background:var(--paper)}
+  .ftab{font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:7px 13px;cursor:pointer;
+    background:var(--paper);border:2px solid var(--ink);color:var(--ink);box-shadow:3px 3px 0 var(--ink);
+    transition:all .15s var(--ease)}
+  .ftab:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .ftab.on{background:var(--ink);color:var(--paper);box-shadow:3px 3px 0 var(--orange)}
+  .toolbar .spacer{flex:1}
+  #q{font-family:var(--mono);font-size:11px;padding:8px 12px;width:190px;background:var(--paper);
+    border:2px solid var(--ink);color:var(--ink);outline:none;box-shadow:3px 3px 0 var(--teal)}
+  #q:focus{box-shadow:3px 3px 0 var(--orange)}
+  #q::placeholder{color:rgba(27,23,16,.4)}
+  .stat{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:rgba(27,23,16,.65)}
+  .stat b{color:var(--orange);font-weight:700}
+
+  /* ---------- main ---------- */
+  main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 400px;min-height:0}
+  .cards{padding:24px 32px 40px;display:grid;grid-template-columns:repeat(auto-fill,minmax(238px,1fr));
+    gap:20px;align-content:start}
+  .card{position:relative;background:var(--paper);border:2px solid var(--ink);padding:16px 16px 14px;
+    box-shadow:5px 5px 0 var(--ink);transition:transform .18s var(--ease),box-shadow .18s var(--ease),opacity .3s;
+    display:flex;flex-direction:column;gap:9px}
+  .card:hover{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--ink)}
+  .card.hl{transform:translate(-2px,-2px);box-shadow:7px 7px 0 var(--cat,#FF4D2E)}
+  .card.hide{display:none}
+  .card .cat{align-self:flex-start;font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;
+    padding:4px 8px;background:var(--cat);color:var(--paper);mix-blend-mode:multiply}
+  .card h3{font-size:16px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;line-height:1.15}
+  .card h3 small{display:block;font-family:var(--serif);font-weight:400;font-size:12px;
+    letter-spacing:.12em;text-transform:none;color:rgba(27,23,16,.6);margin-top:3px}
+  .card p{font-size:11.5px;line-height:1.65;color:rgba(27,23,16,.78);flex:1}
+  .card .meta{display:flex;gap:12px;font-family:var(--mono);font-size:9px;letter-spacing:.06em;
+    color:rgba(27,23,16,.55);border-top:1.5px dashed rgba(27,23,16,.3);padding-top:9px}
+  .card .meta .cost{color:var(--teal)}
+  .card .foot{display:flex;align-items:center;justify-content:space-between;margin-top:2px}
+  .depnote{font-family:var(--mono);font-size:8.5px;color:rgba(27,23,16,.5);letter-spacing:.04em}
+  /* riso toggle */
+  .sw{position:relative;width:46px;height:24px;cursor:pointer;flex:0 0 auto}
+  .sw input{position:absolute;opacity:0;width:0;height:0}
+  .sw .tr{position:absolute;inset:0;border:2px solid var(--ink);background:var(--paper);transition:all .2s var(--ease)}
+  .sw .kn{position:absolute;top:3px;left:3px;width:14px;height:14px;background:var(--ink);
+    transition:all .22s var(--ease)}
+  .sw.on .tr{background:var(--orange);box-shadow:inset 2px 2px 0 rgba(27,23,16,.25)}
+  .sw.on .kn{left:25px;background:var(--paper)}
+  .card.installed{background:linear-gradient(0deg,rgba(255,77,46,.06),rgba(255,77,46,.06)),var(--paper)}
+  .card.installed::after{content:"已安装";position:absolute;top:-11px;right:10px;font-family:var(--mono);
+    font-size:8.5px;letter-spacing:.14em;background:var(--teal);color:var(--paper);padding:3px 7px;
+    transform:rotate(2deg)}
+
+  /* ---------- graph panel ---------- */
+  .graph-side{border-left:3px solid var(--ink);background:var(--paper2);padding:20px 22px;
+    display:flex;flex-direction:column;gap:12px;position:sticky;top:0;height:100vh;overflow-y:auto}
+  .gs-title{font-weight:900;font-size:13px;letter-spacing:.22em;text-transform:uppercase}
+  .gs-title small{display:block;font-family:var(--mono);font-weight:400;font-size:9px;
+    letter-spacing:.18em;color:rgba(27,23,16,.55);margin-top:4px}
+  #graph{width:100%;height:auto;display:block;border:2px solid var(--ink);background:var(--paper);
+    box-shadow:5px 5px 0 var(--ink)}
+  #graph .edge{fill:none;stroke:rgba(27,23,16,.28);stroke-width:1.6;transition:all .2s}
+  #graph .edge.live{stroke:var(--teal);stroke-width:2.4}
+  #graph .edge.hl{stroke:var(--orange);stroke-width:3}
+  #graph .node{cursor:pointer}
+  #graph .node circle{transition:all .25s var(--ease)}
+  #graph .node text{font-family:var(--mono);font-size:9.5px;letter-spacing:.04em;fill:var(--ink)}
+  #graph .node .sub{font-size:7.5px;fill:rgba(27,23,16,.55)}
+  #graph .node.off circle{fill:var(--paper);stroke:rgba(27,23,16,.45);stroke-dasharray:4 3;stroke-width:1.6}
+  #graph .node.on circle{stroke:var(--ink);stroke-width:2}
+  #graph .node.hl circle{stroke:var(--orange);stroke-width:3.5}
+  .gs-legend{display:flex;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:8.5px;letter-spacing:.08em}
+  .gs-legend span{display:flex;align-items:center;gap:5px}
+  .gs-legend i{width:9px;height:9px;display:inline-block}
+  #flash{font-family:var(--mono);font-size:9.5px;line-height:1.7;letter-spacing:.05em;color:var(--teal);
+    min-height:32px;border-top:1.5px dashed rgba(27,23,16,.3);padding-top:10px}
+
+  footer{display:flex;gap:20px;align-items:center;padding:10px 32px;border-top:2px solid var(--ink);
+    font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;color:rgba(27,23,16,.55);background:var(--paper2)}
+  .sq{width:7px;height:7px;background:var(--orange)}
+
+  @media (max-width:1020px){
+    main{grid-template-columns:1fr}
+    .graph-side{position:static;height:auto;border-left:none;border-top:3px solid var(--ink)}
+  }
+  @media (max-width:640px){
+    .mast,.toolbar,.cards,footer{padding-left:16px;padding-right:16px}
+    #q{width:130px}
+    .mast-tag{width:130px;height:130px;right:-40px}
+  }
+</style>
+</head>
+<body>
+<div id="grain"></div>
+
+<header class="mast">
+  <div class="mast-top brand">
+    <span class="no">A·08</span>
+    <span class="sub">AGENT-DEMOS / 技能市场 UI</span>
+    <div class="spacer"></div>
+    <span class="stamp">RISO · 3 INKS</span>
+  </div>
+  <h1 class="display"><span class="l1">SKILL</span> <span class="l2">MARKET</span></h1>
+  <div class="mast-sub">
+    <span class="cn">给 Agent 装上新的手。</span>
+    <span class="en">INSTALL · DEPEND · COMPOSE</span>
+  </div>
+  <div class="mast-tag"></div>
+  <div class="mast-tag2"></div>
+</header>
+
+<div class="toolbar" id="toolbar">
+  <button class="ftab on" data-c="all">全部</button>
+  <button class="ftab" data-c="检索">检索</button>
+  <button class="ftab" data-c="代码">代码</button>
+  <button class="ftab" data-c="写作">写作</button>
+  <button class="ftab" data-c="数据">数据</button>
+  <button class="ftab" data-c="自动化">自动化</button>
+  <div class="spacer"></div>
+  <span class="stat">已装 <b id="st-n">0</b>/<span id="st-total">0</span> · 开销 <b id="st-cost">0</b> TOK/轮</span>
+  <input id="q" type="text" placeholder="搜索技能…">
+</div>
+
+<main>
+  <section class="cards" id="cards"></section>
+  <aside class="graph-side">
+    <div class="gs-title">DEPENDENCY GRAPH<small>依赖关系连线图 — 点击节点等同开关</small></div>
+    <svg id="graph" viewBox="0 0 360 430" role="img" aria-label="技能依赖关系图"></svg>
+    <div class="gs-legend" id="legend"></div>
+    <div id="flash">安装带依赖的技能会连带安装其依赖；卸载会级联卸载依赖它的技能。</div>
+  </aside>
+</main>
+
+<footer>
+  <span class="sq"></span>
+  <span>SKILL MARKET — A·08 — AGENT DEMOS</span>
+  <span>三孔套印 · 颗粒与错位是刻意的</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var CATC = {"检索":"#2B50C8","代码":"#FF4D2E","写作":"#FF7BAC","数据":"#007F7B","自动化":"#1B1710"};
+  var SKILLS = [
+    {id:"web-search", en:"WEB SEARCH", cn:"联网检索", cat:"检索", v:"2.4.1", cost:800,  desc:"多引擎实时检索，自动去重与来源可信度打分。", deps:[], x:70,  y:60},
+    {id:"doc-reader", en:"DOC READER", cn:"文档解析", cat:"数据", v:"3.0.2", cost:1200, desc:"PDF / DOCX / 表格抽取为结构化文本，保留版面层级。", deps:[], x:180, y:52},
+    {id:"code-runner",en:"CODE RUNNER",cn:"沙箱执行", cat:"代码", v:"1.9.0", cost:1500, desc:"隔离沙箱内运行 Python / JS，带回显与超时熔断。", deps:[], x:290, y:64},
+    {id:"rag-retriever",en:"RAG RETRIEVER",cn:"向量检索",cat:"检索", v:"2.1.0", cost:2000, desc:"Embedding 索引 + 混合检索，命中片段自动拼接上下文。", deps:["doc-reader"], x:120, y:165},
+    {id:"chart-maker",en:"CHART MAKER",cn:"图表绘制", cat:"数据", v:"1.4.3", cost:1000, desc:"声明式出图：给数据与意图，输出 SVG 图表。", deps:["code-runner"], x:270, y:170},
+    {id:"repo-surfer",en:"REPO SURFER",cn:"仓库巡航", cat:"代码", v:"0.9.7", cost:2600, desc:"跨文件理解代码库，定位符号、追踪调用链。", deps:["code-runner","web-search"], x:60, y:280},
+    {id:"meeting-scribe",en:"MEETING SCRIBE",cn:"会议纪要",cat:"写作", v:"1.2.0", cost:900,  desc:"转写稿提炼决议与待办，按模板成稿。", deps:["doc-reader"], x:180, y:265},
+    {id:"report-writer",en:"REPORT WRITER",cn:"报告撰写",cat:"写作", v:"2.0.0", cost:1800, desc:"把检索结果与图表编排成可交付的长文报告。", deps:["rag-retriever","chart-maker"], x:200, y:370},
+    {id:"mail-pilot", en:"MAIL PILOT", cn:"邮件投递", cat:"自动化", v:"1.1.2", cost:600, desc:"草拟、审阅、定时发送，附回执追踪。", deps:["report-writer"], x:315, y:390}
+  ];
+  var byId = {};
+  SKILLS.forEach(function(s){ byId[s.id] = s; });
+  var installed = {};
+  ["web-search","doc-reader","code-runner"].forEach(function(id){ installed[id] = true; });
+
+  /* ---------- grain ---------- */
+  (function grain(){
+    var c = document.createElement("canvas");
+    c.width = 140; c.height = 140;
+    var g = c.getContext("2d");
+    var im = g.createImageData(140, 140);
+    for (var i = 0; i < im.data.length; i += 4){
+      var v = 200 + Math.random() * 55;
+      im.data[i] = im.data[i+1] = im.data[i+2] = v;
+      im.data[i+3] = Math.random() * 26;
+    }
+    g.putImageData(im, 0, 0);
+    document.getElementById("grain").style.background =
+      "url(" + c.toDataURL() + ")";
+  })();
+
+  /* ---------- cards ---------- */
+  var cardsEl = document.getElementById("cards");
+  var cardEls = {};
+  SKILLS.forEach(function(s){
+    var d = document.createElement("div");
+    d.className = "card";
+    d.dataset.id = s.id;
+    d.style.setProperty("--cat", CATC[s.cat]);
+    var depTxt = s.deps.length ? "依赖: " + s.deps.map(function(x){ return byId[x].en; }).join(" + ") : "无依赖";
+    d.innerHTML =
+      '<span class="cat">' + s.cat + '</span>' +
+      '<h3>' + s.en + '<small>' + s.cn + ' · v' + s.v + '</small></h3>' +
+      '<p>' + s.desc + '</p>' +
+      '<div class="meta"><span class="cost">' + s.cost + ' TOK/轮</span><span>' + depTxt + '</span></div>' +
+      '<div class="foot"><span class="depnote">' + (installed[s.id] ? "RUNNING" : "STANDBY") + '</span>' +
+      '<label class="sw"><input type="checkbox"><span class="tr"></span><span class="kn"></span></label></div>';
+    var sw = d.querySelector(".sw");
+    sw.addEventListener("click", function(e){
+      e.preventDefault();
+      toggle(s.id);
+    });
+    d.addEventListener("mouseenter", function(){ crossHl(s.id, true); });
+    d.addEventListener("mouseleave", function(){ crossHl(null, true); });
+    cardsEl.appendChild(d);
+    cardEls[s.id] = d;
+  });
+
+  /* ---------- graph ---------- */
+  var svg = document.getElementById("graph");
+  var NS = "http://www.w3.org/2000/svg";
+  var edgeEls = [], nodeEls = {};
+
+  SKILLS.forEach(function(s){
+    s.deps.forEach(function(dep){
+      var from = byId[dep];
+      var path = document.createElementNS(NS, "path");
+      var mx = (from.x + s.x) / 2, my = (from.y + s.y) / 2 - 26;
+      path.setAttribute("d", "M" + from.x + "," + from.y + " Q" + mx + "," + my + " " + s.x + "," + s.y);
+      path.setAttribute("class", "edge");
+      path.dataset.from = dep; path.dataset.to = s.id;
+      svg.appendChild(path);
+      edgeEls.push(path);
+      /* arrow dot at target */
+      var dot = document.createElementNS(NS, "circle");
+      dot.setAttribute("r", "2.6");
+      dot.setAttribute("cx", s.x); dot.setAttribute("cy", s.y);
+      dot.setAttribute("fill", "rgba(27,23,16,.4)");
+      svg.appendChild(dot);
+    });
+  });
+
+  SKILLS.forEach(function(s){
+    var g = document.createElementNS(NS, "g");
+    g.setAttribute("class", "node off");
+    g.dataset.id = s.id;
+    var c = document.createElementNS(NS, "circle");
+    c.setAttribute("cx", s.x); c.setAttribute("cy", s.y); c.setAttribute("r", "15");
+    c.setAttribute("fill", CATC[s.cat]);
+    var t = document.createElementNS(NS, "text");
+    t.setAttribute("x", s.x); t.setAttribute("y", s.y + 30);
+    t.setAttribute("text-anchor", "middle");
+    t.textContent = s.en;
+    var t2 = document.createElementNS(NS, "text");
+    t2.setAttribute("x", s.x); t2.setAttribute("y", s.y + 40);
+    t2.setAttribute("text-anchor", "middle");
+    t2.setAttribute("class", "sub");
+    t2.textContent = s.cn;
+    g.appendChild(c); g.appendChild(t); g.appendChild(t2);
+    g.addEventListener("click", function(){ toggle(s.id); });
+    g.addEventListener("mouseenter", function(){ crossHl(s.id, false); });
+    g.addEventListener("mouseleave", function(){ crossHl(null, false); });
+    svg.appendChild(g);
+    nodeEls[s.id] = g;
+  });
+
+  /* legend */
+  var legend = document.getElementById("legend");
+  Object.keys(CATC).forEach(function(k){
+    var sp = document.createElement("span");
+    sp.innerHTML = '<i style="background:' + CATC[k] + '"></i>' + k;
+    legend.appendChild(sp);
+  });
+
+  /* ---------- logic ---------- */
+  var flash = document.getElementById("flash");
+  var flashTimer = null;
+  function note(msg){
+    flash.textContent = msg;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function(){
+      flash.textContent = "安装带依赖的技能会连带安装其依赖；卸载会级联卸载依赖它的技能。";
+    }, 5200);
+  }
+
+  function dependents(id){
+    return SKILLS.filter(function(s){ return s.deps.indexOf(id) >= 0; }).map(function(s){ return s.id; });
+  }
+
+  function toggle(id){
+    if (!installed[id]){
+      var added = [id];
+      (function addDeps(x){
+        byId[x].deps.forEach(function(dep){
+          if (!installed[dep]){ installed[dep] = true; added.push(dep); addDeps(dep); }
+        });
+      })(id);
+      installed[id] = true;
+      note(added.length > 1
+        ? "已安装 " + byId[id].en + "，连带安装依赖: " + added.slice(1).map(function(x){ return byId[x].en; }).join("、")
+        : "已安装 " + byId[id].en + "。");
+    } else {
+      var removed = [id];
+      (function rm(x){
+        dependents(x).forEach(function(d){
+          if (installed[d]){ delete installed[d]; removed.push(d); rm(d); }
+        });
+      })(id);
+      delete installed[id];
+      note(removed.length > 1
+        ? "已卸载 " + byId[id].en + "，级联卸载依赖它的: " + removed.slice(1).map(function(x){ return byId[x].en; }).join("、")
+        : "已卸载 " + byId[id].en + "。");
+    }
+    render();
+  }
+
+  function crossHl(id, fromCard){
+    Object.keys(cardEls).forEach(function(k){ cardEls[k].classList.toggle("hl", k === id); });
+    Object.keys(nodeEls).forEach(function(k){ nodeEls[k].classList.toggle("hl", k === id); });
+    edgeEls.forEach(function(e){
+      var on = id && (e.dataset.from === id || e.dataset.to === id);
+      e.classList.toggle("hl", !!on);
+    });
+  }
+
+  var filterCat = "all", query = "";
+  document.getElementById("toolbar").addEventListener("click", function(e){
+    var b = e.target.closest(".ftab");
+    if (!b) return;
+    document.querySelectorAll(".ftab").forEach(function(x){ x.classList.toggle("on", x === b); });
+    filterCat = b.dataset.c;
+    render();
+  });
+  document.getElementById("q").addEventListener("input", function(){
+    query = this.value.trim().toLowerCase();
+    render();
+  });
+
+  function render(){
+    var n = 0, cost = 0;
+    SKILLS.forEach(function(s){
+      var on = !!installed[s.id];
+      if (on){ n++; cost += s.cost; }
+      var card = cardEls[s.id];
+      card.classList.toggle("installed", on);
+      card.querySelector(".sw").classList.toggle("on", on);
+      card.querySelector("input").checked = on;
+      card.querySelector(".depnote").textContent = on ? "RUNNING" : "STANDBY";
+      var show = (filterCat === "all" || s.cat === filterCat) &&
+        (!query || (s.en + " " + s.cn + " " + s.desc).toLowerCase().indexOf(query) >= 0);
+      card.classList.toggle("hide", !show);
+      nodeEls[s.id].classList.toggle("on", on);
+      nodeEls[s.id].classList.toggle("off", !on);
+    });
+    edgeEls.forEach(function(e){
+      e.classList.toggle("live", !!installed[e.dataset.from] && !!installed[e.dataset.to]);
+    });
+    document.getElementById("st-n").textContent = n;
+    document.getElementById("st-total").textContent = SKILLS.length;
+    document.getElementById("st-cost").textContent = cost.toLocaleString("en-US");
+  }
+  render();
+})();
+</script>
+</body>
+</html>

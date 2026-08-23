@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RETRY DEBUGGER — 失败重试自愈台</title>
+<style>
+  :root{
+    --bg:#16100A; --panel:#1E160D; --panel2:#261C10; --line:#3A2C17; --line2:#54401F;
+    --amber:#FFB000; --amber-dim:#7A5A1E; --amber-ghost:#4A3818;
+    --red:#FF4A2E; --green:#57E389; --ink:#F0DCA8; --dim:#9C7E46;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow-x:clip}
+  body{background:var(--bg);color:var(--ink);font-family:var(--mono);
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh}
+  ::selection{background:rgba(255,176,0,.3)}
+
+  /* CRT scanlines + vignette over everything */
+  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.09) 0 1px,transparent 1px 3px);
+    mix-blend-mode:multiply}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:98;
+    background:radial-gradient(ellipse at 50% 42%,transparent 62%,rgba(8,5,2,.38) 100%)}
+
+  header{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:12px 22px;
+    border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+  .brand{display:flex;align-items:baseline;gap:11px;white-space:nowrap}
+  .brand .no{font-size:10px;letter-spacing:.14em;color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.6)}
+  .brand .name{font-size:13px;font-weight:700;letter-spacing:.26em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.1em}
+  .spacer{flex:1}
+  .state-lamp{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.22em}
+  .lamp{width:10px;height:10px;border-radius:50%;background:var(--amber-ghost);
+    border:1px solid var(--line2);transition:all .3s}
+  .lamp.idle{background:var(--amber-ghost)}
+  .lamp.busy{background:var(--amber);box-shadow:0 0 12px var(--amber);animation:flick .12s infinite}
+  .lamp.wait{background:var(--amber);box-shadow:0 0 12px var(--amber);animation:blink 1s steps(2) infinite}
+  .lamp.ok{background:var(--green);box-shadow:0 0 12px var(--green)}
+  .lamp.dead{background:var(--red);box-shadow:0 0 14px var(--red);animation:blink .5s steps(2) infinite}
+  @keyframes blink{50%{opacity:.35}}
+  @keyframes flick{50%{opacity:.86}}
+  #stateword{color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.5)}
+  #stateword.ok{color:var(--green);text-shadow:0 0 8px rgba(87,227,137,.5)}
+  #stateword.dead{color:var(--red);text-shadow:0 0 8px rgba(255,74,46,.6)}
+
+  main{flex:1;display:grid;grid-template-columns:292px minmax(0,1fr);min-height:0}
+
+  /* ---- control rack ---- */
+  .rack{border-right:1px solid var(--line);background:var(--panel);padding:18px;
+    display:flex;flex-direction:column;gap:17px;overflow-y:auto}
+  .rk-label{font-size:9px;letter-spacing:.3em;color:var(--dim);border-bottom:1px solid var(--line);
+    padding-bottom:7px}
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl .row{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.12em}
+  .ctl .row b{color:var(--amber);font-weight:400}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--line2);
+    outline:none;cursor:ew-resize}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:16px;
+    background:var(--amber);border:1px solid #8A5F00;border-radius:1px;
+    box-shadow:0 0 8px rgba(255,176,0,.5);cursor:ew-resize}
+  input[type=range]::-moz-range-thumb{width:12px;height:16px;background:var(--amber);
+    border:1px solid #8A5F00;border-radius:1px}
+  .seg-btns{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  .fmode{font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:8px 6px;
+    background:var(--panel2);border:1px solid var(--line);color:var(--dim);cursor:pointer;
+    transition:all .15s;text-align:center}
+  .fmode:hover{border-color:var(--line2);color:var(--ink)}
+  .fmode.on{border-color:var(--red);color:var(--red);background:rgba(255,74,46,.08);
+    text-shadow:0 0 6px rgba(255,74,46,.5)}
+  .toggle{display:flex;align-items:center;justify-content:space-between;font-size:10px;
+    letter-spacing:.12em;cursor:pointer;user-select:none}
+  .twin{width:34px;height:16px;border:1px solid var(--line2);position:relative;background:var(--panel2);transition:all .2s}
+  .twin::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:10px;
+    background:var(--amber-ghost);transition:all .2s var(--ease)}
+  .toggle.on .twin{border-color:var(--amber)}
+  .toggle.on .twin::after{left:18px;background:var(--amber);box-shadow:0 0 8px rgba(255,176,0,.6)}
+  .bigbtns{display:flex;flex-direction:column;gap:7px;margin-top:2px}
+  .gbtn{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;padding:13px 10px;cursor:pointer;
+    border:1px solid var(--amber);background:transparent;color:var(--amber);transition:all .18s var(--ease);
+    text-shadow:0 0 6px rgba(255,176,0,.4)}
+  .gbtn:hover{background:rgba(255,176,0,.12);box-shadow:0 0 16px rgba(255,176,0,.25)}
+  .gbtn:disabled{opacity:.3;cursor:default;box-shadow:none}
+  .gbtn.danger{border-color:var(--red);color:var(--red);text-shadow:0 0 6px rgba(255,74,46,.4)}
+  .gbtn.danger:hover{background:rgba(255,74,46,.1);box-shadow:0 0 16px rgba(255,74,46,.2)}
+  .gbtn.danger.armed{background:var(--red);color:#1A0B06;text-shadow:none;animation:blink .6s steps(2) infinite}
+  .gbtn.ghost{border-color:var(--line2);color:var(--dim);text-shadow:none}
+  .gbtn.ghost:hover{color:var(--ink);border-color:var(--dim);background:var(--panel2)}
+
+  /* ---- scope + right side ---- */
+  .deck{display:flex;flex-direction:column;min-width:0;min-height:0}
+  .scope-wrap{position:relative;padding:16px 18px 6px}
+  .scope-frame{position:relative;border:1px solid var(--line2);background:#100B06;
+    box-shadow:inset 0 0 40px rgba(0,0,0,.7),0 0 0 4px #1B130B,0 0 0 5px var(--line)}
+  .scope-frame .corner{position:absolute;font-size:8px;letter-spacing:.24em;color:var(--amber-dim);z-index:3}
+  .corner.tl{top:7px;left:10px}
+  .corner.tr{top:7px;right:10px}
+  .corner.bl{bottom:7px;left:10px}
+  .corner.br{bottom:7px;right:10px;color:var(--amber)}
+  #scope{display:block;width:100%;height:300px;cursor:crosshair}
+  #scopetip{position:absolute;pointer-events:none;font-size:9.5px;color:var(--amber);
+    background:rgba(22,14,5,.92);border:1px solid var(--line2);padding:4px 8px;display:none;
+    white-space:nowrap;z-index:5;letter-spacing:.06em}
+
+  .lower{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:0;gap:0}
+  .tline-wrap{border-top:1px solid var(--line);border-right:1px solid var(--line);
+    padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--panel)}
+  .tl-label{font-size:9px;letter-spacing:.3em;color:var(--dim)}
+  #timeline{display:flex;align-items:center;gap:0;min-height:56px;overflow-x:auto;padding:6px 0}
+  .tl-node{position:relative;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+  .tl-node .dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--line2);
+    background:var(--panel2);transition:all .25s var(--ease)}
+  .tl-node .lb{font-size:8px;letter-spacing:.1em;color:var(--dim)}
+  .tl-node.fail .dot{border-color:var(--red);background:rgba(255,74,46,.25);box-shadow:0 0 9px rgba(255,74,46,.5)}
+  .tl-node.ok .dot{border-color:var(--green);background:rgba(87,227,137,.3);box-shadow:0 0 9px rgba(87,227,137,.55)}
+  .tl-node.sel .dot{outline:1px solid var(--amber);outline-offset:2px}
+  .tl-link{flex:0 0 34px;height:1px;background:var(--line2);margin-bottom:17px;position:relative;overflow:hidden}
+  .tl-link i{position:absolute;inset:0;background:var(--amber);transform:translateX(-100%)}
+  .tl-link.fill i{transition:transform .4s var(--ease);transform:translateX(0)}
+  #tl-detail{font-size:9.5px;line-height:1.8;color:var(--dim);letter-spacing:.05em;min-height:34px;
+    border-top:1px dashed var(--line);padding-top:9px}
+  #tl-detail b{color:var(--amber);font-weight:400}
+  #tl-detail .e{color:var(--red)}
+
+  .console-wrap{border-top:1px solid var(--line);padding:14px 18px;display:flex;flex-direction:column;
+    gap:8px;min-width:0;min-height:0;background:#130D07}
+  #console{flex:1;overflow-y:auto;font-size:10px;line-height:1.9;letter-spacing:.04em;min-height:120px}
+  #console .ln{white-space:pre-wrap;word-break:break-all}
+  #console .t{color:var(--amber-ghost)}
+  #console .inf{color:var(--dim)}
+  #console .err{color:var(--red)}
+  #console .okg{color:var(--green)}
+  #console .amb{color:var(--amber)}
+
+  footer{flex:0 0 auto;display:flex;gap:20px;align-items:center;padding:9px 22px;
+    border-top:1px solid var(--line);font-size:8.5px;letter-spacing:.16em;color:var(--dim);background:var(--panel)}
+  .sq{width:6px;height:6px;background:var(--amber);box-shadow:0 0 7px rgba(255,176,0,.7)}
+
+  @media (max-width:900px){
+    main{grid-template-columns:1fr}
+    .rack{border-right:none;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;gap:14px}
+    .rack>.ctl,.rack>.rk-label,.rack>.bigbtns{flex:1 1 200px}
+    .rk-label{width:100%}
+    .lower{grid-template-columns:1fr}
+    .tline-wrap{border-right:none}
+    #scope{height:230px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·07</span>
+    <span class="name">RETRY DEBUGGER</span>
+    <span class="sub">失败重试 / 自愈流程台</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="state-lamp">
+    <span class="lamp idle" id="lamp"></span>
+    <span id="stateword">IDLE 待机</span>
+  </div>
+</header>
+
+<main>
+  <aside class="rack">
+    <div class="rk-label">CONTROL RACK — 参数台</div>
+    <div class="ctl">
+      <div class="row"><span>基础退避 BASE DELAY</span><b id="v-base">400ms</b></div>
+      <input type="range" id="r-base" min="100" max="2000" step="50" value="400">
+    </div>
+    <div class="ctl">
+      <div class="row"><span>最大尝试 MAX ATTEMPTS</span><b id="v-att">6</b></div>
+      <input type="range" id="r-att" min="2" max="10" step="1" value="6">
+    </div>
+    <div class="ctl">
+      <div class="row"><span>故障率 CHAOS RATE</span><b id="v-chaos">35%</b></div>
+      <input type="range" id="r-chaos" min="0" max="90" step="5" value="35">
+    </div>
+    <div class="ctl">
+      <div class="row"><span>故障类型 FAILURE MODE</span></div>
+      <div class="seg-btns" id="fmodes">
+        <button class="fmode on" data-f="TIMEOUT">TIMEOUT</button>
+        <button class="fmode" data-f="429 RATE_LIMIT">429 RATE_LIMIT</button>
+        <button class="fmode" data-f="502 BAD_GATEWAY">502 BAD_GATEWAY</button>
+        <button class="fmode" data-f="PARSE_ERROR">PARSE_ERROR</button>
+      </div>
+    </div>
+    <div class="toggle on" id="tgl-jitter">
+      <span>抖动 JITTER</span><span class="twin"></span>
+    </div>
+    <div class="bigbtns">
+      <button class="gbtn" id="btn-run">发起请求 RUN</button>
+      <button class="gbtn danger" id="btn-inject">注入失败 INJECT</button>
+      <button class="gbtn ghost" id="btn-reset">重置 RESET</button>
+    </div>
+  </aside>
+
+  <section class="deck">
+    <div class="scope-wrap">
+      <div class="scope-frame">
+        <span class="corner tl">CH-1 · BACKOFF SCOPE</span>
+        <span class="corner tr">EXP ×2^N</span>
+        <span class="corner bl">DELAY ms / ATTEMPT</span>
+        <span class="corner br" id="scope-read">—</span>
+        <canvas id="scope"></canvas>
+        <div id="scopetip"></div>
+      </div>
+    </div>
+    <div class="lower">
+      <div class="tline-wrap">
+        <div class="tl-label">REPAIR TIMELINE — 修复时间线</div>
+        <div id="timeline"></div>
+        <div id="tl-detail">点击时间线节点查看单次尝试详情。绿色为成功，红色为失败。</div>
+      </div>
+      <div class="console-wrap">
+        <div class="tl-label">EVENT LOG — 事件日志</div>
+        <div id="console"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span class="sq"></span>
+  <span>RETRY DEBUGGER — A·07 — AGENT DEMOS</span>
+  <span>指数退避 + 抖动 · 模拟演示</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var P = { base:400, att:6, chaos:0.35, jitter:true, fmode:"TIMEOUT" };
+  var S = { state:"IDLE", attempt:0, armed:false, running:false, history:[], waitEnd:0, waitDur:0, sendEnd:0, sendDur:0, willFail:false };
+
+  var lamp = document.getElementById("lamp");
+  var stateword = document.getElementById("stateword");
+  var consoleEl = document.getElementById("console");
+  var timelineEl = document.getElementById("timeline");
+  var tlDetail = document.getElementById("tl-detail");
+  var scopeRead = document.getElementById("scope-read");
+  var btnRun = document.getElementById("btn-run");
+  var btnInject = document.getElementById("btn-inject");
+
+  /* ---------- controls ---------- */
+  function bindRange(id, key, fmt, label){
+    var el = document.getElementById("r-" + id), out = document.getElementById("v-" + id);
+    el.addEventListener("input", function(){
+      P[key] = +el.value;
+      out.textContent = fmt(P[key]);
+      if (key === "chaos") P[key] = P[key] / 100;
+    });
+    out.textContent = fmt(P[key]);
+  }
+  bindRange("base", "base", function(v){ return v + "ms"; });
+  bindRange("att", "att", function(v){ return String(v); });
+  bindRange("chaos", "chaos", function(v){ return Math.round(v * 100) + "%"; });
+  document.getElementById("r-chaos").addEventListener("input", function(){
+    document.getElementById("v-chaos").textContent = this.value + "%";
+  });
+
+  document.getElementById("fmodes").addEventListener("click", function(e){
+    var b = e.target.closest(".fmode");
+    if (!b) return;
+    document.querySelectorAll(".fmode").forEach(function(x){ x.classList.toggle("on", x === b); });
+    P.fmode = b.dataset.f;
+  });
+  document.getElementById("tgl-jitter").addEventListener("click", function(){
+    this.classList.toggle("on");
+    P.jitter = this.classList.contains("on");
+  });
+
+  /* ---------- log ---------- */
+  function stamp(){
+    var d = new Date();
+    function p(n, l){ return String(n).padStart(l || 2, "0"); }
+    return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) + "." + p(d.getMilliseconds(), 3);
+  }
+  function log(cls, msg){
+    var d = document.createElement("div");
+    d.className = "ln";
+    d.innerHTML = '<span class="t">[' + stamp() + ']</span> <span class="' + cls + '">' + msg + "</span>";
+    consoleEl.appendChild(d);
+    consoleEl.scrollTop = consoleEl.scrollHeight;
+  }
+
+  /* ---------- state ---------- */
+  function setState(st, word, cls){
+    S.state = st;
+    lamp.className = "lamp " + cls;
+    stateword.textContent = word;
+    stateword.className = cls === "ok" ? "ok" : cls === "dead" ? "dead" : "";
+  }
+
+  function delayFor(n){
+    var d = P.base * Math.pow(2, n - 1);
+    if (P.jitter) d = d * (0.6 + Math.random() * 0.8);
+    return Math.round(d);
+  }
+  function curveDelay(n){ return P.base * Math.pow(2, n - 1); }
+
+  function reset(){
+    S.running = false; S.attempt = 0; S.armed = false; S.history = [];
+    timelineEl.innerHTML = "";
+    btnInject.classList.remove("armed");
+    btnInject.textContent = "注入失败 INJECT";
+    btnRun.disabled = false;
+    setState("IDLE", "IDLE 待机", "idle");
+    log("inf", "系统复位，等待指令。");
+  }
+
+  btnRun.addEventListener("click", function(){
+    if (S.running) return;
+    S.running = true; S.history = []; S.attempt = 0;
+    timelineEl.innerHTML = "";
+    btnRun.disabled = true;
+    log("amb", ">>> 发起请求 run #" + Math.floor(Math.random() * 9000 + 1000) + " — 目标 tool:web.fetch");
+    startAttempt();
+  });
+
+  btnInject.addEventListener("click", function(){
+    if (S.armed) return;
+    S.armed = true;
+    btnInject.classList.add("armed");
+    btnInject.textContent = "故障已武装 ARMED";
+    log("err", "!! 故障注入器已武装 — 下一次尝试必定失败 (" + P.fmode + ")");
+  });
+  document.getElementById("btn-reset").addEventListener("click", reset);
+
+  function startAttempt(){
+    S.attempt++;
+    S.sendDur = 500 + Math.random() * 500;
+    S.sendEnd = performance.now() + S.sendDur;
+    S.willFail = S.armed || Math.random() < P.chaos;
+    S.armed = false;
+    btnInject.classList.remove("armed");
+    btnInject.textContent = "注入失败 INJECT";
+    setState("SENDING", "SENDING 尝试 #" + S.attempt, "busy");
+    log("inf", "attempt " + S.attempt + "/" + P.att + " — 发送中…");
+  }
+
+  function finishAttempt(){
+    var ok = !S.willFail;
+    S.history.push({ n:S.attempt, ok:ok, dur:Math.round(S.sendDur), fmode:ok ? null : P.fmode, wait:0 });
+    addTimelineNode(S.attempt, ok);
+    if (ok){
+      setState("HEALED", "HEALED 已自愈", "ok");
+      log("okg", "++ attempt " + S.attempt + " 成功 (" + Math.round(S.sendDur) + "ms) — 流程自愈完成");
+      S.running = false; btnRun.disabled = false;
+      scopeRead.textContent = "OK@" + S.attempt;
+    } else {
+      log("err", "-- attempt " + S.attempt + " 失败 — " + P.fmode);
+      if (S.attempt >= P.att){
+        setState("CIRCUIT", "CIRCUIT OPEN 熔断", "dead");
+        log("err", "×× 尝试耗尽，熔断器打开。人工介入或调参后重试。");
+        S.running = false; btnRun.disabled = false;
+        scopeRead.textContent = "OPEN";
+      } else {
+        var d = delayFor(S.attempt);
+        S.history[S.history.length - 1].wait = d;
+        S.waitDur = d;
+        S.waitEnd = performance.now() + d;
+        setState("WAITING", "BACKOFF " + d + "ms", "wait");
+        log("amb", "… 指数退避等待 " + d + "ms 后重试 (base " + P.base + " × 2^" + (S.attempt - 1) + (P.jitter ? " + jitter" : "") + ")");
+      }
+    }
+  }
+
+  /* ---------- timeline ---------- */
+  var tlNodes = [];
+  function addTimelineNode(n, ok){
+    if (tlNodes.length){
+      var link = document.createElement("div");
+      link.className = "tl-link";
+      link.innerHTML = "<i></i>";
+      timelineEl.appendChild(link);
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ link.classList.add("fill"); }); });
+    }
+    var node = document.createElement("div");
+    node.className = "tl-node " + (ok ? "ok" : "fail");
+    node.innerHTML = '<span class="dot"></span><span class="lb">#' + n + "</span>";
+    node.addEventListener("click", function(){
+      document.querySelectorAll(".tl-node").forEach(function(x){ x.classList.remove("sel"); });
+      node.classList.add("sel");
+      var h = S.history[n - 1];
+      if (!h) return;
+      tlDetail.innerHTML = "<b>ATTEMPT #" + h.n + "</b> — " +
+        (h.ok ? '<span style="color:var(--green)">SUCCESS</span>' : '<span class="e">FAIL · ' + h.fmode + "</span>") +
+        " · 耗时 " + h.dur + "ms" + (h.wait ? " · 随后退避 " + h.wait + "ms" : "");
+    });
+    timelineEl.appendChild(node);
+    tlNodes.push(node);
+    timelineEl.scrollLeft = timelineEl.scrollWidth;
+  }
+
+  /* ---------- oscilloscope ---------- */
+  var cv = document.getElementById("scope");
+  var ctx = cv.getContext("2d");
+  var tip = document.getElementById("scopetip");
+  var W = 0, H = 0, DPR = 1;
+  var pointHits = [];
+
+  function resize(){
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    var r = cv.getBoundingClientRect();
+    W = r.width; H = r.height;
+    cv.width = W * DPR; cv.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  window.addEventListener("resize", resize);
+  resize();
+
+  cv.addEventListener("mousemove", function(e){
+    var r = cv.getBoundingClientRect();
+    var mx = e.clientX - r.left, my = e.clientY - r.top;
+    var best = null, bd = 14;
+    pointHits.forEach(function(p){
+      var d = Math.hypot(p.x - mx, p.y - my);
+      if (d < bd){ bd = d; best = p; }
+    });
+    if (best){
+      tip.style.display = "block";
+      tip.style.left = (mx + 14) + "px";
+      tip.style.top = (my - 10) + "px";
+      tip.textContent = best.label;
+    } else tip.style.display = "none";
+  });
+  cv.addEventListener("mouseleave", function(){ tip.style.display = "none"; });
+
+  var PADL = 46, PADR = 20, PADT = 30, PADB = 30;
+  function plot(){
+    var maxN = P.att;
+    var maxD = curveDelay(maxN) * 1.25;
+    var pw = W - PADL - PADR, ph = H - PADT - PADB;
+    function X(n){ return PADL + (maxN === 1 ? 0 : (n - 1) / (maxN - 1)) * pw; }
+    function Y(d){ return PADT + ph - Math.min(d / maxD, 1) * ph; }
+    return {X:X, Y:Y, maxD:maxD, pw:pw, ph:ph};
+  }
+
+  function draw(now){
+    ctx.clearRect(0, 0, W, H);
+    var pl = plot(), i, n;
+
+    /* graticule */
+    ctx.strokeStyle = "rgba(84,64,31,.35)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (i = 0; i <= 8; i++){
+      var gx = PADL + pl.pw * i / 8;
+      ctx.moveTo(gx, PADT); ctx.lineTo(gx, PADT + pl.ph);
+    }
+    for (i = 0; i <= 4; i++){
+      var gy = PADT + pl.ph * i / 4;
+      ctx.moveTo(PADL, gy); ctx.lineTo(PADL + pl.pw, gy);
+    }
+    ctx.stroke();
+    /* y labels */
+    ctx.fillStyle = "rgba(156,126,70,.8)";
+    ctx.font = "8.5px 'SF Mono',Menlo,monospace";
+    ctx.textAlign = "right";
+    for (i = 0; i <= 4; i++){
+      var dv = pl.maxD * (1 - i / 4) / 1.25;
+      ctx.fillText(Math.round(dv) + "", PADL - 6, PADT + pl.ph * i / 4 + 3);
+    }
+    ctx.textAlign = "center";
+    for (n = 1; n <= P.att; n++) ctx.fillText("#" + n, pl.X(n), PADT + pl.ph + 16);
+
+    /* theoretical backoff curve */
+    ctx.strokeStyle = "rgba(255,176,0,.32)";
+    ctx.setLineDash([3, 4]);
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    for (n = 1; n <= P.att; n++){
+      var x = pl.X(n), y = pl.Y(curveDelay(n));
+      if (n === 1) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    /* ghost points on curve */
+    pointHits = [];
+    for (n = 1; n <= P.att; n++){
+      var gx2 = pl.X(n), gy2 = pl.Y(curveDelay(n));
+      pointHits.push({x:gx2, y:gy2, label:"理论退避 attempt #" + n + " ≈ " + Math.round(curveDelay(n)) + "ms"});
+      ctx.fillStyle = "rgba(255,176,0,.25)";
+      ctx.beginPath(); ctx.arc(gx2, gy2, 3, 0, 7); ctx.fill();
+    }
+
+    /* executed attempts */
+    S.history.forEach(function(h, idx){
+      var x = pl.X(h.n), y = pl.Y(h.wait || 0);
+      if (!h.ok){
+        pointHits.push({x:x, y:y, label:"#" + h.n + " 失败 " + h.fmode + " >> 退避 " + h.wait + "ms"});
+        ctx.fillStyle = "#FF4A2E";
+        ctx.shadowColor = "rgba(255,74,46,.9)"; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(255,74,46,.5)";
+        ctx.beginPath(); ctx.moveTo(x - 8, y - 8); ctx.lineTo(x + 8, y + 8);
+        ctx.moveTo(x + 8, y - 8); ctx.lineTo(x - 8, y + 8); ctx.stroke();
+        if (h.wait && idx < S.history.length){
+          var nx = pl.X(h.n + 1);
+          ctx.strokeStyle = "rgba(255,176,0,.55)";
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, y); ctx.stroke();
+        }
+      } else {
+        pointHits.push({x:x, y:y, label:"#" + h.n + " 成功 · " + h.dur + "ms"});
+        ctx.fillStyle = "#57E389";
+        ctx.shadowColor = "rgba(87,227,137,.9)"; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+    });
+
+    /* in-flight pulse */
+    if (S.state === "SENDING"){
+      var t = 1 - (S.sendEnd - now) / S.sendDur;
+      var px = pl.X(S.attempt), py = PADT + pl.ph * (1 - Math.min(Math.max(t, 0), 1)) ;
+      ctx.strokeStyle = "rgba(255,176,0,.7)";
+      ctx.beginPath(); ctx.moveTo(px, PADT + pl.ph); ctx.lineTo(px, py); ctx.stroke();
+      ctx.fillStyle = "#FFB000";
+      ctx.shadowColor = "rgba(255,176,0,.9)"; ctx.shadowBlur = 12;
+      ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fill();
+      ctx.shadowBlur = 0;
+      scopeRead.textContent = "TX#" + S.attempt + " " + Math.round(t * 100) + "%";
+    }
+    /* backoff countdown sweep */
+    if (S.state === "WAITING"){
+      var last = S.history[S.history.length - 1];
+      var t2 = 1 - (S.waitEnd - now) / S.waitDur;
+      var x1 = pl.X(last.n), x2 = pl.X(last.n + 1), yy = pl.Y(last.wait);
+      var sx = x1 + (x2 - x1) * Math.min(Math.max(t2, 0), 1);
+      ctx.strokeStyle = "rgba(255,176,0,.9)";
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x1, yy); ctx.lineTo(sx, yy); ctx.stroke();
+      ctx.lineWidth = 1.2;
+      ctx.fillStyle = "#FFB000";
+      ctx.shadowColor = "rgba(255,176,0,1)"; ctx.shadowBlur = 14;
+      ctx.beginPath(); ctx.arc(sx, yy, 4.5, 0, 7); ctx.fill();
+      ctx.shadowBlur = 0;
+      scopeRead.textContent = "WAIT " + Math.max(0, Math.round(S.waitEnd - now)) + "ms";
+    }
+  }
+
+  /* ---------- main loop ---------- */
+  var last = 0;
+  function frame(now){
+    if (S.state === "SENDING" && now >= S.sendEnd) finishAttempt();
+    if (S.state === "WAITING" && now >= S.waitEnd) startAttempt();
+    draw(now);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  log("inf", "RETRY DEBUGGER 就绪。调节参数或直接 RUN。");
+  log("inf", "提示：先 RUN 再 INJECT，可观察确定的失败-退避-自愈链路。");
+})();
+</script>
+</body>
+</html>

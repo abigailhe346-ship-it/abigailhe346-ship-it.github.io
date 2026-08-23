@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompt Lab — Prompt 工程实验台</title>
+<style>
+  :root{
+    --bg:#0B0D10; --panel:#12151B; --panel2:#0E1116; --line:rgba(255,255,255,.08);
+    --ink:#E8E6DF; --dim:#6B7280; --faint:#3A4048;
+    --amber:#FFB224; --teal:#2DD4BF; --red:#F0564B; --violet:#8B7CF6;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(255,178,36,.28)}
+
+  /* ---------- header ---------- */
+  header{height:56px;display:flex;align-items:center;gap:20px;padding:0 22px;
+         border-bottom:1px solid var(--line);position:relative;z-index:5}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.12em}
+  .brand .name{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.22em;text-transform:uppercase}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--mono);
+          font-size:11px;color:var(--dim)}
+  .dotlive{width:7px;height:7px;border-radius:50%;background:var(--teal);
+           box-shadow:0 0 8px var(--teal);animation:pulse 2.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* ---------- layout ---------- */
+  main{display:grid;grid-template-columns:minmax(340px,460px) 1fr;height:calc(100% - 56px)}
+  .left{border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+  .right{display:flex;flex-direction:column;min-width:0;background:var(--panel2)}
+
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  /* ---------- editor ---------- */
+  .editor{padding:18px 20px 14px;display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+  .promptwrap{position:relative;flex:1;min-height:120px;border:1px solid var(--line);
+              background:var(--panel);transition:border-color .3s var(--ease)}
+  .promptwrap:focus-within{border-color:rgba(255,178,36,.45)}
+  textarea{position:absolute;inset:0;width:100%;height:100%;background:transparent;border:0;
+           resize:none;outline:none;color:var(--ink);font-family:var(--mono);font-size:13px;
+           line-height:1.75;padding:14px 16px;caret-color:var(--amber)}
+  .varfields{display:flex;gap:10px;flex-wrap:wrap}
+  .varfield{flex:1;min-width:130px;display:flex;flex-direction:column;gap:5px}
+  .varfield label{font-family:var(--mono);font-size:10px;color:var(--amber);letter-spacing:.08em}
+  .varfield input{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+                  font-family:var(--mono);font-size:12px;padding:8px 10px;outline:none;
+                  transition:border-color .3s}
+  .varfield input:focus{border-color:rgba(255,178,36,.5)}
+
+  /* ---------- params ---------- */
+  .params{padding:16px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+  .slider-row{display:grid;grid-template-columns:110px 1fr 52px;align-items:center;gap:12px}
+  .slider-row .k{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .slider-row .v{font-family:var(--mono);font-size:12px;color:var(--amber);text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--faint)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;
+      background:var(--bg);border:2px solid var(--amber);border-radius:50%;transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--faint)}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--bg);
+      border:2px solid var(--amber);border-radius:50%}
+
+  .models{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{font-family:var(--mono);font-size:11px;padding:7px 12px;border:1px solid var(--line);
+        color:var(--dim);cursor:pointer;user-select:none;transition:all .25s var(--ease);background:transparent}
+  .chip:hover{color:var(--ink);border-color:rgba(255,255,255,.25)}
+  .chip.on{color:var(--amber);border-color:rgba(255,178,36,.55);background:rgba(255,178,36,.07)}
+
+  .runrow{display:flex;gap:10px;padding:16px 20px;border-top:1px solid var(--line)}
+  .btn{font-family:var(--mono);font-size:12px;letter-spacing:.06em;padding:11px 18px;cursor:pointer;
+       border:1px solid var(--line);background:transparent;color:var(--ink);
+       transition:all .25s var(--ease);display:inline-flex;align-items:center;gap:8px}
+  .btn.primary{flex:1;justify-content:center;background:var(--amber);border-color:var(--amber);
+               color:#131313;font-weight:600}
+  .btn.primary:hover{background:#FFC95E;box-shadow:0 0 24px rgba(255,178,36,.25)}
+  .btn.primary:disabled{opacity:.45;cursor:wait;box-shadow:none}
+  .btn:not(.primary):hover{border-color:rgba(255,255,255,.3)}
+  .kbd{font-size:10px;border:1px solid rgba(0,0,0,.25);padding:1px 5px;opacity:.7}
+
+  /* ---------- output ---------- */
+  .outhead{display:flex;align-items:center;gap:14px;padding:16px 22px 12px}
+  .outhead .blocklabel{flex:1}
+  .stats{display:flex;gap:0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .stat{flex:1;padding:12px 22px;border-right:1px solid var(--line)}
+  .stat:last-child{border-right:0}
+  .stat .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+  .stat .v{font-family:var(--mono);font-size:19px;margin-top:3px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .stat .v em{font-style:normal;font-size:10px;color:var(--dim)}
+  #output{flex:1;overflow-y:auto;padding:22px 26px;font-family:var(--mono);font-size:13.5px;
+          line-height:1.9;scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  #output::-webkit-scrollbar{width:4px}
+  #output::-webkit-scrollbar-thumb{background:var(--faint)}
+  .tok{display:inline;padding:1px 0;border-radius:2px;cursor:default;position:relative;
+       animation:tokin .35s var(--ease) both}
+  @keyframes tokin{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  .tok:hover{outline:1px solid rgba(255,255,255,.3)}
+  .placeholder{color:var(--faint);font-size:12px;letter-spacing:.05em}
+  .cursorblink{display:inline-block;width:8px;height:16px;background:var(--amber);
+               vertical-align:-2px;animation:pulse 1s steps(2) infinite}
+
+  .logstrip{height:96px;border-top:1px solid var(--line);position:relative}
+  canvas#logc{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .loglabel{position:absolute;top:8px;left:22px;font-family:var(--mono);font-size:9px;
+            letter-spacing:.22em;color:var(--dim);text-transform:uppercase;z-index:2}
+
+  /* ---------- token popover ---------- */
+  #pop{position:fixed;z-index:50;background:#191D24;border:1px solid rgba(255,255,255,.14);
+       padding:10px 13px;font-family:var(--mono);font-size:11px;pointer-events:none;opacity:0;
+       transform:translateY(4px);transition:opacity .18s var(--ease),transform .18s var(--ease);
+       box-shadow:0 12px 32px rgba(0,0,0,.5)}
+  #pop.show{opacity:1;transform:none}
+  #pop .t{color:var(--amber);font-size:13px;margin-bottom:4px}
+  #pop .r{display:flex;justify-content:space-between;gap:16px;color:var(--dim)}
+  #pop .r b{color:var(--ink);font-weight:500}
+
+  @media (max-width:900px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr;height:auto}
+    .left{border-right:0;border-bottom:1px solid var(--line)}
+    .promptwrap{min-height:150px}
+    #output{min-height:260px}
+    .right{min-height:70vh}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">No.01</span>
+    <span class="name">Prompt Lab</span>
+    <span class="sub">Prompt Engineering Bench</span>
+  </div>
+  <div class="crumbs">
+    <span class="dotlive"></span><span id="envtag">SANDBOX · SIMULATED MODEL</span>
+  </div>
+</header>
+
+<main>
+  <!-- ============ LEFT: editor + params ============ -->
+  <section class="left">
+    <div class="editor">
+      <div class="blocklabel">01 — Prompt Template</div>
+      <div class="promptwrap">
+        <textarea id="prompt" spellcheck="false">你是一名{{persona}}。请用不超过 120 字，向{{audience}}解释「{{topic}}」，要求：先给结论，再给一个生活化类比，最后留一个反问。</textarea>
+      </div>
+      <div class="varfields" id="varfields"></div>
+    </div>
+
+    <div class="params">
+      <div class="blocklabel">02 — Decode Params</div>
+      <div class="slider-row">
+        <span class="k">temperature</span>
+        <input type="range" id="temp" min="0" max="200" value="70">
+        <span class="v" id="tempv">0.70</span>
+      </div>
+      <div class="slider-row">
+        <span class="k">top_p</span>
+        <input type="range" id="topp" min="5" max="100" value="90">
+        <span class="v" id="toppv">0.90</span>
+      </div>
+      <div class="slider-row">
+        <span class="k">max_tokens</span>
+        <input type="range" id="maxt" min="60" max="400" value="220" step="10">
+        <span class="v" id="maxtv">220</span>
+      </div>
+      <div class="models" id="models">
+        <button class="chip on" data-m="kimi-k2"    data-cost="0.004" data-spd="52">kimi-k2</button>
+        <button class="chip"    data-m="moon-v1-8k" data-cost="0.012" data-spd="38">moon-v1-8k</button>
+        <button class="chip"    data-m="lite-turbo" data-cost="0.001" data-spd="96">lite-turbo</button>
+      </div>
+    </div>
+
+    <div class="runrow">
+      <button class="btn primary" id="run">RUN <span class="kbd">⌘↵</span></button>
+      <button class="btn" id="shuffle" title="随机场景">SHUFFLE</button>
+    </div>
+  </section>
+
+  <!-- ============ RIGHT: output ============ -->
+  <section class="right">
+    <div class="outhead"><div class="blocklabel">03 — Completion Stream</div></div>
+    <div class="stats">
+      <div class="stat"><div class="k">TTFT</div><div class="v" id="s-ttft">—</div></div>
+      <div class="stat"><div class="k">Throughput</div><div class="v" id="s-tps">—</div></div>
+      <div class="stat"><div class="k">Tokens</div><div class="v" id="s-tok">—</div></div>
+      <div class="stat"><div class="k">Est. Cost</div><div class="v" id="s-cost">—</div></div>
+    </div>
+    <div id="output"><span class="placeholder">// 设置参数后按 RUN 或 ⌘+Enter，模拟解码流将在此输出。悬停任意 token 查看 logprob。</span></div>
+    <div class="logstrip">
+      <span class="loglabel">Token Logprob Strip</span>
+      <canvas id="logc"></canvas>
+    </div>
+  </section>
+</main>
+
+<div id="pop"></div>
+
+<script>
+"use strict";
+/* ================= utilities ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+const $=id=>document.getElementById(id);
+
+/* ================= variables ================= */
+const promptEl=$("prompt"), varBox=$("varfields");
+let vars={};
+function scanVars(){
+  const found=[...new Set([...promptEl.value.matchAll(/\{\{(\w+)\}\}/g)].map(m=>m[1]))];
+  const old=vars; vars={};
+  varBox.innerHTML="";
+  found.forEach((k,i)=>{
+    vars[k]=old[k]!==undefined?old[k]:["应急科普作家","社区网格员","锂电池热失控"][i]||"示例";
+    const f=document.createElement("div");f.className="varfield";
+    f.innerHTML=`<label>{{${k}}}</label>`;
+    const inp=document.createElement("input");inp.value=vars[k];
+    inp.addEventListener("input",()=>vars[k]=inp.value);
+    f.appendChild(inp);varBox.appendChild(f);
+  });
+}
+promptEl.addEventListener("input",scanVars);scanVars();
+
+/* ================= params ================= */
+const P={temp:.7,topp:.9,maxt:220,model:"kimi-k2",cost:.004,spd:52};
+function bindSlider(id,key,fmt){
+  const el=$(id),v=$(id+"v");
+  el.addEventListener("input",()=>{P[key]=el.value/100;v.textContent=fmt(P[key])});
+}
+bindSlider("temp","temp",x=>x.toFixed(2));
+bindSlider("topp","topp",x=>x.toFixed(2));
+$("maxt").addEventListener("input",e=>{P.maxt=+e.target.value;$("maxtv").textContent=P.maxt});
+$("models").addEventListener("click",e=>{
+  const c=e.target.closest(".chip");if(!c)return;
+  document.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+  c.classList.add("on");P.model=c.dataset.m;P.cost=+c.dataset.cost;P.spd=+c.dataset.spd;
+});
+
+/* ================= text generator ================= */
+const SYN={ // low temp -> index 0, high temp -> random pick
+  opener:["先说结论","一句话结论","结论先行","直接给答案"],
+  safer:["更稳妥","更可控","风险更低","更有余地"],
+  matter:["真正要紧的","最该记住的","关键的","决定性的"],
+  imagine:["你可以把它想象成","打个比方","就像","类比一下"],
+  reflect:["下次遇到","不妨想想","可以自问","值得追问"],
+};
+const TEMPLATES=[
+  "{opener}：「{topic}」不是技术细节，而是{matter}一条边界——什么时候该靠近、什么时候必须停下。对{audience}来说，记住这一条，比背十条规定都管用。\n\n{imagine}一口烧干的锅：温度本身不可怕，可怕的是没人盯着的那三分钟。{topic}也一样，{safer}的做法永远是提前设好提醒，而不是事后补救。\n\n所以{reflect}一句：如果只能留一条规则，你会留哪一条？",
+  "{opener}：{topic}的本质，是把「不确定」变成「可预期」。{audience}不需要成为专家，只需要知道信号灯在哪里。\n\n{imagine}坐电梯：你不必懂钢缆结构，但你知道警铃在哪、门开时该看什么。{topic}提供的正是这层{safer}的确定性。\n\n那么{reflect}：你上一次主动检查这个「警铃」，是什么时候？",
+  "{opener}：{topic}的关键不在「知道」，而在「形成反射」。{matter}的是把正确动作练成肌肉记忆。\n\n{imagine}学骑车：看一百遍教程不如摔一次之前的本能扶把。对{audience}而言，一次五分钟的真实演练，{safer}过十页手册。\n\n{reflect}一下：这条反射，你上一次练习是多久之前？",
+];
+const NOISE=["嗯","换句话说","坦率讲","某种意义上","姑且这么说","不得不说"];
+
+function generate(promptText,seed){
+  const rng=mulberry32(seed);
+  const tpl=TEMPLATES[Math.floor(rng()*TEMPLATES.length)];
+  const t=P.temp, topP=P.topp;
+  // pick synonym: low temp sticks to canonical, high temp wanders
+  const pick=arr=>{
+    if(rng()<Math.max(.12,1-t*1.15))return arr[0];
+    return arr[Math.floor(rng()*Math.min(arr.length,1+Math.floor(topP*arr.length)))];
+  };
+  let text=tpl.replace(/\{(\w+)\}/g,(_,k)=>{
+    if(SYN[k])return pick(SYN[k]);
+    return vars[k]||k;
+  });
+  if(t>1.2&&rng()<.5){ // high temp injects a hedge
+    const n=pick(NOISE);text=text.replace("：","："+n+"，");
+  }
+  // tokenise: CJK chars single, latin words grouped
+  const raw=text.match(/[一-鿿　-〿＀-￯]|[a-zA-Z0-9_]+|\s+|[^\s一-鿿a-zA-Z0-9_]/g)||[];
+  const tokens=raw.slice(0,P.maxt).map(w=>{
+    // logprob: shape depends on temp/topP
+    const base=1-Math.pow(rng(),1/(0.35+t*1.4));
+    const lp=-(1-base)*(0.2+ (2-topP)*1.6)*8 - rng()*0.15;
+    return {w,lp:Math.max(-9,Math.min(-.02,lp))};
+  });
+  return tokens;
+}
+
+/* ================= streaming ================= */
+const out=$("output"),pop=$("pop");
+let running=false,rafId=null,logData=[];
+const logc=$("logc"),lctx=logc.getContext("2d");
+
+function lpColor(lp){ // confident -> teal, shaky -> amber -> red
+  const c=Math.min(1,Math.max(0,(-lp)/6));
+  if(c<.5)return `rgba(45,212,191,${.25+c})`;
+  if(c<.8)return `rgba(255,178,36,${.3+c*.7})`;
+  return `rgba(240,86,75,${.35+c*.6})`;
+}
+
+function resetStats(){
+  ["s-ttft","s-tps","s-tok","s-cost"].forEach(id=>$(id).textContent="—");
+}
+
+function run(){
+  if(running)return;
+  running=true;$("run").disabled=true;$("run").textContent="RUNNING…";
+  out.innerHTML="";resetStats();logData=[];
+  const seed=hash(promptEl.value+JSON.stringify(vars)+P.model+Date.now()%997);
+  const tokens=generate(promptEl.value,seed);
+  const rng=mulberry32(seed^0x9e3779b9);
+  const t0=performance.now();
+  const ttft=180+rng()*420;
+  const speed=P.spd*(0.75+rng()*.5)*(1.2-Math.min(P.temp,1.4)*.25); // tok/s
+  let i=0,shown=0;
+  const cursor=document.createElement("span");cursor.className="cursorblink";out.appendChild(cursor);
+
+  const tick=now=>{
+    const el=now-t0;
+    if(el<ttft){rafId=requestAnimationFrame(tick);return}
+    if(el-ttft<900&&shown===0){$("s-ttft").innerHTML=Math.round(ttft)+`<em> ms</em>`}
+    shown=Math.min(tokens.length,Math.floor((el-ttft)/1000*speed));
+    while(i<shown){
+      const tk=tokens[i];
+      const s=document.createElement("span");
+      s.className="tok";s.dataset.i=i;s.style.background=lpColor(tk.lp);
+      s.textContent=tk.w;
+      out.insertBefore(s,cursor);logData.push(tk.lp);i++;
+    }
+    out.scrollTop=out.scrollHeight;
+    $("s-tok").innerHTML=i+`<em> / ${tokens.length}</em>`;
+    $("s-tps").innerHTML=(i/Math.max(.01,(el-ttft)/1000)).toFixed(1)+`<em> tok/s</em>`;
+    $("s-cost").innerHTML="$"+(i/1000*P.cost).toFixed(4);
+    if(i<tokens.length){rafId=requestAnimationFrame(tick)}
+    else{
+      cursor.remove();running=false;
+      $("run").disabled=false;$("run").innerHTML='RUN <span class="kbd">⌘↵</span>';
+    }
+  };
+  rafId=requestAnimationFrame(tick);
+}
+$("run").addEventListener("click",run);
+document.addEventListener("keydown",e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==="Enter"){e.preventDefault();run()}
+});
+
+/* token popover */
+let popHide=null;
+out.addEventListener("mousemove",e=>{
+  const t=e.target.closest(".tok");
+  if(!t){pop.classList.remove("show");return}
+  const i=+t.dataset.i,lp=logData[i];
+  pop.innerHTML=`<div class="t">"${t.textContent}" <span style="color:var(--dim)">#${i}</span></div>
+    <div class="r"><span>logprob</span><b>${lp.toFixed(3)}</b></div>
+    <div class="r"><span>p(token)</span><b>${(Math.exp(lp)*100).toFixed(1)}%</b></div>`;
+  const r=t.getBoundingClientRect();
+  pop.style.left=Math.min(innerWidth-190,r.left)+"px";
+  pop.style.top=(r.bottom+8)+"px";
+  pop.classList.add("show");
+  clearTimeout(popHide);popHide=setTimeout(()=>pop.classList.remove("show"),2400);
+});
+out.addEventListener("mouseleave",()=>pop.classList.remove("show"));
+
+/* ================= shuffle ================= */
+const SCEN=[
+  {p:"你是一名{{persona}}。请用不超过 120 字，向{{audience}}解释「{{topic}}」，要求：先给结论，再给一个生活化类比，最后留一个反问。",
+   v:["应急科普作家","社区网格员","锂电池热失控"]},
+  {p:"你是一名{{persona}}。面向{{audience}}，用 120 字讲清「{{topic}}」：结论、类比、反问，三段各一句。",
+   v:["天文馆讲解员","小学生","光污染"]},
+  {p:"以{{persona}}的口吻，向{{audience}}说明「{{topic}}」。先结论，后类比，结尾反问，全文 120 字内。",
+   v:["精算师","第一次买保险的租客","免赔额"]},
+  {p:"你是{{persona}}。给{{audience}}写一段 120 字的「{{topic}}」速览：一句结论、一个厨房类比、一个留白的反问。",
+   v:["发酵食品匠人","厨房新手","巴氏杀菌"]},
+];
+$("shuffle").addEventListener("click",()=>{
+  const s=SCEN[Math.floor(Math.random()*SCEN.length)];
+  promptEl.value=s.p;scanVars();
+  const ks=Object.keys(vars);
+  ks.forEach((k,i)=>{if(s.v[i]){vars[k]=s.v[i]}});
+  [...varBox.querySelectorAll("input")].forEach((inp,i)=>inp.value=vars[ks[i]]??inp.value);
+  run();
+});
+
+/* ================= logprob strip canvas ================= */
+function sizeCanvas(){
+  const dpr=Math.min(2,devicePixelRatio||1);
+  const r=logc.parentElement.getBoundingClientRect();
+  logc.width=r.width*dpr;logc.height=r.height*dpr;
+  lctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener("resize",sizeCanvas);sizeCanvas();
+
+(function drawStrip(){
+  const w=logc.clientWidth,h=logc.clientHeight;
+  lctx.clearRect(0,0,w,h);
+  // baseline
+  lctx.strokeStyle="rgba(255,255,255,.06)";lctx.beginPath();
+  lctx.moveTo(0,h-18);lctx.lineTo(w,h-18);lctx.stroke();
+  const n=logData.length;
+  if(n){
+    const bw=Math.max(1.5,Math.min(7,(w-44)/n-1));
+    const max=-9;
+    for(let i=0;i<n;i++){
+      const lp=logData[i];
+      const bh=(lp/max)*(h-38);
+      const x=22+i*((w-44)/n);
+      const c=Math.min(1,(-lp)/6);
+      lctx.fillStyle=c<.5?"rgba(45,212,191,.85)":c<.8?"rgba(255,178,36,.9)":"rgba(240,86,75,.95)";
+      lctx.fillRect(x,h-18-bh,bw,bh);
+    }
+  }
+  requestAnimationFrame(drawStrip);
+})();
+
+/* idle micro-animation on stats so first paint isn't dead */
+(function idle(){
+  const el=$("envtag");let i=0;const frames=["SANDBOX · SIMULATED MODEL","SANDBOX · SIMULATED MODEL ▮"];
+  setInterval(()=>{el.textContent=frames[i++%2]},1100);
+})();
+</script>
+</body>
+</html>

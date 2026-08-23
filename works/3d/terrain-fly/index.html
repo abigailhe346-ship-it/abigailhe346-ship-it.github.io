@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terrain Fly / 13 / MIRA</title>
+<style>
+:root{
+  --bg:#141b33; --peach:#e8945a; --pine:#3f7d5d; --snow:#f5f1e8;
+  --dim:#7c84a3; --line:#f5f1e822;
+  --mono:"SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--snow);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--peach);color:var(--bg)}
+header{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+a{color:inherit;text-decoration:none}
+.back{display:flex;align-items:center;gap:12px;transition:color .25s}
+.back:hover{color:var(--peach)}
+.back b{font-weight:400;font-size:16px;transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.back:hover b{transform:translateX(-4px)}
+.hero{padding:5vw 4vw 3.5vw;display:grid;grid-template-columns:1.5fr 1fr;gap:5vw;align-items:end;border-bottom:1px solid var(--line)}
+.kicker{font:10px var(--mono);color:var(--peach);letter-spacing:.2em;text-transform:uppercase}
+.kicker::before{content:"◆ "}
+h1{font:400 clamp(40px,6.8vw,96px)/0.98 var(--serif);letter-spacing:-.015em;margin:22px 0 24px;color:var(--snow)}
+h1 em{font-style:italic;color:var(--peach)}
+.hero p{max-width:440px;color:#a7adc4;font-size:14px;line-height:1.8;margin:0}
+.readout{font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);line-height:2.1;text-align:right}
+.readout b{color:var(--peach);font-weight:400}
+.stage-wrap{padding:4vw 4vw 4.5vw}
+.stage{border:1px solid var(--line);height:min(64vw,680px);min-height:420px;position:relative;overflow:hidden;background:#1b2340;cursor:grab}
+.stage.grabbing{cursor:grabbing}
+.stage canvas{display:block;width:100%;height:100%}
+.stage::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:3;
+  background:repeating-linear-gradient(0deg,#00000018 0 1px,transparent 1px 3px);opacity:.4}
+.corner{position:absolute;width:22px;height:22px;z-index:4;pointer-events:none}
+.corner.tl{top:10px;left:10px;border-top:1px solid #f5f1e866;border-left:1px solid #f5f1e866}
+.corner.tr{top:10px;right:10px;border-top:1px solid #f5f1e866;border-right:1px solid #f5f1e866}
+.corner.bl{bottom:10px;left:10px;border-bottom:1px solid #f5f1e866;border-left:1px solid #f5f1e866}
+.corner.br{bottom:10px;right:10px;border-bottom:1px solid #f5f1e866;border-right:1px solid #f5f1e866}
+.hud{position:absolute;inset:0;pointer-events:none;font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;z-index:4;color:#f5f1e888}
+.hud span{position:absolute}
+.hud .a{top:18px;left:22px}.hud .b{top:18px;right:22px;color:var(--peach)}
+.hud .c{bottom:18px;left:22px}.hud .d{bottom:18px;right:22px}
+.cross{position:absolute;top:50%;left:50%;width:26px;height:26px;transform:translate(-50%,-50%);z-index:4;pointer-events:none;opacity:.85}
+.cross::before,.cross::after{content:"";position:absolute;background:#f5f1e8}
+.cross::before{left:50%;top:0;width:1px;height:100%;transform:translateX(-.5px)}
+.cross::after{top:50%;left:0;height:1px;width:100%;transform:translateY(-.5px)}
+.tools{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;padding:22px 4vw;border-top:1px solid var(--line)}
+.sliders{display:flex;gap:34px;flex-wrap:wrap}
+label{font:9px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:10px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:1px;background:#f5f1e844;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:10px;height:10px;background:var(--peach);border:none;transform:rotate(45deg);cursor:grab}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--peach);border:none;transform:rotate(45deg);cursor:grab}
+output{color:var(--peach);min-width:24px}
+.tool-btns{display:flex;gap:10px;flex-wrap:wrap}
+button{font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--snow);background:transparent;border:1px solid #f5f1e844;padding:9px 14px;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+button:hover{background:#f5f1e814;border-color:var(--snow)}
+button.on{background:var(--snow);color:var(--bg);border-color:var(--snow)}
+.caption{padding:6vw 4vw;display:grid;grid-template-columns:1fr 1fr;gap:5vw;border-top:1px solid var(--line)}
+.caption h2{font:400 clamp(26px,3.4vw,44px)/1.25 var(--serif);margin:0;color:var(--snow)}
+.caption h2 em{font-style:italic;color:var(--peach)}
+.caption p{color:#a7adc4;font-size:13px;line-height:1.9;margin:0}
+.sig{font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-top:26px}
+footer{padding:20px 4vw;border-top:1px solid var(--line);font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between}
+@media(max-width:820px){
+  .hero,.caption{grid-template-columns:1fr;gap:28px}
+  .readout{text-align:left}
+  .stage{height:72vw;min-height:340px}
+  .tools{padding:18px 4vw}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a>
+  <span>Terrain Fly / 13</span>
+  <span>MIRA — Flight Series</span>
+</header>
+<main>
+  <section class="hero">
+    <div>
+      <div class="kicker">Procedural Terrain · 无限程序化地形</div>
+      <h1>Terrain<br><em>Fly</em></h1>
+      <p>黄昏时分的低空飞行。山脊由分形噪声实时生长，永远飞不到尽头——转向、俯冲、贴着湖面掠过， terrain 在你机翼下不断重组。每一次再生，换一片无人勘测过的大陆。</p>
+    </div>
+    <div class="readout">
+      Engine — Three.js r128<br>
+      Field — Ridged fBm ×4 octaves<br>
+      Seed — <b id="roSeed">—</b><br>
+      Range — <b>∞ procedural</b>
+    </div>
+  </section>
+  <section class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+      <div class="cross"></div>
+      <div class="hud">
+        <span class="a">AIRBORNE SURVEY UNIT 13</span>
+        <span class="b" id="hudAlt">ALT 000 M</span>
+        <span class="c">DRAG STEER · W/S THROTTLE · WHEEL SPEED</span>
+        <span class="d" id="hudSpd">SPD 00 · HDG 000°</span>
+      </div>
+    </div>
+    <div class="tools">
+      <div class="sliders">
+        <label>Throttle 油门 <input type="range" id="sSpd" min="10" max="100" value="42"><output id="oSpd">42</output></label>
+        <label>Haze 雾距 <input type="range" id="sFog" min="0" max="100" value="45"><output id="oFog">45</output></label>
+      </div>
+      <div class="tool-btns">
+        <button id="bAuto" class="on">Level 平飞</button>
+        <button id="bRegen">Regenerate 再生</button>
+        <button id="bDown">Download PNG</button>
+      </div>
+    </div>
+  </section>
+  <section class="caption">
+    <h2>The ridge never repeats.<br>Neither does the <em>light.</em></h2>
+    <div>
+      <p>地形不是一张预烘焙的高度图：每个顶点的高度都由山脊分形（ridged fBm）在你飞过的瞬间求值。雪地、岩壁、松林与湖岸按海拔与坡度自动上色——坡度越陡，岩色越重；海拔越高，雪线越低。推动油门滑杆，或者干脆按住 W 全速俯冲，雾距滑杆决定你能看多远。</p>
+      <div class="sig">MIRA — Flight Series · 13</div>
+    </div>
+  </section>
+</main>
+<footer><span>© MIRA Studio</span><span>Self-contained · No external assets</span></footer>
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage');
+var renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+stage.appendChild(renderer.domElement);
+var scene=new THREE.Scene();
+var camera=new THREE.PerspectiveCamera(62,1,0.5,900);
+
+// ---------- seeded noise ----------
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+var perm=new Uint8Array(512);
+function seedNoise(seed){
+  var rng=mulberry32(seed),p=[],i,j,t;
+  for(i=0;i<256;i++)p[i]=i;
+  for(i=255;i>0;i--){j=(rng()*(i+1))|0;t=p[i];p[i]=p[j];p[j]=t;}
+  for(i=0;i<512;i++)perm[i]=p[i&255];
+}
+function vnoise(x,y){
+  var X=Math.floor(x),Y=Math.floor(y),xf=x-X,yf=y-Y;
+  X&=255;Y&=255;
+  var aa=perm[perm[X]+Y],ba=perm[perm[X+1]+Y],ab=perm[perm[X]+Y+1],bb=perm[perm[X+1]+Y+1];
+  var u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  var x1=aa+(ba-aa)*u,x2=ab+(bb-ab)*u;
+  return (x1+(x2-x1)*v)/255; // 0..1
+}
+function fbm(x,y){
+  var v=0,amp=1,f=1,tot=0;
+  for(var k=0;k<4;k++){
+    var n=vnoise(x*f,y*f);
+    n=1-Math.abs(2*n-1); // ridge
+    v+=n*n*amp;tot+=amp;amp*=0.5;f*=2.03;
+  }
+  return v/tot; // 0..1 ridged
+}
+var SEED=77031;
+seedNoise(SEED);
+var AMP=30,BASE=0.016;
+function heightAt(wx,wz){
+  var h=fbm(wx*BASE+13.7,wz*BASE+7.1);
+  return h*h*AMP - 4.5; // carve lakes below 0
+}
+
+// ---------- sky dome ----------
+var skyGeo=new THREE.SphereGeometry(700,24,14);
+var skyCols=new Float32Array(skyGeo.attributes.position.count*3);
+var cTop=new THREE.Color(0x232a4d),cHor=new THREE.Color(0xe8945a),cBot=new THREE.Color(0x3a2f4a);
+(function(){
+  var p=skyGeo.attributes.position,tmp=new THREE.Color();
+  for(var i=0;i<p.count;i++){
+    var y=p.getY(i)/700;
+    if(y>=0)tmp.copy(cHor).lerp(cTop,Math.min(1,y*2.2));
+    else tmp.copy(cHor).lerp(cBot,Math.min(1,-y*3));
+    skyCols[i*3]=tmp.r;skyCols[i*3+1]=tmp.g;skyCols[i*3+2]=tmp.b;
+  }
+  skyGeo.setAttribute('color',new THREE.BufferAttribute(skyCols,3));
+})();
+var sky=new THREE.Mesh(skyGeo,new THREE.MeshBasicMaterial({vertexColors:true,side:THREE.BackSide,fog:false,depthWrite:false}));
+sky.renderOrder=-10;
+scene.add(sky);
+scene.fog=new THREE.Fog(0xe8945a,60,420);
+
+// sun
+var sun=new THREE.Mesh(new THREE.CircleGeometry(26,32),new THREE.MeshBasicMaterial({color:0xffd9a0,fog:false,transparent:true,opacity:0.95}));
+scene.add(sun);
+var sunGlow=new THREE.Mesh(new THREE.CircleGeometry(52,32),new THREE.MeshBasicMaterial({color:0xffb070,fog:false,transparent:true,opacity:0.28}));
+scene.add(sunGlow);
+
+// lights
+var sunL=new THREE.DirectionalLight(0xffc98a,1.1);sunL.position.set(-0.5,0.35,-0.8);scene.add(sunL);
+scene.add(new THREE.HemisphereLight(0x8a7ab8,0x2c3348,0.75));
+
+// ---------- terrain ----------
+var SIZE=340,SEG=116,CELL=SIZE/SEG;
+var tGeo=new THREE.PlaneGeometry(SIZE,SIZE,SEG,SEG);
+tGeo.rotateX(-Math.PI/2);
+var tPos=tGeo.attributes.position;
+var tCols=new Float32Array(tPos.count*3);
+tGeo.setAttribute('color',new THREE.BufferAttribute(tCols,3));
+var terrain=new THREE.Mesh(tGeo,new THREE.MeshPhongMaterial({vertexColors:true,flatShading:true,shininess:4,specular:0x111111}));
+scene.add(terrain);
+
+var C_SNOW=new THREE.Color(0xf5f1e8),C_ROCK=new THREE.Color(0x8a7f78),C_PINE=new THREE.Color(0x2a6049),
+    C_GRASS=new THREE.Color(0x5d8a5a),C_SAND=new THREE.Color(0xd9b98a),C_LAKE=new THREE.Color(0x4a5f6e);
+var tmpC=new THREE.Color();
+var offX=0,offZ=0;
+function rebuildTerrain(){
+  var i;
+  for(i=0;i<tPos.count;i++){
+    var lx=tPos.getX(i),lz=tPos.getZ(i);
+    tPos.setY(i,heightAt(lx+offX,lz+offZ));
+  }
+  // color pass: height + slope estimate
+  var row=SEG+1;
+  for(i=0;i<tPos.count;i++){
+    var y=tPos.getY(i);
+    var ix=i%row,iz=(i/row)|0;
+    var iR=(iz<SEG)?i+row:i, iX=(ix<SEG)?i+1:i;
+    var dy=(tPos.getY(iR)-y)+(tPos.getY(iX)-y);
+    var slope=Math.min(1,Math.abs(dy)/CELL*0.9);
+    if(y<-1.2)tmpC.copy(C_LAKE);
+    else if(y<0.6)tmpC.copy(C_SAND);
+    else if(y<7){tmpC.copy(C_GRASS).lerp(C_PINE,vnoise((tPos.getX(i)+offX)*0.05,(tPos.getZ(i)+offZ)*0.05));}
+    else if(y<15)tmpC.copy(C_ROCK);
+    else tmpC.copy(C_SNOW);
+    if(slope>0.55&&y>0.6&&y<17)tmpC.lerp(C_ROCK,(slope-0.55)*1.8);
+    tCols[i*3]=tmpC.r;tCols[i*3+1]=tmpC.g;tCols[i*3+2]=tmpC.b;
+  }
+  tPos.needsUpdate=true;
+  tGeo.attributes.color.needsUpdate=true;
+}
+rebuildTerrain();
+
+// water
+var water=new THREE.Mesh(new THREE.PlaneGeometry(1600,1600),new THREE.MeshPhongMaterial({color:0x2e5f7d,transparent:true,opacity:0.85,shininess:120,specular:0xd9a06a}));
+water.rotation.x=-Math.PI/2;water.position.y=-0.6;
+scene.add(water);
+
+// clouds
+var clouds=[];
+(function(){
+  var rng=mulberry32(SEED*3+11);
+  for(var k=0;k<9;k++){
+    var g=new THREE.Group();
+    var n=2+((rng()*3)|0);
+    for(var j=0;j<n;j++){
+      var m=new THREE.Mesh(new THREE.IcosahedronGeometry(4+rng()*7,0),new THREE.MeshPhongMaterial({color:0xf7e8dd,flatShading:true,shininess:2}));
+      m.position.set(j*7-n*3.5,rng()*2,(rng()-0.5)*6);
+      m.scale.y=0.4;
+      g.add(m);
+    }
+    g.position.set((rng()-0.5)*700,55+rng()*45,(rng()-0.5)*700);
+    clouds.push(g);scene.add(g);
+  }
+})();
+
+// ---------- flight ----------
+var camX=0,camZ=0,camY=26,yaw=0,pitch=0,speed=0.42,autoLevel=true;
+var keys={};
+window.addEventListener('keydown',function(e){keys[e.key.toLowerCase()]=true;if(['arrowup','arrowdown',' '].indexOf(e.key.toLowerCase())>=0)e.preventDefault();});
+window.addEventListener('keyup',function(e){keys[e.key.toLowerCase()]=false;});
+var dragging=false,px0=0,py0=0;
+stage.addEventListener('pointerdown',function(e){dragging=true;px0=e.clientX;py0=e.clientY;stage.classList.add('grabbing');stage.setPointerCapture(e.pointerId);});
+stage.addEventListener('pointermove',function(e){
+  if(!dragging)return;
+  yaw-=(e.clientX-px0)*0.0032;
+  pitch-=(e.clientY-py0)*0.0026;
+  pitch=Math.max(-0.55,Math.min(0.5,pitch));
+  px0=e.clientX;py0=e.clientY;
+});
+stage.addEventListener('pointerup',function(){dragging=false;stage.classList.remove('grabbing');});
+stage.addEventListener('wheel',function(e){
+  e.preventDefault();
+  speed=Math.max(0.1,Math.min(1,e.deltaY<0?speed+0.04:speed-0.04));
+  document.getElementById('sSpd').value=Math.round(speed*100);
+  document.getElementById('oSpd').textContent=Math.round(speed*100);
+},{passive:false});
+
+document.getElementById('sSpd').addEventListener('input',function(){speed=this.value/100;document.getElementById('oSpd').textContent=this.value;});
+document.getElementById('sFog').addEventListener('input',function(){
+  var v=this.value/100;document.getElementById('oFog').textContent=this.value;
+  scene.fog.near=30+v*120;scene.fog.far=160+v*560;
+});
+scene.fog.near=84;scene.fog.far=412;
+var bAuto=document.getElementById('bAuto');
+bAuto.addEventListener('click',function(){autoLevel=!autoLevel;bAuto.classList.toggle('on',autoLevel);});
+document.getElementById('bRegen').addEventListener('click',function(){
+  SEED=(Math.random()*90000+10000)|0;
+  seedNoise(SEED);
+  document.getElementById('roSeed').textContent='#'+SEED;
+  rebuildTerrain();
+});
+document.getElementById('bDown').addEventListener('click',function(){
+  renderer.render(scene,camera);
+  var a=document.createElement('a');a.download='terrain-fly.png';a.href=renderer.domElement.toDataURL('image/png');a.click();
+});
+document.getElementById('roSeed').textContent='#'+SEED;
+
+function resize(){
+  var w=stage.clientWidth,h=stage.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',resize);
+resize();
+
+var hudAlt=document.getElementById('hudAlt'),hudSpd=document.getElementById('hudSpd');
+var clock=new THREE.Clock();
+function tick(){
+  requestAnimationFrame(tick);
+  var dt=Math.min(0.05,clock.getDelta());
+  var t=clock.elapsedTime;
+  if(keys['w']||keys['arrowup'])speed=Math.min(1,speed+dt*0.5);
+  if(keys['s']||keys['arrowdown'])speed=Math.max(0.1,speed-dt*0.5);
+  if(keys['a']||keys['arrowleft'])yaw+=dt*0.9;
+  if(keys['d']||keys['arrowright'])yaw-=dt*0.9;
+  var v=6+speed*46;
+  camX+=Math.sin(yaw)*Math.cos(pitch)*v*dt;
+  camZ-=Math.cos(yaw)*Math.cos(pitch)*v*dt;
+  camY+=Math.sin(pitch)*v*dt;
+  var ground=heightAt(camX,camZ);
+  var minY=Math.max(ground+5,2.2);
+  if(autoLevel){
+    var target=Math.max(ground+16,8);
+    camY+=(target-camY)*dt*0.55;
+  }
+  if(camY<minY)camY=minY;
+  if(camY>150)camY=150;
+  // terrain follows camera (snap to cell grid)
+  var nox=Math.round(camX/CELL)*CELL,noz=Math.round(camZ/CELL)*CELL;
+  if(nox!==offX||noz!==offZ){offX=nox;offZ=noz;rebuildTerrain();}
+  terrain.position.set(offX,0,offZ);
+  water.position.x=camX;water.position.z=camZ;
+  sky.position.set(camX,0,camZ);
+  // clouds drift & wrap around camera
+  for(var c=0;c<clouds.length;c++){
+    var g=clouds[c];g.position.x+=dt*1.2;
+    if(g.position.x-camX>420)g.position.x-=840;if(g.position.x-camX<-420)g.position.x+=840;
+    if(g.position.z-camZ>420)g.position.z-=840;if(g.position.z-camZ<-420)g.position.z+=840;
+  }
+  // sun placement: fixed direction from camera
+  sun.position.set(camX-300,60,camZ-520);
+  sunGlow.position.copy(sun.position);
+  sun.lookAt(camX,camY,camZ);sunGlow.lookAt(camX,camY,camZ);
+  camera.position.set(camX,camY,camZ);
+  var lookX=camX+Math.sin(yaw)*Math.cos(pitch)*10,
+      lookY=camY+Math.sin(pitch)*10,
+      lookZ=camZ-Math.cos(yaw)*Math.cos(pitch)*10;
+  camera.lookAt(lookX,lookY,lookZ);
+  var hdg=Math.round(((-yaw*57.2958)%360+360)%360);
+  hudAlt.textContent='ALT '+String(Math.max(0,Math.round((camY-ground)*10))).padStart(3,'0')+' M';
+  hudSpd.textContent='SPD '+String(Math.round(v*3.2)).padStart(2,'0')+' · HDG '+String(hdg).padStart(3,'0')+'°';
+  renderer.render(scene,camera);
+}
+tick();
+})();
+</script>
+</body>
+</html>

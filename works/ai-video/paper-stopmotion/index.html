@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAPER STOP-MOTION 纸片定格 — 剪纸关节动画生成器</title>
+<style>
+  :root{
+    --desk:#efe6d0; --panel:#f5eedd; --line:#ddd2b8;
+    --ink:#26211a; --dim:#93887a;
+    --orange:#ff5a26; --teal:#107c70; --yellow:#f2b32e;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--desk);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--orange);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;
+    padding:26px 32px 0;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .sig h1{
+    font-family:var(--serif);font-size:clamp(20px,2.6vw,28px);font-weight:700;letter-spacing:.03em;
+  }
+  .sig h1 em{font-style:italic;color:var(--orange)}
+  .no{
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink);
+    background:var(--yellow);padding:5px 9px;text-transform:uppercase;white-space:nowrap;
+    box-shadow:2px 2px 0 var(--ink);
+  }
+  .meta{
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);
+    text-transform:uppercase;display:flex;gap:18px;flex-wrap:wrap;
+  }
+  .meta b{color:var(--ink);font-weight:400}
+  .rule{margin:16px 32px 0;border-top:2px dashed rgba(38,33,26,.4);position:relative}
+
+  main{
+    display:grid;grid-template-columns:1fr 292px;gap:22px;
+    padding:22px 32px 40px;max-width:1500px;margin:0 auto;
+  }
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+
+  /* ——— stage ——— */
+  .stage{
+    position:relative;background:#f7efdd;border:1px solid var(--ink);
+    box-shadow:8px 8px 0 rgba(38,33,26,.15);overflow:hidden;aspect-ratio:4/3.2;min-height:330px;
+  }
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:grab;touch-action:none}
+  .stage canvas.grabbing{cursor:grabbing}
+  .tape{
+    position:absolute;width:74px;height:22px;background:rgba(242,179,46,.75);
+    box-shadow:1px 1px 2px rgba(38,33,26,.2);pointer-events:none;
+  }
+  .tape.t1{left:-18px;top:12px;transform:rotate(-38deg)}
+  .tape.t2{right:-18px;top:12px;transform:rotate(38deg)}
+  .plate{
+    position:absolute;left:14px;top:12px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.18em;color:rgba(38,33,26,.55);pointer-events:none;text-transform:uppercase;line-height:2;
+  }
+  .plate b{color:var(--orange);font-weight:400}
+  .hint{
+    position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.16em;color:rgba(38,33,26,.5);pointer-events:none;text-transform:uppercase;
+  }
+  .frame-count{
+    position:absolute;right:14px;bottom:12px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.16em;color:rgba(38,33,26,.55);pointer-events:none;text-transform:uppercase;text-align:right;line-height:2;
+  }
+
+  /* ——— dope sheet strip ——— */
+  .strip{
+    margin-top:14px;border:1px solid var(--ink);background:var(--panel);
+    box-shadow:6px 6px 0 rgba(38,33,26,.1);padding:10px 12px;
+    display:flex;gap:10px;align-items:center;overflow-x:auto;min-height:96px;
+  }
+  .strip .empty{
+    font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--dim);
+    text-transform:uppercase;padding:8px;
+  }
+  .chip{
+    position:relative;flex:0 0 auto;border:1px solid var(--ink);background:#fbf5e6;
+    cursor:pointer;transition:transform .2s var(--ease);line-height:0;
+  }
+  .chip:hover{transform:translateY(-3px) rotate(-1deg)}
+  .chip.on{outline:2px solid var(--orange);outline-offset:1px}
+  .chip .idx{
+    position:absolute;left:2px;top:2px;font-family:var(--mono);font-size:8px;
+    color:var(--ink);background:var(--yellow);padding:1px 3px;line-height:1;
+  }
+  .chip .del{
+    position:absolute;right:-6px;top:-7px;width:15px;height:15px;border-radius:50%;
+    background:var(--ink);color:#fbf5e6;font-size:9px;display:grid;place-items:center;
+    font-family:var(--mono);line-height:1;opacity:0;transition:opacity .2s;
+  }
+  .chip:hover .del{opacity:1}
+
+  /* ——— panel ——— */
+  .panel{
+    border:1px solid var(--ink);background:var(--panel);
+    box-shadow:8px 8px 0 rgba(38,33,26,.15);padding:20px;display:flex;flex-direction:column;gap:0;
+  }
+  .p-title{
+    font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;
+    padding-bottom:12px;border-bottom:2px solid var(--ink);margin-bottom:4px;
+    display:flex;justify-content:space-between;
+  }
+  .p-title i{font-style:normal;color:var(--orange)}
+  .key-btn{
+    margin-top:14px;background:var(--orange);color:#fff;border:1px solid var(--ink);
+    box-shadow:4px 4px 0 var(--ink);padding:15px 10px;cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;
+    transition:all .15s var(--ease);
+  }
+  .key-btn:hover{background:#ff6c3d}
+  .key-btn:active{transform:translate(3px,3px);box-shadow:1px 1px 0 var(--ink)}
+  .row{display:flex;gap:8px;padding-top:10px}
+  .btn{
+    flex:1;border:1px solid var(--ink);background:#fbf5e6;color:var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    padding:11px 6px;cursor:pointer;transition:all .2s var(--ease);
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .btn:hover{transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink)}
+  .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+  .btn.on{background:var(--teal);color:#fff}
+  .btn.primary{background:var(--ink);color:var(--yellow)}
+  .ctl{padding:14px 0 4px;border-top:1px dashed var(--line);margin-top:14px}
+  .ctl label{
+    display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+    letter-spacing:.12em;text-transform:uppercase;margin-bottom:9px;
+  }
+  .ctl label output{color:var(--orange)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{
+    height:3px;background:linear-gradient(90deg,var(--ink) var(--fill,50%),var(--line) var(--fill,50%));
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:15px;height:15px;margin-top:-6px;background:var(--orange);
+    border:2px solid var(--ink);border-radius:50%;
+  }
+  input[type=range]::-moz-range-track{height:3px;background:var(--line)}
+  input[type=range]::-moz-range-progress{height:3px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--orange);border:2px solid var(--ink)}
+  .note{
+    font-family:var(--mono);font-size:9px;line-height:2;letter-spacing:.08em;color:var(--dim);
+    text-transform:uppercase;border-top:1px dashed var(--line);margin-top:14px;padding-top:13px;
+  }
+  .note b{color:var(--teal);font-weight:400}
+
+  footer{
+    padding:0 32px 34px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+  }
+  @media (max-width:640px){
+    header{padding:20px 18px 0}.rule{margin:14px 18px 0}
+    main{padding:16px 18px 30px;gap:16px}
+    .stage{aspect-ratio:3/3.6;min-height:360px}
+    footer{padding:0 18px 26px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <span class="no">N°04 — AI-VIDEO</span>
+    <h1>PAPER STOP-MOTION <em>纸片定格</em></h1>
+  </div>
+  <div class="meta">
+    <span>TECHNIQUE <b>CUT-OUT</b></span>
+    <span>RIG <b>9 JOINTS / 2-BONE IK</b></span>
+    <span>SHOOTING <b id="fpsRead">ON 8S</b></span>
+  </div>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section>
+    <div class="stage" aria-label="纸片人舞台">
+      <canvas id="set"></canvas>
+      <span class="tape t1"></span><span class="tape t2"></span>
+      <div class="plate">SET <b>PAPER-01</b><br><span id="poseRead">POSE — LIVE</span></div>
+      <div class="hint">拖动手 · 脚 · 头 · 胯 摆姿势</div>
+      <div class="frame-count" id="frameCount">KEYS 00<br>CLICK CHIP TO LOAD</div>
+    </div>
+    <div class="strip" id="strip"><span class="empty">分镜表空着 — 摆好姿势，按「打点」剪下一帧</span></div>
+  </section>
+
+  <aside class="panel">
+    <div class="p-title">ANIMATION DESK <i>定格台</i></div>
+
+    <button class="key-btn" id="bKey">● 打点 ADD KEY</button>
+
+    <div class="row">
+      <button class="btn" id="bPlay">▶ 播放 PLAY</button>
+      <button class="btn" id="bOnion">洋葱皮 ONION</button>
+    </div>
+
+    <div class="ctl">
+      <label>帧率 FPS <output id="oFps">8</output></label>
+      <input type="range" id="rFps" min="4" max="14" step="1" value="8">
+    </div>
+
+    <div class="row" style="padding-top:14px">
+      <button class="btn" id="bRandom">随机编排 ↻</button>
+      <button class="btn primary" id="bSave">导出分镜 ↓</button>
+    </div>
+
+    <div class="note">
+      剪纸小人的每个关节都能摆弄；打点后逐帧回放，<b>无补间、有呼吸</b>——这正是定格的手工感。
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>PAPER STOP-MOTION — CUT-OUT STUDY</span>
+  <span>AI-VIDEO / FRAME-BY-FRAME GENERATOR · 2026</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var stage = document.getElementById('set');
+  var ctx = stage.getContext('2d');
+  var strip = document.getElementById('strip');
+
+  var W=0, H=0, dpr=1;
+  var COL = {
+    paper:'#f7efdd', ink:'#26211a', orange:'#ff5a26', orangeD:'#d8481c',
+    teal:'#107c70', tealD:'#0b5f56', cream:'#f7ecd7', yellow:'#f2b32e'
+  };
+  var LM = { torso:52, neck:9, headR:20, ua:33, fa:29, th:41, ca:37 };
+
+  /* pose: x,y are stage fractions; angles absolute, 0 = limb points down */
+  function defaultPose(){
+    return { x:.5, y:.66, lean:0, head:0,
+      armL:[.28,.5], armR:[-.28,-.5], legL:[.1,.14], legR:[-.1,-.06] };
+  }
+  var pose = defaultPose();
+  var frames = [];            // {pose, thumb:canvas}
+  var playing = false, onion = false, fps = 8;
+  var playIdx = 0, lastStep = 0, boil = 0;
+
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function clone(p){ return JSON.parse(JSON.stringify(p)); }
+
+  /* ——— skeleton ——— */
+  function skeleton(p, s, w, h){
+    var up = { x:Math.sin(p.lean), y:-Math.cos(p.lean) };
+    var pr = { x:Math.cos(p.lean), y:Math.sin(p.lean) };
+    var hip = { x:p.x*w, y:p.y*h };
+    var chest = { x:hip.x+up.x*LM.torso*s, y:hip.y+up.y*LM.torso*s };
+    var sh = { x:chest.x+up.x*5*s, y:chest.y+up.y*5*s };
+    var shL = { x:sh.x-pr.x*11*s, y:sh.y-pr.y*11*s };
+    var shR = { x:sh.x+pr.x*11*s, y:sh.y+pr.y*11*s };
+    var hipL = { x:hip.x-pr.x*8*s, y:hip.y-pr.y*8*s };
+    var hipR = { x:hip.x+pr.x*8*s, y:hip.y+pr.y*8*s };
+    var head = { x:sh.x+up.x*(LM.neck+LM.headR*.88)*s, y:sh.y+up.y*(LM.neck+LM.headR*.88)*s };
+    function seg(a, ang, len){
+      return { x:a.x + Math.sin(ang)*len*s, y:a.y + Math.cos(ang)*len*s };
+    }
+    return {
+      hip:hip, chest:chest, up:up, pr:pr,
+      shL:shL, shR:shR, hipL:hipL, hipR:hipR, head:head,
+      elL:seg(shL,p.armL[0],LM.ua), elR:seg(shR,p.armR[0],LM.ua),
+      haL:seg(seg(shL,p.armL[0],LM.ua),p.armL[1],LM.fa),
+      haR:seg(seg(shR,p.armR[0],LM.ua),p.armR[1],LM.fa),
+      knL:seg(hipL,p.legL[0],LM.th), knR:seg(hipR,p.legR[0],LM.th),
+      ftL:seg(seg(hipL,p.legL[0],LM.th),p.legL[1],LM.ca),
+      ftR:seg(seg(hipR,p.legR[0],LM.th),p.legR[1],LM.ca)
+    };
+  }
+
+  /* two-bone IK → angles in "0 = down" space */
+  function solveIK(ax, ay, tx, ty, l1, l2, bend){
+    var dx=tx-ax, dy=ty-ay, d=Math.hypot(dx,dy);
+    d = Math.max(Math.min(d, l1+l2-1), Math.abs(l1-l2)+1);
+    var base = Math.atan2(dy,dx);
+    var cosA = (l1*l1+d*d-l2*l2)/(2*l1*d);
+    var g1 = base + bend*Math.acos(Math.max(-1,Math.min(1,cosA)));
+    var ex = ax+Math.cos(g1)*l1, ey = ay+Math.sin(g1)*l1;
+    var g2 = Math.atan2(ty-ey, tx-ex);
+    return [Math.PI/2 - g1, Math.PI/2 - g2];
+  }
+
+  /* ——— cut-paper rendering ——— */
+  function shape(c, pts, fill, ghost){
+    c.beginPath();
+    c.moveTo(pts[0][0], pts[0][1]);
+    for (var i=1;i<pts.length;i++) c.lineTo(pts[i][0], pts[i][1]);
+    c.closePath();
+    if (!ghost){
+      c.save(); c.translate(2.4,3.2); c.fillStyle='rgba(38,33,26,.15)'; c.fill(); c.restore();
+    }
+    c.fillStyle = fill; c.fill();
+  }
+  function limbShape(c, a, b, w1, w2, fill, ghost){
+    var dx=b.x-a.x, dy=b.y-a.y, d=Math.hypot(dx,dy)||1;
+    var px=-dy/d, py=dx/d;
+    shape(c, [
+      [a.x+px*w1, a.y+py*w1], [b.x+px*w2, b.y+py*w2],
+      [b.x-px*w2, b.y-py*w2], [a.x-px*w1, a.y-py*w1]
+    ], fill, ghost);
+  }
+  function dot(c, x, y, r, fill, ghost){
+    c.beginPath(); c.arc(x,y,r,0,7);
+    if (!ghost){ c.save(); c.translate(2,2.6); c.fillStyle='rgba(38,33,26,.15)'; c.fill(); c.restore();
+      c.beginPath(); c.arc(x,y,r,0,7); }
+    c.fillStyle = fill; c.fill();
+  }
+
+  function drawPuppet(c, p, w, h, opt){
+    opt = opt || {};
+    var s = h/300;
+    var K = skeleton(p, s, w, h);
+    c.save();
+    if (opt.jitter){
+      c.translate(opt.jitter.x, opt.jitter.y);
+      c.translate(p.x*w, p.y*h); c.rotate(opt.jitter.r); c.translate(-p.x*w, -p.y*h);
+    }
+    if (opt.ghost) c.globalAlpha = .16;
+    var G = !!opt.ghost, inkFill = G ? COL.ink : null;
+
+    // far side first (slightly darker paper)
+    limbShape(c, K.hipL, K.knL, 7.5*s, 6*s, inkFill||'#1d1913', G);
+    limbShape(c, K.knL, K.ftL, 6*s, 4.6*s, inkFill||COL.ink, G);
+    dot(c, K.ftL.x, K.ftL.y+2*s, 5.4*s, inkFill||COL.orangeD, G);
+    limbShape(c, K.shL, K.elL, 6.4*s, 5.2*s, inkFill||COL.orangeD, G);
+    limbShape(c, K.elL, K.haL, 5.2*s, 4.2*s, inkFill||COL.orangeD, G);
+    dot(c, K.haL.x, K.haL.y, 4.8*s, inkFill||COL.cream, G);
+
+    // torso: skewed trapezoid
+    var tw1=20*s, tw2=13*s;
+    shape(c, [
+      [K.chest.x-K.pr.x*tw1, K.chest.y-K.pr.y*tw1],
+      [K.chest.x+K.pr.x*tw1, K.chest.y+K.pr.y*tw1],
+      [K.hip.x+K.pr.x*tw2,  K.hip.y+K.pr.y*tw2],
+      [K.hip.x-K.pr.x*tw2,  K.hip.y-K.pr.y*tw2]
+    ], inkFill||COL.teal, G);
+    dot(c, K.chest.x, K.chest.y, 4.2*s, inkFill||COL.tealD, G);
+
+    // near limbs
+    limbShape(c, K.hipR, K.knR, 7.5*s, 6*s, inkFill||'#332c22', G);
+    limbShape(c, K.knR, K.ftR, 6*s, 4.6*s, inkFill||COL.ink, G);
+    dot(c, K.ftR.x, K.ftR.y+2*s, 5.4*s, inkFill||COL.orange, G);
+    limbShape(c, K.shR, K.elR, 6.4*s, 5.2*s, inkFill||COL.orange, G);
+    limbShape(c, K.elR, K.haR, 5.2*s, 4.2*s, inkFill||COL.orange, G);
+    dot(c, K.haR.x, K.haR.y, 4.8*s, inkFill||COL.cream, G);
+
+    // head: paper circle + face
+    dot(c, K.head.x, K.head.y, LM.headR*s, inkFill||COL.cream, G);
+    if (!G){
+      var hr = p.lean + p.head;
+      c.save();
+      c.translate(K.head.x, K.head.y); c.rotate(hr);
+      c.fillStyle = COL.ink;
+      c.beginPath(); c.arc(-6*s, -2.4*s, 1.9*s, 0, 7); c.fill();
+      c.beginPath(); c.arc(6*s, -2.4*s, 1.9*s, 0, 7); c.fill();
+      c.strokeStyle = COL.ink; c.lineWidth = 1.6*s; c.lineCap='round';
+      c.beginPath(); c.arc(0, 2.6*s, 6.4*s, .35, Math.PI-.35); c.stroke();
+      c.fillStyle = COL.orange;                       // paper hair patch
+      c.beginPath();
+      c.moveTo(-LM.headR*s*.9, -LM.headR*s*.42);
+      c.quadraticCurveTo(0, -LM.headR*s*1.5, LM.headR*s*.9, -LM.headR*s*.42);
+      c.quadraticCurveTo(0, -LM.headR*s*.72, -LM.headR*s*.9, -LM.headR*s*.42);
+      c.fill();
+      c.restore();
+    }
+    c.restore();
+    return K;
+  }
+
+  function drawSet(c, w, h){
+    c.fillStyle = COL.paper; c.fillRect(0,0,w,h);
+    // desk horizon + registration marks
+    c.strokeStyle = 'rgba(38,33,26,.14)'; c.lineWidth = 1;
+    c.beginPath(); c.moveTo(0,h*.82); c.lineTo(w,h*.82); c.stroke();
+    c.strokeStyle = 'rgba(38,33,26,.3)';
+    [[w*.08,h*.12],[w*.92,h*.12]].forEach(function(m){
+      c.beginPath();
+      c.moveTo(m[0]-5,m[1]); c.lineTo(m[0]+5,m[1]);
+      c.moveTo(m[0],m[1]-5); c.lineTo(m[0],m[1]+5);
+      c.stroke();
+    });
+    // two forgotten paper scraps
+    c.fillStyle = 'rgba(255,90,38,.5)';
+    c.beginPath(); c.moveTo(w*.88,h*.9); c.lineTo(w*.9,h*.86); c.lineTo(w*.92,h*.9); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(16,124,112,.45)';
+    c.fillRect(w*.06, h*.9, 9, 6);
+  }
+
+  /* ——— main render ——— */
+  var poseRead = document.getElementById('poseRead');
+  function render(ts){
+    ctx.clearRect(0,0,W,H);
+    drawSet(ctx, W, H);
+    var shown = pose, jit = null;
+    if (playing && frames.length){
+      var fr = frames[playIdx].pose;
+      shown = fr;
+      boil += 1;
+      jit = { x:Math.sin(boil*2.3)*1.3, y:Math.cos(boil*3.1)*1.1, r:Math.sin(boil*1.7)*.017 };
+      if (onion){
+        var prev = frames[(playIdx-1+frames.length)%frames.length].pose;
+        drawPuppet(ctx, prev, W, H, {ghost:true});
+      }
+    }
+    // soft floor shadow
+    ctx.fillStyle = 'rgba(38,33,26,.1)';
+    ctx.beginPath(); ctx.ellipse(shown.x*W, H*.815, 54*(H/300), 8*(H/300), 0, 0, 7); ctx.fill();
+    var K = drawPuppet(ctx, shown, W, H, {jitter:jit});
+
+    // joint handles when posing
+    if (!playing){
+      ctx.save();
+      ctx.setLineDash([3,3]);
+      ctx.strokeStyle = 'rgba(255,90,38,.85)'; ctx.lineWidth = 1.2;
+      [K.haL,K.haR,K.ftL,K.ftR,K.head,K.hip].forEach(function(j){
+        ctx.beginPath(); ctx.arc(j.x,j.y,9,0,7); ctx.stroke();
+      });
+      ctx.restore();
+    }
+  }
+
+  /* ——— loop & playback ——— */
+  function loop(ts){
+    if (playing && frames.length){
+      if (ts - lastStep > 1000/fps){
+        lastStep = ts;
+        playIdx = (playIdx+1) % frames.length;
+        poseRead.textContent = 'PLAY — F' + String(playIdx+1).padStart(2,'0') + '/' + String(frames.length).padStart(2,'0');
+        markChips();
+      }
+    }
+    render(ts);
+    requestAnimationFrame(loop);
+  }
+
+  /* ——— dope sheet ——— */
+  function markChips(){
+    var chips = strip.querySelectorAll('.chip');
+    chips.forEach(function(ch, i){ ch.classList.toggle('on', playing && i===playIdx); });
+  }
+  function rebuildStrip(){
+    strip.innerHTML = frames.length ? '' : '<span class="empty">分镜表空着 — 摆好姿势，按「打点」剪下一帧</span>';
+    frames.forEach(function(f, i){
+      var chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.appendChild(f.thumb);
+      var idx = document.createElement('span'); idx.className='idx'; idx.textContent = i+1;
+      var del = document.createElement('span'); del.className='del'; del.textContent='×';
+      chip.appendChild(idx); chip.appendChild(del);
+      chip.addEventListener('click', function(){
+        pose = clone(f.pose); playIdx = i;
+        poseRead.textContent = 'LOADED — F' + String(i+1).padStart(2,'0');
+      });
+      del.addEventListener('click', function(e){
+        e.stopPropagation();
+        frames.splice(i,1); rebuildStrip(); updateCount();
+      });
+      strip.appendChild(chip);
+    });
+    updateCount();
+  }
+  var frameCount = document.getElementById('frameCount');
+  function updateCount(){
+    frameCount.innerHTML = 'KEYS ' + String(frames.length).padStart(2,'0') + '<br>CLICK CHIP TO LOAD';
+  }
+  function makeThumb(p){
+    var tw=54, th=72;
+    var c = document.createElement('canvas');
+    c.width = tw*2; c.height = th*2;
+    c.style.width = tw+'px'; c.style.height = th+'px';
+    var cc = c.getContext('2d');
+    cc.scale(2,2);
+    cc.fillStyle = '#fbf5e6'; cc.fillRect(0,0,tw,th);
+    cc.strokeStyle = 'rgba(38,33,26,.15)';
+    cc.beginPath(); cc.moveTo(0,th*.82); cc.lineTo(tw,th*.82); cc.stroke();
+    var fp = clone(p);
+    fp.x = .5; fp.y = .68;
+    drawPuppet(cc, fp, tw, th, {});
+    return c;
+  }
+
+  function addKey(p){
+    if (frames.length >= 24) frames.shift();
+    var cp = clone(p);
+    frames.push({ pose:cp, thumb:makeThumb(cp) });
+    rebuildStrip();
+    poseRead.textContent = 'KEYED — F' + String(frames.length).padStart(2,'0');
+  }
+
+  /* ——— pointer posing ——— */
+  var drag = null;
+  function toLocal(e){
+    var r = stage.getBoundingClientRect();
+    return { x:e.clientX-r.left, y:e.clientY-r.top };
+  }
+  stage.addEventListener('pointerdown', function(e){
+    if (playing) return;
+    var m = toLocal(e), s = H/300, K = skeleton(pose, s, W, H);
+    var hits = [
+      ['haL',K.haL],['haR',K.haR],['ftL',K.ftL],['ftR',K.ftR],['head',K.head],['hip',K.hip]
+    ];
+    for (var i=0;i<hits.length;i++){
+      if (Math.hypot(m.x-hits[i][1].x, m.y-hits[i][1].y) < 20){
+        drag = hits[i][0];
+        stage.classList.add('grabbing');
+        stage.setPointerCapture(e.pointerId);
+        return;
+      }
+    }
+  });
+  stage.addEventListener('pointermove', function(e){
+    if (!drag) return;
+    var m = toLocal(e), s = H/300, K = skeleton(pose, s, W, H);
+    if (drag==='hip'){
+      pose.x = Math.max(.12, Math.min(.88, m.x/W));
+      pose.y = Math.max(.4, Math.min(.78, m.y/H));
+    } else if (drag==='head'){
+      pose.head = Math.max(-.6, Math.min(.6, (m.x-K.head.x)/(60*s)*.5));
+      pose.lean = Math.max(-.3, Math.min(.3, (m.x-K.chest.x)/(220*s)*.3));
+    } else if (drag==='haL' || drag==='haR'){
+      var sh = drag==='haL' ? K.shL : K.shR;
+      var bend = drag==='haL' ? -1 : 1;
+      pose[drag==='haL'?'armL':'armR'] = solveIK(sh.x, sh.y, m.x, m.y, LM.ua*s, LM.fa*s, bend);
+    } else {
+      var hp = drag==='ftL' ? K.hipL : K.hipR;
+      var bk = drag==='ftL' ? 1 : -1;
+      pose[drag==='ftL'?'legL':'legR'] = solveIK(hp.x, hp.y, m.x, m.y, LM.th*s, LM.ca*s, bk);
+    }
+    poseRead.textContent = 'POSING — ' + drag.toUpperCase();
+  });
+  stage.addEventListener('pointerup', function(){
+    drag = null; stage.classList.remove('grabbing');
+  });
+
+  /* ——— controls ——— */
+  document.getElementById('bKey').addEventListener('click', function(){ addKey(pose); });
+
+  var bPlay = document.getElementById('bPlay');
+  bPlay.addEventListener('click', function(){
+    if (!frames.length){ addKey(pose); return; }
+    playing = !playing;
+    bPlay.textContent = playing ? '■ 停 STOP' : '▶ 播放 PLAY';
+    bPlay.classList.toggle('on', playing);
+    if (!playing){ poseRead.textContent = 'POSE — LIVE'; markChips(); }
+    else { playIdx = 0; lastStep = 0; }
+  });
+  var bOnion = document.getElementById('bOnion');
+  bOnion.addEventListener('click', function(){
+    onion = !onion; bOnion.classList.toggle('on', onion);
+  });
+
+  var rFps = document.getElementById('rFps'), oFps = document.getElementById('oFps'),
+      fpsRead = document.getElementById('fpsRead');
+  function applyFps(){
+    fps = +rFps.value;
+    rFps.style.setProperty('--fill', ((rFps.value-rFps.min)/(rFps.max-rFps.min)*100)+'%');
+    oFps.textContent = fps;
+    fpsRead.textContent = 'ON ' + fps + 'S';
+  }
+  rFps.addEventListener('input', applyFps); applyFps();
+
+  document.getElementById('bRandom').addEventListener('click', function(){
+    frames.length = 0;
+    var n = 5 + (Math.random()*3|0);
+    var baseX = rnd(.35,.65), baseY = rnd(.6,.7);
+    for (var i=0;i<n;i++){
+      var p = defaultPose();
+      p.x = baseX + Math.sin(i/n*Math.PI*2)*.12;
+      p.y = baseY + rnd(-.03,.03);
+      p.lean = rnd(-.14,.14); p.head = rnd(-.3,.3);
+      p.armL = [rnd(-2.4,2.6), 0]; p.armL[1] = p.armL[0] + rnd(-1.7,1.7);
+      p.armR = [rnd(-2.6,2.4), 0]; p.armR[1] = p.armR[0] + rnd(-1.7,1.7);
+      p.legL = [rnd(-.9,.9), 0]; p.legL[1] = p.legL[0] + rnd(-.2,1.3);
+      p.legR = [rnd(-.9,.9), 0]; p.legR[1] = p.legR[0] + rnd(-.2,1.3);
+      frames.push({ pose:p, thumb:makeThumb(p) });
+    }
+    pose = clone(frames[0].pose);
+    rebuildStrip();
+    if (!playing) bPlay.click();
+  });
+
+  document.getElementById('bSave').addEventListener('click', function(){
+    var list = frames.length ? frames : [{pose:pose, thumb:makeThumb(pose)}];
+    var n = list.length, tw=54, th=72, pad=14, headH=34;
+    var out = document.createElement('canvas');
+    out.width = (pad*2 + n*(tw+8) - 8)*2; out.height = (headH + th + pad*2 + 16)*2;
+    var o = out.getContext('2d'); o.scale(2,2);
+    o.fillStyle = '#f7efdd'; o.fillRect(0,0,out.width,out.height);
+    o.fillStyle = '#26211a';
+    o.font = '600 11px Menlo, monospace';
+    o.fillText('PAPER STOP-MOTION — EXPOSURE SHEET / N°04', pad, pad+6);
+    o.fillStyle = '#ff5a26';
+    o.fillText(n + ' KEYS · ' + fps + ' FPS', pad, pad+20);
+    list.forEach(function(f, i){
+      var x = pad + i*(tw+8), y = headH;
+      o.strokeStyle = '#26211a'; o.strokeRect(x-.5, y-.5, tw+1, th+1);
+      o.drawImage(f.thumb, x, y, tw, th);
+      o.fillStyle = '#93887a'; o.font = '9px Menlo, monospace';
+      o.fillText('F' + String(i+1).padStart(2,'0'), x, y+th+12);
+    });
+    var a = document.createElement('a');
+    a.download = 'paper-stopmotion_sheet.png';
+    a.href = out.toDataURL('image/png');
+    a.click();
+  });
+
+  /* ——— boot ——— */
+  function resize(){
+    var r = stage.parentElement.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio||1, 2);
+    W = Math.max(320, r.width); H = Math.max(300, r.height);
+    stage.width = W*dpr; stage.height = H*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+  }
+  window.addEventListener('resize', resize);
+  resize();
+  addKey(pose);
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

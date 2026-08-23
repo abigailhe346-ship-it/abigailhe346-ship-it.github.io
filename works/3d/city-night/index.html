@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>City Night — Procedural Metropolis · 02</title>
+<style>
+  :root{
+    --bg:#05080f; --panel:#0a0f1acc; --line:#1a2333;
+    --ink:#e9edf4; --dim:#6d7a90; --mono:'SF Mono',Menlo,monospace;
+    --amber:#ffb45e; --cyan:#59d8ff; --rose:#ff4d8d;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
+    font-family:-apple-system,'Helvetica Neue','PingFang SC',sans-serif;color:var(--ink)}
+  #stage{position:fixed;inset:0}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 45%,transparent 50%,rgba(2,4,8,.7) 100%)}
+  header{position:fixed;top:28px;left:32px;pointer-events:none;z-index:5}
+  .no{font-family:var(--mono);font-size:11px;letter-spacing:.35em;color:var(--amber);margin-bottom:8px}
+  h1{font-family:Didot,'Bodoni MT',Georgia,'Songti SC',serif;font-weight:400;
+     font-size:clamp(22px,3vw,34px);letter-spacing:.04em}
+  h1 em{font-style:italic;color:var(--amber)}
+  .sub{margin-top:8px;font-size:12px;color:var(--dim);letter-spacing:.12em}
+  #meta{position:fixed;top:34px;right:32px;z-index:5;text-align:right;
+    font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.15em;line-height:2}
+  #meta b{color:var(--ink);font-weight:400}
+  #panel{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;
+    display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:12px 20px;backdrop-filter:blur(8px);max-width:calc(100vw - 32px)}
+  .btn{appearance:none;border:1px solid var(--amber);background:transparent;color:var(--amber);
+    font-family:var(--mono);font-size:11px;letter-spacing:.2em;padding:9px 18px;border-radius:4px;
+    cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1)}
+  .btn:hover{background:var(--amber);color:#120b04;box-shadow:0 0 24px rgba(255,180,94,.35)}
+  .ctl{display:flex;align-items:center;gap:10px}
+  .ctl label{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:110px;height:2px;
+    background:var(--line);border-radius:2px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:12px;height:12px;border-radius:50%;background:var(--amber);
+    border:2px solid #05080f;box-shadow:0 0 0 1px var(--amber);transition:transform .2s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;
+    background:var(--amber);border:2px solid #05080f;box-shadow:0 0 0 1px var(--amber)}
+  .hint{position:fixed;bottom:30px;left:32px;font-family:var(--mono);font-size:10px;
+    color:var(--dim);letter-spacing:.12em;line-height:1.9;pointer-events:none;z-index:4}
+  .hint b{color:var(--ink);font-weight:400}
+  @media (max-width:760px){
+    #meta,.hint{display:none}
+    header{top:18px;left:20px}#panel{bottom:14px;padding:10px 12px;gap:10px}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="vignette"></div>
+<header>
+  <div class="no">N°02 — PROCEDURAL METROPOLIS</div>
+  <h1>City Night <em>夜航城市</em></h1>
+  <div class="sub">程序化生成的无限夜城 · 低空巡航</div>
+</header>
+<div id="meta">
+  <div>SEED <b id="seedVal">—</b></div>
+  <div>BLOCKS <b id="blockVal">—</b></div>
+  <div>SPEED <b id="spdVal">—</b></div>
+</div>
+<div class="hint"><b>移动鼠标</b> — 侧移与视线<br><b>REGENERATE</b> — 以新种子重建城市</div>
+<div id="panel">
+  <button class="btn" id="regen">↻ 重新生成 REGENERATE</button>
+  <div class="ctl"><label>航速 SPEED</label><input type="range" id="speed" min="8" max="80" value="30"></div>
+  <div class="ctl"><label>密度 DENSITY</label><input type="range" id="density" min="30" max="95" value="72"></div>
+  <div class="ctl"><label>高度 ALTITUDE</label><input type="range" id="alt" min="6" max="46" value="15"></div>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+/* ---------- seeded rng ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
+  var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296;};}
+var seed = (Math.random()*1e9)|0;
+var rng = mulberry32(seed);
+
+/* ---------- renderer ---------- */
+var stage=document.getElementById('stage');
+var renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.outputEncoding=THREE.sRGBEncoding;
+stage.appendChild(renderer.domElement);
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0x05080f);
+scene.fog=new THREE.FogExp2(0x070c16,.016);
+var camera=new THREE.PerspectiveCamera(58,window.innerWidth/window.innerHeight,.1,600);
+
+/* ---------- city params ---------- */
+var P=20, GRID=26, WRAP=P*GRID;      // block pitch, blocks per side, wrap length
+var cityGroup=null, blinkers=[], cars=[];
+
+/* ---------- textures (all procedural, local) ---------- */
+function facadeTexture(rng, warmth){
+  var c=document.createElement('canvas');c.width=128;c.height=256;
+  var g=c.getContext('2d');
+  var grad=g.createLinearGradient(0,0,0,256);
+  grad.addColorStop(0,'#0a0e16');grad.addColorStop(1,'#05070c');
+  g.fillStyle=grad;g.fillRect(0,0,128,256);
+  var cols=8, rows=20, ww=128/cols, wh=256/rows;
+  for(var y=0;y<rows;y++)for(var x=0;x<cols;x++){
+    var lit=rng()<warmth;
+    if(lit){
+      var warm=rng()<.82;
+      var a=.35+rng()*.65;
+      g.fillStyle=warm?'rgba(255,'+(160+rng()*60|0)+','+(80+rng()*40|0)+','+a+')'
+                       :'rgba('+(90+rng()*40|0)+','+(200+rng()*40|0)+',255,'+a+')';
+    }else{
+      g.fillStyle='rgba(20,26,38,'+(0.5+rng()*.5)+')';
+    }
+    g.fillRect(x*ww+2,y*wh+3,ww-4,wh-5);
+  }
+  var t=new THREE.CanvasTexture(c);
+  t.anisotropy=4;
+  return t;
+}
+function groundTexture(){
+  var c=document.createElement('canvas');c.width=c.height=1024;
+  var g=c.getContext('2d');
+  g.fillStyle='#04060a';g.fillRect(0,0,1024,1024);
+  // street grid glow lines (one tile = one block pitch)
+  g.strokeStyle='#0d1420';g.lineWidth=10;
+  g.strokeRect(0,0,1024,1024);
+  g.strokeStyle='#141d2e';g.lineWidth=2;
+  g.strokeRect(0,0,1024,1024);
+  g.strokeStyle='rgba(255,180,94,.14)';g.lineWidth=1;
+  g.setLineDash([14,22]);
+  g.beginPath();g.moveTo(512,0);g.lineTo(512,1024);g.stroke();
+  g.beginPath();g.moveTo(0,512);g.lineTo(1024,512);g.stroke();
+  var t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping;
+  t.repeat.set(GRID,GRID);
+  t.anisotropy=8;
+  return t;
+}
+function radialSprite(inner, outer){
+  var c=document.createElement('canvas');c.width=c.height=128;
+  var g=c.getContext('2d');
+  var rg=g.createRadialGradient(64,64,0,64,64,64);
+  rg.addColorStop(0,inner);rg.addColorStop(1,outer);
+  g.fillStyle=rg;g.fillRect(0,0,128,128);
+  return new THREE.CanvasTexture(c);
+}
+
+/* ---------- static sky ---------- */
+(function sky(){
+  var starGeo=new THREE.BufferGeometry();
+  var n=900, arr=new Float32Array(n*3);
+  var srng=mulberry32(99);
+  for(var i=0;i<n;i++){
+    var th=srng()*Math.PI*2, ph=srng()*Math.PI*.42;
+    var r=420;
+    arr[i*3]=r*Math.cos(th)*Math.cos(ph);
+    arr[i*3+1]=r*Math.sin(ph)+10;
+    arr[i*3+2]=r*Math.sin(th)*Math.cos(ph);
+  }
+  starGeo.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  var stars=new THREE.Points(starGeo,new THREE.PointsMaterial({
+    color:0xbdcbef,size:1.1,sizeAttenuation:false,transparent:true,opacity:.75,fog:false}));
+  scene.add(stars);
+  var moon=new THREE.Sprite(new THREE.SpriteMaterial({
+    map:radialSprite('rgba(235,240,255,1)','rgba(120,150,220,0)'),
+    blending:THREE.AdditiveBlending,depthWrite:false,fog:false}));
+  moon.scale.set(70,70,1);moon.position.set(-180,190,-320);
+  scene.add(moon);
+})();
+
+/* ---------- city builder ---------- */
+var facadeMats=[];
+function buildCity(){
+  if(cityGroup){scene.remove(cityGroup);}
+  cityGroup=new THREE.Group();
+  blinkers=[];cars=[];
+  rng=mulberry32(seed);
+  if(!facadeMats.length){
+    for(var v=0;v<7;v++){
+      facadeMats.push(new THREE.MeshBasicMaterial({map:facadeTexture(mulberry32(1000+v),.42)}));
+    }
+  }
+  var boxGeo=new THREE.BoxGeometry(1,1,1);
+  boxGeo.translate(0,.5,0);
+  var half=GRID/2, blocks=0;
+  var densityCur=density/100;
+  for(var gx=-half;gx<half;gx++)for(var gz=-half;gz<half;gz++){
+    if(rng()>densityCur)continue;
+    var cx=(gx+.5)*P, cz=(gz+.5)*P;
+    var distC=Math.sqrt(gx*gx+gz*gz)/half;            // 0 center → 1 edge
+    var towers=rng()<.55?1:(rng()<.7?2:3);
+    for(var b=0;b<towers;b++){
+      var hBase=6+Math.pow(rng(),2.2)*(44*(1.15-distC)+8);
+      var w=4+rng()*8, d=4+rng()*8;
+      var m=new THREE.Mesh(boxGeo,facadeMats[(rng()*facadeMats.length)|0]);
+      m.scale.set(w,hBase,d);
+      m.position.set(cx+(rng()-.5)*(P-6-w), 0, cz+(rng()-.5)*(P-6-d));
+      cityGroup.add(m);blocks++;
+      // antenna + beacon on tall towers
+      if(hBase>34&&rng()<.6){
+        var ant=new THREE.Mesh(new THREE.CylinderGeometry(.06,.09,6,5),
+          new THREE.MeshBasicMaterial({color:0x1c2534}));
+        ant.position.set(m.position.x,hBase+3,m.position.z);
+        var beacon=new THREE.Mesh(new THREE.SphereGeometry(.28,8,6),
+          new THREE.MeshBasicMaterial({color:0xff2244,transparent:true}));
+        beacon.position.set(m.position.x,hBase+6.1,m.position.z);
+        beacon.userData.ph=rng()*Math.PI*2;
+        blinkers.push(beacon);
+        cityGroup.add(ant,beacon);
+      }
+    }
+  }
+  // ground
+  var ground=new THREE.Mesh(new THREE.PlaneGeometry(WRAP+P*2,WRAP+P*2),
+    new THREE.MeshBasicMaterial({map:groundTexture()}));
+  ground.rotation.x=-Math.PI/2;ground.position.y=-.05;
+  cityGroup.add(ground);
+  // street lamps: sparse additive glow dots at intersections
+  var lampGeo=new THREE.BufferGeometry();
+  var lamps=[];
+  for(var lx=-half;lx<=half;lx+=2)for(var lz=-half;lz<=half;lz+=2){
+    lamps.push(lx*P, 5.5, lz*P);
+  }
+  lampGeo.setAttribute('position',new THREE.BufferAttribute(new Float32Array(lamps),3));
+  var lampPts=new THREE.Points(lampGeo,new THREE.PointsMaterial({
+    map:radialSprite('rgba(255,190,110,.9)','rgba(255,150,60,0)'),
+    size:5,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));
+  cityGroup.add(lampPts);
+  // traffic: two directions, head/tail lights
+  var carDefs=[
+    {n:130,col:0xfff2d0,dir:1,axis:'z'},   // headlights, +z
+    {n:130,col:0xff3b30,dir:-1,axis:'z'},  // taillights, -z
+    {n:90, col:0xfff2d0,dir:1,axis:'x'},
+    {n:90, col:0xff3b30,dir:-1,axis:'x'}
+  ];
+  carDefs.forEach(function(def){
+    var geo=new THREE.BufferGeometry();
+    var arr=new Float32Array(def.n*3), data=[];
+    for(var i=0;i<def.n;i++){
+      var lane=(((rng()*GRID)|0)-half)*P + (def.dir>0?1.6:-1.6);
+      var along=(rng()-.5)*WRAP;
+      data.push({lane:lane,along:along,spd:(14+rng()*20)*def.dir});
+      arr[i*3]=def.axis==='z'?lane:along;
+      arr[i*3+1]=.5;
+      arr[i*3+2]=def.axis==='z'?along:lane;
+    }
+    geo.setAttribute('position',new THREE.BufferAttribute(arr,3));
+    var pts=new THREE.Points(geo,new THREE.PointsMaterial({
+      map:radialSprite('rgba(255,255,255,1)','rgba(255,255,255,0)'),
+      color:def.col,size:2.2,transparent:true,depthWrite:false,
+      blending:THREE.AdditiveBlending}));
+    cars.push({pts:pts,data:data,axis:def.axis});
+    cityGroup.add(pts);
+  });
+  scene.add(cityGroup);
+  document.getElementById('blockVal').textContent=blocks;
+  document.getElementById('seedVal').textContent='#'+(seed%100000);
+}
+
+/* ---------- controls ---------- */
+var speed=30, density=72, alt=15;
+document.getElementById('speed').addEventListener('input',function(e){speed=+e.target.value;});
+document.getElementById('density').addEventListener('input',function(e){density=+e.target.value;});
+document.getElementById('density').addEventListener('change',buildCity);
+document.getElementById('alt').addEventListener('input',function(e){alt=+e.target.value;});
+document.getElementById('regen').addEventListener('click',function(){
+  seed=(Math.random()*1e9)|0;
+  buildCity();
+});
+var mouse={x:0,y:0,tx:0,ty:0};
+window.addEventListener('pointermove',function(e){
+  mouse.tx=(e.clientX/window.innerWidth)*2-1;
+  mouse.ty=(e.clientY/window.innerHeight)*2-1;
+});
+
+/* ---------- loop ---------- */
+var clock=new THREE.Clock();
+var camZ=0;
+function animate(){
+  requestAnimationFrame(animate);
+  var dt=Math.min(clock.getDelta(),.05);
+  var t=clock.elapsedTime;
+  // forward flight with wrap
+  camZ-=speed*dt;
+  if(camZ<-WRAP/2)camZ+=WRAP;
+  var mk=1-Math.exp(-dt*3);
+  mouse.x+=(mouse.tx-mouse.x)*mk;mouse.y+=(mouse.ty-mouse.y)*mk;
+  var sway=Math.sin(t*.5)*2.2;
+  camera.position.set(mouse.x*7+sway, alt+Math.sin(t*.8)*.8+mouse.y*-3, camZ);
+  camera.lookAt(mouse.x*10+sway*1.5, alt*.55+mouse.y*-6, camZ-40);
+  camera.rotation.z+=-mouse.x*.06+Math.sin(t*.4)*.01;
+  // traffic
+  for(var c=0;c<cars.length;c++){
+    var set=cars[c], pos=set.pts.geometry.attributes.position.array;
+    for(var i=0;i<set.data.length;i++){
+      var d=set.data[i];
+      d.along+=d.spd*dt;
+      if(d.along>WRAP/2)d.along-=WRAP;
+      if(d.along<-WRAP/2)d.along+=WRAP;
+      if(set.axis==='z')pos[i*3+2]=d.along;else pos[i*3]=d.along;
+    }
+    set.pts.geometry.attributes.position.needsUpdate=true;
+  }
+  // beacon blink
+  for(var b=0;b<blinkers.length;b++){
+    var bc=blinkers[b];
+    bc.material.opacity=.25+.75*Math.max(0,Math.sin(t*2.4+bc.userData.ph));
+  }
+  document.getElementById('spdVal').textContent=(speed*3.6|0)+' km/h';
+  renderer.render(scene,camera);
+}
+window.addEventListener('resize',function(){
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+buildCity();
+animate();
+})();
+</script>
+</body>
+</html>

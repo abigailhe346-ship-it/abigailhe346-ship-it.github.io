@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGNAL — 日志分析取证台</title>
+<style>
+  :root{
+    --bg:#0B0F0D; --panel:#0F1411; --panel2:#141A16; --line:#1E2620; --line2:#2A332C;
+    --ink:#C9D1C5; --dim:#6E7A6F; --faint:#45503F;
+    --phos:#9DF2B6; --err:#FF6B5E; --warn:#FFC24B; --info:#8FB8A0; --debug:#5A665C;
+    --teal:#5EC8BE;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow:hidden;display:flex;flex-direction:column}
+  ::selection{background:rgba(157,242,182,.2)}
+
+  header{flex:0 0 58px;display:flex;align-items:center;gap:14px;padding:0 20px;
+    border-bottom:1px solid var(--line);background:var(--panel);z-index:10}
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--phos);letter-spacing:.12em}
+  .brand .name{font-size:13px;font-weight:600;letter-spacing:.22em}
+  .brand .sub{font-size:11px;color:var(--dim)}
+  .spacer{flex:1}
+  .search{position:relative;display:flex;align-items:center}
+  #q{
+    font-family:var(--mono);font-size:12px;width:230px;padding:8px 12px 8px 30px;
+    background:var(--bg);border:1px solid var(--line2);border-radius:3px;color:var(--ink);
+    outline:none;transition:all .25s var(--ease)}
+  #q:focus{border-color:var(--phos);box-shadow:0 0 0 3px rgba(157,242,182,.08);width:280px}
+  .search::before{content:'⌕';position:absolute;left:10px;color:var(--faint);font-size:14px}
+  #qcount{font-family:var(--mono);font-size:10px;color:var(--dim);width:52px;text-align:left}
+  .chips{display:flex;gap:6px}
+  .chip{
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:6px 11px;cursor:pointer;
+    border:1px solid var(--line2);border-radius:2px;background:transparent;color:var(--dim);
+    transition:all .18s var(--ease)}
+  .chip b{font-weight:400;margin-left:5px;opacity:.75}
+  .chip[data-lv="ERROR"].on{color:var(--err);border-color:rgba(255,107,94,.5);background:rgba(255,107,94,.08)}
+  .chip[data-lv="WARN"].on{color:var(--warn);border-color:rgba(255,194,75,.5);background:rgba(255,194,75,.08)}
+  .chip[data-lv="INFO"].on{color:var(--info);border-color:rgba(143,184,160,.5);background:rgba(143,184,160,.08)}
+  .chip[data-lv="DEBUG"].on{color:var(--debug);border-color:var(--line2);background:var(--panel2)}
+  .btn{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;padding:7px 13px;
+    background:var(--panel2);border:1px solid var(--line2);border-radius:2px;color:var(--ink);
+    cursor:pointer;transition:all .18s var(--ease)}
+  .btn:hover{border-color:var(--faint)}
+  .btn.warn-on{color:var(--warn);border-color:rgba(255,194,75,.5)}
+  #isolate:disabled{opacity:.35;cursor:default}
+  #isolate.on{color:var(--teal);border-color:rgba(94,200,190,.55);background:rgba(94,200,190,.08)}
+
+  main{flex:1;display:grid;grid-template-columns:250px 1fr;min-height:0}
+
+  /* ---------- sidebar ---------- */
+  .side{border-right:1px solid var(--line);background:var(--panel);padding:16px;
+    display:flex;flex-direction:column;gap:18px;overflow-y:auto}
+  .sec-label{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--faint)}
+  #spark{width:100%;height:64px;display:block;border:1px solid var(--line);border-radius:2px;
+    background:var(--bg)}
+  .svc{display:flex;flex-direction:column;gap:7px}
+  .svc-row{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10.5px}
+  .svc-row .nm{flex:0 0 74px;color:var(--dim)}
+  .svc-row .bar{height:4px;border-radius:1px;background:var(--err);min-width:1px;
+    transition:width .5s var(--ease)}
+  .svc-row .bar.w{background:var(--warn)}
+  .svc-row .ct{color:var(--faint);font-size:9.5px}
+  #trace-panel{border:1px solid var(--line2);border-radius:3px;padding:12px;background:var(--bg);
+    font-family:var(--mono);font-size:10.5px;line-height:1.9;display:none}
+  #trace-panel.show{display:block;animation:tIn .3s var(--ease)}
+  @keyframes tIn{from{opacity:0;transform:translateY(6px)}}
+  #trace-panel .tid{color:var(--teal);word-break:break-all}
+  #trace-panel .sp{color:var(--dim)}
+  #trace-panel .sp b{color:var(--ink);font-weight:400}
+
+  /* ---------- stream ---------- */
+  .stream-wrap{position:relative;min-width:0;display:flex;flex-direction:column}
+  #stream{flex:1;overflow-y:auto;padding:8px 0 20px;font-family:var(--mono);font-size:11.5px;
+    line-height:20px;scroll-behavior:auto}
+  .ln{display:flex;gap:14px;padding:1px 18px;border-left:2px solid transparent;
+    cursor:pointer;white-space:nowrap;transition:background .15s}
+  .ln:hover{background:rgba(255,255,255,.025)}
+  .ln .ts{color:var(--faint);flex:0 0 86px}
+  .ln .lv{flex:0 0 46px;letter-spacing:.08em}
+  .ln .svc-n{flex:0 0 74px;color:var(--dim)}
+  .ln .tr{flex:0 0 64px;color:rgba(94,200,190,.55)}
+  .ln .msg{color:var(--ink);overflow:hidden;text-overflow:ellipsis}
+  .lv.ERROR{color:var(--err)} .lv.WARN{color:var(--warn)}
+  .lv.INFO{color:var(--info)} .lv.DEBUG{color:var(--debug)}
+  .ln.l-ERROR{border-left-color:var(--err);background:rgba(255,107,94,.05)}
+  .ln.l-WARN{border-left-color:rgba(255,194,75,.6)}
+  .ln.correlated{background:rgba(94,200,190,.07);border-left-color:var(--teal)}
+  .ln.selected{background:rgba(94,200,190,.12);border-left-color:var(--teal)}
+  body.isolating .ln:not(.correlated):not(.selected){opacity:.14}
+  body.isolating .detail{opacity:1!important}
+  mark{background:rgba(255,194,75,.28);color:#FFE1A1;border-radius:1px;padding:0 1px}
+  .ln.match-jump{box-shadow:inset 0 0 0 1px rgba(255,194,75,.5)}
+  .detail{
+    margin:2px 18px 6px 150px;padding:12px 14px;border:1px solid var(--line2);
+    border-left:2px solid var(--teal);border-radius:2px;background:var(--panel);
+    font-size:10.5px;line-height:1.85;white-space:pre-wrap;word-break:break-all;
+    animation:tIn .3s var(--ease);cursor:default}
+  .detail .k{color:var(--teal)} .detail .s{color:#C5E8A5} .detail .n{color:var(--warn)}
+  .detail .stack{color:var(--err);opacity:.85;margin-top:8px;display:block}
+  #follow{
+    position:absolute;right:22px;bottom:18px;z-index:5;display:none;
+    font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:7px 14px;
+    background:var(--phos);color:#0B0F0D;border:none;border-radius:20px;cursor:pointer;
+    box-shadow:0 4px 18px rgba(157,242,182,.25);transition:all .2s var(--ease)}
+  #follow.show{display:block;animation:tIn .3s var(--ease)}
+  #live-dot{width:7px;height:7px;border-radius:50%;background:var(--phos);
+    box-shadow:0 0 8px var(--phos);animation:pulse 1.6s infinite}
+  @keyframes pulse{50%{opacity:.3}}
+  #live-dot.paused{background:var(--warn);box-shadow:0 0 8px var(--warn);animation:none}
+
+  footer{flex:0 0 30px;display:flex;align-items:center;padding:0 20px;gap:18px;
+    border-top:1px solid var(--line);background:var(--panel);
+    font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.08em}
+  footer .sig{margin-left:auto}
+  @media (max-width:820px){
+    main{grid-template-columns:1fr}
+    .side{display:none}
+    .brand .sub{display:none}
+    #q{width:130px} #q:focus{width:160px}
+    header{gap:8px;padding:0 12px;overflow-x:auto}
+    .ln .svc-n{display:none} .ln .tr{flex-basis:52px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·04</span>
+    <span class="name">SIGNAL</span>
+    <span class="sub">日志分析取证台</span>
+  </div>
+  <div id="live-dot" title="streaming"></div>
+  <div class="spacer"></div>
+  <div class="search"><input id="q" placeholder="搜索 trace / 关键词…" spellcheck="false"></div>
+  <span id="qcount"></span>
+  <div class="chips" id="chips">
+    <button class="chip on" data-lv="ERROR">ERROR<b>0</b></button>
+    <button class="chip on" data-lv="WARN">WARN<b>0</b></button>
+    <button class="chip on" data-lv="INFO">INFO<b>0</b></button>
+    <button class="chip off" data-lv="DEBUG">DEBUG<b>0</b></button>
+  </div>
+  <button class="btn" id="isolate" disabled>隔离 TRACE</button>
+  <button class="btn" id="pause">暂停</button>
+</header>
+
+<main>
+  <aside class="side">
+    <div class="sec-label">ERROR RATE · 60S</div>
+    <canvas id="spark"></canvas>
+    <div class="sec-label">SERVICES · ERRORS</div>
+    <div class="svc" id="svc"></div>
+    <div class="sec-label">SELECTED TRACE</div>
+    <div id="trace-panel"><span style="color:var(--faint)">点击任意日志行进行取证。</span></div>
+  </aside>
+  <section class="stream-wrap">
+    <div id="stream"></div>
+    <button id="follow">↓ 回到实时</button>
+  </section>
+</main>
+
+<footer>
+  <div>点击日志行展开取证详情 · 同 trace 自动关联高亮 · Enter 跳转下一处匹配</div>
+  <div class="sig">ATELIER M · 2026</div>
+</footer>
+
+<script>
+'use strict';
+/* ================= generator ================= */
+const SVCS = ['api-gw','auth','billing','worker','cache'];
+const ROUTES = ['GET /v1/users','POST /v1/orders','GET /v1/search','PUT /v1/profile',
+  'POST /v1/payments','GET /v1/feed','DELETE /v1/sessions','GET /v1/metrics'];
+const hex = n => [...Array(n)].map(()=>'0123456789abcdef'[Math.random()*16|0]).join('');
+const rid = () => hex(6);
+let buf = [];          // {ts:Date, level, svc, trace, msg, meta, stack}
+const MAX = 400;
+let paused = false;
+const counts = {ERROR:0, WARN:0, INFO:0, DEBUG:0};
+const svcErr = {}, svcWarn = {};
+SVCS.forEach(s=>{svcErr[s]=0;svcWarn[s]=0;});
+const errBuckets = new Array(60).fill(0);
+let bucketSec = Math.floor(Date.now()/1000);
+
+function push(level, svc, trace, msg, meta, stack){
+  buf.push({ts:new Date(), level, svc, trace, msg, meta, stack, el:null});
+  counts[level]++;
+  if(level==='ERROR') svcErr[svc]++;
+  if(level==='WARN') svcWarn[svc]++;
+  const sec = Math.floor(Date.now()/1000);
+  if(sec !== bucketSec){
+    const shift = Math.min(60, sec-bucketSec);
+    for(let i=0;i<shift;i++){ errBuckets.push(0); errBuckets.shift(); }
+    bucketSec = sec;
+  }
+  if(level==='ERROR') errBuckets[59]++;
+  if(buf.length > MAX){
+    const old = buf.shift();
+    counts[old.level]--;
+    if(old.level==='ERROR') svcErr[old.svc]--;
+    if(old.level==='WARN') svcWarn[old.svc]--;
+  }
+  appendLine(buf[buf.length-1]);
+  updateChips(); updateSvc(); drawSpark();
+}
+
+function normalLine(){
+  const svc = SVCS[Math.random()*SVCS.length|0];
+  const r = Math.random();
+  if(r < 0.72){
+    const ms = 2+Math.random()*60|0;
+    push('INFO', svc, rid(), ROUTES[Math.random()*ROUTES.length|0]+' 200 '+ms+'ms',
+      {status:200, latency_ms:ms});
+  } else if(r < 0.86){
+    push('DEBUG', svc, rid(), 'cache hit ratio '+(88+Math.random()*11).toFixed(1)+'%', null);
+  } else if(r < 0.96){
+    push('WARN', svc, rid(), 'slow query '+(200+Math.random()*800|0)+'ms on replica-2',
+      {latency_ms:800});
+  } else {
+    push('ERROR', svc, rid(), 'upstream connect timeout after 3000ms',
+      {status:502}, fakeStack(svc));
+  }
+}
+function fakeStack(svc){
+  return 'at '+svc+'.handler (src/'+svc+'/routes.js:'+(40+Math.random()*200|0)+':11)\n'+
+         'at dispatch (src/core/router.js:88:7)\n'+
+         'at processTicksAndRejections (node:internal/task_queues:96:5)';
+}
+/* incident cascade */
+let incidentTimer = 0;
+function maybeIncident(now){
+  if(now - incidentTimer < 11000 + Math.random()*6000) return;
+  incidentTimer = now;
+  const trace = rid();
+  const svc = ['billing','auth','api-gw'][Math.random()*3|0];
+  push('WARN', svc, trace, 'connection pool exhausted, queueing requests', {pool_size:20, queued:14});
+  setTimeout(()=>!paused && push('ERROR', svc, trace, 'db: deadlock detected, rolling back txn 8f21',
+    {status:500, txn:'8f21'}, fakeStack(svc)), 700);
+  setTimeout(()=>!paused && push('ERROR', svc, trace, ROUTES[Math.random()*ROUTES.length|0]+' 500 '+(900+Math.random()*600|0)+'ms',
+    {status:500}, fakeStack(svc)), 1200);
+  setTimeout(()=>!paused && push('ERROR', 'api-gw', trace, 'circuit breaker OPEN for '+svc,
+    {status:503}, null), 1800);
+  setTimeout(()=>!paused && push('INFO', svc, trace, 'failover complete, traffic restored', {status:200}), 3400);
+}
+let genTimer = null;
+function scheduleGen(){
+  if(genTimer) clearTimeout(genTimer);
+  genTimer = setTimeout(()=>{
+    if(!paused){ normalLine(); maybeIncident(Date.now()); }
+    scheduleGen();
+  }, 120 + Math.random()*420);
+}
+
+/* ================= render ================= */
+const stream = document.getElementById('stream');
+const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+let query = '';
+const activeLv = {ERROR:true, WARN:true, INFO:true, DEBUG:false};
+let selectedLine = null, selectedTrace = null;
+
+function fmtTs(d){
+  const p = n=>String(n).padStart(2,'0');
+  return p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds())+'.'+String(d.getMilliseconds()).padStart(3,'0');
+}
+function hiMsg(text){
+  let h = esc(text);
+  if(query){
+    const q = esc(query).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    h = h.replace(new RegExp('('+q+')','gi'), '<mark>$1</mark>');
+  }
+  return h;
+}
+function appendLine(l){
+  if(!activeLv[l.level]) return;
+  if(query && !l.msg.toLowerCase().includes(query.toLowerCase()) && !(l.trace&&l.trace.includes(query))) return;
+  const div = document.createElement('div');
+  div.className = 'ln l-'+l.level + (selectedTrace && l.trace===selectedTrace ? ' correlated':'');
+  div.innerHTML = '<span class="ts">'+fmtTs(l.ts)+'</span>'+
+    '<span class="lv '+l.level+'">'+l.level+'</span>'+
+    '<span class="svc-n">'+l.svc+'</span>'+
+    '<span class="tr">'+(l.trace||'——')+'</span>'+
+    '<span class="msg">'+hiMsg(l.msg)+'</span>';
+  div.onclick = ()=>selectLine(l, div);
+  l.el = div;
+  stream.appendChild(div);
+  while(stream.children.length > 260) stream.removeChild(stream.firstChild);
+  maybeScroll();
+}
+function rebuild(){
+  stream.innerHTML = '';
+  buf.forEach(l=>{ l.el=null; appendLine(l); });
+  updateCount();
+}
+function maybeScroll(){
+  if(followMode) stream.scrollTop = stream.scrollHeight;
+}
+
+/* follow mode */
+let followMode = true;
+const followBtn = document.getElementById('follow');
+stream.addEventListener('scroll', ()=>{
+  const atBottom = stream.scrollHeight - stream.scrollTop - stream.clientHeight < 40;
+  followMode = atBottom;
+  followBtn.classList.toggle('show', !atBottom);
+}, {passive:true});
+followBtn.onclick = ()=>{ followMode = true; stream.scrollTo({top:stream.scrollHeight, behavior:'smooth'}); };
+
+/* ================= forensics ================= */
+function selectLine(l, div){
+  if(selectedLine && selectedLine.el) selectedLine.el.classList.remove('selected');
+  stream.querySelectorAll('.detail').forEach(d=>d.remove());
+  selectedLine = l;
+  selectedTrace = l.trace;
+  div.classList.add('selected');
+  stream.querySelectorAll('.ln').forEach(el=>el.classList.remove('correlated'));
+  buf.forEach(o=>{ if(o.trace===selectedTrace && o.el) o.el.classList.add('correlated'); });
+  /* detail */
+  const meta = l.meta || {};
+  const json = '{\n'+
+    '  <span class="k">"trace_id"</span>: <span class="s">"'+l.trace+'"</span>,\n'+
+    '  <span class="k">"span_id"</span>: <span class="s">"'+hex(8)+'"</span>,\n'+
+    '  <span class="k">"service"</span>: <span class="s">"'+l.svc+'"</span>,\n'+
+    '  <span class="k">"level"</span>: <span class="s">"'+l.level+'"</span>,\n'+
+    (meta.status!==undefined?'  <span class="k">"status"</span>: <span class="n">'+meta.status+'</span>,\n':'')+
+    (meta.latency_ms!==undefined?'  <span class="k">"latency_ms"</span>: <span class="n">'+meta.latency_ms+'</span>,\n':'')+
+    '  <span class="k">"region"</span>: <span class="s">"ap-east-1"</span>,\n'+
+    '  <span class="k">"pod"</span>: <span class="s">"'+l.svc+'-'+hex(4)+'-v2"</span>\n'+
+    '}';
+  const d = document.createElement('div');
+  d.className = 'detail';
+  d.innerHTML = json + (l.stack ? '<span class="stack">'+esc(l.stack)+'</span>' : '');
+  div.after(d);
+  /* trace panel */
+  const siblings = buf.filter(o=>o.trace===l.trace);
+  const tp = document.getElementById('trace-panel');
+  tp.className = 'show';
+  tp.innerHTML = '<span class="tid">tr='+l.trace+'</span><br>'+
+    '<span class="sp">关联日志 <b>'+siblings.length+'</b> 条</span><br>'+
+    siblings.map(o=>'<span class="sp">· '+fmtTs(o.ts).slice(0,8)+' <b>'+o.level+'</b> '+esc(o.svc)+'</span>').join('<br>');
+  document.getElementById('isolate').disabled = false;
+  if(document.body.classList.contains('isolating')) applyIsolation();
+  maybeScroll();
+}
+document.getElementById('isolate').onclick = e=>{
+  document.body.classList.toggle('isolating');
+  e.target.classList.toggle('on');
+  e.target.textContent = document.body.classList.contains('isolating') ? '取消隔离' : '隔离 TRACE';
+};
+function applyIsolation(){ /* CSS handles dimming via .correlated */ }
+
+/* ================= search ================= */
+const q = document.getElementById('q');
+let matches = [], matchIdx = -1;
+q.addEventListener('input', ()=>{
+  query = q.value.trim();
+  rebuild();
+});
+q.addEventListener('keydown', e=>{
+  if(e.key !== 'Enter') return;
+  matches = [...stream.querySelectorAll('mark')].map(m=>m.closest('.ln'));
+  if(!matches.length) return;
+  matchIdx = (matchIdx + (e.shiftKey?-1:1) + matches.length) % matches.length;
+  matches.forEach(m=>m.classList.remove('match-jump'));
+  const el = matches[matchIdx];
+  el.classList.add('match-jump');
+  followMode = false;
+  el.scrollIntoView({block:'center', behavior:'smooth'});
+});
+function updateCount(){
+  const n = stream.querySelectorAll('mark').length;
+  document.getElementById('qcount').textContent = query ? n+' 处' : '';
+}
+
+/* ================= chips / pause ================= */
+document.getElementById('chips').addEventListener('click', e=>{
+  const b = e.target.closest('.chip'); if(!b) return;
+  const lv = b.dataset.lv;
+  activeLv[lv] = !activeLv[lv];
+  b.classList.toggle('on', activeLv[lv]);
+  b.classList.toggle('off', !activeLv[lv]);
+  rebuild();
+});
+function updateChips(){
+  document.querySelectorAll('.chip').forEach(c=>{
+    c.querySelector('b').textContent = counts[c.dataset.lv];
+  });
+}
+document.getElementById('pause').onclick = e=>{
+  paused = !paused;
+  e.target.textContent = paused ? '继续' : '暂停';
+  e.target.classList.toggle('warn-on', paused);
+  document.getElementById('live-dot').classList.toggle('paused', paused);
+};
+
+/* ================= sidebar ================= */
+function updateSvc(){
+  const el = document.getElementById('svc');
+  const maxE = Math.max(1, ...SVCS.map(s=>svcErr[s]));
+  el.innerHTML = SVCS.map(s=>
+    '<div class="svc-row"><span class="nm">'+s+'</span>'+
+    '<div class="bar" style="width:'+(svcErr[s]/maxE*80)+'px"></div>'+
+    '<span class="ct">'+svcErr[s]+'</span>'+
+    '<div class="bar w" style="width:'+(svcWarn[s]/maxE*40)+'px"></div>'+
+    '<span class="ct">'+svcWarn[s]+'</span></div>').join('');
+}
+const spark = document.getElementById('spark'), spx = spark.getContext('2d');
+function drawSpark(){
+  const dpr = window.devicePixelRatio||1;
+  const w = spark.clientWidth, h = spark.clientHeight;
+  spark.width = w*dpr; spark.height = h*dpr;
+  spx.setTransform(dpr,0,0,dpr,0,0);
+  spx.clearRect(0,0,w,h);
+  const max = Math.max(2, ...errBuckets);
+  spx.strokeStyle = 'rgba(30,38,32,1)';
+  for(let i=1;i<3;i++){ spx.beginPath(); spx.moveTo(0,h*i/3); spx.lineTo(w,h*i/3); spx.stroke(); }
+  spx.beginPath();
+  errBuckets.forEach((v,i)=>{
+    const x = i/59*w, y = h-4-(v/max)*(h-10);
+    i?spx.lineTo(x,y):spx.moveTo(x,y);
+  });
+  spx.strokeStyle = '#FF6B5E'; spx.lineWidth = 1.4;
+  spx.shadowColor = 'rgba(255,107,94,.5)'; spx.shadowBlur = 5;
+  spx.stroke();
+}
+window.addEventListener('resize', drawSpark);
+setInterval(()=>{ // advance empty buckets when quiet
+  const sec = Math.floor(Date.now()/1000);
+  if(sec !== bucketSec){
+    const shift = Math.min(60, sec-bucketSec);
+    for(let i=0;i<shift;i++){ errBuckets.push(0); errBuckets.shift(); }
+    bucketSec = sec;
+    drawSpark();
+  }
+}, 1000);
+
+/* ================= boot ================= */
+for(let i=0;i<46;i++) normalLine();
+drawSpark();
+scheduleGen();
+stream.scrollTop = stream.scrollHeight;
+</script>
+</body>
+</html>

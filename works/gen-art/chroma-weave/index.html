@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHROMA WEAVE 织色 — 算法编织纹理</title>
+<style>
+  :root{
+    --paper:#f2efe9; --ink:#16130f; --dim:#7b7466;
+    --acc:#b3402a; --indigo:#2e4057;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --heavy:"Helvetica Neue",-apple-system,"PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--acc);color:#fff}
+
+  header{display:flex;justify-content:space-between;align-items:flex-end;padding:26px 30px 0;gap:20px;flex-wrap:wrap}
+  .sig{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+  .sig h1{font-family:var(--heavy);font-size:29px;font-weight:900;letter-spacing:-.01em;line-height:1;text-transform:uppercase}
+  .sig h1 em{font-style:normal;color:var(--acc)}
+  .sig .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em;padding-bottom:3px}
+  .sig .no b{color:var(--acc);font-weight:400}
+  header p.tag{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.14em;text-align:right;text-transform:uppercase;line-height:1.9}
+  .rule{margin:16px 30px 0;border-top:2px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;right:0;top:-8px;width:14px;height:14px;background:var(--acc);border-radius:50%}
+
+  main{display:grid;grid-template-columns:1fr 292px;gap:26px;padding:24px 30px 48px;max-width:1460px;margin:0 auto}
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .stage{
+    position:relative;border:1px solid var(--ink);
+    box-shadow:8px 8px 0 rgba(22,19,15,.10);overflow:hidden;
+    background:
+      linear-gradient(rgba(22,19,15,.05) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(22,19,15,.05) 1px,transparent 1px),
+      #e9e4d8;
+    background-size:24px 24px;
+    display:flex;align-items:center;justify-content:center;
+    padding:26px;min-height:420px;
+  }
+  .stage canvas{display:block;background:#16130f;box-shadow:0 3px 18px rgba(22,19,15,.28);cursor:pointer;max-width:100%}
+  .stamp{position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink);border:1px solid var(--ink);padding:4px 9px;background:rgba(242,239,233,.9);pointer-events:none;text-transform:uppercase}
+  .hint{position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:rgba(22,19,15,.55);pointer-events:none;text-transform:uppercase}
+
+  .dock{border:1px solid var(--ink);background:#fff;padding:0;display:flex;flex-direction:column;align-self:start;position:sticky;top:20px}
+  @media (max-width:960px){.dock{position:static}}
+  .dock section{padding:18px 20px;border-bottom:1px solid #ddd8cc;display:flex;flex-direction:column;gap:12px}
+  .dock section:last-child{border-bottom:none}
+  .dock h2{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);letter-spacing:.24em;text-transform:uppercase;display:flex;justify-content:space-between}
+  .dock h2 span{color:var(--acc)}
+
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+  .ctl label output{color:var(--acc)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-5.5px;background:var(--acc);border:2px solid var(--ink);border-radius:0;transform:rotate(45deg)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--acc);border:2px solid var(--ink);border-radius:0}
+
+  .pats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .pats button{
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    padding:9px 6px;border:1px solid #ddd8cc;background:transparent;color:var(--ink);
+    cursor:pointer;transition:all .2s var(--ease);
+  }
+  .pats button:hover{border-color:var(--ink)}
+  .pats button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .pats button.on i{color:var(--acc);font-style:normal}
+
+  .btns{display:flex;flex-direction:column;gap:10px}
+  .dock button.act{
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    padding:13px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    cursor:pointer;transition:all .2s var(--ease);
+  }
+  .dock button.act:hover{background:var(--ink);color:#fff}
+  .dock button.act.primary{background:var(--ink);color:#fff}
+  .dock button.act.primary:hover{background:var(--acc);border-color:var(--acc)}
+  .dock button.act:active{transform:translateY(1px)}
+
+  .note{font-size:11px;line-height:1.95;color:#5b564a;letter-spacing:.03em}
+  .note b{color:var(--acc)}
+
+  footer{padding:0 30px 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>CHROMA <em>WEAVE</em></h1>
+    <span class="no">N°<b>08</b> — GEN-ART / 算法编织纹理</span>
+  </div>
+  <p class="tag">Warp × weft · draft notation · yarn sequence<br>经纬沉浮 × 提花组织 × 纱线色序</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="c"></canvas>
+    <div class="stamp">Loom · Draft 08</div>
+    <div class="hint">Click cloth to flip threads · 点击布面翻纱</div>
+  </div>
+
+  <aside class="dock">
+    <section>
+      <h2>织机 <span>LOOM</span></h2>
+      <div class="ctl">
+        <label>密度 Density <output id="oDen">34</output></label>
+        <input type="range" id="rDen" min="14" max="60" value="34">
+      </div>
+      <div class="ctl">
+        <label>纱粗 Yarn <output id="oYarn">82</output></label>
+        <input type="range" id="rYarn" min="45" max="100" value="82">
+      </div>
+    </section>
+    <section>
+      <h2>组织 <span>WEAVE</span></h2>
+      <div class="pats" id="pats"></div>
+    </section>
+    <section>
+      <div class="btns">
+        <button class="act primary" id="bRegen">随机再生 · Rewind</button>
+        <button class="act" id="bSave">下载 PNG · Download</button>
+      </div>
+    </section>
+    <section>
+      <p class="note">经纱竖行、纬纱横行，每一梭的<b>沉浮</b>由组织矩阵决定；色序在整经时随机排布。点击布面可翻转任一交叉点——那是属于你的<b>提花</b>。</p>
+    </section>
+  </aside>
+</main>
+
+<footer>
+  <span>Chroma Weave — An Homage to the Weaving Workshop</span>
+  <span id="stats">WARP 00 · WEFT 00</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+var canvas=document.getElementById("c"), ctx=canvas.getContext("2d");
+var stage=document.getElementById("stage");
+
+var YARNS=["#16130f","#2e4057","#b3402a","#d9a441","#e8e0cd","#7a8b6f"];
+var PATTERNS=[
+  {id:"plain",  cn:"平纹", fn:function(i,j){return (i+j)%2===0}},
+  {id:"twill",  cn:"斜纹", fn:function(i,j){return ((i-j)%4+4)%4<2}},
+  {id:"satin",  cn:"缎纹", fn:function(i,j){return (j+i*2)%5===0}},
+  {id:"basket", cn:"方平", fn:function(i,j){return ((Math.floor(i/2)+Math.floor(j/2))%2)===0}},
+  {id:"chevron",cn:"山形", fn:function(i,j){var r=(j%8<4)?i:-i; return ((r+j)%4+4)%4<2}},
+  {id:"random", cn:"乱织", fn:function(i,j,rand){return rand(i,j)<.5}}
+];
+
+var seed=Math.floor(Math.random()*1e9);
+var P={den:34,yarn:82,pat:0};
+var warpCols=[], weftCols=[], flips=new Map(), cellRand=null;
+var W=0,H=0,dpr=1,S=0,ox=0,oy=0;
+var hov={i:-1,j:-1}, down=false;
+
+/* yarn color sequences */
+function buildYarns(rand,n){
+  var seq=[], idx=Math.floor(rand()*YARNS.length), left=0;
+  for(var k=0;k<n;k++){
+    if(left<=0){
+      var next=Math.floor(rand()*YARNS.length);
+      if(next===idx)next=(next+1)%YARNS.length;
+      idx=next; left=1+Math.floor(rand()*rand()*6);
+    }
+    seq.push(YARNS[idx]); left--;
+  }
+  return seq;
+}
+
+function shade(hex,f){ // f<1 darken
+  var n=parseInt(hex.slice(1),16);
+  var r=Math.min(255,Math.round(((n>>16)&255)*f)),
+      g=Math.min(255,Math.round(((n>>8)&255)*f)),
+      b=Math.min(255,Math.round((n&255)*f));
+  return "rgb("+r+","+g+","+b+")";
+}
+
+function rebuild(){
+  var rand=mulberry32(seed);
+  warpCols=buildYarns(rand,80);
+  weftCols=buildYarns(rand,80);
+  flips.clear();
+  var cr=mulberry32(seed+31);
+  var cache={};
+  cellRand=function(i,j){
+    var k=i*4096+j;
+    if(cache[k]===undefined)cache[k]=cr();
+    return cache[k];
+  };
+}
+
+function warpOver(i,j){
+  var base=PATTERNS[P.pat].fn(i,j,cellRand);
+  var f=flips.get(i*4096+j);
+  return f===undefined?base:f;
+}
+
+/* ---------------- layout & render ---------------- */
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  var r=stage.getBoundingClientRect();
+  var avail=Math.min(r.width-52, window.innerHeight*.72);
+  W=Math.max(300,avail); H=W;
+  canvas.style.width=W+"px"; canvas.style.height=H+"px";
+  canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  S=W-36; ox=18; oy=18;
+}
+window.addEventListener("resize",resize);
+
+function render(time){
+  var n=P.den, cell=S/n, t=cell*P.yarn/100;
+  ctx.fillStyle="#16130f"; ctx.fillRect(0,0,W,H);
+  var rr=Math.min(3,cell*.18);
+  for(var j=0;j<n;j++){
+    for(var i=0;i<n;i++){
+      var x=ox+i*cell, y=oy+j*cell;
+      var over=warpOver(i,j);
+      var wc=warpCols[i%warpCols.length], fc=weftCols[j%weftCols.length];
+      var under=over?fc:wc, overC=over?wc:fc;
+      // under thread (dimmed)
+      ctx.fillStyle=shade(under===overC?under:under,.62);
+      if(over){ctx.fillRect(x,y+(cell-t)/2,cell,t);}
+      else{ctx.fillRect(x+(cell-t)/2,y,t,cell);}
+      // over thread
+      ctx.fillStyle=overC;
+      if(over){ctx.fillRect(x+(cell-t)/2,y,t,cell);}
+      else{ctx.fillRect(x,y+(cell-t)/2,cell,t);}
+      // sheen
+      ctx.fillStyle="rgba(255,255,255,.13)";
+      if(over){ctx.fillRect(x+(cell-t)/2+t*.24,y,t*.16,cell);}
+      else{ctx.fillRect(x,y+(cell-t)/2+t*.24,cell,t*.16);}
+      // contact shadow
+      ctx.fillStyle="rgba(0,0,0,.16)";
+      if(over){
+        ctx.fillRect(x+(cell-t)/2-1,y,1,cell);
+        ctx.fillRect(x+(cell+t)/2,y,1,cell);
+      }else{
+        ctx.fillRect(x,y+(cell-t)/2-1,cell,1);
+        ctx.fillRect(x,y+(cell+t)/2,cell,1);
+      }
+    }
+  }
+  // selvage fringe (warp ends)
+  for(i=0;i<n;i++){
+    ctx.strokeStyle=warpCols[i%warpCols.length];
+    ctx.lineWidth=Math.max(1,t*.3);
+    var fx=ox+i*cell+cell/2, l=8+(i%3)*4;
+    ctx.beginPath(); ctx.moveTo(fx,oy-2); ctx.lineTo(fx,oy-2-l); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(fx,oy+S+2); ctx.lineTo(fx,oy+S+2+l); ctx.stroke();
+  }
+  // moving light sweep
+  var sw=((time*.06)%2.4)-.6; // -0.6..1.8
+  var grd=ctx.createLinearGradient(W*sw-W*.3,0,W*sw+W*.3,H);
+  grd.addColorStop(0,"rgba(255,255,255,0)");
+  grd.addColorStop(.5,"rgba(255,255,255,.10)");
+  grd.addColorStop(1,"rgba(255,255,255,0)");
+  ctx.fillStyle=grd; ctx.fillRect(ox,oy,S,S);
+  // hover cell
+  if(hov.i>=0){
+    ctx.strokeStyle="#b3402a"; ctx.lineWidth=2;
+    ctx.strokeRect(ox+hov.i*cell+1,oy+hov.j*cell+1,cell-2,cell-2);
+  }
+  // frame
+  ctx.strokeStyle="rgba(232,224,205,.5)"; ctx.lineWidth=1;
+  ctx.strokeRect(ox-.5,oy-.5,S+1,S+1);
+  document.getElementById("stats").textContent=
+    "WARP "+("0"+n).slice(-2)+" · WEFT "+("0"+n).slice(-2)+" · "+PATTERNS[P.pat].id.toUpperCase();
+}
+
+function frame(now){
+  render(now/1000);
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- events ---------------- */
+function cellAt(e){
+  var r=canvas.getBoundingClientRect();
+  var x=(e.clientX-r.left)-ox, y=(e.clientY-r.top)-oy;
+  var cell=S/P.den;
+  var i=Math.floor(x/cell), j=Math.floor(y/cell);
+  if(i<0||j<0||i>=P.den||j>=P.den)return null;
+  return {i:i,j:j};
+}
+canvas.addEventListener("pointerdown",function(e){
+  down=true;
+  var c=cellAt(e); if(!c)return;
+  var k=c.i*4096+c.j;
+  flips.set(k,!warpOver(c.i,c.j));
+});
+canvas.addEventListener("pointermove",function(e){
+  var c=cellAt(e);
+  hov=c||{i:-1,j:-1};
+  if(down&&c){
+    var k=c.i*4096+c.j;
+    if(!flips.has(k))flips.set(k,!warpOver(c.i,c.j));
+  }
+});
+window.addEventListener("pointerup",function(){down=false});
+canvas.addEventListener("pointerleave",function(){hov={i:-1,j:-1}});
+
+document.getElementById("rDen").addEventListener("input",function(){
+  P.den=+this.value; document.getElementById("oDen").textContent=this.value; flips.clear();
+});
+document.getElementById("rYarn").addEventListener("input",function(){
+  P.yarn=+this.value; document.getElementById("oYarn").textContent=this.value;
+});
+
+var patBox=document.getElementById("pats");
+PATTERNS.forEach(function(p,idx){
+  var b=document.createElement("button");
+  b.className=idx===0?"on":"";
+  b.innerHTML='<i>◆</i> '+p.cn+' '+p.id.toUpperCase();
+  b.addEventListener("click",function(){
+    P.pat=idx; flips.clear();
+    patBox.querySelectorAll("button").forEach(function(el,k){el.classList.toggle("on",k===idx)});
+  });
+  patBox.appendChild(b);
+});
+
+document.getElementById("bRegen").addEventListener("click",function(){
+  seed=Math.floor(Math.random()*1e9); rebuild();
+});
+document.getElementById("bSave").addEventListener("click",function(){
+  var ex=document.createElement("canvas");
+  ex.width=1200; ex.height=1200;
+  var eg=ex.getContext("2d");
+  var keepCtx=ctx; // temporarily render into export canvas
+  ctx=eg;
+  var keep={W:W,H:H,S:S,ox:ox,oy:oy};
+  W=1200;H=1200;S=1164;ox=18;oy=18;
+  eg.setTransform(1,0,0,1,0,0);
+  render(4.2);
+  ctx=keepCtx; W=keep.W;H=keep.H;S=keep.S;ox=keep.ox;oy=keep.oy;
+  var a=document.createElement("a");
+  a.download="chroma-weave-"+seed+".png";
+  a.href=ex.toDataURL("image/png");
+  a.click();
+});
+
+rebuild(); resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

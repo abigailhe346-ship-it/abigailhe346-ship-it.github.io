@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La Mie 晨酵面包房 — 自 1987</title>
+<style>
+  :root{
+    --cream:#F6EFE3;
+    --cream2:#EFE5D2;
+    --cocoa:#2E1F16;
+    --caramel:#A85B24;
+    --sage:#77805F;
+    --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--cream);color:var(--cocoa);font-family:var(--sans);overflow-x:hidden;}
+  ::selection{background:var(--caramel);color:var(--cream);}
+
+  #flour{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;opacity:.5;}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:center;
+    padding:18px 4vw;background:linear-gradient(180deg,rgba(246,239,227,.92),rgba(246,239,227,0));pointer-events:none;}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.14em;line-height:1.7;}
+  .sig .no{color:var(--caramel);}
+  #basketBtn{border:1.5px solid var(--cocoa);background:var(--cream);color:var(--cocoa);
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;padding:10px 18px;position:relative;
+    transition:background .3s,color .3s;}
+  #basketBtn:hover{background:var(--cocoa);color:var(--cream);}
+  #basketCount{position:absolute;top:-9px;right:-9px;width:22px;height:22px;border-radius:50%;
+    background:var(--caramel);color:var(--cream);display:flex;align-items:center;justify-content:center;
+    font-size:10px;transform:scale(0);transition:transform .35s var(--ease);}
+  #basketCount.on{transform:scale(1);}
+  #basketCount.pop{animation:pop .4s var(--ease);}
+  @keyframes pop{40%{transform:scale(1.5);}100%{transform:scale(1);}}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;
+    text-align:center;position:relative;padding:12vh 4vw 8vh;}
+  .hero .over{font-family:var(--mono);font-size:11px;letter-spacing:.45em;color:var(--caramel);margin-bottom:3vh;}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(80px,17vw,260px);line-height:.9;letter-spacing:-.01em;}
+  h1 em{font-style:italic;color:var(--caramel);}
+  .hero .sub{font-family:var(--serif);font-style:italic;font-size:clamp(18px,2.4vw,30px);margin-top:2.5vh;color:rgba(46,31,22,.75);}
+  .hero .hours{margin-top:5vh;font-family:var(--mono);font-size:11px;letter-spacing:.2em;color:rgba(46,31,22,.6);line-height:2.1;}
+  #nowBaking{margin-top:3.5vh;display:inline-flex;align-items:center;gap:12px;border:1.5px solid var(--cocoa);
+    padding:12px 22px;font-family:var(--mono);font-size:12px;letter-spacing:.14em;background:var(--cream);}
+  #nowBaking .flame{width:9px;height:9px;border-radius:50%;background:var(--caramel);animation:flame 1.6s ease-in-out infinite;}
+  @keyframes flame{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.6);opacity:.5}}
+  #nowBaking b{font-weight:400;color:var(--caramel);}
+
+  .croissant{position:absolute;width:clamp(180px,26vw,420px);opacity:.9;pointer-events:none;
+    left:50%;top:50%;transform:translate(-50%,-50%);z-index:1;mix-blend-mode:multiply;}
+  .hero .over,.hero h1,.hero .sub,.hero .hours,.hero #nowBaking{position:relative;z-index:2;}
+
+  /* ---------- marquee ---------- */
+  .marquee{background:var(--cocoa);color:var(--cream);overflow:hidden;white-space:nowrap;padding:13px 0;}
+  .marquee .track{display:inline-block;animation:mq 30s linear infinite;}
+  .marquee span{font-family:var(--serif);font-style:italic;font-size:15px;letter-spacing:.06em;padding:0 24px;}
+  .marquee .dot{color:var(--caramel);font-style:normal;}
+  @keyframes mq{to{transform:translateX(-50%)}}
+
+  /* ---------- sections ---------- */
+  section{padding:12vh 4vw;max-width:1280px;margin:0 auto;position:relative;z-index:2;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6vh;flex-wrap:wrap;gap:10px;
+    border-bottom:1.5px solid var(--cocoa);padding-bottom:18px;}
+  .sec-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(36px,5vw,68px);line-height:1;}
+  .sec-head h2 em{color:var(--caramel);}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:rgba(46,31,22,.55);}
+
+  /* ---------- ferment timeline ---------- */
+  .ferment{display:grid;grid-template-columns:1fr;gap:4vh;}
+  .fstage-track{position:relative;height:2px;background:rgba(46,31,22,.2);margin:8vh 6px 4vh;}
+  .fstage-fill{position:absolute;left:0;top:0;bottom:0;background:var(--caramel);width:0;transition:width .8s var(--ease);}
+  .fstage-knob{position:absolute;top:50%;width:26px;height:26px;border-radius:50%;background:var(--cream);
+    border:2px solid var(--cocoa);transform:translate(-50%,-50%);transition:left .8s var(--ease);cursor:grab;z-index:3;}
+  .fstage-knob:active{cursor:grabbing;}
+  .fstops{position:absolute;inset:0;}
+  .fstop{position:absolute;top:50%;transform:translate(-50%,-50%);background:none;border:none;
+    width:14px;height:14px;border-radius:50%;background:var(--cream);border:2px solid rgba(46,31,22,.4);transition:.3s;}
+  .fstop.done{border-color:var(--caramel);background:var(--caramel);}
+  .fstop.cur{border-color:var(--cocoa);transform:translate(-50%,-50%) scale(1.5);}
+  .fpanel{display:grid;grid-template-columns:120px 1fr;gap:24px;align-items:start;min-height:150px;}
+  .fpanel .ftime{font-family:var(--serif);font-size:clamp(40px,4.5vw,64px);line-height:1;color:var(--caramel);font-style:italic;}
+  .fpanel h3{font-family:var(--serif);font-size:clamp(24px,2.4vw,34px);font-weight:400;margin-bottom:12px;}
+  .fpanel p{max-width:56ch;line-height:1.9;font-size:15px;color:rgba(46,31,22,.8);}
+  .fpanel .ftemp{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--sage);margin-top:14px;}
+
+  /* ---------- menu ---------- */
+  .menu{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2px;background:rgba(46,31,22,.25);}
+  .item{background:var(--cream);padding:30px 26px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden;}
+  .item:hover{background:var(--cream2);}
+  .item .inum{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--caramel);}
+  .item h3{font-family:var(--serif);font-weight:400;font-size:26px;line-height:1.15;}
+  .item .desc{font-size:13px;line-height:1.8;color:rgba(46,31,22,.7);flex:1;}
+  .item .row{display:flex;justify-content:space-between;align-items:center;}
+  .item .price{font-family:var(--serif);font-size:22px;font-style:italic;}
+  .add{border:1.5px solid var(--cocoa);background:transparent;color:var(--cocoa);font-family:var(--mono);
+    font-size:10px;letter-spacing:.18em;padding:10px 16px;transition:.3s;position:relative;overflow:hidden;}
+  .add:hover{background:var(--cocoa);color:var(--cream);}
+  .add.added{background:var(--caramel);border-color:var(--caramel);color:var(--cream);}
+  .item .tag{position:absolute;top:14px;right:-32px;transform:rotate(45deg);background:var(--sage);color:var(--cream);
+    font-family:var(--mono);font-size:9px;letter-spacing:.2em;padding:5px 40px;}
+  .fly{position:fixed;z-index:80;width:14px;height:14px;border-radius:50%;background:var(--caramel);pointer-events:none;}
+
+  /* ---------- basket drawer ---------- */
+  #drawer{position:fixed;top:0;right:0;bottom:0;width:min(400px,92vw);background:var(--cocoa);color:var(--cream);
+    z-index:70;transform:translateX(105%);transition:transform .6s var(--ease);display:flex;flex-direction:column;padding:32px 28px;}
+  #drawer.open{transform:none;}
+  #drawer h3{font-family:var(--serif);font-weight:400;font-size:30px;margin-bottom:4px;}
+  #drawer .dsub{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(246,239,227,.5);margin-bottom:28px;}
+  #dItems{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0;}
+  .ditem{display:flex;justify-content:space-between;align-items:center;padding:16px 0;border-bottom:1px solid rgba(246,239,227,.15);
+    animation:din .4s var(--ease);}
+  @keyframes din{from{opacity:0;transform:translateX(20px)}}
+  .ditem .dn{font-family:var(--serif);font-size:17px;}
+  .ditem .dq{font-family:var(--mono);font-size:11px;color:rgba(246,239,227,.55);margin-top:4px;}
+  .ditem .dr{display:flex;align-items:center;gap:12px;}
+  .ditem .dp{font-family:var(--mono);font-size:13px;}
+  .ditem .rm{background:none;border:none;color:rgba(246,239,227,.5);font-family:var(--mono);font-size:14px;transition:color .3s;}
+  .ditem .rm:hover{color:var(--caramel);}
+  .dempty{font-family:var(--serif);font-style:italic;color:rgba(246,239,227,.45);font-size:16px;line-height:1.9;margin-top:4vh;}
+  #dFoot{border-top:1.5px solid rgba(246,239,227,.3);padding-top:20px;margin-top:12px;}
+  #dTotal{display:flex;justify-content:space-between;font-family:var(--serif);font-size:26px;margin-bottom:18px;}
+  #checkout{width:100%;background:var(--caramel);border:none;color:var(--cream);padding:16px;
+    font-family:var(--mono);font-size:12px;letter-spacing:.24em;transition:filter .3s;}
+  #checkout:hover{filter:brightness(1.15);}
+  #dClose{position:absolute;top:24px;right:24px;background:none;border:none;color:var(--cream);
+    font-family:var(--mono);font-size:18px;opacity:.6;transition:opacity .3s;}
+  #dClose:hover{opacity:1;}
+  #scrim{position:fixed;inset:0;background:rgba(46,31,22,.4);z-index:65;opacity:0;pointer-events:none;transition:opacity .5s;}
+  #scrim.on{opacity:1;pointer-events:auto;}
+  .toast{position:fixed;left:50%;bottom:6vh;transform:translate(-50%,20px);background:var(--cocoa);color:var(--cream);
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;padding:14px 26px;z-index:90;opacity:0;
+    transition:opacity .4s var(--ease),transform .4s var(--ease);pointer-events:none;}
+  .toast.on{opacity:1;transform:translate(-50%,0);}
+
+  /* ---------- story ---------- */
+  .story{display:grid;grid-template-columns:1fr 1fr;gap:6vw;align-items:center;}
+  @media(max-width:820px){.story{grid-template-columns:1fr;}}
+  .story .big-q{font-family:var(--serif);font-size:clamp(28px,3.4vw,46px);line-height:1.35;font-weight:400;}
+  .story .big-q em{color:var(--caramel);}
+  .story p{line-height:2.1;font-size:15px;color:rgba(46,31,22,.8);margin-bottom:1.4em;}
+  .story .who{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--sage);}
+
+  footer{background:var(--cocoa);color:var(--cream);padding:10vh 4vw 6vh;position:relative;z-index:2;}
+  footer .fbig{font-family:var(--serif);font-size:clamp(40px,8vw,120px);line-height:1;font-style:italic;color:var(--cream);margin-bottom:5vh;}
+  footer .fbig em{color:var(--caramel);}
+  footer .fgrid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;line-height:2.2;color:rgba(246,239,227,.6);}
+
+  @media(max-width:720px){
+    h1{font-size:21vw;}
+    .sig{font-size:9px;letter-spacing:.08em;}
+    #basketBtn{font-size:9px;padding:8px 12px;}
+    #nowBaking{font-size:10px;letter-spacing:.08em;padding:10px 14px;max-width:92vw;text-align:center;}
+    .fpanel{grid-template-columns:1fr;gap:14px;}
+  }
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+  .reveal.in{opacity:1;transform:none;}
+</style>
+</head>
+<body>
+
+<canvas id="flour"></canvas>
+
+<header>
+  <div class="sig"><span class="no">№ 02</span> · <b>LA MIE 晨酵面包房</b><br>WEB DESIGN / ARTISAN BAKERY</div>
+  <button id="basketBtn">篮子 BASKET<span id="basketCount">0</span></button>
+</header>
+
+<div class="hero">
+  <svg class="croissant" id="cro" viewBox="0 0 400 260" fill="none" stroke="#A85B24" stroke-width="2.5" stroke-linecap="round">
+    <path d="M40 190 C 20 150 60 90 140 70 C 230 48 340 80 360 140 C 372 176 350 205 320 208"/>
+    <path d="M40 190 C 70 200 120 205 170 200"/>
+    <path d="M320 208 C 260 214 200 210 170 200"/>
+    <path d="M110 92 C 120 120 122 155 118 192"/>
+    <path d="M185 66 C 190 105 190 155 184 200"/>
+    <path d="M260 70 C 258 110 254 160 244 204"/>
+    <path d="M325 100 C 318 135 310 170 296 206"/>
+    <path d="M55 160 C 90 168 130 172 170 172 C 230 172 290 160 340 138"/>
+  </svg>
+  <div class="over">ARTISAN BOULANGERIE · 自 1987</div>
+  <h1>La <em>Mie</em></h1>
+  <div class="sub">面包的心，是时间与火商量出来的。</div>
+  <div class="hours">周二 — 周日 · 06:30 — 14:00<br>面粉 / 水 / 盐 / 酵种，仅此而已</div>
+  <div id="nowBaking"><span class="flame"></span><span>此刻炉中 NOW BAKING — <b id="nbName">—</b></span></div>
+</div>
+
+<div class="marquee"><div class="track" id="mq"></div></div>
+
+<section>
+  <div class="sec-head reveal">
+    <h2>一只面包的 <em>十二小时</em></h2>
+    <span class="idx">01 / FERMENTATION — 拖动时间轴</span>
+  </div>
+  <div class="ferment reveal">
+    <div class="fstage-track" id="track">
+      <div class="fstage-fill" id="fill"></div>
+      <div class="fstops" id="stops"></div>
+      <div class="fstage-knob" id="knob"></div>
+    </div>
+    <div class="fpanel">
+      <div class="ftime" id="fTime">21:00</div>
+      <div>
+        <h3 id="fTitle">喂种</h3>
+        <p id="fDesc"></p>
+        <div class="ftemp" id="fTemp"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head reveal">
+    <h2>今日出炉 <em>La Carte</em></h2>
+    <span class="idx">02 / TODAY'S BAKE — 卖完即止</span>
+  </div>
+  <div class="menu reveal" id="menu"></div>
+</section>
+
+<section>
+  <div class="sec-head reveal">
+    <h2>面包房的事 <em>L'Atelier</em></h2>
+    <span class="idx">03 / STORY</span>
+  </div>
+  <div class="story">
+    <div class="big-q reveal">“我们不赶时间。<br>酸种养了 <em>三十八年</em>，<br>比店里任何人都年长。”</div>
+    <div class="reveal">
+      <p>1987 年冬天，祖父在巷口砌起第一座石窑。从那以后，每天早上四点半，炉火准时亮起。面团在前一天傍晚揉好，整晚在藤篮里缓慢呼吸——低温长时间发酵换来的，是切开时那一声干脆的响，和蜂窝一样不均匀的气孔。</p>
+      <p>我们不卖隔夜的面包。每天下午两点拉下卷帘门，卖完就提前关门。剩下没卖完的，切成薄片烤成面包干，挂在门口任路人自取。</p>
+      <div class="who">— 店主 陈麦 / 第三代烘焙师</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fbig">明早<em>六点半</em>，炉边见。</div>
+  <div class="fgrid">
+    <div>LA MIE 晨酵面包房<br>梧桐巷 12 号 · 老城根下<br>hello@lamie.example</div>
+    <div>出炉时刻<br>06:30 乡村酸种<br>07:30 可颂 / 09:00 布里欧修</div>
+    <div>№ 02 — WEB DESIGN<br>DESIGNED &amp; CODED BY HAND<br>© 2026 LA MIE</div>
+  </div>
+</footer>
+
+<div id="scrim"></div>
+<aside id="drawer">
+  <button id="dClose">×</button>
+  <h3>你的篮子</h3>
+  <div class="dsub">BASKET — 出炉后两小时内取走最香</div>
+  <div id="dItems"></div>
+  <div id="dFoot">
+    <div id="dTotal"><span>合计</span><span id="dSum">¥0</span></div>
+    <button id="checkout">预订出炉 PROCEED →</button>
+  </div>
+</aside>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= flour dust ================= */
+(function(){
+  var c=document.getElementById('flour'),x=c.getContext('2d'),W,H,ps=[];
+  function rs(){W=c.width=innerWidth*devicePixelRatio;H=c.height=innerHeight*devicePixelRatio;
+    c.style.width=innerWidth+'px';c.style.height=innerHeight+'px';}
+  rs();addEventListener('resize',rs);
+  var N=Math.min(70,innerWidth/18|0);
+  for(var i=0;i<N;i++)ps.push({x:Math.random()*1,y:Math.random()*1,r:Math.random()*1.6+.4,vx:(Math.random()-.5)*.00012,vy:Math.random()*.0002+.00006,a:Math.random()*.5+.15,ph:Math.random()*6.28});
+  (function loop(t){
+    x.clearRect(0,0,W,H);
+    ps.forEach(function(p){
+      p.x+=p.vx+Math.sin(t*.0004+p.ph)*.00008;p.y+=p.vy;
+      if(p.y>1.02){p.y=-.02;p.x=Math.random();}
+      if(p.x>1.02)p.x=-.02;if(p.x<-.02)p.x=1.02;
+      x.beginPath();x.arc(p.x*W,p.y*H,p.r*devicePixelRatio,0,6.28);
+      x.fillStyle='rgba(168,91,36,'+(p.a*.35)+')';x.fill();
+    });
+    requestAnimationFrame(loop);
+  })(0);
+})();
+
+/* ================= croissant parallax ================= */
+(function(){
+  var cro=document.getElementById('cro'),tx=0,ty=0,cx=0,cy=0;
+  addEventListener('mousemove',function(e){
+    tx=(e.clientX/innerWidth-.5)*26;ty=(e.clientY/innerHeight-.5)*18;
+  });
+  (function loop(){
+    cx+=(tx-cx)*.05;cy+=(ty-cy)*.05;
+    cro.style.transform='translate(calc(-50% + '+cx+'px), calc(-50% + '+cy+'px)) rotate('+(cx*.15)+'deg)';
+    requestAnimationFrame(loop);
+  })();
+})();
+
+/* ================= now baking (real clock) ================= */
+(function(){
+  var BAKE=[[390,'乡村酸种 Pain de Campagne'],[450,'可颂 Croissant'],[540,'布里欧修 Brioche'],[620,'无花果黑麦 Seigle aux Figues'],[700,'海盐卷 Petit Pain au Sel']];
+  var el=document.getElementById('nbName');
+  function tick(){
+    var d=new Date(),m=d.getHours()*60+d.getMinutes(),cur='石窑预热中 · 明早 06:30 第一炉';
+    for(var i=0;i<BAKE.length;i++){
+      var from=BAKE[i][0],to=BAKE[i+1]?BAKE[i+1][0]:810;
+      if(m>=from&&m<to){cur=BAKE[i][1];break;}
+    }
+    el.textContent=cur;
+  }
+  tick();setInterval(tick,30000);
+})();
+
+/* ================= marquee ================= */
+(function(){
+  var items=['每天四点半，炉火准时亮起','隔夜面包，恕不出售','酸种三十八岁','磨坊直送 · 石磨全麦','下午两点，卖完关门','面包干挂门口，路人自取'];
+  var s=items.map(function(t){return '<span>'+t+'</span><span class="dot">✳</span>';}).join('');
+  document.getElementById('mq').innerHTML=s+s;
+})();
+
+/* ================= fermentation timeline ================= */
+var STAGES=[
+  {t:'21:00',h:'喂种',d:'睡前给酵种喂一次全麦粉和水。它养了三十八年，脾气稳定，喂完一整夜都在安静地吐气泡。',tmp:'酵种 · 24°C · 12h'},
+  {t:'16:30',h:'揉面',d:'面粉、水、盐，不多不少。低速八分钟，静置，再八分钟。不出手套膜也没关系，时间会把面筋补好。',tmp:'水温 · 22°C · 出缸 24°C'},
+  {t:'18:00',h:'一次发酵',d:'盖上湿布，室温发酵两小时，每四十分钟折叠一次。面团从松散变得像耳垂一样软。',tmp:'室温 · 24°C · 折叠 ×3'},
+  {t:'20:00',h:'分割整形',d:'按 480 克一只分割，滚圆，松弛，再整成椭圆。手要快，心要慢。',tmp:'单只 · 480g · 松弛 25min'},
+  {t:'20:30',h:'冷藏慢发',d:'放进藤篮，进 4°C 冷藏发酵一整夜。低温让酸味变圆，麦香变深。这是不赶时间的代价，也是报酬。',tmp:'冷藏 · 4°C · 10h'},
+  {t:'05:00',h:'割包入炉',d:'刀片斜 30 度，一刀切下，深浅决定裂口的形状。石窑 250°C，蒸汽二十秒。',tmp:'石窑 · 250°C · 蒸汽 20s'},
+  {t:'06:30',h:'出炉',d:'三十八分钟后出炉。敲一敲底部，声音空洞就是熟了。晾凉一小时再切——虽然没人等得住。',tmp:'出炉 · 06:30 · 每日 60 只'}
+];
+(function(){
+  var stops=document.getElementById('stops'),knob=document.getElementById('knob'),
+      fill=document.getElementById('fill'),track=document.getElementById('track');
+  var cur=0;
+  stops.innerHTML=STAGES.map(function(s,i){
+    return '<button class="fstop" data-i="'+i+'" style="left:'+(i/(STAGES.length-1)*100)+'%" aria-label="'+s.h+'"></button>';
+  }).join('');
+  var els=stops.querySelectorAll('.fstop');
+  function show(i){
+    cur=i;
+    var pct=i/(STAGES.length-1)*100;
+    fill.style.width=pct+'%';knob.style.left=pct+'%';
+    els.forEach(function(e,j){e.classList.toggle('done',j<i);e.classList.toggle('cur',j===i);});
+    document.getElementById('fTime').textContent=STAGES[i].t;
+    var h=document.getElementById('fTitle'),d=document.getElementById('fDesc'),m=document.getElementById('fTemp');
+    h.style.opacity=0;d.style.opacity=0;
+    setTimeout(function(){
+      h.textContent=STAGES[i].h;d.textContent=STAGES[i].d;m.textContent=STAGES[i].tmp;
+      h.style.transition='opacity .5s';d.style.transition='opacity .5s .1s';
+      h.style.opacity=1;d.style.opacity=1;
+    },180);
+  }
+  els.forEach(function(e){e.addEventListener('click',function(){show(+e.dataset.i);});});
+  /* drag knob */
+  var drag=false;
+  function fromX(clientX){
+    var r=track.getBoundingClientRect();
+    var pct=Math.min(1,Math.max(0,(clientX-r.left)/r.width));
+    show(Math.round(pct*(STAGES.length-1)));
+  }
+  knob.addEventListener('pointerdown',function(e){drag=true;knob.setPointerCapture(e.pointerId);});
+  addEventListener('pointermove',function(e){if(drag)fromX(e.clientX);});
+  addEventListener('pointerup',function(){drag=false;});
+  track.addEventListener('click',function(e){fromX(e.clientX);});
+  show(0);
+  /* auto-advance every 6s until user interacts */
+  var auto=setInterval(function(){show((cur+1)%STAGES.length);},6000);
+  track.addEventListener('pointerdown',function(){clearInterval(auto);},{once:true});
+  stops.addEventListener('click',function(){clearInterval(auto);},{once:true});
+})();
+
+/* ================= menu + basket ================= */
+var ITEMS=[
+  {n:'乡村酸种',en:'Pain de Campagne',d:'石磨全麦三成，外皮焦脆，内里湿润带微酸。一只 480 克，够一家人两天的早餐。',p:28,tag:'招牌'},
+  {n:'可颂',en:'Croissant',d:'二十七层，发酵黄油。咬下去先是碎裂声，然后是奶香。出炉后一小时内最诚实。',p:16,tag:''},
+  {n:'无花果黑麦',en:'Seigle aux Figues',d:'黑麦六成，酒渍无花果干与核桃。切面像一块深色的琥珀。',p:32,tag:'限量'},
+  {n:'布里欧修',en:'Brioche',d:'鸡蛋和黄油比面粉还嚣张。撕着吃，不要切。',p:22,tag:''},
+  {n:'海盐卷',en:'Petit Pain au Sel',d:'底部煎出一层黄油脆壳，顶上几粒粗盐。九点出炉，通常十点前卖完。',p:12,tag:'人气'},
+  {n:'橄榄油佛卡夏',en:'Focaccia',d:'迷迭香与小番茄，按块称重。气孔里都是橄榄油。',p:18,tag:''}
+];
+var basket={};
+(function(){
+  var menu=document.getElementById('menu');
+  menu.innerHTML=ITEMS.map(function(it,i){
+    return '<article class="item">'+(it.tag?'<div class="tag">'+it.tag+'</div>':'')+
+      '<div class="inum">N°'+String(i+1).padStart(2,'0')+' / '+it.en+'</div>'+
+      '<h3>'+it.n+'</h3><div class="desc">'+it.d+'</div>'+
+      '<div class="row"><span class="price">¥'+it.p+'</span>'+
+      '<button class="add" data-i="'+i+'">加入篮子 +</button></div></article>';
+  }).join('');
+
+  var countEl=document.getElementById('basketCount');
+  function totalQty(){return Object.keys(basket).reduce(function(a,k){return a+basket[k];},0);}
+  function refreshBadge(){
+    var q=totalQty();
+    countEl.textContent=q;countEl.classList.toggle('on',q>0);
+    countEl.classList.remove('pop');void countEl.offsetWidth;countEl.classList.add('pop');
+  }
+  function fly(from){
+    var b=document.getElementById('basketBtn').getBoundingClientRect();
+    var f=document.createElement('div');f.className='fly';
+    f.style.left=from.left+'px';f.style.top=from.top+'px';document.body.appendChild(f);
+    var dx=b.left+b.width/2-from.left,dy=b.top+b.height/2-from.top;
+    f.animate([
+      {transform:'translate(0,0) scale(1)',opacity:1},
+      {transform:'translate('+dx+'px,'+dy+'px) scale(.3)',opacity:.6}
+    ],{duration:650,easing:'cubic-bezier(.22,1,.36,1)'}).onfinish=function(){f.remove();};
+  }
+  menu.addEventListener('click',function(e){
+    var b=e.target.closest('.add');if(!b)return;
+    var i=+b.dataset.i;basket[i]=(basket[i]||0)+1;
+    fly(b.getBoundingClientRect());
+    b.classList.add('added');b.textContent='已加入 ✓';
+    setTimeout(function(){b.classList.remove('added');b.textContent='加入篮子 +';},1100);
+    setTimeout(refreshBadge,600);renderDrawer();
+  });
+
+  /* drawer */
+  var drawer=document.getElementById('drawer'),scrim=document.getElementById('scrim');
+  function openD(o){drawer.classList.toggle('open',o);scrim.classList.toggle('on',o);}
+  document.getElementById('basketBtn').addEventListener('click',function(){openD(true);});
+  document.getElementById('dClose').addEventListener('click',function(){openD(false);});
+  scrim.addEventListener('click',function(){openD(false);});
+  window.renderDrawer=function(){
+    var box=document.getElementById('dItems'),keys=Object.keys(basket),sum=0;
+    if(!keys.length){box.innerHTML='<div class="dempty">篮子还是空的。<br>明天的酸种，六点半出炉。</div>';}
+    else box.innerHTML=keys.map(function(k){
+      var it=ITEMS[k],q=basket[k];sum+=it.p*q;
+      return '<div class="ditem"><div><div class="dn">'+it.n+'</div><div class="dq">×'+q+' · '+it.en+'</div></div>'+
+        '<div class="dr"><span class="dp">¥'+(it.p*q)+'</span>'+
+        '<button class="rm" data-k="'+k+'">×</button></div></div>';
+    }).join('');
+    document.getElementById('dSum').textContent='¥'+sum;
+  };
+  renderDrawer();
+  document.getElementById('dItems').addEventListener('click',function(e){
+    var b=e.target.closest('.rm');if(!b)return;
+    delete basket[b.dataset.k];renderDrawer();refreshBadge();
+  });
+  var toast=document.getElementById('toast');
+  document.getElementById('checkout').addEventListener('click',function(){
+    if(!totalQty()){toast.textContent='篮子是空的 — 先挑一只面包';toast.classList.add('on');}
+    else{
+      toast.textContent='已预订 — 明早 06:30 炉边取 · 共 '+totalQty()+' 件';
+      toast.classList.add('on');basket={};renderDrawer();refreshBadge();openD(false);
+    }
+    setTimeout(function(){toast.classList.remove('on');},2600);
+  });
+})();
+
+/* ================= reveal ================= */
+(function(){
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}});
+  },{threshold:.15});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

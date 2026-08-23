@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smoke Sim — 烟雾流体模拟画布</title>
+<style>
+  :root{
+    --bg:#0C0C0F; --ivory:#E8E2D4; --ember:#D98E4A; --teal:#4AA3A2;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--bg);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;color:var(--ivory)}
+  canvas{position:fixed;inset:0;display:block;cursor:none}
+
+  header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:28px 34px;pointer-events:none;z-index:5}
+  .brand{display:flex;gap:14px;align-items:baseline}
+  .num{font-family:Didot,"Bodoni MT",Georgia,serif;font-style:italic;font-size:15px;color:rgba(232,226,212,.4)}
+  h1{font-family:Didot,"Bodoni MT",Georgia,serif;font-weight:400;font-size:22px;letter-spacing:.04em}
+  h1 em{font-style:normal;font-size:12px;letter-spacing:.34em;color:rgba(232,226,212,.4);margin-left:10px;vertical-align:2px}
+  .pal{display:flex;gap:8px;padding-top:6px}
+  .pal i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(232,226,212,.3)}
+
+  .dock{position:fixed;left:34px;bottom:32px;z-index:6;display:flex;flex-direction:column;gap:14px;
+    background:rgba(12,12,15,.78);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(232,226,212,.14);padding:20px 22px;max-width:330px;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);
+    animation:rise .9s var(--ease) both .2s}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .row{display:flex;align-items:center;gap:14px}
+  label{font-size:10px;letter-spacing:.22em;color:rgba(232,226,212,.48);width:74px;flex-shrink:0;text-transform:uppercase}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:2px;background:rgba(232,226,212,.28);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--ember);
+    border:none;border-radius:50%;box-shadow:0 0 12px rgba(217,142,74,.8);transition:transform .3s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--ember);border:none;border-radius:50%}
+  input[type=range]::-moz-range-track{height:2px;background:rgba(232,226,212,.28)}
+  .val{font-family:"SF Mono",Menlo,monospace;font-size:11px;width:30px;text-align:right;color:var(--ember)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+  button{font-family:inherit;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    padding:10px 15px;background:transparent;border:1px solid rgba(232,226,212,.3);color:var(--ivory);
+    cursor:pointer;transition:all .35s var(--ease)}
+  button:hover{background:var(--ivory);color:var(--bg);border-color:var(--ivory)}
+  button.accent{border-color:var(--ember);color:var(--ember)}
+  button.accent:hover{background:var(--ember);color:var(--bg)}
+  button.on{background:var(--ivory);border-color:var(--ivory);color:var(--bg)}
+
+  .cursor{position:fixed;z-index:8;width:34px;height:34px;border:1px solid rgba(232,226,212,.55);
+    border-radius:50%;pointer-events:none;transform:translate(-50%,-50%);
+    transition:width .3s var(--ease),height .3s var(--ease),border-color .3s var(--ease)}
+  .cursor.drag{width:52px;height:52px;border-color:var(--ember)}
+  .cursor i{position:absolute;left:50%;top:50%;width:3px;height:3px;background:var(--ember);
+    border-radius:50%;transform:translate(-50%,-50%)}
+
+  .hint{position:fixed;right:34px;bottom:36px;z-index:5;text-align:right;pointer-events:none;
+    font-size:10px;letter-spacing:.18em;color:rgba(232,226,212,.38);line-height:2;text-transform:uppercase;
+    animation:rise .9s var(--ease) both .35s}
+  .hint b{color:var(--ivory);font-weight:500}
+  @media (max-width:640px){
+    header{padding:18px 20px}
+    h1{font-size:17px}
+    .dock{left:16px;right:16px;bottom:16px;max-width:none;padding:16px}
+    .hint{display:none}
+    .cursor{display:none}
+    canvas{cursor:auto}
+  }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div class="cursor" id="cursor"><i></i></div>
+
+<header>
+  <div class="brand">
+    <span class="num">N°04</span>
+    <h1>Smoke Sim<em>烟雾流体</em></h1>
+  </div>
+  <div class="pal">
+    <i style="background:#0C0C0F"></i><i style="background:#D98E4A"></i><i style="background:#4AA3A2"></i>
+  </div>
+</header>
+
+<div class="dock">
+  <div class="row">
+    <label>Swirl 涡量</label>
+    <input type="range" id="swirl" min="0" max="100" value="48">
+    <span class="val" id="swirlVal">48</span>
+  </div>
+  <div class="row">
+    <label>Linger 驻留</label>
+    <input type="range" id="linger" min="80" max="99" value="96">
+    <span class="val" id="lingerVal">96</span>
+  </div>
+  <div class="row">
+    <label>Tint 烟色</label>
+    <div class="btns" style="margin:0">
+      <button class="tintbtn on" data-t="0">灰烬</button>
+      <button class="tintbtn" data-t="1">青霭</button>
+      <button class="tintbtn" data-t="2">绛纱</button>
+    </div>
+  </div>
+  <div class="btns">
+    <button id="btnClear">清空画布</button>
+    <button id="btnSave" class="accent">下载 PNG</button>
+  </div>
+</div>
+
+<div class="hint">
+  <b>按住拖动</b> 搅动烟流<br>
+  <b>单击</b> 吐出一团烟<br>
+  <b>按空格</b> 暂停时间
+</div>
+
+<script>
+(function(){
+"use strict";
+var canvas=document.getElementById('cv'),ctx=canvas.getContext('2d');
+var W=0,H=0,DPR=1;
+
+/* ---------- tint themes (rgb emitters) ---------- */
+var TINTS=[
+  [[0.92,0.86,0.72],[0.85,0.60,0.32],[0.55,0.52,0.48]],  /* 灰烬 ivory/ember/grey */
+  [[0.35,0.72,0.70],[0.62,0.85,0.80],[0.20,0.42,0.52]],  /* 青霭 */
+  [[0.78,0.36,0.52],[0.55,0.30,0.75],[0.88,0.62,0.55]]   /* 绛纱 */
+];
+var tint=0,swirl=0.48,linger=0.96;
+var paused=false;
+
+/* ---------- fluid grid ---------- */
+var GW=168,GH=100,N=0;
+var u,v,u0,v0,dr,dg,db,sr,sg,sb,p,divg,curl;
+
+function alloc(){
+  GH=Math.max(40,Math.round(GW*H/W));
+  N=GW*GH;
+  u=new Float32Array(N);v=new Float32Array(N);
+  u0=new Float32Array(N);v0=new Float32Array(N);
+  dr=new Float32Array(N);dg=new Float32Array(N);db=new Float32Array(N);
+  sr=new Float32Array(N);sg=new Float32Array(N);sb=new Float32Array(N);
+  p=new Float32Array(N);divg=new Float32Array(N);curl=new Float32Array(N);
+}
+
+function IX(x,y){return x+y*GW;}
+function clampi(x,a,b){return x<a?a:(x>b?b:x);}
+
+function advect(dst,src,uu,vv,dt,diss){
+  for(var y=1;y<GH-1;y++){
+    var row=y*GW;
+    for(var x=1;x<GW-1;x++){
+      var i=row+x;
+      var px=x-uu[i]*dt,py=y-vv[i]*dt;
+      px=clampi(px,0.5,GW-1.5);py=clampi(py,0.5,GH-1.5);
+      var x0=px|0,y0=py|0,fx=px-x0,fy=py-y0;
+      var i00=IX(x0,y0),i10=i00+1,i01=i00+GW,i11=i01+1;
+      dst[i]=diss*((1-fx)*((1-fy)*src[i00]+fy*src[i01])+fx*((1-fy)*src[i10]+fy*src[i11]));
+    }
+  }
+}
+
+function project(){
+  var x,y,i,it;
+  for(y=1;y<GH-1;y++)for(x=1;x<GW-1;x++){
+    i=IX(x,y);
+    divg[i]=-0.5*(u[i+1]-u[i-1]+v[i+GW]-v[i-GW]);
+    p[i]=0;
+  }
+  for(it=0;it<12;it++){
+    for(y=1;y<GH-1;y++)for(x=1;x<GW-1;x++){
+      i=IX(x,y);
+      p[i]=(divg[i]+p[i-1]+p[i+1]+p[i-GW]+p[i+GW])*0.25;
+    }
+  }
+  for(y=1;y<GH-1;y++)for(x=1;x<GW-1;x++){
+    i=IX(x,y);
+    u[i]-=0.5*(p[i+1]-p[i-1]);
+    v[i]-=0.5*(p[i+GW]-p[i-GW]);
+  }
+}
+
+function vorticity(){
+  var x,y,i;
+  for(y=1;y<GH-1;y++)for(x=1;x<GW-1;x++){
+    i=IX(x,y);
+    curl[i]=(v[i+1]-v[i-1]-u[i+GW]+u[i-GW])*0.5;
+  }
+  var eps=swirl*3.2;
+  for(y=2;y<GH-2;y++)for(x=2;x<GW-2;x++){
+    i=IX(x,y);
+    var dcx=(Math.abs(curl[i+1])-Math.abs(curl[i-1]))*0.5;
+    var dcy=(Math.abs(curl[i+GW])-Math.abs(curl[i-GW]))*0.5;
+    var len=Math.sqrt(dcx*dcx+dcy*dcy)+1e-5;
+    dcx/=len;dcy/=len;
+    var c=curl[i];
+    u[i]+=eps*(dcy*c);
+    v[i]+=eps*(-dcx*c);
+  }
+}
+
+function splat(fx,fy,vx,vy,col,rad){
+  var gx=fx*GW,gy=fy*GH,r=Math.max(1.5,rad*GW);
+  var r2=r*r;
+  var x0=Math.max(1,gx-r|0),x1=Math.min(GW-2,gx+r|0);
+  var y0=Math.max(1,gy-r|0),y1=Math.min(GH-2,gy+r|0);
+  for(var y=y0;y<=y1;y++)for(var x=x0;x<=x1;x++){
+    var dx=x-gx,dy=y-gy,d2=dx*dx+dy*dy;
+    if(d2>r2)continue;
+    var fall=Math.exp(-d2/r2*4);
+    var i=IX(x,y);
+    u[i]+=vx*fall*GW*0.9;
+    v[i]+=vy*fall*GW*0.9;
+    dr[i]+=col[0]*fall*0.55;
+    dg[i]+=col[1]*fall*0.55;
+    db[i]+=col[2]*fall*0.55;
+  }
+}
+
+/* ---------- interaction ---------- */
+var mouse={x:0.5,y:0.5,px:0.5,py:0.5,down:false,moved:false};
+var cursorEl=document.getElementById('cursor');
+function setM(cx,cy){mouse.px=mouse.x;mouse.py=mouse.y;mouse.x=cx/W;mouse.y=cy/H;mouse.moved=true;}
+window.addEventListener('mousemove',function(e){
+  setM(e.clientX,e.clientY);
+  cursorEl.style.left=e.clientX+'px';cursorEl.style.top=e.clientY+'px';
+});
+canvas.addEventListener('pointerdown',function(e){
+  mouse.down=true;cursorEl.classList.add('drag');
+  var col=TINTS[tint][(Math.random()*3)|0];
+  splat(e.clientX/W,e.clientY/H,0,0,[col[0]*2.2,col[1]*2.2,col[2]*2.2],0.045);
+});
+window.addEventListener('pointerup',function(){mouse.down=false;cursorEl.classList.remove('drag');});
+canvas.addEventListener('touchmove',function(e){
+  if(e.touches[0]){setM(e.touches[0].clientX,e.touches[0].clientY);mouse.down=true;}
+  e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchend',function(){mouse.down=false;});
+window.addEventListener('keydown',function(e){if(e.key===' '){paused=!paused;e.preventDefault();}});
+
+/* auto emitters keep the first screen alive */
+var emitters=[
+  {a:0,sa:0.21,r:0.26,cx:0.34,cy:0.62,ci:0},
+  {a:2.4,sa:-0.16,r:0.3,cx:0.68,cy:0.55,ci:1},
+  {a:4.6,sa:0.12,r:0.2,cx:0.5,cy:0.72,ci:2}
+];
+
+/* ---------- render ---------- */
+var simCanvas=document.createElement('canvas'),sctx=simCanvas.getContext('2d');
+var img=null;
+
+function step(dt){
+  emitters.forEach(function(e){
+    e.a+=e.sa*dt;
+    var ex=e.cx+Math.cos(e.a)*e.r*0.5,ey=e.cy+Math.sin(e.a*1.3)*e.r*0.32;
+    var col=TINTS[tint][e.ci];
+    var vx=Math.cos(e.a+1.7)*0.09,vy=-0.05+Math.sin(e.a)*0.04;
+    splat(ex,ey,vx,vy,col,0.02);
+  });
+  if(mouse.moved){
+    mouse.moved=false;
+    var vx=(mouse.x-mouse.px),vy=(mouse.y-mouse.py);
+    if(mouse.down&&(Math.abs(vx)>0.0004||Math.abs(vy)>0.0004)){
+      var col=TINTS[tint][(Math.random()*3)|0];
+      splat(mouse.x,mouse.y,vx*6,vy*6,col,0.024);
+    }
+  }
+  vorticity();
+  project();
+  u0.set(u);v0.set(v);
+  advect(u,u0,u0,v0,dt,0.999);advect(v,v0,u0,v0,dt,0.998);
+  project();
+  sr.set(dr);sg.set(dg);sb.set(db);
+  advect(dr,sr,u,v,dt,linger);advect(dg,sg,u,v,dt,linger);advect(db,sb,u,v,dt,linger);
+}
+
+function render(){
+  if(!img||img.width!==GW)img=sctx.createImageData(GW,GH);
+  var d=img.data;
+  for(var i=0;i<N;i++){
+    var r=dr[i],g=dg[i],b=db[i];
+    /* soft filmic-ish curve */
+    r=r/(1+r)*1.9;g=g/(1+g)*1.9;b=b/(1+b)*1.9;
+    var o=i*4;
+    d[o]=Math.min(255,r*255);d[o+1]=Math.min(255,g*255);d[o+2]=Math.min(255,b*255);d[o+3]=255;
+  }
+  sctx.putImageData(img,0,0);
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  /* backdrop */
+  var bg=ctx.createRadialGradient(W*0.5,H*0.42,H*0.1,W*0.5,H*0.5,Math.max(W,H)*0.75);
+  bg.addColorStop(0,'#131318');bg.addColorStop(1,'#08080B');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.globalCompositeOperation='lighter';
+  ctx.drawImage(simCanvas,0,0,GW,GH,-W*0.02,-H*0.02,W*1.04,H*1.04);
+  ctx.globalCompositeOperation='source-over';
+  /* vignette */
+  var vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.4,W/2,H/2,Math.max(W,H)*0.75);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,0.42)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+}
+
+var last=performance.now();
+function frame(t){
+  var dt=Math.min(0.05,(t-last)/1000);last=t;
+  if(!paused){step(dt*1.15);}
+  render();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- controls ---------- */
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth;H=window.innerHeight;
+  canvas.width=W*DPR;canvas.height=H*DPR;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  alloc();
+  simCanvas.width=GW;simCanvas.height=GH;
+  img=null;
+}
+var sEl=document.getElementById('swirl'),sV=document.getElementById('swirlVal');
+sEl.addEventListener('input',function(){swirl=+sEl.value/100;sV.textContent=sEl.value;});
+var gEl=document.getElementById('linger'),gV=document.getElementById('lingerVal');
+gEl.addEventListener('input',function(){linger=+gEl.value/100;gV.textContent=gEl.value;});
+document.querySelectorAll('.tintbtn').forEach(function(b){
+  b.addEventListener('click',function(){
+    tint=+b.dataset.t;
+    document.querySelectorAll('.tintbtn').forEach(function(x){x.classList.toggle('on',x===b);});
+  });
+});
+document.getElementById('btnClear').addEventListener('click',function(){
+  dr.fill(0);dg.fill(0);db.fill(0);u.fill(0);v.fill(0);
+});
+document.getElementById('btnSave').addEventListener('click',function(){
+  canvas.toBlob(function(b){
+    var a=document.createElement('a');a.href=URL.createObjectURL(b);
+    a.download='smoke-sim-'+Date.now()+'.png';a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+});
+
+window.addEventListener('resize',resize);
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

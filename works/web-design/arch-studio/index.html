@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MERIDIAN 子午线建筑事务所 — Architecture & Urbanism</title>
+<style>
+  :root{
+    --paper:#E9E7E1;
+    --ink:#191917;
+    --ink-soft:rgba(25,25,23,.6);
+    --line:rgba(25,25,23,.28);
+    --orange:#D24E1B;
+    --bp-bg:#12305E;
+    --bp-line:rgba(255,255,255,.88);
+    --serif:Didot,"Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  ::selection{background:var(--orange);color:var(--paper);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:90;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:16px 3vw;mix-blend-mode:difference;color:#fff;pointer-events:none;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.14em;line-height:1.8;}
+  .sig .no{color:var(--orange);font-weight:700;mix-blend-mode:normal;}
+  #coords{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-align:right;line-height:1.9;opacity:.85;}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:0 3vw 8vh;position:relative;overflow:hidden;}
+  .bluegrid{position:absolute;inset:0;
+    background-image:linear-gradient(var(--line) 1px,transparent 1px),
+      linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:8.333vw 8.333vw;opacity:.35;}
+  .hero .mark{position:absolute;top:14vh;right:3vw;font-family:var(--mono);font-size:10px;
+    letter-spacing:.3em;color:var(--ink-soft);text-align:right;line-height:2.1;}
+  .mast-k{font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:var(--orange);margin-bottom:2.6vh;}
+  h1{font-family:var(--serif);font-weight:700;font-size:clamp(58px,12vw,210px);line-height:.88;
+    letter-spacing:-.015em;text-transform:uppercase;}
+  h1 em{font-style:italic;font-weight:400;}
+  .hero-sub{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;
+    border-top:1px solid var(--ink);margin-top:4.5vh;padding-top:18px;}
+  .hero-sub p{font-size:13px;line-height:2;max-width:48ch;color:var(--ink-soft);}
+  .hero-sub .tag{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--ink-soft);}
+
+  /* ---------- mode toggle ---------- */
+  .toolbar{display:flex;justify-content:space-between;align-items:stretch;margin:0 3vw;
+    border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);flex-wrap:wrap;}
+  .filters{display:flex;flex-wrap:wrap;}
+  .filters button,.toggle{background:transparent;border:none;border-right:1px solid var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.24em;padding:15px 22px;cursor:pointer;
+    color:var(--ink);transition:background .3s var(--ease),color .3s var(--ease);}
+  .filters button:hover{background:rgba(25,25,23,.06);}
+  .filters button.on{background:var(--ink);color:var(--paper);}
+  .toggle{border-right:none;border-left:1px solid var(--ink);display:flex;align-items:center;gap:10px;}
+  .toggle .dot{width:8px;height:8px;border-radius:50%;background:var(--orange);transition:background .3s;}
+  .toggle.night .dot{background:#7FB2FF;}
+  .toggle:hover{background:rgba(25,25,23,.06);}
+
+  /* ---------- index + plan ---------- */
+  .work{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:0 3vw 10vh;align-items:start;}
+  .plist{border-right:1px solid var(--line);}
+  .prow{display:grid;grid-template-columns:52px 1fr auto;gap:18px;align-items:baseline;
+    padding:20px 18px;border-bottom:1px solid var(--line);cursor:pointer;position:relative;
+    transition:background .35s var(--ease),color .35s var(--ease);}
+  .prow .no{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink-soft);}
+  .prow h3{font-family:var(--serif);font-size:clamp(19px,1.8vw,27px);font-weight:700;line-height:1.2;}
+  .prow h3 span{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.26em;
+    color:var(--ink-soft);margin-top:7px;font-weight:400;transition:color .35s;}
+  .prow .meta{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink-soft);
+    text-align:right;line-height:1.9;transition:color .35s;}
+  .prow:hover,.prow.sel{background:var(--ink);color:var(--paper);}
+  .prow:hover h3 span,.prow:hover .meta,.prow:hover .no,
+  .prow.sel h3 span,.prow.sel .meta,.prow.sel .no{color:rgba(233,231,225,.65);}
+  .prow::after{content:"";position:absolute;left:0;bottom:-1px;height:1px;width:0;
+    background:var(--orange);transition:width .6s var(--ease);}
+  .prow:hover::after,.prow.sel::after{width:100%;}
+  .prow.hide{display:none;}
+
+  .planpane{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;
+    justify-content:center;padding:4vh 0 4vh 3vw;}
+  .planframe{position:relative;border:1px solid var(--ink);background:var(--paper);
+    box-shadow:14px 14px 0 rgba(25,25,23,.08);}
+  #plan{display:block;width:100%;height:auto;cursor:crosshair;}
+  .planbar{display:flex;justify-content:space-between;padding:12px 2px 0;
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink-soft);}
+  .planbar b{color:var(--orange);}
+  @media(max-width:900px){
+    .work{grid-template-columns:1fr;}
+    .plist{border-right:none;}
+    .planpane{position:relative;height:auto;padding:5vh 0;order:-1;}
+  }
+
+  /* ---------- statement ---------- */
+  .statement{padding:14vh 3vw;text-align:left;border-top:1px solid var(--ink);}
+  .statement .k{font-family:var(--mono);font-size:10px;letter-spacing:.5em;color:var(--orange);margin-bottom:4vh;}
+  .statement p{font-family:var(--serif);font-size:clamp(26px,3.6vw,54px);line-height:1.55;max-width:24em;}
+  .statement p em{font-style:italic;color:var(--orange);}
+  .rv{opacity:0;transform:translateY(34px);transition:opacity 1s var(--ease),transform 1s var(--ease);}
+  .rv.in{opacity:1;transform:none;}
+
+  footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:20px 3vw;
+    border-top:1px solid var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.2em;
+    color:var(--ink-soft);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 12</span> · <b>MERIDIAN 子午线建筑事务所</b><br>ARCHITECTURE & URBANISM</div>
+  <div id="coords">X 0000.0 / Y 0000.0<br>SCALE 1:200 · MM</div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="bluegrid"></div>
+  <div class="mark">SHANGHAI — OSLO — KYOTO<br>成立于二〇〇九年<br>RIBA / 一级注册</div>
+  <div class="mast-k">ARCHITECTURE AS MERIDIAN — 建筑即子午线</div>
+  <h1>MERID<em>ian</em></h1>
+  <div class="hero-sub">
+    <p>我们在地图上画线，然后把这些线盖成房子。十七年，四十一个建成作品——
+      下面是正在进行的七个。将光标移到任意项目上，图纸会自己长出来。</p>
+    <span class="tag">HOVER TO DRAFT — 悬停出图</span>
+  </div>
+</section>
+
+<!-- ============ TOOLBAR ============ -->
+<div class="toolbar">
+  <div class="filters" id="filters">
+    <button data-f="all" class="on">全部 ALL</button>
+    <button data-f="culture">文化 CULTURE</button>
+    <button data-f="living">居住 LIVING</button>
+    <button data-f="public">公共 PUBLIC</button>
+  </div>
+  <button class="toggle" id="modeBtn"><span class="dot"></span><span id="modeTxt">晒图模式 BLUEPRINT</span></button>
+</div>
+
+<!-- ============ INDEX + PLAN ============ -->
+<div class="work">
+  <div class="plist" id="plist"></div>
+  <div class="planpane">
+    <div class="planframe"><canvas id="plan"></canvas></div>
+    <div class="planbar">
+      <span id="planName">—</span>
+      <span>SCALE <b>1:200</b> · <span id="planStat">—</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ STATEMENT ============ -->
+<section class="statement rv">
+  <div class="k">STATEMENT — 事务所宣言</div>
+  <p>子午线不生产方向，只校准方向。建筑也一样——我们不制造地标，
+    只让每一块场地找到它<em>自己的经度</em>。光从东边进来，人从南边进来，风有它自己的想法。</p>
+</section>
+
+<footer>
+  <span>MERIDIAN ATELIER — EST. 2009 · SHANGHAI / OSLO / KYOTO</span>
+  <span>PLANS DRAWN LIVE ON CANVAS · NO RENDERINGS WERE HARMED</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var MONO='"SF Mono",Menlo,monospace';
+var SERIF='Didot,"Bodoni MT","Songti SC",Georgia,serif';
+
+/* ================= data ================= */
+var PROJECTS=[
+ {no:"P-41",name:"潮汐图书馆",en:"TIDAL LIBRARY",loc:"舟山",yr:2026,area:"8 400 m²",type:"culture",rooms:["阅览室","阶梯厅","档案库","咖啡"]},
+ {no:"P-40",name:"山南宅",en:"HOUSE SOUTH OF HILL",loc:"京都",yr:2025,area:"310 m²",type:"living",rooms:["起居","茶室","卧房","庭院"]},
+ {no:"P-39",name:"北岸渡轮码头",en:"NORTH FERRY PIER",loc:"奥斯陆",yr:2025,area:"2 150 m²",type:"public",rooms:["候船厅","票务","观景廊"]},
+ {no:"P-38",name:"织物博物馆",en:"TEXTILE MUSEUM",loc:"苏州",yr:2024,area:"12 600 m²",type:"culture",rooms:["主展厅","修复室","库房","中庭","报告厅"]},
+ {no:"P-37",name:"九间堂集合住宅",en:"NINE COURTS HOUSING",loc:"上海",yr:2023,area:"6 780 m²",type:"living",rooms:["单元A","单元B","共享厅","屋顶园"]},
+ {no:"P-36",name:"光之消防站",en:"FIRE STATION OF LIGHT",loc:"深圳",yr:2022,area:"3 300 m²",type:"public",rooms:["车库","值勤室","训练塔","餐厅"]},
+ {no:"P-35",name:"纸上剧场",en:"PAPER THEATRE",loc:"阿那亚",yr:2021,area:"1 900 m²",type:"culture",rooms:["观众厅","舞台","后台","门厅"]}
+];
+
+/* ================= coords readout ================= */
+var coords=document.getElementById("coords");
+addEventListener("mousemove",function(e){
+  coords.innerHTML="X "+(e.clientX*7.4).toFixed(1).padStart(6,"0")+
+    " / Y "+(e.clientY*7.4).toFixed(1).padStart(6,"0")+"<br>SCALE 1:200 · MM";
+});
+
+/* ================= list ================= */
+var plist=document.getElementById("plist");
+var rows=[];
+PROJECTS.forEach(function(p,i){
+  var d=document.createElement("div");d.className="prow"+(i===0?" sel":"");
+  d.innerHTML='<span class="no">'+p.no+'</span>'+
+    '<h3>'+p.name+'<span>'+p.en+'</span></h3>'+
+    '<div class="meta">'+p.loc+' · '+p.yr+'<br>'+p.area+'</div>';
+  d.addEventListener("mouseenter",function(){select(i);});
+  d.addEventListener("click",function(){select(i);});
+  plist.appendChild(d);rows.push(d);
+});
+
+/* ================= filter ================= */
+document.getElementById("filters").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b)return;
+  document.querySelectorAll("#filters button").forEach(function(x){x.classList.toggle("on",x===b);});
+  var f=b.dataset.f,first=-1;
+  rows.forEach(function(r,i){
+    var show=f==="all"||PROJECTS[i].type===f;
+    r.classList.toggle("hide",!show);
+    if(show&&first<0)first=i;
+  });
+  if(first>=0)select(first);
+});
+
+/* ================= blueprint mode ================= */
+var night=false;
+var modeBtn=document.getElementById("modeBtn"),modeTxt=document.getElementById("modeTxt");
+modeBtn.addEventListener("click",function(){
+  night=!night;
+  modeBtn.classList.toggle("night",night);
+  modeTxt.textContent=night?"白图模式 DAYLIGHT":"晒图模式 BLUEPRINT";
+  anim=1;draw(performance.now());
+});
+
+/* ================= plan generator ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+var plan=document.getElementById("plan"),pc=plan.getContext("2d");
+var PW=0,PH=0,DPR=Math.min(devicePixelRatio||1,2);
+function sizePlan(){
+  PW=plan.clientWidth||500;PH=PW*0.8;
+  plan.width=PW*DPR;plan.height=PH*DPR;
+  pc.setTransform(DPR,0,0,DPR,0,0);
+}
+sizePlan();
+
+var cur=0,anim=1,animT0=0,ANIM_DUR=1100;
+var hoverPt=null;
+plan.addEventListener("mousemove",function(e){
+  var r=plan.getBoundingClientRect();
+  hoverPt={x:e.clientX-r.left,y:e.clientY-r.top};requestDraw();});
+plan.addEventListener("mouseleave",function(){hoverPt=null;requestDraw();});
+
+function buildSteps(p,W,H){
+  var R=mulberry32(p.yr*97+p.no.charCodeAt(2)*13+p.area.length);
+  var M=W*0.09, x0=M, y0=M, x1=W-M, y1=H-M*1.5;
+  var steps=[];
+  /* column grid dots */
+  var gx=6,gy=5;
+  for(var i=0;i<=gx;i++)for(var j=0;j<=gy;j++){
+    (function(dx,dy){steps.push(function(c,k){if(k<1)return;
+      c.beginPath();c.arc(dx,dy,1.6,0,7);c.fill();});})(x0+(x1-x0)*i/gx,y0+(y1-y0)*j/gy);
+  }
+  function line(ax,ay,bx,by,w){steps.push(function(c,k){
+    c.lineWidth=w||1.4;c.beginPath();c.moveTo(ax,ay);
+    c.lineTo(ax+(bx-ax)*k,ay+(by-ay)*k);c.stroke();});}
+  /* outer wall — double line */
+  var off=5;
+  [[x0,y0,x1,y0],[x1,y0,x1,y1],[x1,y1,x0,y1],[x0,y1,x0,y0]].forEach(function(e){
+    line(e[0],e[1],e[2],e[3],3.2);});
+  /* inner partitions */
+  var nV=1+Math.floor(R()*2),nH=1+Math.floor(R()*2),vx=[],hy=[];
+  for(var a=0;a<nV;a++)vx.push(x0+(x1-x0)*(0.3+R()*0.45));
+  for(var b=0;b<nH;b++)hy.push(y0+(y1-y0)*(0.32+R()*0.4));
+  vx.forEach(function(v){line(v,y0,v,y1,1.2);});
+  hy.forEach(function(h){line(x0,h,x1,h,1.2);});
+  /* doors: quarter arcs on partitions */
+  vx.forEach(function(v){var dy2=y0+(y1-y0)*(0.2+R()*0.6);
+    steps.push(function(c,k){c.lineWidth=1;c.beginPath();
+      c.arc(v,dy2,14,-Math.PI/2,-Math.PI/2+k*Math.PI/2);c.stroke();
+      if(k>=1){c.beginPath();c.moveTo(v,dy2);c.lineTo(v+14,dy2);c.stroke();}});});
+  /* room labels */
+  var zones=[[x0,y0,vx[0]||x1,hy[0]||y1],[vx[0]||x0,y0,x1,hy[0]||y1],
+             [x0,hy[0]||y0,vx[vx.length-1]||x1,y1],[vx[vx.length-1]||x0,hy[0]||y0,x1,y1]];
+  p.rooms.forEach(function(rm,ri){
+    var z=zones[ri%zones.length];
+    var cx=(z[0]+z[2])/2+(R()-.5)*10,cy=(z[1]+z[3])/2+(R()-.5)*10;
+    steps.push(function(c,k){c.globalAlpha=k;c.font="400 10px "+MONO;
+      c.textAlign="center";c.fillText(rm,cx,cy);c.textAlign="left";c.globalAlpha=1;});
+  });
+  /* dimension line bottom */
+  var dy3=y1+M*0.62;
+  line(x0,dy3,x1,dy3,0.8);
+  [x0,x1].forEach(function(px){line(px-4,dy3-4,px+4,dy3+4,0.8);});
+  steps.push(function(c,k){c.globalAlpha=k;c.font="400 9px "+MONO;c.textAlign="center";
+    c.fillText(((x1-x0)*7.4/1000*2|0)+" 400",W/2,dy3-8);c.textAlign="left";c.globalAlpha=1;});
+  /* north arrow */
+  var nx2=x1-M*0.15,ny2=y0-M*0.45;
+  steps.push(function(c,k){c.lineWidth=1;c.beginPath();
+    c.arc(nx2,ny2,10,0,7*k);c.stroke();
+    if(k>0.5){c.beginPath();c.moveTo(nx2,ny2+8);c.lineTo(nx2,ny2-8);
+      c.lineTo(nx2+4,ny2-1);c.stroke();
+      c.font="700 8px "+MONO;c.fillText("N",nx2-3,ny2-13);}});
+  /* title block */
+  steps.push(function(c,k){c.globalAlpha=k;c.font="700 10px "+MONO;
+    c.fillText(p.no+" — "+p.en,x0,H-M*0.28);
+    c.font="400 9px "+MONO;c.globalAlpha=k*0.7;
+    c.fillText(p.loc+" · "+p.yr+" · "+p.area,x0,H-M*0.28+14);c.globalAlpha=1;});
+  return {steps:steps,box:[x0,y0,x1,y1]};
+}
+var planCache=null;
+function requestDraw(){draw(performance.now());}
+function draw(now){
+  var p=PROJECTS[cur];
+  if(!planCache||planCache.p!==p)planCache={p:p,g:buildSteps(p,PW,PH)};
+  var pr=animT0?Math.min((now-animT0)/ANIM_DUR,1):1;
+  if(pr>=1)animT0=0;
+  var ease=1-Math.pow(1-pr,3);
+  /* ground */
+  pc.fillStyle=night?"#12305E":"#EDEAE2";pc.fillRect(0,0,PW,PH);
+  var inkCol=night?"rgba(255,255,255,.88)":"rgba(25,25,23,.85)";
+  pc.strokeStyle=inkCol;pc.fillStyle=night?"rgba(255,255,255,.9)":"rgba(25,25,23,.9)";
+  /* faint grid */
+  pc.save();pc.globalAlpha=night?.12:.1;pc.lineWidth=0.5;
+  for(var gx2=0;gx2<PW;gx2+=PW/16){pc.beginPath();pc.moveTo(gx2,0);pc.lineTo(gx2,PH);pc.stroke();}
+  for(var gy2=0;gy2<PH;gy2+=PW/16){pc.beginPath();pc.moveTo(0,gy2);pc.lineTo(PW,gy2);pc.stroke();}
+  pc.restore();
+  /* steps */
+  var S=planCache.g.steps,n=S.length;
+  var upto=ease*n;
+  for(var i=0;i<n;i++){
+    if(i>=upto)break;
+    var k=Math.min(upto-i,1);
+    S[i](pc,k);
+  }
+  /* accent: section marker */
+  if(pr>=1){
+    pc.strokeStyle=night?"#7FB2FF":"#D24E1B";pc.lineWidth=1.4;
+    var b=planCache.g.box;
+    pc.beginPath();pc.moveTo(b[0],(b[1]+b[3])/2);pc.lineTo(b[2],(b[1]+b[3])/2);pc.stroke();
+    pc.font="700 9px "+MONO;pc.fillStyle=night?"#7FB2FF":"#D24E1B";
+    pc.fillText("A",b[0]-12,(b[1]+b[3])/2+3);pc.fillText("A'",b[2]+5,(b[1]+b[3])/2+3);
+  }
+  /* crosshair */
+  if(hoverPt&&pr>=1){
+    pc.save();pc.strokeStyle=night?"rgba(127,178,255,.6)":"rgba(210,78,27,.6)";
+    pc.lineWidth=0.8;pc.setLineDash([4,4]);
+    pc.beginPath();pc.moveTo(hoverPt.x,0);pc.lineTo(hoverPt.x,PH);
+    pc.moveTo(0,hoverPt.y);pc.lineTo(PW,hoverPt.y);pc.stroke();
+    pc.setLineDash([]);pc.restore();
+  }
+  if(animT0)requestAnimationFrame(draw);
+}
+function select(i){
+  if(i===cur&&animT0===0){rows.forEach(function(r,x){r.classList.toggle("sel",x===i);});return;}
+  cur=i;animT0=performance.now();planCache=null;
+  rows.forEach(function(r,x){r.classList.toggle("sel",x===i);});
+  var p=PROJECTS[i];
+  document.getElementById("planName").innerHTML="<b>"+p.no+"</b> · "+p.name+" "+p.en;
+  document.getElementById("planStat").textContent=p.loc.toUpperCase?p.loc+" · "+p.yr:p.yr;
+  requestAnimationFrame(draw);
+}
+select(0);
+
+/* ================= reveal ================= */
+var io=new IntersectionObserver(function(es){es.forEach(function(e){
+  if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.15});
+document.querySelectorAll(".rv").forEach(function(el){io.observe(el);});
+
+/* ================= resize ================= */
+var rt;
+addEventListener("resize",function(){clearTimeout(rt);
+  rt=setTimeout(function(){sizePlan();planCache=null;draw(performance.now());},160);});
+})();
+</script>
+</body>
+</html>

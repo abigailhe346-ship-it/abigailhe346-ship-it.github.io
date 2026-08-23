@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pipeline Dash — 数据管道监控仪表盘</title>
+<style>
+  :root{
+    --bg:#07090F; --panel:#0C0F17; --panel2:#0A0D14; --line:rgba(255,255,255,.07);
+    --ink:#E6EAF2; --dim:#5B6474; --faint:#2A3140;
+    --cyan:#3AE2FF; --green:#4CEA9B; --amber:#FFB020; --red:#FF5470;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(58,226,255,.25)}
+
+  header{height:56px;display:flex;align-items:center;gap:16px;padding:0 22px;
+         border-bottom:1px solid var(--line);position:relative;z-index:6}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:.12em}
+  .brand .name{font-family:var(--serif);font-size:19px}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.22em;text-transform:uppercase}
+  .clock{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--dim);
+         font-variant-numeric:tabular-nums}
+  .clock b{color:var(--cyan);font-weight:500}
+
+  main{display:grid;grid-template-columns:250px 1fr;height:calc(100% - 56px - 34px)}
+
+  /* ---------- sidebar ---------- */
+  aside{border-right:1px solid var(--line);display:flex;flex-direction:column;background:var(--panel2)}
+  .side{padding:16px 18px;border-bottom:1px solid var(--line)}
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--line)}
+  .bigstat{margin-bottom:16px}
+  .bigstat:last-child{margin-bottom:0}
+  .bigstat .k{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+  .bigstat .v{font-family:var(--mono);font-size:24px;margin-top:2px;font-variant-numeric:tabular-nums}
+  .bigstat .v em{font-style:normal;font-size:10px;color:var(--dim)}
+  .bigstat .v.c{color:var(--cyan)} .bigstat .v.g{color:var(--green)}
+  .bigstat .v.a{color:var(--amber)}
+
+  .ctl{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .btn{font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:9px 14px;cursor:pointer;
+       border:1px solid var(--line);background:transparent;color:var(--ink);transition:all .25s var(--ease)}
+  .btn:hover{border-color:rgba(58,226,255,.5);color:var(--cyan)}
+  .btn.wide{width:100%;text-align:center}
+  .btn.active{background:rgba(58,226,255,.1);border-color:rgba(58,226,255,.5);color:var(--cyan)}
+  .slider-row{display:grid;grid-template-columns:56px 1fr 44px;align-items:center;gap:10px}
+  .slider-row .k{font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .slider-row .v{font-family:var(--mono);font-size:11px;color:var(--cyan);text-align:right}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--faint)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;margin-top:-4.5px;
+      background:var(--bg);border:2px solid var(--cyan);border-radius:50%;transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--faint)}
+  input[type=range]::-moz-range-thumb{width:9px;height:9px;background:var(--bg);
+      border:2px solid var(--cyan);border-radius:50%}
+
+  /* event log */
+  .events{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:16px 18px}
+  #evlog{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;
+         scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  #evlog::-webkit-scrollbar{width:3px}
+  #evlog::-webkit-scrollbar-thumb{background:var(--faint)}
+  .ev{font-family:var(--mono);font-size:10.5px;line-height:1.55;color:var(--dim);
+      border-left:2px solid var(--faint);padding-left:9px;animation:evin .4s var(--ease)}
+  .ev b{color:var(--ink);font-weight:500}
+  .ev.warn{border-color:var(--amber)} .ev.warn b{color:var(--amber)}
+  .ev.ok{border-color:var(--green)} .ev.ok b{color:var(--green)}
+  .ev .t{opacity:.55;margin-right:6px}
+  @keyframes evin{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+
+  /* ---------- stage ---------- */
+  .stage{position:relative;min-width:0}
+  canvas#dag{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+  .hint{position:absolute;left:20px;bottom:14px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);letter-spacing:.08em;pointer-events:none}
+
+  /* ---------- inspector ---------- */
+  #insp{position:absolute;top:16px;right:16px;width:270px;background:rgba(12,15,23,.92);
+        border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px);
+        transform:translateX(120%);transition:transform .5s var(--ease);z-index:5}
+  #insp.show{transform:none}
+  #insp .head{display:flex;align-items:center;gap:9px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  #insp .head .st{width:8px;height:8px;border-radius:50%}
+  #insp .head .n{font-family:var(--mono);font-size:13px}
+  #insp .head .x{margin-left:auto;cursor:pointer;color:var(--dim);font-family:var(--mono);
+                 font-size:14px;padding:2px 6px;transition:color .2s}
+  #insp .head .x:hover{color:var(--red)}
+  #insp .role{padding:10px 16px 0;font-size:11px;color:var(--dim);line-height:1.6}
+  #insp .rows{padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  #insp .cell .k{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+  #insp .cell .v{font-family:var(--mono);font-size:15px;margin-top:2px;font-variant-numeric:tabular-nums}
+  #insp canvas{width:100%;height:64px;display:block;border-top:1px solid var(--line)}
+  #insp .sparkl{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--dim);
+                padding:8px 16px 0;text-transform:uppercase}
+
+  footer{height:34px;border-top:1px solid var(--line);display:flex;align-items:center;
+         padding:0 22px;gap:26px;font-family:var(--mono);font-size:10px;color:var(--dim);
+         letter-spacing:.06em;overflow:hidden;white-space:nowrap}
+  footer .sep{color:var(--faint)}
+
+  @media (max-width:880px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr;height:auto}
+    aside{border-right:0;border-bottom:1px solid var(--line)}
+    .events{max-height:150px}
+    .stage{height:64vh;min-height:420px}
+    #insp{width:min(270px,80vw)}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">No.02</span>
+    <span class="name">Pipeline Dash</span>
+    <span class="sub">Streaming ETL Monitor</span>
+  </div>
+  <div class="clock">SIM-TIME <b id="clock">00:00:00</b></div>
+</header>
+
+<main>
+  <aside>
+    <div class="side">
+      <div class="blocklabel">Overview</div>
+      <div class="bigstat"><div class="k">Ingress Throughput</div><div class="v c" id="m-tput">0<em> rows/s</em></div></div>
+      <div class="bigstat"><div class="k">Delivered / DLQ</div><div class="v" id="m-dlv">0 / 0</div></div>
+      <div class="bigstat"><div class="k">Error Ratio</div><div class="v a" id="m-err">0.0%</div></div>
+      <div class="bigstat"><div class="k">Pipeline Health</div><div class="v g" id="m-hp">100<em> /100</em></div></div>
+    </div>
+    <div class="side">
+      <div class="blocklabel">Controls</div>
+      <div class="ctl">
+        <button class="btn active" id="btn-pause" style="flex:1">PAUSE</button>
+        <button class="btn" id="btn-burst" style="flex:1">BURST ×6</button>
+      </div>
+      <div class="slider-row">
+        <span class="k">speed</span>
+        <input type="range" id="speed" min="25" max="400" value="100">
+        <span class="v" id="speedv">1.0×</span>
+      </div>
+    </div>
+    <div class="events">
+      <div class="blocklabel">Event Log</div>
+      <div id="evlog"></div>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <canvas id="dag"></canvas>
+    <div class="hint">CLICK NODE → INSPECT&nbsp;&nbsp;·&nbsp;&nbsp;packets: 1 dot ≈ 300 rows</div>
+    <div id="insp">
+      <div class="head"><span class="st" id="i-st"></span><span class="n" id="i-name">—</span><span class="x" id="i-close">×</span></div>
+      <div class="role" id="i-role"></div>
+      <div class="rows">
+        <div class="cell"><div class="k">Rate</div><div class="v" id="i-rate">—</div></div>
+        <div class="cell"><div class="k">Queue</div><div class="v" id="i-queue">—</div></div>
+        <div class="cell"><div class="k">Processed</div><div class="v" id="i-total">—</div></div>
+        <div class="cell"><div class="k">Status</div><div class="v" id="i-status">—</div></div>
+      </div>
+      <div class="sparkl">Rate · last 40s</div>
+      <canvas id="i-spark"></canvas>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <span>PIPELINE: orders_rt_v3</span><span class="sep">/</span>
+  <span>REGION: cn-east-1</span><span class="sep">/</span>
+  <span id="ft-nodes">8 NODES · ALL SYSTEMS NOMINAL</span><span class="sep">/</span>
+  <span>PIPELINE DASH — AGENT DEMOS COLLECTION</span>
+</footer>
+
+<script>
+"use strict";
+/* ================= sim state ================= */
+const NODES=[
+  {id:"kafka",   label:"ingest-kafka",  sub:"SOURCE · 12 partitions", x:.075,y:.50, base:1250},
+  {id:"parse",   label:"parse-json",    sub:"ETL · schema on read",   x:.245,y:.30, base:1240},
+  {id:"enrich",  label:"enrich-geo",    sub:"ETL · lookup join",      x:.245,y:.70, base:1180},
+  {id:"valid",   label:"validate",      sub:"ETL · contract check",   x:.430,y:.50, base:2400},
+  {id:"agg",     label:"aggregate-1m",  sub:"STATE · tumbling window",x:.615,y:.30, base:2300},
+  {id:"dlq",     label:"dead-letter",   sub:"SINK · quarantine",      x:.615,y:.74, base:96},
+  {id:"wh",      label:"warehouse",     sub:"SINK · columnar store",  x:.800,y:.30, base:2280},
+  {id:"alert",   label:"alert-bus",     sub:"SINK · fan-out",         x:.800,y:.62, base:180},
+];
+const EDGES=[
+  {a:"kafka", b:"parse"}, {a:"kafka", b:"enrich"},
+  {a:"parse", b:"valid"}, {a:"enrich",b:"valid"},
+  {a:"valid", b:"agg", share:.955}, {a:"valid", b:"dlq", share:.045},
+  {a:"agg",   b:"wh"}, {a:"agg",   b:"alert", share:.078, fromPool:true},
+];
+const byId={}; NODES.forEach(n=>byId[n.id]=n);
+NODES.forEach(n=>{n.rate=n.base;n.queue=0;n.total=0;n.status="OK";n.hist=[];n.degT=0});
+EDGES.forEach(e=>{e.pk=[];e.acc=0});
+
+let simTime=0, speed=1, paused=false, selected=null, burstT=0;
+const canvas=$("dag"),ctx=canvas.getContext("2d");
+function $(id){return document.getElementById(id)}
+
+/* ================= layout & canvas ================= */
+let W=0,H=0;
+function resize(){
+  const dpr=Math.min(2,devicePixelRatio||1);
+  const r=canvas.parentElement.getBoundingClientRect();
+  W=r.width;H=r.height;
+  canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener("resize",resize);resize();
+const px=n=>n.x*W, py=n=>n.y*H;
+
+function edgePath(e){
+  const a=byId[e.a],b=byId[e.b];
+  const x1=px(a)+62,y1=py(a),x2=px(b)-62,y2=py(b);
+  const mx=(x1+x2)/2;
+  return {x1,y1,x2,y2,curve:t=>{
+    // cubic bezier via control points on mid x
+    const mt=1-t;
+    const cx1=mx,cy1=y1,cx2=mx,cy2=y2;
+    return {x:mt*mt*mt*x1+3*mt*mt*t*cx1+3*mt*t*t*cx2+t*t*t*x2,
+            y:mt*mt*mt*y1+3*mt*mt*t*cy1+3*mt*t*t*cy2+t*t*t*y2};
+  }};
+}
+
+/* ================= events ================= */
+function log(kind,msg){
+  const box=$("evlog");
+  const el=document.createElement("div");el.className="ev "+kind;
+  const t=fmtT(simTime);
+  el.innerHTML=`<span class="t">${t}</span>${msg}`;
+  box.prepend(el);
+  while(box.children.length>26)box.lastChild.remove();
+}
+function fmtT(s){
+  s=Math.floor(s);const h=String(Math.floor(s/3600)).padStart(2,"0"),
+  m=String(Math.floor(s/60)%60).padStart(2,"0"),ss=String(s%60).padStart(2,"0");
+  return h+":"+m+":"+ss;
+}
+log("ok","pipeline <b>orders_rt_v3</b> deployed · all nodes healthy");
+
+let nextIncident=9+Math.random()*8;
+function maybeIncident(dt){
+  nextIncident-=dt;
+  if(nextIncident>0)return;
+  nextIncident=11+Math.random()*12;
+  const pool=NODES.filter(n=>n.status==="OK"&&!["kafka","wh","alert"].includes(n.id));
+  if(!pool.length)return;
+  const n=pool[Math.floor(Math.random()*pool.length)];
+  n.status="WARN";n.degT=4.5+Math.random()*4.5;n.rate=n.base*.28;
+  log("warn",`<b>${n.label}</b> degraded — throughput ${Math.round(n.rate)} rows/s, backpressure rising`);
+}
+
+/* ================= simulation step ================= */
+function step(dt){
+  simTime+=dt;
+  maybeIncident(dt);
+  NODES.forEach(n=>{
+    if(n.status==="WARN"){
+      n.degT-=dt;
+      n.queue+= (n.base-n.rate)*dt*.6;
+      if(n.degT<=0){
+        n.status="OK";n.rate=n.base;
+        log("ok",`<b>${n.label}</b> recovered — draining queue (${fmtNum(n.queue)} rows)`);
+      }
+    }else{
+      n.queue=Math.max(0,n.queue-n.base*dt*1.8);
+      n.rate=n.base*(0.94+Math.sin(simTime*.7+n.x*9)*.05+Math.random()*.02);
+    }
+    n.total+=n.rate*dt;
+    if(Math.floor(simTime*2)!==Math.floor((simTime-dt)*2)){
+      n.hist.push(n.rate);if(n.hist.length>80)n.hist.shift();
+    }
+  });
+  if(burstT>0)burstT-=dt;
+  const burstMul=burstT>0?6:1;
+  // packet spawning
+  EDGES.forEach(e=>{
+    const a=byId[e.a];
+    let r=a.rate*(e.share||1);
+    if(e.fromPool)r=a.rate*.078;
+    if(e.a==="kafka")r*=burstMul;
+    e.acc+=r*dt/300; // 1 dot ≈ 300 rows
+    while(e.acc>=1){e.acc-=1;if(e.pk.length<160)e.pk.push({t:0,sp:.35+Math.random()*.25})}
+    for(let i=e.pk.length-1;i>=0;i--){
+      const p=e.pk[i];p.t+=p.sp*dt*(0.6+speed*.4);
+      if(p.t>=1)e.pk.splice(i,1);
+    }
+  });
+}
+
+/* ================= drawing ================= */
+const C={OK:"#4CEA9B",WARN:"#FFB020",DOWN:"#FF5470"};
+function fmtNum(n){
+  if(n>=1e6)return(n/1e6).toFixed(2)+"M";
+  if(n>=1e3)return(n/1e3).toFixed(1)+"k";
+  return Math.round(n)+"";
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // dotted grid
+  ctx.fillStyle="rgba(255,255,255,.045)";
+  const g=34;
+  for(let x=g/2;x<W;x+=g)for(let y=g/2;y<H;y+=g)ctx.fillRect(x,y,1,1);
+
+  // edges
+  EDGES.forEach(e=>{
+    const p=edgePath(e);
+    const warn=byId[e.a].status!=="OK"||byId[e.b].status!=="OK";
+    ctx.beginPath();ctx.moveTo(p.x1,p.y1);
+    const mx=(p.x1+p.x2)/2;
+    ctx.bezierCurveTo(mx,p.y1,mx,p.y2,p.x2,p.y2);
+    ctx.strokeStyle=warn?"rgba(255,176,32,.30)":"rgba(58,226,255,.16)";
+    ctx.lineWidth=1;ctx.setLineDash([3,5]);ctx.lineDashOffset=-simTime*14;ctx.stroke();
+    ctx.setLineDash([]);
+    // packets
+    e.pk.forEach(pk=>{
+      const q=p.curve(pk.t);
+      const col=e.b==="dlq"?"#FF5470":warn?"#FFB020":"#3AE2FF";
+      ctx.save();
+      ctx.shadowColor=col;ctx.shadowBlur=7;
+      ctx.fillStyle=col;
+      ctx.beginPath();ctx.arc(q.x,q.y,2.1,0,7);ctx.fill();
+      ctx.restore();
+    });
+  });
+
+  // nodes
+  NODES.forEach(n=>{
+    const x=px(n),y=py(n);
+    const w=124,h=46,hw=w/2,hh=h/2;
+    const sel=selected===n;
+    // queue halo
+    if(n.queue>400){
+      const k=Math.min(1,n.queue/30000);
+      ctx.save();ctx.shadowColor=C.WARN;ctx.shadowBlur=26*k+8;
+      ctx.fillStyle=`rgba(255,176,32,${.05+k*.09})`;
+      ctx.fillRect(x-hw-6,y-hh-6,w+12,h+12);ctx.restore();
+    }
+    // body
+    ctx.fillStyle=sel?"#101624":"#0C0F17";
+    ctx.strokeStyle=sel?"rgba(58,226,255,.8)":"rgba(255,255,255,.13)";
+    ctx.lineWidth=sel?1.4:1;
+    ctx.fillRect(x-hw,y-hh,w,h);ctx.strokeRect(x-hw,y-hh,w,h);
+    // status led
+    ctx.save();ctx.shadowColor=C[n.status];ctx.shadowBlur=9;
+    ctx.fillStyle=C[n.status];ctx.beginPath();ctx.arc(x-hw+12,y,3,0,7);ctx.fill();ctx.restore();
+    // labels
+    ctx.fillStyle="#E6EAF2";ctx.font="11px 'SF Mono',Menlo,monospace";ctx.textAlign="left";
+    ctx.fillText(n.label,x-hw+22,y-3);
+    ctx.fillStyle="#5B6474";ctx.font="9px 'SF Mono',Menlo,monospace";
+    ctx.fillText(fmtNum(n.rate)+" rows/s"+(n.queue>400?" · Q "+fmtNum(n.queue):""),x-hw+22,y+11);
+    // throughput micro-bar under node
+    const bw=Math.min(1,n.rate/n.base)*w;
+    ctx.fillStyle="rgba(58,226,255,.28)";ctx.fillRect(x-hw,y+hh+4,bw,2);
+    if(sel){
+      ctx.strokeStyle="rgba(58,226,255,.35)";ctx.setLineDash([2,4]);
+      ctx.strokeRect(x-hw-8,y-hh-8,w+16,h+16);ctx.setLineDash([]);
+    }
+  });
+}
+
+/* ================= HUD stats ================= */
+let hudAcc=0;
+function hud(dt){
+  hudAcc+=dt;if(hudAcc<.25)return;hudAcc=0;
+  const ingress=byId.kafka.rate*(burstT>0?6:1);
+  const dlq=byId.dlq.total, ok=byId.wh.total+byId.alert.total;
+  const err=ok+dlq>0?dlq/(ok+dlq)*100:0;
+  const warns=NODES.filter(n=>n.status!=="OK").length;
+  $("m-tput").innerHTML=fmtNum(ingress)+"<em> rows/s</em>";
+  $("m-dlv").textContent=fmtNum(ok)+" / "+fmtNum(dlq);
+  $("m-err").textContent=err.toFixed(1)+"%";
+  $("m-err").className="v "+(err>6?"a":"g");
+  const hp=Math.max(0,100-warns*22-Math.min(20,err*2));
+  $("m-hp").innerHTML=Math.round(hp)+"<em> /100</em>";
+  $("m-hp").className="v "+(hp>85?"g":hp>60?"a":"");
+  $("m-hp").style.color=hp>85?"var(--green)":hp>60?"var(--amber)":"var(--red)";
+  $("ft-nodes").textContent=warns?`${NODES.length} NODES · ${warns} DEGRADED`:"8 NODES · ALL SYSTEMS NOMINAL";
+  $("clock").textContent=fmtT(simTime);
+  if(selected)fillInspector();
+}
+
+/* ================= inspector ================= */
+const insp=$("insp"),spark=$("i-spark"),sctx=spark.getContext("2d");
+function fillInspector(){
+  const n=selected;if(!n)return;
+  $("i-name").textContent=n.label;
+  $("i-role").textContent=n.sub;
+  $("i-st").style.background=C[n.status];
+  $("i-st").style.boxShadow=`0 0 8px ${C[n.status]}`;
+  $("i-rate").textContent=fmtNum(n.rate)+" r/s";
+  $("i-queue").textContent=fmtNum(n.queue);
+  $("i-queue").style.color=n.queue>400?"var(--amber)":"var(--ink)";
+  $("i-total").textContent=fmtNum(n.total);
+  $("i-status").textContent=n.status;
+  $("i-status").style.color=C[n.status];
+  // sparkline
+  const dpr=Math.min(2,devicePixelRatio||1);
+  const rw=spark.clientWidth,rh=spark.clientHeight;
+  if(spark.width!==rw*dpr){spark.width=rw*dpr;spark.height=rh*dpr}
+  sctx.setTransform(dpr,0,0,dpr,0,0);
+  sctx.clearRect(0,0,rw,rh);
+  const h=n.hist;if(h.length<2)return;
+  const max=Math.max(...h)*1.15,min=Math.min(...h)*.85;
+  sctx.beginPath();
+  h.forEach((v,i)=>{
+    const x=12+i/(h.length-1)*(rw-24);
+    const y=rh-10-((v-min)/((max-min)||1))*(rh-22);
+    i?sctx.lineTo(x,y):sctx.moveTo(x,y);
+  });
+  sctx.strokeStyle="rgba(58,226,255,.9)";sctx.lineWidth=1.2;sctx.stroke();
+  sctx.lineTo(rw-12,rh-10);sctx.lineTo(12,rh-10);sctx.closePath();
+  const gr=sctx.createLinearGradient(0,0,0,rh);
+  gr.addColorStop(0,"rgba(58,226,255,.20)");gr.addColorStop(1,"rgba(58,226,255,0)");
+  sctx.fillStyle=gr;sctx.fill();
+}
+canvas.addEventListener("click",e=>{
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  let hit=null;
+  NODES.forEach(n=>{if(Math.abs(mx-px(n))<68&&Math.abs(my-py(n))<30)hit=n});
+  selected=hit;
+  insp.classList.toggle("show",!!hit);
+  if(hit)fillInspector();
+});
+$("i-close").addEventListener("click",()=>{selected=null;insp.classList.remove("show")});
+
+/* ================= controls ================= */
+$("btn-pause").addEventListener("click",e=>{
+  paused=!paused;
+  e.target.textContent=paused?"RESUME":"PAUSE";
+  e.target.classList.toggle("active",!paused);
+  if(!paused)log("ok","operator resumed stream");
+});
+$("btn-burst").addEventListener("click",()=>{
+  burstT=3;log("warn","manual <b>BURST ×6</b> injected at source for 3s");
+});
+$("speed").addEventListener("input",e=>{
+  speed=e.target.value/100;$("speedv").textContent=speed.toFixed(2).replace(/0+$/,"").replace(/\.$/,".0")+"×";
+});
+
+/* ================= main loop ================= */
+let last=performance.now();
+(function loop(now){
+  let dt=Math.min(.05,(now-last)/1000);last=now;
+  if(!paused){step(dt*speed);draw()}
+  hud(dt);
+  requestAnimationFrame(loop);
+})(last);
+</script>
+</body>
+</html>

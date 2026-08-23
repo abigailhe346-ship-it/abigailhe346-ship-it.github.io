@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Type Poster — 动态字体海报生成器</title>
+<style>
+  :root{
+    --paper:#F2EFE9; --ink:#16130E; --red:#E5482E; --dim:#8A8378; --faint:#CFC8BC;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(229,72,46,.25)}
+
+  header{height:56px;display:flex;align-items:center;gap:16px;padding:0 22px;
+         border-bottom:1px solid var(--faint);position:relative;z-index:5;background:var(--paper)}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--red);letter-spacing:.14em}
+  .brand .name{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.24em;text-transform:uppercase}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--mono);
+          font-size:11px;color:var(--dim)}
+  .dotlive{width:7px;height:7px;background:var(--red);animation:pulse 2.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  main{display:grid;grid-template-columns:1fr 300px;height:calc(100% - 56px)}
+  .stage{position:relative;overflow:hidden;cursor:crosshair;background:var(--paper)}
+  canvas{display:block;position:absolute;inset:0}
+  .hint{position:absolute;left:22px;bottom:16px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);letter-spacing:.14em;text-transform:uppercase;pointer-events:none;
+        transition:opacity .6s}
+
+  aside{border-left:1px solid var(--faint);background:#EDEAE2;display:flex;flex-direction:column;
+        overflow-y:auto}
+  .panel{padding:20px 20px 8px}
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--faint)}
+
+  .field{margin-bottom:16px}
+  .field label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+               letter-spacing:.12em;color:var(--ink);text-transform:uppercase;margin-bottom:8px}
+  .field label .val{color:var(--red)}
+  input[type=text]{width:100%;background:var(--paper);border:1px solid var(--faint);color:var(--ink);
+                   font-family:var(--sans);font-weight:700;font-size:15px;letter-spacing:.08em;
+                   padding:10px 12px;outline:none;text-transform:uppercase;
+                   transition:border-color .3s}
+  input[type=text]:focus{border-color:var(--red)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--faint)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;
+      background:var(--red);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--red);
+      transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--faint)}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:0;background:var(--red);
+      border:2px solid var(--paper);box-shadow:0 0 0 1px var(--red)}
+
+  .seg{display:flex;border:1px solid var(--faint)}
+  .seg button{flex:1;background:transparent;border:0;padding:9px 0;font-family:var(--mono);
+              font-size:10px;letter-spacing:.16em;color:var(--dim);cursor:pointer;
+              transition:all .3s var(--ease);text-transform:uppercase}
+  .seg button + button{border-left:1px solid var(--faint)}
+  .seg button.on{background:var(--ink);color:var(--paper)}
+
+  .actions{margin-top:auto;padding:16px 20px 20px;border-top:1px solid var(--faint);
+           display:flex;flex-direction:column;gap:10px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 0;border:1px solid var(--ink);
+       background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;letter-spacing:.22em;
+       text-transform:uppercase;cursor:pointer;transition:all .3s var(--ease)}
+  .btn:hover{background:var(--red);border-color:var(--red)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .credit{padding:0 20px 16px;font-family:var(--mono);font-size:9px;color:var(--dim);
+          letter-spacing:.14em;line-height:1.8;text-transform:uppercase}
+
+  @media (max-width:840px){
+    body{overflow:auto}
+    main{display:flex;flex-direction:column;height:auto}
+    .stage{height:62vh;min-height:420px}
+    aside{border-left:0;border-top:1px solid var(--faint)}
+    header .sub{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="no">GA·01</span>
+    <span class="name">Type Poster</span>
+    <span class="sub">Kinetic Type Studio</span>
+  </div>
+  <div class="crumbs"><span class="dotlive"></span><span id="fps">LIVE · 60 FPS</span></div>
+</header>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="hint" id="hint">MOVE CURSOR TO DISTORT · 移动鼠标扰动字形</div>
+  </div>
+
+  <aside>
+    <div class="panel">
+      <div class="blocklabel">Copy · 文案</div>
+      <div class="field">
+        <label>Word / 词 <span class="val" id="lenVal">8</span></label>
+        <input type="text" id="word" maxlength="12" value="MOMENTUM" spellcheck="false">
+      </div>
+      <div class="field">
+        <label>Layout / 版式</label>
+        <div class="seg" id="layoutSeg">
+          <button data-v="mono" class="on">单幅</button>
+          <button data-v="stack">三叠</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Theme / 纸墨</label>
+        <div class="seg" id="themeSeg">
+          <button data-v="paper" class="on">纸白</button>
+          <button data-v="ink">墨黑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="blocklabel">Motion · 动势</div>
+      <div class="field">
+        <label>Wave 波动 <span class="val" id="ampVal">30</span></label>
+        <input type="range" id="amp" min="0" max="100" value="30">
+      </div>
+      <div class="field">
+        <label>Cursor 引力 <span class="val" id="pullVal">65</span></label>
+        <input type="range" id="pull" min="0" max="100" value="65">
+      </div>
+      <div class="field">
+        <label>Tempo 节奏 <span class="val" id="tempoVal">50</span></label>
+        <input type="range" id="tempo" min="0" max="100" value="50">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="randomBtn">
+        <svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0 1 14-4.5M20 14a8 8 0 0 1-14 4.5"/></svg>
+        随机版式
+      </button>
+      <button class="btn ghost" id="dlBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>
+        下载 PNG
+      </button>
+    </div>
+    <div class="credit">Type Poster Studio — set in Helvetica Neue,<br>generated &amp; distorted in real time. © MMXXVI</div>
+  </aside>
+</main>
+
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage'), cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+var off=document.createElement('canvas'), octx=off.getContext('2d');
+var DPR=1, W=0, H=0;
+
+var P={word:'MOMENTUM', layout:'mono', theme:'paper', amp:30, pull:65, tempo:50};
+var mouse={x:-9999,y:-9999,sx:-9999,sy:-9999,active:false};
+var seed=42, layoutMeta={bar:'under', circ:'tr'};
+var WORDS=['MOMENTUM','RESONANCE','GRAVITY','SIGNAL','ECHO','FLUX','HORIZON','TENSION',
+           'SILENCE','ORBIT','FRACTURE','MONO','TEMPO','DRIFT','VECTOR','STATIC'];
+var THEMES={
+  paper:{bg:'#F2EFE9', ink:'#16130E', accent:'#E5482E', faint:'#CFC8BC', dim:'#8A8378'},
+  ink:  {bg:'#14110C', ink:'#F2EFE9', accent:'#E5482E', faint:'#3A352C', dim:'#7C756A'}
+};
+
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=stage.clientWidth; H=stage.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  renderTextLayer();
+}
+window.addEventListener('resize',resize);
+
+/* ---------- text layer (offscreen, CSS px) ---------- */
+var layerPad=120;
+function renderTextLayer(){
+  off.width=(W+layerPad*2)*DPR; off.height=(H+layerPad*2)*DPR;
+  octx.setTransform(DPR,0,0,DPR,0,0);
+  octx.clearRect(0,0,W+layerPad*2,H+layerPad*2);
+  var word=(P.word||'TYPE').toUpperCase().replace(/[^A-Z0-9&\-\s]/g,'')||'TYPE';
+  var cx=layerPad+W/2, cy=layerPad+H/2;
+  var fs;
+  if(P.layout==='mono'){
+    fs=fitFont(word,W*0.86,H*0.62);
+    octx.fillStyle=THEMES[P.theme].ink;
+    drawWord(word,cx,cy,fs,'fill');
+  }else{
+    fs=fitFont(word,W*0.8,H*0.30);
+    var gap=fs*1.02;
+    drawWord(word,cx,cy-gap,fs,'fill');
+    drawWord(word,cx,cy,fs,'stroke');
+    drawWord(word,cx,cy+gap,fs,'fill');
+  }
+}
+function fitFont(word,maxW,maxH){
+  octx.font='700 100px "Helvetica Neue",Helvetica,Arial,sans-serif';
+  var w=octx.measureText(word).width;
+  return Math.min(maxW/w*100,maxH);
+}
+function drawWord(word,x,y,fs,mode){
+  octx.font='700 '+fs+'px "Helvetica Neue",Helvetica,Arial,sans-serif';
+  octx.textAlign='center'; octx.textBaseline='middle';
+  if(mode==='stroke'){
+    octx.strokeStyle=THEMES[P.theme].ink; octx.lineWidth=Math.max(1,fs*0.012);
+    octx.strokeText(word,x,y);
+  }else{
+    octx.fillStyle=THEMES[P.theme].ink;
+    octx.fillText(word,x,y);
+  }
+}
+
+/* ---------- poster chrome ---------- */
+function drawChrome(T){
+  var m=Math.min(W,H)*0.07, th=THEMES[P.theme];
+  ctx.strokeStyle=th.faint; ctx.lineWidth=1;
+  ctx.strokeRect(m,m,W-2*m,H-2*m);
+  /* corner ticks */
+  ctx.strokeStyle=th.ink;
+  var t=9;
+  [[m,m,1,1],[W-m,m,-1,1],[m,H-m,1,-1],[W-m,H-m,-1,-1]].forEach(function(c){
+    ctx.beginPath();
+    ctx.moveTo(c[0]+c[2]*t,c[1]); ctx.lineTo(c[0],c[1]); ctx.lineTo(c[0],c[1]+c[3]*t);
+    ctx.stroke();
+  });
+  /* meta copy */
+  ctx.fillStyle=th.dim; ctx.font='10px "SF Mono",Menlo,monospace';
+  ctx.textBaseline='middle';
+  ctx.textAlign='left';
+  ctx.fillText('KINETIC POSTER SERIES — N°'+String(seed%997+3).padStart(3,'0'), m+14, m+16);
+  ctx.fillText('SET IN HELVETICA NEUE · 700', m+14, H-m-16);
+  ctx.textAlign='right';
+  ctx.fillText(new Date().toISOString().slice(0,10).replace(/-/g,'.'), W-m-14, m+16);
+  if(W>560) ctx.fillText('ED. '+String(1+seed%12).padStart(2,'0')+' / 12 · GENERATED IN BROWSER', W-m-14, H-m-16);
+  /* red accent: bar + square */
+  ctx.fillStyle=th.accent;
+  var cx=W/2, cy=H/2;
+  var rng=mulberry(seed);
+  var wordW=estimateWordWidth();
+  var barY = P.layout==='mono' ? cy + estimateFontSize()*0.62 : cy + estimateFontSize()*1.53 + estimateFontSize()*0.14;
+  var bx = layoutMeta.bar==='under' ? cx-wordW/2 : cx+wordW/2+18;
+  if(layoutMeta.bar==='under') ctx.fillRect(cx-wordW/2, barY, Math.min(wordW*0.28,90), 5);
+  else ctx.fillRect(cx-wordW/2-18-Math.min(wordW*0.28,90), barY, Math.min(wordW*0.28,90), 5);
+  var sq=layoutMeta.circ==='tr'?[W-m-26,m+40]:(rng()<0.5?[m+26,m+40]:[W-m-26,H-m-44]);
+  ctx.fillRect(sq[0],sq[1],10,10);
+}
+function estimateFontSize(){
+  var word=(P.word||'TYPE').toUpperCase()||'TYPE';
+  octx.font='700 100px "Helvetica Neue",Helvetica,Arial,sans-serif';
+  var w=octx.measureText(word).width;
+  var maxW = P.layout==='mono'? W*0.86 : W*0.8;
+  var maxH = P.layout==='mono'? H*0.62 : H*0.30;
+  return Math.min(maxW/w*100,maxH);
+}
+function estimateWordWidth(){
+  var word=(P.word||'TYPE').toUpperCase()||'TYPE';
+  var fs=estimateFontSize();
+  octx.font='700 '+fs+'px "Helvetica Neue",Helvetica,Arial,sans-serif';
+  return octx.measureText(word).width;
+}
+
+/* ---------- main loop ---------- */
+var t0=performance.now(), lastT=t0, frames=0, fpsT=t0;
+function frame(now){
+  var t=(now-t0)/1000;
+  var th=THEMES[P.theme];
+  ctx.fillStyle=th.bg; ctx.fillRect(0,0,W,H);
+
+  /* smooth cursor */
+  if(!mouse.active){ mouse.x=W/2+Math.sin(t*0.4)*W*0.2; mouse.y=H/2+Math.cos(t*0.31)*H*0.2; }
+  mouse.sx += (mouse.x-mouse.sx)*0.08;
+  mouse.sy += (mouse.y-mouse.sy)*0.08;
+
+  var tempo=0.2+P.tempo/100*1.8;
+  var amp=P.amp/100;
+  var pull=P.pull/100;
+  var slice=3;
+  var sigma=H*0.11+30;
+  for(var y=0;y<H;y+=slice){
+    var wave=Math.sin(y*0.018 + t*1.6*tempo)*0.6 + Math.sin(y*0.041 - t*1.1*tempo)*0.4;
+    var dx=wave*amp*14;
+    var dy=y-mouse.sy;
+    var g=Math.exp(-(dy*dy)/(2*sigma*sigma));
+    dx += g*pull*( Math.sin(t*4*tempo + y*0.09)*24 + (mouse.sx-W/2)*0.06 );
+    ctx.drawImage(off, 0,(y+layerPad)*DPR, off.width, slice*DPR,
+                  dx-layerPad, y, W+layerPad*2, slice);
+  }
+
+  drawChrome(th);
+
+  frames++;
+  if(now-fpsT>1000){
+    document.getElementById('fps').textContent='LIVE · '+frames+' FPS';
+    frames=0; fpsT=now;
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- events ---------- */
+stage.addEventListener('pointermove',function(e){
+  var r=stage.getBoundingClientRect();
+  mouse.x=e.clientX-r.left; mouse.y=e.clientY-r.top; mouse.active=true;
+  if(mouse.sx<-9000){mouse.sx=mouse.x;mouse.sy=mouse.y;}
+  document.getElementById('hint').style.opacity=0;
+});
+stage.addEventListener('pointerleave',function(){mouse.active=false;});
+
+var wordInput=document.getElementById('word');
+wordInput.addEventListener('input',function(){
+  P.word=wordInput.value.toUpperCase();
+  document.getElementById('lenVal').textContent=P.word.length;
+  renderTextLayer();
+});
+function bindSeg(id,key,cb){
+  var seg=document.getElementById(id);
+  seg.addEventListener('click',function(e){
+    var b=e.target.closest('button'); if(!b)return;
+    seg.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+    b.classList.add('on'); P[key]=b.dataset.v; if(cb)cb(b.dataset.v);
+  });
+}
+bindSeg('layoutSeg','layout',renderTextLayer);
+bindSeg('themeSeg','theme',renderTextLayer);
+function bindRange(id,key,label){
+  var el=document.getElementById(id);
+  el.addEventListener('input',function(){
+    P[key]=+el.value; document.getElementById(label).textContent=el.value;
+  });
+}
+bindRange('amp','amp','ampVal');
+bindRange('pull','pull','pullVal');
+bindRange('tempo','tempo','tempoVal');
+
+document.getElementById('randomBtn').addEventListener('click',function(){
+  seed=Math.floor(Math.random()*99999);
+  var rng=mulberry(seed);
+  P.word=WORDS[Math.floor(rng()*WORDS.length)];
+  wordInput.value=P.word;
+  document.getElementById('lenVal').textContent=P.word.length;
+  layoutMeta.bar=rng()<0.5?'under':'left';
+  layoutMeta.circ=rng()<0.5?'tr':'rand';
+  var layouts=['mono','stack'];
+  var lv=layouts[Math.floor(rng()*2)];
+  P.layout=lv;
+  document.querySelectorAll('#layoutSeg button').forEach(function(b){
+    b.classList.toggle('on',b.dataset.v===lv);
+  });
+  renderTextLayer();
+});
+
+document.getElementById('dlBtn').addEventListener('click',function(){
+  cv.toBlob(function(blob){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='type-poster-'+(P.word||'type').toLowerCase()+'.png';
+    a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+});
+
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

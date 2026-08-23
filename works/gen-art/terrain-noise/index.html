@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relief Survey — 噪声地形等高线地图</title>
+<style>
+  :root{
+    --paper:#EDE6D8; --panel:#E6DFCF; --ink:#3B352E; --sienna:#C4552D;
+    --water:#7A9AA8; --dim:#8D8474; --faint:#C9C0AC;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(196,85,45,.25)}
+
+  header{height:56px;display:flex;align-items:center;gap:16px;padding:0 22px;
+         border-bottom:1px solid var(--faint);position:relative;z-index:5;background:var(--paper)}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--sienna);letter-spacing:.14em}
+  .brand .name{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.24em;text-transform:uppercase}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--mono);
+          font-size:11px;color:var(--dim)}
+  .dotlive{width:7px;height:7px;background:var(--sienna);animation:pulse 2.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  main{display:grid;grid-template-columns:1fr 300px;height:calc(100% - 56px)}
+  .stage{position:relative;overflow:hidden;cursor:grab;background:var(--paper)}
+  .stage.dragging{cursor:grabbing}
+  canvas{display:block;position:absolute;inset:0}
+  .hint{position:absolute;left:22px;bottom:16px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);letter-spacing:.14em;text-transform:uppercase;pointer-events:none;
+        transition:opacity .6s}
+
+  aside{border-left:1px solid var(--faint);background:var(--panel);display:flex;flex-direction:column;
+        overflow-y:auto}
+  .panel{padding:20px 20px 8px}
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--faint)}
+
+  .field{margin-bottom:16px}
+  .field label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+               letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+  .field label .val{color:var(--sienna)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--faint)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;
+      background:var(--sienna);border:2px solid var(--paper);box-shadow:0 0 0 1px var(--sienna);
+      transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--faint)}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:0;background:var(--sienna);
+      border:2px solid var(--paper);box-shadow:0 0 0 1px var(--sienna)}
+
+  .seg{display:flex;border:1px solid var(--faint)}
+  .seg button{flex:1;background:transparent;border:0;padding:9px 0;font-family:var(--mono);
+              font-size:10px;letter-spacing:.16em;color:var(--dim);cursor:pointer;
+              transition:all .3s var(--ease);text-transform:uppercase}
+  .seg button + button{border-left:1px solid var(--faint)}
+  .seg button.on{background:var(--ink);color:var(--paper)}
+
+  .readout{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+  .cell{border:1px solid var(--faint);padding:8px 10px}
+  .cell b{display:block;font-family:var(--mono);font-size:12px;font-weight:400;color:var(--ink)}
+  .cell span{font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+
+  .actions{margin-top:auto;padding:16px 20px 20px;border-top:1px solid var(--faint);
+           display:flex;flex-direction:column;gap:10px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 0;
+       border:1px solid var(--ink);background:var(--ink);color:var(--paper);
+       font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+       cursor:pointer;transition:all .3s var(--ease)}
+  .btn:hover{background:var(--sienna);border-color:var(--sienna)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:var(--ink);color:var(--paper)}
+  .btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .credit{padding:0 20px 16px;font-family:var(--mono);font-size:9px;color:var(--dim);
+          letter-spacing:.14em;line-height:1.8;text-transform:uppercase}
+
+  @media (max-width:840px){
+    body{overflow:auto}
+    main{display:flex;flex-direction:column;height:auto}
+    .stage{height:58vh;min-height:400px;touch-action:none}
+    aside{border-left:0;border-top:1px solid var(--faint)}
+    header .sub{display:none}
+    .hint{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="no">GA·03</span>
+    <span class="name">Relief Survey</span>
+    <span class="sub">Contour Cartography</span>
+  </div>
+  <div class="crumbs"><span class="dotlive"></span><span>SHEET · <span id="sheetOut">07</span></span></div>
+</header>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="hint" id="hint">DRAG TO PAN · SCROLL TO ZOOM · 拖拽平移 滚轮缩放</div>
+  </div>
+
+  <aside>
+    <div class="panel">
+      <div class="blocklabel">Terrain · 地貌</div>
+      <div class="field">
+        <label>Contours 等高线 <span class="val" id="linesVal">14</span></label>
+        <input type="range" id="lines" min="6" max="26" value="14">
+      </div>
+      <div class="field">
+        <label>Roughness 起伏 <span class="val" id="roughVal">55</span></label>
+        <input type="range" id="rough" min="0" max="100" value="55">
+      </div>
+      <div class="field">
+        <label>Sea Level 海平面 <span class="val" id="seaVal">42</span></label>
+        <input type="range" id="sea" min="10" max="70" value="42">
+      </div>
+      <div class="field">
+        <label>Drift 漂移 <span class="val" id="driftVal">30</span></label>
+        <input type="range" id="drift" min="0" max="100" value="30">
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="blocklabel">Survey · 读数</div>
+      <div class="readout">
+        <div class="cell"><b id="roLat">N 44°12.4'</b><span>Latitude</span></div>
+        <div class="cell"><b id="roLon">E 006°51.9'</b><span>Longitude</span></div>
+        <div class="cell"><b id="roZoom">1.6×</b><span>Scale</span></div>
+        <div class="cell"><b id="roPeak">—</b><span>Summit</span></div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="randomBtn">
+        <svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0 1 14-4.5M20 14a8 8 0 0 1-14 4.5"/></svg>
+        随机地形
+      </button>
+      <button class="btn ghost" id="dlBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>
+        下载 PNG
+      </button>
+    </div>
+    <div class="credit">Relief Survey Bureau — fractional noise,<br>marched into contours. Sheet 1 of ∞. © MMXXVI</div>
+  </aside>
+</main>
+
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage'), cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+var DPR=1, W=0, H=0;
+
+var P={lines:14, rough:55, sea:42, drift:30};
+var seed=7, zoom=1.6, ox=0, oy=0;
+var CELL=9;
+
+/* ---------- value noise ---------- */
+var perm=new Uint8Array(512);
+function buildPerm(s){
+  var p=[]; for(var i=0;i<256;i++)p[i]=i;
+  var a=s;
+  for(var j=255;j>0;j--){
+    a=(a*16807)%2147483647;
+    var r=a%(j+1); var t=p[j];p[j]=p[r];p[r]=t;
+  }
+  for(var k=0;k<512;k++)perm[k]=p[k&255];
+}
+function vnoise(x,y){
+  var xi=Math.floor(x), yi=Math.floor(y);
+  var xf=x-xi, yf=y-yi;
+  var u=xf*xf*(3-2*xf), v=yf*yf*(3-2*yf);
+  var aa=perm[(perm[xi&255]+yi)&255]/255;
+  var ba=perm[(perm[(xi+1)&255]+yi)&255]/255;
+  var ab=perm[(perm[xi&255]+(yi+1))&255]/255;
+  var bb=perm[(perm[(xi+1)&255]+(yi+1))&255]/255;
+  return (aa+(ba-aa)*u)+((ab+(bb-ab)*u)-(aa+(ba-aa)*u))*v;
+}
+function fbm(x,y,oct){
+  var v=0, amp=0.5, f=1, norm=0;
+  for(var i=0;i<oct;i++){ v+=vnoise(x*f,y*f)*amp; norm+=amp; amp*=0.5; f*=2.03; }
+  return v/norm;
+}
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=stage.clientWidth; H=stage.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize);
+
+/* ---------- field + marching squares ---------- */
+var cols=0, rows=0, field=null;
+function computeField(){
+  cols=Math.ceil(W/CELL)+2; rows=Math.ceil(H/CELL)+2;
+  if(!field||field.length<cols*rows) field=new Float32Array(cols*rows);
+  var oct=2+Math.round(P.rough/100*3);
+  var freq=0.0035*zoom;
+  for(var j=0;j<rows;j++){
+    for(var i=0;i<cols;i++){
+      field[j*cols+i]=fbm((i*CELL)*freq+ox,(j*CELL)*freq+oy,oct);
+    }
+  }
+}
+function march(level){
+  ctx.beginPath();
+  for(var j=0;j<rows-1;j++){
+    for(var i=0;i<cols-1;i++){
+      var a=field[j*cols+i], b=field[j*cols+i+1],
+          c=field[(j+1)*cols+i+1], d=field[(j+1)*cols+i];
+      var idx=(a>level?8:0)|(b>level?4:0)|(c>level?2:0)|(d>level?1:0);
+      if(idx===0||idx===15)continue;
+      var x0=i*CELL, y0=j*CELL;
+      var t1=(level-a)/(b-a), t2=(level-b)/(c-b), t3=(level-d)/(c-d), t4=(level-a)/(d-a);
+      var T=[x0+t1*CELL,y0], R=[x0+CELL,y0+t2*CELL],
+          B=[x0+t3*CELL,y0+CELL], L=[x0,y0+t4*CELL];
+      function seg(p,q){ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);}
+      switch(idx){
+        case 1: case 14: seg(L,B); break;
+        case 2: case 13: seg(B,R); break;
+        case 3: case 12: seg(L,R); break;
+        case 4: case 11: seg(T,R); break;
+        case 5: seg(T,R); seg(L,B); break;
+        case 6: case 9:  seg(T,B); break;
+        case 7: case 8:  seg(T,L); break;
+        case 10: seg(T,L); seg(B,R); break;
+      }
+    }
+  }
+  ctx.stroke();
+}
+
+function findPeaks(){
+  var peaks=[], stride=4;
+  for(var j=stride;j<rows-stride;j+=stride){
+    for(var i=stride;i<cols-stride;i+=stride){
+      var e=field[j*cols+i];
+      if(e<0.68)continue;
+      var ok=true;
+      for(var dj=-stride;dj<=stride&&ok;dj+=stride)
+        for(var di=-stride;di<=stride&&ok;di+=stride)
+          if(field[(j+dj)*cols+(i+di)]>e)ok=false;
+      if(ok){
+        var far=peaks.every(function(p){
+          var dx=p[0]-i*CELL, dy=p[1]-j*CELL; return dx*dx+dy*dy>80*80;
+        });
+        if(far)peaks.push([i*CELL,j*CELL,e]);
+      }
+    }
+  }
+  return peaks.slice(0,5);
+}
+
+/* ---------- render ---------- */
+var last=performance.now(), readoutT=0;
+function frame(now){
+  var dt=Math.min((now-last)/1000,0.05); last=now;
+  var driftV=P.drift/100;
+  ox+=dt*driftV*0.05; oy+=dt*driftV*0.031;
+
+  computeField();
+
+  ctx.fillStyle='#EDE6D8'; ctx.fillRect(0,0,W,H);
+  var wl=P.sea/100;
+
+  /* hypsometric wash */
+  for(var j=0;j<rows-1;j++){
+    for(var i=0;i<cols-1;i++){
+      var e=(field[j*cols+i]+field[j*cols+i+1]+field[(j+1)*cols+i]+field[(j+1)*cols+i+1])/4;
+      if(e<wl){
+        ctx.fillStyle='rgba(122,154,168,'+(0.08+0.20*(1-e/wl)).toFixed(3)+')';
+        ctx.fillRect(i*CELL-0.5,j*CELL-0.5,CELL+1,CELL+1);
+      }else if(e>0.78){
+        ctx.fillStyle='rgba(196,85,45,'+(0.05*(e-0.78)/0.22).toFixed(3)+')';
+        ctx.fillRect(i*CELL-0.5,j*CELL-0.5,CELL+1,CELL+1);
+      }
+    }
+  }
+
+  /* contours */
+  ctx.lineWidth=1;
+  var n=P.lines;
+  for(var l=0;l<=n;l++){
+    var lv=0.18+(l/n)*0.72;
+    if(Math.abs(lv-wl)<0.5/n){ /* shoreline emphasis */
+      ctx.strokeStyle='rgba(58,80,92,.85)'; ctx.lineWidth=1.6;
+      march(wl);
+      ctx.strokeStyle='rgba(59,53,46,.5)'; ctx.lineWidth=1;
+      continue;
+    }
+    var idxLine=(l%5===0);
+    ctx.strokeStyle=idxLine?'rgba(59,53,46,.75)':'rgba(59,53,46,.38)';
+    ctx.lineWidth=idxLine?1.3:0.7;
+    march(lv);
+  }
+
+  /* peaks */
+  var peaks=findPeaks();
+  ctx.fillStyle='#C4552D';
+  var top=null;
+  peaks.forEach(function(p){
+    ctx.beginPath();
+    ctx.moveTo(p[0],p[1]-7); ctx.lineTo(p[0]+6,p[1]+5); ctx.lineTo(p[0]-6,p[1]+5);
+    ctx.closePath(); ctx.fill();
+    ctx.font='9px "SF Mono",Menlo,monospace'; ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText(Math.round(p[2]*1600)+' M', p[0]+9, p[1]+1);
+    if(!top||p[2]>top[2])top=p;
+  });
+
+  drawChrome(now);
+
+  if(now-readoutT>250){
+    readoutT=now;
+    var lat=44.2+oy*0.02, lon=6.8+ox*0.02;
+    var la=Math.abs(lat), lo=((Math.abs(lon)%180)+180)%180;
+    document.getElementById('roLat').textContent=(lat>=0?'N ':'S ')+fmtDeg(la);
+    document.getElementById('roLon').textContent=(lon>=0?'E ':'W ')+fmtDeg(lo,3);
+    document.getElementById('roZoom').textContent=zoom.toFixed(1)+'×';
+    document.getElementById('roPeak').textContent=top?Math.round(top[2]*1600)+' M':'—';
+  }
+  requestAnimationFrame(frame);
+}
+function fmtDeg(v,pad){
+  var d=Math.floor(v), m=((v-d)*60).toFixed(1);
+  var ds=String(d); while(ds.length<(pad||2))ds='0'+ds;
+  return ds+'°'+(m<10?'0':'')+m+"'";
+}
+
+/* ---------- cartographic chrome ---------- */
+function drawChrome(now){
+  var m=26;
+  ctx.strokeStyle='rgba(59,53,46,.8)'; ctx.lineWidth=1;
+  ctx.strokeRect(m,m,W-2*m,H-2*m);
+  ctx.strokeStyle='rgba(59,53,46,.35)';
+  ctx.strokeRect(m+4,m+4,W-2*m-8,H-2*m-8);
+  /* graticule ticks */
+  ctx.fillStyle='rgba(59,53,46,.55)';
+  for(var x=m+((-ox*40)%(W/8)+W/8)%(W/8); x<W-m; x+=W/8){
+    ctx.fillRect(x,m-3,1,6); ctx.fillRect(x,H-m-3,1,6);
+  }
+  for(var y=m+((-oy*40)%(H/6)+H/6)%(H/6); y<H-m; y+=H/6){
+    ctx.fillRect(m-3,y,6,1); ctx.fillRect(W-m-3,y,6,1);
+  }
+  /* title block */
+  ctx.fillStyle='#EDE6D8';
+  var tbW=W>560?238:190, tbH=W>560?54:40;
+  ctx.fillRect(W-m-tbW-8,H-m-tbH-8,tbW,tbH);
+  ctx.strokeStyle='rgba(59,53,46,.8)';
+  ctx.strokeRect(W-m-tbW-8,H-m-tbH-8,tbW,tbH);
+  ctx.fillStyle='#3B352E';
+  ctx.font='11px "SF Mono",Menlo,monospace'; ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('RELIEF SURVEY — SECTOR '+String(seed).padStart(2,'0'), W-m-tbW, H-m-tbH);
+  ctx.font='9px "SF Mono",Menlo,monospace'; ctx.fillStyle='#8D8474';
+  ctx.fillText('FBM FIELD · 1:'+Math.round(50000/zoom), W-m-tbW, H-m-tbH+16);
+  if(W>560)ctx.fillText('CONTOUR INTERVAL '+Math.round(1600/P.lines)+' M · DATUM MMXXVI', W-m-tbW, H-m-tbH+28);
+  /* scale bar */
+  if(W>560){
+  var sb=120, sy=H-m-22;
+  ctx.strokeStyle='#3B352E'; ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(m+16,sy); ctx.lineTo(m+16+sb,sy);
+  ctx.moveTo(m+16,sy-4); ctx.lineTo(m+16,sy+4);
+  ctx.moveTo(m+16+sb/2,sy-4); ctx.lineTo(m+16+sb/2,sy+4);
+  ctx.moveTo(m+16+sb,sy-4); ctx.lineTo(m+16+sb,sy+4);
+  ctx.stroke();
+  ctx.font='9px "SF Mono",Menlo,monospace'; ctx.fillStyle='#8D8474';
+  ctx.fillText('0', m+16, sy+8); ctx.fillText('5 KM', m+16+sb/2-10, sy+8);
+  ctx.fillText('10', m+16+sb-8, sy+8);
+  }
+  /* north arrow */
+  var nx=W-m-30, ny=m+34;
+  ctx.strokeStyle='#3B352E';
+  ctx.beginPath(); ctx.moveTo(nx,ny+14); ctx.lineTo(nx,ny-12); ctx.stroke();
+  ctx.fillStyle='#C4552D';
+  ctx.beginPath(); ctx.moveTo(nx,ny-18); ctx.lineTo(nx+5,ny-6); ctx.lineTo(nx-5,ny-6);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#3B352E'; ctx.font='10px "SF Mono",Menlo,monospace'; ctx.textAlign='center';
+  ctx.fillText('N', nx, ny+20);
+}
+
+/* ---------- interaction ---------- */
+var drag=null;
+stage.addEventListener('pointerdown',function(e){
+  drag={x:e.clientX,y:e.clientY,ox:ox,oy:oy};
+  stage.classList.add('dragging');
+  stage.setPointerCapture(e.pointerId);
+  document.getElementById('hint').style.opacity=0;
+});
+stage.addEventListener('pointermove',function(e){
+  if(!drag)return;
+  var freq=0.0035*zoom;
+  ox=drag.ox-(e.clientX-drag.x)*freq;
+  oy=drag.oy-(e.clientY-drag.y)*freq;
+});
+stage.addEventListener('pointerup',function(){drag=null;stage.classList.remove('dragging');});
+stage.addEventListener('wheel',function(e){
+  e.preventDefault();
+  zoom=Math.min(5,Math.max(0.6,zoom*(e.deltaY>0?0.92:1.09)));
+},{passive:false});
+
+function bindRange(id,key,label){
+  var el=document.getElementById(id);
+  el.addEventListener('input',function(){
+    P[key]=+el.value; document.getElementById(label).textContent=el.value;
+  });
+}
+bindRange('lines','lines','linesVal');
+bindRange('rough','rough','roughVal');
+bindRange('sea','sea','seaVal');
+bindRange('drift','drift','driftVal');
+
+document.getElementById('randomBtn').addEventListener('click',function(){
+  seed=Math.floor(Math.random()*90)+1;
+  buildPerm(seed*7919+13);
+  document.getElementById('sheetOut').textContent=String(seed).padStart(2,'0');
+});
+document.getElementById('dlBtn').addEventListener('click',function(){
+  cv.toBlob(function(blob){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='relief-survey-sector'+String(seed).padStart(2,'0')+'.png';
+    a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+});
+
+buildPerm(seed*7919+13);
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

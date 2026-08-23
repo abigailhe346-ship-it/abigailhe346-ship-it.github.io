@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HANDOFF FLOW — 多 Agent 交接泳道图</title>
+<style>
+  :root{
+    --paper:#F3EDE0; --panel:#EDE5D3; --ink:#211D16; --ink2:#5C5445;
+    --gray:#8A8072; --line:#D9CFB8;
+    --red:#E44C2E; --blue:#1E5AA8; --green:#0E7C5B; --gold:#E8A02E;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background-color:var(--paper);
+    background-image:radial-gradient(rgba(33,29,22,.05) 1px, transparent 1px);
+    background-size:4px 4px;
+    color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;
+    display:flex;flex-direction:column;overflow:hidden}
+  ::selection{background:var(--red);color:var(--paper)}
+
+  header{flex:0 0 auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:10px 16px;border-bottom:2px solid var(--ink);background:var(--paper)}
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap;margin-right:6px}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--red);letter-spacing:.12em}
+  .brand .name{font-size:15px;font-weight:800;letter-spacing:.18em}
+  .brand .sub{font-size:11px;color:var(--gray)}
+  .transport{display:flex;align-items:center;gap:0;border:2px solid var(--ink)}
+  .transport button{width:38px;height:32px;border:none;background:var(--paper);color:var(--ink);
+    font-family:var(--mono);font-size:13px;cursor:pointer;transition:all .15s var(--ease);
+    display:flex;align-items:center;justify-content:center}
+  .transport button+button{border-left:2px solid var(--ink)}
+  .transport button:hover{background:var(--ink);color:var(--paper)}
+  .transport button:disabled{opacity:.3;cursor:default;background:var(--paper);color:var(--ink)}
+  #step-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink2);
+    min-width:86px;text-align:center}
+  .speed{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.14em;color:var(--gray)}
+  .speed input{-webkit-appearance:none;appearance:none;width:80px;height:2px;background:var(--ink2);outline:none;cursor:pointer}
+  .speed input::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;background:var(--red);
+    border:2px solid var(--paper);box-shadow:0 0 0 1.5px var(--red);cursor:pointer}
+  .speed input::-moz-range-thumb{width:9px;height:9px;background:var(--red);border:2px solid var(--paper)}
+  header .spacer{flex:1}
+  .hnote{font-family:var(--mono);font-size:9.5px;color:var(--gray);letter-spacing:.1em}
+
+  main{flex:1;display:grid;grid-template-columns:1fr 320px;min-height:0}
+  #stage{position:relative;min-height:0;border-right:2px solid var(--ink)}
+  #svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  /* ---------- inspector ---------- */
+  #side{display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+  .side-head{flex:0 0 34px;display:flex;align-items:center;gap:8px;padding:0 14px;
+    border-bottom:2px solid var(--ink);font-family:var(--mono);font-size:9.5px;letter-spacing:.2em;color:var(--ink2)}
+  .side-head .sq{width:8px;height:8px;background:var(--red)}
+  #cur{flex:0 0 auto;padding:13px 14px;border-bottom:2px solid var(--ink)}
+  #cur .etype{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.16em;
+    padding:3px 8px;color:var(--paper);background:var(--ink);margin-bottom:8px}
+  #cur .eflow{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+  #cur .agent-chip{font-family:var(--mono);font-size:11px;font-weight:700;padding:3px 9px;color:var(--paper)}
+  #cur .arrow{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+  #cur .elabel{font-size:13.5px;font-weight:600;line-height:1.5;margin-bottom:6px}
+  #cur .edetail{font-size:11.5px;color:var(--ink2);line-height:1.65}
+  #cur .emeta{margin-top:9px;font-family:var(--mono);font-size:9.5px;color:var(--gray);letter-spacing:.08em}
+  #cur .empty{font-size:11.5px;color:var(--gray);line-height:1.7}
+  #elist{flex:1;overflow-y:auto}
+  .ev{display:grid;grid-template-columns:26px 8px 1fr;gap:8px;padding:8px 14px;
+    border-bottom:1px solid var(--line);cursor:pointer;align-items:start;
+    transition:background .14s var(--ease)}
+  .ev:hover{background:var(--paper)}
+  .ev .num{font-family:var(--mono);font-size:9.5px;color:var(--gray);padding-top:2px}
+  .ev .dot{width:8px;height:8px;margin-top:4px}
+  .ev .txt{font-size:11px;line-height:1.5;color:var(--ink2)}
+  .ev .txt b{color:var(--ink);font-weight:600}
+  .ev.future{opacity:.38}
+  .ev.now{background:var(--paper);box-shadow:inset 3px 0 0 var(--red)}
+  .ev.now .txt b{color:var(--red)}
+
+  footer{flex:0 0 30px;display:flex;align-items:center;gap:16px;padding:0 16px;flex-wrap:wrap;
+    border-top:2px solid var(--ink);background:var(--paper);
+    font-family:var(--mono);font-size:9.5px;color:var(--gray);letter-spacing:.08em}
+  footer .lg{display:flex;align-items:center;gap:5px}
+  footer .lg i{width:12px;height:8px}
+  footer .sig{margin-left:auto}
+
+  ::-webkit-scrollbar{width:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line);border:2px solid var(--panel)}
+
+  @media (max-width:900px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr;grid-template-rows:420px auto}
+    #stage{border-right:none;border-bottom:2px solid var(--ink)}
+    #elist{max-height:260px}
+    .brand .sub,.hnote{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·08</span>
+    <span class="name">HANDOFF FLOW</span>
+    <span class="sub">多 Agent 交接泳道图</span>
+  </div>
+  <div class="transport">
+    <button id="prev" title="上一步">&#9664;</button>
+    <button id="play" title="播放 / 暂停">&#9654;</button>
+    <button id="next" title="下一步">&#9654;&#9654;</button>
+    <button id="reset" title="重置">&#8634;</button>
+  </div>
+  <div id="step-label">STEP 0 / 14</div>
+  <div class="speed"><span>速度</span><input type="range" id="speed" min="0.5" max="2.5" step="0.1" value="1"></div>
+  <div class="spacer"></div>
+  <div class="hnote">场景:竞品分析周报 · 4 AGENTS · 14 EVENTS</div>
+</header>
+
+<main>
+  <div id="stage"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  <div id="side">
+    <div class="side-head"><span class="sq"></span>INSPECTOR · 事件详情</div>
+    <div id="cur"><div class="empty">按 &#9654; 播放,或用 &#9664; &#9654;&#9654; 单步执行。每条消息都是一次 Agent 间的交接。点击左侧站点圆点或下方事件可跳转。</div></div>
+    <div class="side-head"><span class="sq"></span>EVENT LOG · 全部事件</div>
+    <div id="elist"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="lg"><i style="background:#E44C2E"></i>COORDINATOR</div>
+  <div class="lg"><i style="background:#1E5AA8"></i>RESEARCHER</div>
+  <div class="lg"><i style="background:#0E7C5B"></i>CODER</div>
+  <div class="lg"><i style="background:#E8A02E"></i>CRITIC</div>
+  <div class="sig">ATELIER M · 2026</div>
+</footer>
+
+<script>
+'use strict';
+/* ================= 场景脚本(内置模拟数据) ================= */
+const AGENTS = {
+  user:       {name:'USER',       role:'需求方',  color:'#8A8072'},
+  coordinator:{name:'COORDINATOR',role:'调度',    color:'#E44C2E'},
+  researcher: {name:'RESEARCHER', role:'检索',    color:'#1E5AA8'},
+  coder:      {name:'CODER',      role:'执行',    color:'#0E7C5B'},
+  critic:     {name:'CRITIC',     role:'评审',    color:'#E8A02E'},
+};
+const LANE_ORDER = ['user','coordinator','researcher','coder','critic'];
+const TYPE_LABEL = {submit:'SUBMIT',plan:'PLAN',handoff:'HANDOFF',tool:'TOOL CALL',response:'RESPONSE',final:'DELIVER'};
+
+const EVENTS = [
+  {t:0.5, from:'user',       to:'coordinator', type:'submit',  label:'提交需求:生成竞品分析周报',
+   detail:'用户在对话框输入「整理 A / B / C 三家竞品本周动态,周五前给我一份周报」。调度器接收并开始解析意图。'},
+  {t:1.6, from:'coordinator',to:'coordinator', type:'plan',    label:'任务拆解:检索 → 整理 → 核查',
+   detail:'规划模块产出 3 个子任务与依赖图:搜集动态(Researcher)→ 数据整理(Coder)→ 事实核查(Critic),并分配截止时间。'},
+  {t:2.8, from:'coordinator',to:'researcher',  type:'handoff', label:'交接:搜集 3 家竞品本周动态',
+   detail:'HANDOFF 包携带:目标公司清单、时间窗(近 7 天)、输出 schema(标题 / 来源 / 日期 / 置信度)。'},
+  {t:4.6, from:'researcher', to:'researcher',  type:'tool',    label:'web.search × 3(并行检索)',
+   detail:'并行发起 3 次检索:竞品A 融资 / 竞品B 新功能 / 竞品C 人事变动。命中 27 条,去重后 12 条。'},
+  {t:6.4, from:'researcher', to:'coordinator', type:'response',label:'返回:12 条候选动态 + 置信度',
+   detail:'结果按 schema 封装,附带来源 URL 与抓取时间戳;低置信度(<0.6)的 2 条已单独标注。'},
+  {t:7.6, from:'coordinator',to:'coder',       type:'handoff', label:'交接:数据清洗与图表生成',
+   detail:'HANDOFF 包携带 12 条原始结果,要求:聚类为 4 个主题、生成趋势图数据、输出 Markdown 表格。'},
+  {t:9.4, from:'coder',      to:'coder',       type:'tool',    label:'code.execute(python 聚类脚本)',
+   detail:'沙箱内运行 84 行脚本:关键词聚类 → 主题命名 → 按声量排序。退出码 0,峰值内存 3.8MB。'},
+  {t:11.0,from:'coder',      to:'coordinator', type:'response',label:'返回:结构化周报草稿 v1',
+   detail:'产出 4 个主题段落 + 1 张趋势图数据 + 来源附录。草稿进入待核查队列。'},
+  {t:12.2,from:'coordinator',to:'critic',      type:'handoff', label:'交接:事实核查与措辞评审',
+   detail:'核查清单:数字与日期需逐条对源、不得出现未标注来源的论断、语气保持中立。'},
+  {t:14.0,from:'critic',     to:'researcher',  type:'handoff', label:'回退:复核 2 处数据',
+   detail:'Critic 发现竞品 B 的发布时间两个来源不一致、竞品 C 融资额缺一手来源,打回 Researcher 复核。'},
+  {t:15.8,from:'researcher', to:'critic',      type:'response',label:'复核完成:1 处修正 / 1 处补源',
+   detail:'竞品 B 发布时间以官网博客为准修正;竞品 C 融资额补充 Crunchbase 一手来源。'},
+  {t:17.2,from:'critic',     to:'coordinator', type:'response',label:'评审通过:质量分 0.91',
+   detail:'全部 14 处事实点对源通过;建议把「市占率领先」改为「市占率第一(来源:IDC)」。'},
+  {t:18.4,from:'coordinator',to:'coordinator', type:'plan',    label:'合并终稿:应用评审意见',
+   detail:'调度器合并修正,重新渲染周报,生成最终版本 v2 与变更记录。'},
+  {t:19.6,from:'coordinator',to:'user',        type:'final',   label:'交付:周报 v2 + 来源附录',
+   detail:'用户收到 Markdown 周报(4 主题 / 12 来源 / 1 图)。全程 14 次事件,4 次跨 Agent 交接,1 次回退。'},
+];
+
+/* ================= 状态 ================= */
+const $ = id => document.getElementById(id);
+let step = 0;                 // 已发生的事件数 0..EVENTS.length
+let playing = false, playTimer = null;
+let speed = 1;
+let curT = 0, targetT = 0;    // 时间游标(动画插值)
+const T_MAX = 21;
+
+/* ================= SVG 几何 ================= */
+const svg = $('svg');
+let VW = 800, VH = 400;
+function geom(){
+  const r = svg.getBoundingClientRect();
+  VW = Math.max(320, r.width); VH = Math.max(280, r.height);
+  const padL = 118, padR = 30, padT = 44, padB = 26;
+  const laneGap = (VH - padT - padB) / (LANE_ORDER.length - 1);
+  const laneY = id => padT + LANE_ORDER.indexOf(id) * laneGap;
+  const tX = t => padL + (t / T_MAX) * (VW - padL - padR);
+  return {padL, padR, padT, padB, laneGap, laneY, tX};
+}
+const easeIO = t => t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+
+/* ================= 渲染 ================= */
+const NS = 'http://www.w3.org/2000/svg';
+function el(tag, attrs, parent){
+  const e = document.createElementNS(NS, tag);
+  for(const k in attrs) e.setAttribute(k, attrs[k]);
+  if(parent) parent.appendChild(e);
+  return e;
+}
+function risoMark(g, x, y, color, r){
+  /* 套印偏移:riso 的错位质感 */
+  el('circle',{cx:x+1.4, cy:y+1.2, r:r, fill:'none', stroke:color, 'stroke-opacity':.35, 'stroke-width':1}, g);
+  el('circle',{cx:x, cy:y, r:r, fill:color}, g);
+}
+function render(){
+  const g0 = geom();
+  svg.setAttribute('viewBox', '0 0 '+VW+' '+VH);
+  svg.innerHTML = '';
+  const g = el('g',{},svg);
+
+  /* 时间轴 */
+  const axisG = el('g',{},g);
+  el('line',{x1:g0.padL, y1:g0.padT-18, x2:VW-g0.padR, y2:g0.padT-18, stroke:'#211D16','stroke-width':1.5}, axisG);
+  for(let t=0;t<=T_MAX;t+=3){
+    const x = g0.tX(t);
+    el('line',{x1:x, y1:g0.padT-22, x2:x, y2:g0.padT-14, stroke:'#211D16','stroke-width':1}, axisG);
+    const tx = el('text',{x:x, y:g0.padT-27, 'text-anchor':'middle', 'font-size':9, fill:'#8A8072',
+      'font-family':'SF Mono,Menlo,monospace'}, axisG);
+    tx.textContent = t+'s';
+  }
+
+  /* 泳道 */
+  LANE_ORDER.forEach(id=>{
+    const y = g0.laneY(id), a = AGENTS[id];
+    const gLane = el('g',{},g);
+    /* 车道线 */
+    el('line',{x1:g0.padL, y1:y, x2:VW-g0.padR, y2:y, stroke:'#211D16','stroke-width':1.5,'stroke-opacity':.8}, gLane);
+    el('line',{x1:g0.padL, y1:y+2.2, x2:VW-g0.padR, y2:y+2.2, stroke:a.color,'stroke-width':1,'stroke-opacity':.4}, gLane);
+    /* 站名牌 */
+    el('rect',{x:0, y:y-13, width:g0.padL-14, height:26, fill:'#211D16'}, gLane);
+    el('rect',{x:0, y:y-13, width:5, height:26, fill:a.color}, gLane);
+    const nm = el('text',{x:12, y:y-1, 'font-size':10, 'font-weight':700, fill:'#F3EDE0',
+      'font-family':'SF Mono,Menlo,monospace','letter-spacing':1}, gLane);
+    nm.textContent = a.name;
+    const st = agentStatus(id);
+    const rl = el('text',{x:12, y:y+10, 'font-size':8.5, fill:st==='WORKING'?a.color:'#8A8072',
+      'font-family':'SF Mono,Menlo,monospace'}, gLane);
+    rl.textContent = st;
+  });
+
+  /* 已发生事件:站点与连线 */
+  for(let i=0;i<step;i++){
+    const ev = EVENTS[i];
+    const c = AGENTS[ev.from].color;
+    const x = g0.tX(ev.t), y1 = g0.laneY(ev.from), y2 = g0.laneY(ev.to);
+    const gEv = el('g',{opacity:.92},g);
+    if(ev.from===ev.to){
+      /* 自循环:车道上方小环 */
+      el('path',{d:'M '+x+' '+y1+' C '+(x-14)+' '+(y1-26)+', '+(x+14)+' '+(y1-26)+', '+(x+12)+' '+y1,
+        fill:'none', stroke:c, 'stroke-width':1.6}, gEv);
+    } else {
+      el('path',{d:'M '+x+' '+y1+' C '+x+' '+((y1+y2)/2)+', '+x+' '+((y1+y2)/2)+', '+x+' '+y2,
+        fill:'none', stroke:c, 'stroke-width':1.6, 'stroke-opacity':.75}, gEv);
+    }
+    risoMark(gEv, x, y1, c, 5);
+    if(ev.from!==ev.to) risoMark(gEv, x, y2, c, 4);
+    /* 事件序号 */
+    const badge = el('g',{cursor:'pointer','data-i':i}, gEv);
+    el('circle',{cx:x, cy:y1-14, r:7.5, fill:'#F3EDE0', stroke:'#211D16','stroke-width':1}, badge);
+    const bn = el('text',{x:x, y:y1-10.5, 'text-anchor':'middle','font-size':8,'font-weight':700,
+      fill:'#211D16','font-family':'SF Mono,Menlo,monospace'}, badge);
+    bn.textContent = i+1;
+    badge.addEventListener('click', ()=>gotoStep(i+1));
+    badge.addEventListener('mouseenter', e=>showTip(ev, e.clientX, e.clientY));
+    badge.addEventListener('mouseleave', hideTip);
+  }
+
+  /* 飞行中的消息令牌 */
+  const anim = tokenAnim();
+  if(anim){
+    const {ev, p} = anim;
+    const c = AGENTS[ev.from].color;
+    const x = g0.tX(ev.t), y1 = g0.laneY(ev.from), y2 = g0.laneY(ev.to);
+    let px, py;
+    if(ev.from===ev.to){
+      const u = easeIO(p);
+      px = x - 6 + u*12;
+      py = y1 - Math.sin(u*Math.PI)*22;
+    } else {
+      const u = easeIO(p);
+      px = x;
+      py = y1 + (y2-y1)*u;
+    }
+    const gTok = el('g',{},g);
+    /* 拖尾 */
+    for(let k=1;k<=4;k++){
+      const pp = Math.max(0, p - k*0.05);
+      const u2 = easeIO(pp);
+      let ty;
+      if(ev.from===ev.to) ty = y1 - Math.sin(u2*Math.PI)*22;
+      else ty = y1 + (y2-y1)*u2;
+      el('circle',{cx:px, cy:ty, r:4.5-k*.7, fill:c, 'fill-opacity':.16+k*.04}, gTok);
+    }
+    risoMark(gTok, px, py, c, 6);
+    /* 虚线预告目标 */
+    if(ev.from!==ev.to && p<1){
+      el('line',{x1:x, y1:py, x2:x, y2:y2, stroke:c,'stroke-width':1,'stroke-dasharray':'2 3','stroke-opacity':.5}, gTok);
+    }
+  }
+
+  /* 时间游标 */
+  const cx = g0.tX(curT);
+  const gCur = el('g',{},g);
+  el('line',{x1:cx, y1:g0.padT-18, x2:cx, y2:VH-g0.padB+6, stroke:'#E44C2E','stroke-width':1.5}, gCur);
+  el('path',{d:'M '+cx+' '+(g0.padT-18)+' l -5 -8 h 10 z', fill:'#E44C2E'}, gCur);
+}
+
+/* 当前令牌动画:最近一次 step 前进的事件 */
+let animEv = null, animStart = 0;
+const ANIM_MS = 750;
+function tokenAnim(){
+  if(!animEv) return null;
+  const p = Math.min(1, (performance.now()-animStart)/(ANIM_MS/speed));
+  if(p>=1){ animEv = null; return null; }
+  return {ev:animEv, p};
+}
+
+/* agent 状态推导 */
+function agentStatus(id){
+  if(step===0) return 'IDLE';
+  const ev = EVENTS[step-1];
+  if(ev.from===ev.to && ev.from===id) return 'WORKING';           /* 内部事件(规划/工具) */
+  if(ev.to===id) return ev.type==='final' ? 'DONE' : 'WORKING';   /* 刚收到交接 */
+  if(ev.from===id) return ev.type==='response' ? 'IDLE' : 'WAITING';
+  return 'IDLE';
+}
+
+/* ================= 提示浮层 ================= */
+let tipEl = null;
+function showTip(ev, x, y){
+  hideTip();
+  tipEl = document.createElement('div');
+  tipEl.style.cssText = 'position:fixed;z-index:60;pointer-events:none;max-width:250px;'+
+    'background:#211D16;color:#F3EDE0;padding:8px 11px;font-size:11px;line-height:1.6;'+
+    'font-family:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;box-shadow:3px 3px 0 rgba(33,29,22,.25)';
+  tipEl.innerHTML = '<b style="color:'+AGENTS[ev.from].color+'">'+TYPE_LABEL[ev.type]+'</b> · '+
+    AGENTS[ev.from].name+' → '+AGENTS[ev.to].name+'<br>'+ev.label;
+  document.body.appendChild(tipEl);
+  tipEl.style.left = Math.min(window.innerWidth-262, x+12)+'px';
+  tipEl.style.top = (y+14)+'px';
+}
+function hideTip(){ if(tipEl){ tipEl.remove(); tipEl=null; } }
+
+/* ================= 步进控制 ================= */
+function gotoStep(n, animate){
+  n = Math.max(0, Math.min(EVENTS.length, n));
+  const forward = n > step;
+  step = n;
+  targetT = step===0 ? 0 : EVENTS[step-1].t;
+  if(animate!==false && forward) { animEv = EVENTS[step-1]; animStart = performance.now(); }
+  else animEv = null;
+  if(animate===false) curT = targetT;
+  renderInspector();
+  renderList();
+  $('step-label').textContent = 'STEP '+step+' / '+EVENTS.length;
+  $('prev').disabled = step===0;
+  $('next').disabled = step===EVENTS.length;
+}
+$('next').onclick = ()=>{ pause(); gotoStep(step+1); };
+$('prev').onclick = ()=>{ pause(); gotoStep(step-1, false); };
+$('reset').onclick = ()=>{ pause(); curT=0; gotoStep(0,false); };
+$('play').onclick = ()=>{ playing ? pause() : play(); };
+function play(){
+  if(step>=EVENTS.length) gotoStep(0,false);
+  playing = true; $('play').innerHTML = '&#10073;&#10073;';
+  tickPlay();
+}
+function tickPlay(){
+  if(!playing) return;
+  gotoStep(step+1);
+  if(step>=EVENTS.length){ pause(); return; }
+  playTimer = setTimeout(tickPlay, 1500/speed);
+}
+function pause(){
+  playing = false; clearTimeout(playTimer);
+  $('play').innerHTML = '&#9654;';
+}
+$('speed').addEventListener('input', e=>{ speed = +e.target.value; });
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight'){ pause(); gotoStep(step+1); }
+  else if(e.key==='ArrowLeft'){ pause(); gotoStep(step-1,false); }
+  else if(e.key===' '){ e.preventDefault(); playing?pause():play(); }
+});
+
+/* ================= 侧栏 ================= */
+function renderInspector(){
+  const cur = $('cur');
+  if(step===0){
+    cur.innerHTML = '<div class="empty">按 &#9654; 播放,或用 &#9664; &#9654;&#9654; 单步执行。每条消息都是一次 Agent 间的交接。点击左侧站点圆点或下方事件可跳转。</div>';
+    return;
+  }
+  const ev = EVENTS[step-1];
+  const dur = step>1 ? (ev.t-EVENTS[step-2].t).toFixed(1) : ev.t.toFixed(1);
+  cur.innerHTML =
+    '<span class="etype" style="background:'+AGENTS[ev.from].color+'">'+TYPE_LABEL[ev.type]+'</span>'+
+    '<div class="eflow">'+
+      '<span class="agent-chip" style="background:'+AGENTS[ev.from].color+'">'+AGENTS[ev.from].name+'</span>'+
+      '<span class="arrow">&#10230;</span>'+
+      '<span class="agent-chip" style="background:'+AGENTS[ev.to].color+'">'+AGENTS[ev.to].name+'</span>'+
+    '</div>'+
+    '<div class="elabel">'+ev.label+'</div>'+
+    '<div class="edetail">'+ev.detail+'</div>'+
+    '<div class="emeta">t = '+ev.t.toFixed(1)+'s · 距上一事件 '+dur+'s · #'+(step)+'/'+EVENTS.length+'</div>';
+}
+const listEl = $('elist');
+EVENTS.forEach((ev,i)=>{
+  const d = document.createElement('div');
+  d.className = 'ev future';
+  d.innerHTML = '<span class="num">'+String(i+1).padStart(2,'0')+'</span>'+
+    '<span class="dot" style="background:'+AGENTS[ev.from].color+'"></span>'+
+    '<span class="txt"><b>'+TYPE_LABEL[ev.type]+'</b> '+ev.label+'</span>';
+  d.onclick = ()=>{ pause(); gotoStep(i+1, i+1>step); };
+  listEl.appendChild(d);
+});
+function renderList(){
+  [...listEl.children].forEach((d,i)=>{
+    d.classList.toggle('future', i>=step);
+    d.classList.toggle('now', i===step-1);
+  });
+  const now = listEl.children[step-1];
+  if(now) now.scrollIntoView({block:'nearest'});
+}
+
+/* ================= 主循环 ================= */
+let last = performance.now();
+function loop(now){
+  const dt = Math.min(0.05,(now-last)/1000); last = now;
+  const k = 1-Math.pow(0.004, dt*speed);
+  if(Math.abs(targetT-curT)>0.001){
+    curT += (targetT-curT)*k;
+    render();
+  } else if(animEv){
+    render();
+  }
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize', render);
+
+/* init */
+gotoStep(0,false);
+render();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BAUHAUS GEN — 几何海报局</title>
+<style>
+  :root{
+    --paper:#f5f2e8; --panel:#eee9db; --line:#d8d0b8;
+    --ink:#1a1a18; --dim:#8a8268;
+    --red:#c8302a; --blue:#1e3878; --yellow:#e8c018;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--red);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .sig h1{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.04em}
+  .sig h1 em{font-style:italic;color:var(--red)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--blue);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.06em;max-width:400px;text-align:right;line-height:1.7}
+  .rule{margin:14px 28px 0;border-top:1px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{
+    display:grid;grid-template-columns:284px minmax(0,1fr);gap:24px;
+    padding:24px 28px 40px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .dock{
+    background:var(--panel);border:1px solid var(--ink);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+    display:flex;justify-content:space-between;
+  }
+  .dock h2 span{color:var(--red)}
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;letter-spacing:.04em;
+  }
+  .ctl label output{font-family:var(--mono);font-size:11px;color:var(--blue)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-6px;
+    background:var(--paper);border:1px solid var(--ink);border-radius:50%;
+    box-shadow:2px 2px 0 var(--red);transition:transform .15s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;background:var(--paper);border:1px solid var(--ink);
+    border-radius:50%;box-shadow:2px 2px 0 var(--red);
+  }
+
+  .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .themes button{
+    appearance:none;height:40px;border:1px solid var(--ink);cursor:pointer;
+    position:relative;transition:transform .15s var(--ease);
+    display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;
+    background:var(--paper);
+  }
+  .themes button:hover{transform:translateY(-2px)}
+  .themes button i{display:flex;gap:2px;margin-bottom:4px}
+  .themes button i b{display:block;width:9px;height:9px}
+  .themes button span{font-size:10px;letter-spacing:.1em;line-height:1;color:var(--ink)}
+  .themes button.on::after{
+    content:"";position:absolute;inset:3px;border:1px solid var(--paper);
+    outline:1px solid var(--ink);pointer-events:none;
+  }
+
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:16px;border-top:1px solid var(--line)}
+  .btn{
+    appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    padding:11px 8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    cursor:pointer;text-transform:uppercase;position:relative;overflow:hidden;
+    transition:color .18s var(--ease);
+  }
+  .btn::before{
+    content:"";position:absolute;inset:0;background:var(--ink);
+    transform:translateY(101%);transition:transform .22s var(--ease);z-index:0;
+  }
+  .btn:hover::before{transform:translateY(0)}
+  .btn:hover{color:var(--paper)}
+  .btn span{position:relative;z-index:1}
+  .btn.prime{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.prime::before{background:var(--ink)}
+
+  .stage{
+    position:relative;background:#efe9da;border:1px solid var(--ink);
+    box-shadow:8px 8px 0 rgba(26,26,24,.10);overflow:hidden;
+    display:flex;justify-content:center;padding:26px 0;
+  }
+  .stage canvas{
+    display:block;width:min(100% - 52px, 620px);height:auto;cursor:pointer;touch-action:none;
+    box-shadow:10px 12px 0 rgba(26,26,24,.14);
+  }
+  .vtitle{
+    position:absolute;left:14px;top:16px;writing-mode:vertical-rl;
+    font-family:var(--serif);font-size:20px;letter-spacing:.42em;color:var(--ink);
+    pointer-events:none;opacity:.82;
+  }
+  .vtitle small{
+    font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--dim);
+    margin-top:10px;
+  }
+  .hanko{
+    position:absolute;right:16px;top:16px;width:34px;height:34px;
+    background:var(--red);color:#f5f2e8;display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-size:15px;letter-spacing:0;line-height:1;
+    writing-mode:vertical-rl;pointer-events:none;
+    box-shadow:2px 2px 0 rgba(26,26,24,.18);
+  }
+  .hint{
+    position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;color:rgba(26,26,24,.5);pointer-events:none;text-transform:uppercase;
+  }
+  .count{
+    position:absolute;right:16px;bottom:12px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.16em;color:rgba(26,26,24,.55);pointer-events:none;text-transform:uppercase;
+  }
+
+  footer{
+    padding:0 28px 26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+  }
+  @media (max-width:640px){
+    header{padding:18px 18px 0}
+    header p.tag{text-align:left;max-width:100%}
+    .rule{margin:12px 18px 0}
+    main{padding:18px 18px 32px}
+    footer{padding:0 18px 22px}
+    .vtitle{font-size:16px}
+    .stage{padding:16px 0}
+    .stage canvas{width:calc(100% - 32px)}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>Bauhaus <em>Gen</em></h1>
+    <span class="no">N°<b>16</b> — GEN-ART / 几何海报局 · Dessau 1923</span>
+  </div>
+  <p class="tag">圆、弧、三角与一条斜轴。一键排印一张 1923 年的展览海报。</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <aside class="dock">
+    <h2>印刷间 — Druckerei <span>形</span></h2>
+
+    <div class="ctl">
+      <label>版式 · Ausgabe</label>
+      <div class="themes" id="themes">
+        <button data-theme="weimar" class="on"><i><b style="background:#c8302a"></b><b style="background:#1e3878"></b><b style="background:#e8c018"></b></i><span>魏玛</span></button>
+        <button data-theme="dessau"><i><b style="background:#f5f2e8"></b><b style="background:#c8302a"></b><b style="background:#1a1a18"></b></i><span>德绍</span></button>
+        <button data-theme="nacht"><i><b style="background:#1e3878"></b><b style="background:#e8c018"></b><b style="background:#f5f2e8"></b></i><span>蓝夜</span></button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label>构成密度 · Dichte<output id="oDense">7</output></label>
+      <input type="range" id="rDense" min="4" max="11" step="1" value="7">
+    </div>
+    <div class="ctl">
+      <label>斜轴 · Achse<output id="oAxis">-24°</output></label>
+      <input type="range" id="rAxis" min="-45" max="45" step="3" value="-24">
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="btnRandom"><span>随机再生</span></button>
+      <button class="btn prime" id="btnSave"><span>下载 PNG</span></button>
+    </div>
+  </aside>
+
+  <div class="stage" id="stage">
+    <canvas id="cv" width="1080" height="1440"></canvas>
+    <div class="vtitle">形と秩序<small>BAUHAUS GEN</small></div>
+    <div class="hanko">几何</div>
+    <div class="hint">点击海报换一版 — Click to Reprint</div>
+    <div class="count" id="count">PLAKAT N°001</div>
+  </div>
+</main>
+
+<footer>
+  <span>Bauhaus Gen — 几何海报局</span>
+  <span>Form folgt Zufall · MMXXVI</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var W = 1080, H = 1440;
+  var cv = document.getElementById("cv");
+  var ctx = cv.getContext("2d");
+  var DPR = Math.min(2, window.devicePixelRatio || 1);
+  cv.width = W*DPR; cv.height = H*DPR;
+
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  var THEMES = {
+    weimar: { bg:"#f5f2e8", ink:"#1a1a18", cols:["#c8302a","#1e3878","#e8c018","#1a1a18"], paperish:false },
+    dessau: { bg:"#1a1a18", ink:"#f5f2e8", cols:["#f5f2e8","#c8302a","#e8c018","#8a8268"], paperish:true },
+    nacht:  { bg:"#1e3878", ink:"#f5f2e8", cols:["#f5f2e8","#e8c018","#c8302a","#12244e"], paperish:true }
+  };
+
+  var WORDS = ["AUSSTELLUNG","FORM & FUNKTION","KUNST UND TECHNIK","DAS PLAKAT","GEOMETRIE","NEUES SEHEN","ORDNUNG","SPIEL"];
+  var WORDS_CN = ["形态即功能","圆与方的秩序","艺术与技术 新的统一","少即是多","构成的游戏"];
+
+  var state = { theme:"weimar", dense:7, axis:-24, seed:1 };
+  var els = [];        /* shape elements with entrance animation */
+  var texts = [];      /* text blocks */
+  var tick = 0;        /* frame-driven clock: entrance completes in ~2s */
+  var posterNo = 1;
+  var grainC = document.createElement("canvas");
+  grainC.width = W; grainC.height = H;
+
+  function makeGrain(){
+    var g = grainC.getContext("2d");
+    g.clearRect(0,0,W,H);
+    var img = g.createImageData(W,H);
+    var d = img.data;
+    for (var i=0;i<d.length;i+=4){
+      var v = 118 + Math.random()*20;
+      d[i]=d[i+1]=d[i+2]=v;
+      d[i+3]=Math.random()*16;
+    }
+    g.putImageData(img,0,0);
+  }
+
+  function easeOut(t){ return 1-Math.pow(1-t,4); }
+
+  /* ---------- shape grammar ---------- */
+  function addEl(type, x, y, size, color, extra){
+    var e = { type:type, x:x, y:y, s:size, c:color, delay:els.length*0.09+Math.random()*0.06,
+              rot: extra&&extra.rot||0, ghost: extra&&extra.ghost||null, arc: extra&&extra.arc||0 };
+    els.push(e);
+    return e;
+  }
+
+  function compose(){
+    var rng = mulberry32(state.seed);
+    var T = THEMES[state.theme];
+    els = []; texts = [];
+
+    var cols = T.cols.slice();
+    /* dominant color ~ half the chromatic mass */
+    var dominant = cols[Math.floor(rng()*3)];
+    function pickCol(avoidDom){
+      if (!avoidDom && rng()<0.5) return dominant;
+      var pool = cols.filter(function(c){return c!==dominant;});
+      return pool[Math.floor(rng()*pool.length)];
+    }
+
+    var axis = state.axis*Math.PI/180;
+    var axX = Math.cos(axis), axY = Math.sin(axis);
+    var midX = W*0.5, midY = H*0.46;
+
+    /* hero: big circle or quarter arc near golden point */
+    var gx = midX + axX*(rng()-0.5)*160, gy = midY + axY*(rng()-0.5)*160;
+    var heroType = rng()<0.55 ? "circle" : (rng()<0.5 ? "quarter" : "ring");
+    var heroR = 190+rng()*120;
+    var hero = addEl(heroType, gx, gy, heroR, dominant, { arc: Math.floor(rng()*4), rot: axis });
+    if (rng()<0.6) hero.ghost = pickCol(true); /* misregistered second plate */
+
+    /* satellites along the diagonal axis, kept clear of the hero */
+    var n = state.dense;
+    var types = ["semi","bar","triangle","square","dotgrid","ring","quarter","bar"];
+    for (var i=0;i<n;i++){
+      var t = (i+1)/(n+1) - 0.5;
+      var px = midX + axX*t*W*0.98 + (rng()-0.5)*190;
+      var py = midY + axY*t*W*0.98 + (rng()-0.5)*190;
+      var ty = types[Math.floor(rng()*types.length)];
+      var sz = 46+rng()*130;
+      /* push out of the hero's territory, perpendicular to the axis */
+      var dx = px-gx, dy = py-gy;
+      var dist = Math.sqrt(dx*dx+dy*dy);
+      var need = heroR + sz*0.9;
+      if (dist < need){
+        var push = (need-dist)+20;
+        var sgn = (dx*(-axY)+dy*(axX)) >= 0 ? 1 : -1;
+        px += -axY*push*sgn; py += axX*push*sgn;
+      }
+      if (px<70||px>W-70) px = 90+rng()*(W-180);
+      if (py<230||py>H-280) py = 250+rng()*(H-520);
+      addEl(ty, px, py, sz, pickCol(false), { rot: axis + (rng()<0.5?0:Math.PI/2), arc: Math.floor(rng()*4) });
+    }
+
+    /* one long bar anchoring the composition */
+    addEl("bar", midX + (rng()-0.5)*W*0.3, H*(0.68+rng()*0.12), 190+rng()*120,
+          rng()<0.5 ? T.ink : pickCol(true), { rot: rng()<0.6 ? 0 : Math.PI/2 });
+
+    /* thin structural axis line */
+    addEl("axisline", midX, midY, W*1.1, T.ink, { rot: axis });
+
+    /* typography */
+    var year = 1919 + Math.floor(rng()*14);
+    texts.push({ txt:"BAUHAUS", x:72, y:150, size:118, track:14, weight:800, color:T.ink, align:"left" });
+    texts.push({ txt:WORDS[Math.floor(rng()*WORDS.length)]+" · "+year,
+                 x:76, y:196, size:21, track:6, weight:600, color:T.ink, align:"left" });
+    texts.push({ txt:WORDS_CN[Math.floor(rng()*WORDS_CN.length)],
+                 x:76, y:H-118, size:26, track:10, weight:600, color:T.ink, align:"left" });
+    texts.push({ txt:"DESSAU — WEIMAR — BERLIN",
+                 x:76, y:H-76, size:16, track:4, weight:500, color:T.ink, align:"left" });
+    texts.push({ txt:"N°"+String(posterNo).padStart(3,"0"),
+                 x:W-76, y:H-76, size:16, track:4, weight:500, color:T.ink, align:"right" });
+
+    document.getElementById("count").textContent = "PLAKAT N°"+String(posterNo).padStart(3,"0");
+    tick = 0;
+  }
+
+  /* ---------- drawing ---------- */
+  function drawShape(e, p){
+    if (p<=0) return;
+    var s = e.s * (e.type==="bar"||e.type==="axisline" ? 1 : easeOut(p));
+    ctx.save();
+    ctx.translate(e.x, e.y);
+    ctx.rotate(e.rot||0);
+    ctx.globalAlpha = Math.min(1, p*1.6);
+
+    function plate(color, ox, oy){
+      ctx.fillStyle = color;
+      ctx.strokeStyle = color;
+      ctx.save();
+      ctx.translate(ox, oy);
+      switch(e.type){
+        case "circle":
+          ctx.beginPath(); ctx.arc(0,0,s,0,6.29); ctx.fill(); break;
+        case "ring":
+          ctx.lineWidth = s*0.32;
+          ctx.beginPath(); ctx.arc(0,0,s*0.84,0,6.29); ctx.stroke(); break;
+        case "quarter":
+          var a0 = (e.arc||0)*Math.PI/2;
+          ctx.beginPath(); ctx.moveTo(0,0);
+          ctx.arc(0,0,s,a0,a0+Math.PI/2); ctx.closePath(); ctx.fill(); break;
+        case "semi":
+          ctx.beginPath(); ctx.arc(0,0,s,Math.PI,0); ctx.closePath(); ctx.fill(); break;
+        case "square":
+          ctx.fillRect(-s*0.7,-s*0.7,s*1.4,s*1.4); break;
+        case "triangle":
+          ctx.beginPath();
+          ctx.moveTo(0,-s); ctx.lineTo(s*0.9,s*0.72); ctx.lineTo(-s*0.9,s*0.72);
+          ctx.closePath(); ctx.fill(); break;
+        case "bar":
+          ctx.fillRect(-s*p,-s*0.16,s*2*p,s*0.32); break;
+        case "axisline":
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(-s*p,0); ctx.lineTo(s*p,0); ctx.stroke(); break;
+        case "dotgrid":
+          var rows = 4, colsN = 7, gap = s*0.34;
+          for (var r=0;r<rows;r++){
+            for (var c=0;c<colsN;c++){
+              var rp = Math.max(0, Math.min(1, p*1.6 - (r*colsN+c)*0.03));
+              if (rp<=0) continue;
+              ctx.beginPath();
+              ctx.arc((c-(colsN-1)/2)*gap, (r-(rows-1)/2)*gap, s*0.075*rp, 0, 6.29);
+              ctx.fill();
+            }
+          }
+          break;
+      }
+      ctx.restore();
+    }
+
+    if (e.ghost) plate(e.ghost, 7, 7);   /* misregistered plate */
+    plate(e.c, 0, 0);
+    ctx.restore();
+  }
+
+  function drawTracked(t, p){
+    if (p<=0) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, p*1.8);
+    ctx.translate(0, (1-easeOut(p))*14);
+    ctx.fillStyle = t.color;
+    ctx.font = t.weight+" "+t.size+"px "+'-apple-system,"Helvetica Neue","PingFang SC",sans-serif';
+    ctx.textBaseline = "alphabetic";
+    var chars = t.txt.split("");
+    var widths = chars.map(function(ch){ return ctx.measureText(ch).width; });
+    var total = widths.reduce(function(a,b){return a+b;},0) + t.track*(chars.length-1);
+    var x = t.align==="right" ? t.x-total : t.x;
+    for (var i=0;i<chars.length;i++){
+      ctx.fillText(chars[i], x, t.y);
+      x += widths[i]+t.track;
+    }
+    ctx.restore();
+  }
+
+  function render(){
+    var T = THEMES[state.theme];
+    var el = tick/60;
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    ctx.fillStyle = T.bg;
+    ctx.fillRect(0,0,W,H);
+
+    /* faint registration grid */
+    ctx.fillStyle = T.ink;
+    ctx.globalAlpha = 0.10;
+    for (var gx2=72; gx2<W; gx2+=84){
+      for (var gy2=96; gy2<H-60; gy2+=84){
+        ctx.fillRect(gx2, gy2, 1.5, 1.5);
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    /* hairline frame */
+    ctx.strokeStyle = T.ink;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(46, 52, W-92, H-104);
+
+    for (var i=0;i<els.length;i++){
+      var e = els[i];
+      drawShape(e, Math.max(0,(el-e.delay)/0.7));
+    }
+    for (var k=0;k<texts.length;k++){
+      drawTracked(texts[k], Math.max(0,(el-0.5-k*0.1)/0.6));
+    }
+
+    /* grain */
+    ctx.save();
+    ctx.globalCompositeOperation = T.paperish ? "screen" : "multiply";
+    ctx.globalAlpha = T.paperish ? 0.5 : 1;
+    ctx.drawImage(grainC, 0, 0, W, H);
+    ctx.restore();
+  }
+
+  function frame(){
+    if (tick < 400) tick++;
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- controls ---------- */
+  document.getElementById("themes").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll("#themes button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    state.theme = b.dataset.theme;
+    posterNo++;
+    compose();
+  });
+  document.getElementById("rDense").addEventListener("input", function(){
+    state.dense = parseInt(this.value,10);
+    document.getElementById("oDense").textContent = state.dense;
+    compose();
+  });
+  document.getElementById("rAxis").addEventListener("input", function(){
+    state.axis = parseInt(this.value,10);
+    document.getElementById("oAxis").textContent = state.axis+"°";
+    compose();
+  });
+  function regenerate(){
+    state.seed = Math.floor(Math.random()*1e9);
+    posterNo++;
+    compose();
+  }
+  document.getElementById("btnRandom").addEventListener("click", regenerate);
+  cv.addEventListener("pointerdown", regenerate);
+
+  document.getElementById("btnSave").addEventListener("click", function(){
+    tick = 400; render(); /* ensure fully entered */
+    var a = document.createElement("a");
+    a.download = "bauhaus-plakat-"+String(posterNo).padStart(3,"0")+".png";
+    a.href = cv.toDataURL("image/png");
+    a.click();
+  });
+
+  /* ---------- boot ---------- */
+  makeGrain();
+  state.seed = Math.floor(Math.random()*1e9);
+  compose();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

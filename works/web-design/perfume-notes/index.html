@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NUIT 夜航 — 香水沙龙</title>
+<style>
+  :root{
+    --noir:#191219; --noir2:#211A22; --gold:#C9A86A; --blush:#D9A0A8; --mist:#6E5A7E;
+    --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--noir);color:#EFE6DA;font-family:var(--sans);overflow-x:hidden;}
+  ::selection{background:var(--gold);color:var(--noir);}
+  input,button{font-family:inherit;}
+
+  #trail{position:fixed;inset:0;z-index:1;pointer-events:none;}
+  .content{position:relative;z-index:2;}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:18px 3.5vw;}
+  .sig{font-family:var(--mono);font-size:10px;letter-spacing:.14em;line-height:1.8;color:#EFE6DA;}
+  .sig .no{color:var(--gold);font-weight:700;}
+  nav{display:flex;gap:26px;}
+  nav a{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-decoration:none;color:#EFE6DA;opacity:.75;transition:.3s;}
+  nav a:hover{opacity:1;color:var(--gold);}
+  @media(max-width:640px){nav{display:none;}}
+
+  .deco-rule{display:flex;align-items:center;gap:14px;color:var(--gold);}
+  .deco-rule::before,.deco-rule::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--gold));}
+  .deco-rule::after{background:linear-gradient(90deg,var(--gold),transparent);}
+  .deco-rule span{font-family:var(--mono);font-size:9px;letter-spacing:.5em;}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    position:relative;padding:0 6vw;}
+  .sunburst{position:absolute;top:50%;left:50%;transform:translate(-50%,-54%);width:min(80vw,760px);opacity:.5;
+    animation:slowspin 90s linear infinite;pointer-events:none;}
+  @keyframes slowspin{to{transform:translate(-50%,-54%) rotate(360deg);}}
+  .hero .est{font-family:var(--mono);font-size:10px;letter-spacing:.6em;color:var(--gold);margin-bottom:3vh;text-indent:.6em;}
+  .hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(66px,13vw,200px);letter-spacing:.16em;line-height:1;text-indent:.16em;
+    background:linear-gradient(180deg,#F3E7C9 20%,var(--gold) 65%,#8a6f3e);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .hero .cn{margin-top:2vh;font-family:var(--serif);font-size:clamp(20px,2.6vw,34px);letter-spacing:1.1em;text-indent:1.1em;color:rgba(239,230,218,.85);}
+  .hero .tag{margin-top:4.5vh;font-size:13.5px;line-height:2.3;color:rgba(239,230,218,.6);max-width:44ch;}
+  .hero .hint{margin-top:6vh;font-family:var(--mono);font-size:9px;letter-spacing:.4em;color:rgba(201,168,106,.7);animation:hint 2.6s infinite;}
+  @keyframes hint{50%{opacity:.3;}}
+
+  /* ---------- sections ---------- */
+  section{padding:12vh 6vw;max-width:1240px;margin:0 auto;position:relative;}
+  .sec-title{text-align:center;margin-bottom:8vh;}
+  .sec-title h2{font-family:var(--serif);font-weight:400;font-size:clamp(30px,4vw,56px);letter-spacing:.3em;text-indent:.3em;margin:3vh 0 2vh;}
+  .sec-title .en{font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:rgba(239,230,218,.45);}
+
+  /* ---------- pyramid ---------- */
+  .pyr-wrap{display:grid;grid-template-columns:1fr 1fr;gap:5vw;align-items:center;}
+  @media(max-width:880px){.pyr-wrap{grid-template-columns:1fr;}}
+  #pyrSVG{width:100%;max-width:520px;display:block;margin:0 auto;}
+  .tier{cursor:pointer;}
+  .tier polygon{transition:.35s;fill:rgba(201,168,106,.05);stroke:var(--gold);stroke-width:1;}
+  .tier text{fill:rgba(239,230,218,.75);font-family:var(--serif);letter-spacing:.35em;transition:.3s;pointer-events:none;}
+  .tier .tno{fill:var(--gold);font-family:var(--mono);letter-spacing:0;}
+  .tier:hover polygon{fill:rgba(201,168,106,.14);}
+  .tier.on polygon{fill:rgba(201,168,106,.22);}
+  .tier.on text{fill:#F3E7C9;}
+  .note-panel{border:1px solid rgba(201,168,106,.35);padding:44px 40px;background:rgba(33,26,34,.6);position:relative;}
+  .note-panel::before{content:"";position:absolute;inset:6px;border:1px solid rgba(201,168,106,.18);pointer-events:none;}
+  .note-panel .nstage{font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:var(--gold);}
+  .note-panel h3{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3vw,40px);letter-spacing:.14em;margin:2vh 0;}
+  .note-panel .ndur{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(239,230,218,.5);margin-bottom:3vh;}
+  .note-panel p{font-size:14px;line-height:2.3;color:rgba(239,230,218,.78);}
+  .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:3.5vh;}
+  .chip{border:1px solid rgba(201,168,106,.5);color:var(--gold);font-family:var(--serif);font-size:13px;
+    letter-spacing:.16em;padding:9px 18px;transition:.25s;cursor:default;}
+  .chip:hover{background:var(--gold);color:var(--noir);}
+
+  /* ---------- atelier (mixer) ---------- */
+  .atelier{display:grid;grid-template-columns:.9fr 1.1fr;gap:5vw;align-items:center;}
+  @media(max-width:880px){.atelier{grid-template-columns:1fr;}}
+  .mixer .mrow{margin-bottom:4.5vh;}
+  .mixer label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.26em;margin-bottom:14px;color:rgba(239,230,218,.75);}
+  .mixer label b{color:var(--gold);font-weight:600;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:1px;background:rgba(201,168,106,.45);outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;background:var(--noir);
+    border:1.5px solid var(--gold);transform:rotate(45deg);cursor:pointer;transition:.2s;}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--gold);}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--noir);border:1.5px solid var(--gold);transform:rotate(45deg);cursor:pointer;}
+  .curve-box{border:1px solid rgba(201,168,106,.35);background:rgba(33,26,34,.6);padding:26px 26px 12px;position:relative;}
+  .curve-box::before{content:"";position:absolute;inset:6px;border:1px solid rgba(201,168,106,.15);pointer-events:none;}
+  #curve{width:100%;display:block;}
+  .poem{margin-top:2vh;font-family:var(--serif);font-style:italic;font-size:15px;line-height:2.3;color:rgba(239,230,218,.8);
+    min-height:5.5em;padding:0 6px 14px;}
+  .curve-cap{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:rgba(239,230,218,.4);padding:0 6px 12px;}
+
+  footer{padding:10vh 6vw 8vh;text-align:center;}
+  footer .fbig{font-family:var(--serif);font-size:clamp(24px,3vw,42px);letter-spacing:.24em;margin:4vh 0;}
+  footer .fbig em{font-style:italic;color:var(--gold);}
+  footer .fine{font-family:var(--mono);font-size:9.5px;letter-spacing:.24em;color:rgba(239,230,218,.4);line-height:2.4;}
+</style>
+</head>
+<body>
+
+<canvas id="trail"></canvas>
+
+<div class="content">
+<header>
+  <div class="sig"><span class="no">№ 10</span> · <b>NUIT 夜航</b><br>WEB DESIGN / MAISON DE PARFUM</div>
+  <nav><a href="#pyramid">香调结构 PYRAMID</a><a href="#atelier">调香室 ATELIER</a></nav>
+</header>
+
+<!-- hero -->
+<div class="hero">
+  <svg class="sunburst" viewBox="0 0 600 600" id="burstSVG"></svg>
+  <div class="est">MAISON FONDÉE · 1927 · GRASSE</div>
+  <h1>NUIT</h1>
+  <div class="cn">夜 航</div>
+  <p class="tag">一支为午夜飞行而作的香水。前调是起飞时的风，中调是云层之上的月光，尾调落在黎明前最安静的那一分钟。</p>
+  <div class="hint">移动指针 · 香气会跟随你</div>
+</div>
+
+<!-- pyramid -->
+<section id="pyramid">
+  <div class="sec-title">
+    <div class="deco-rule"><span>STRUCTURE</span></div>
+    <h2>香调金字塔</h2>
+    <div class="en">OLFACTIVE PYRAMID · 点击任意一层</div>
+  </div>
+  <div class="pyr-wrap">
+    <svg id="pyrSVG" viewBox="0 0 520 460"></svg>
+    <div class="note-panel">
+      <div class="nstage" id="nStage"></div>
+      <h3 id="nTitle"></h3>
+      <div class="ndur" id="nDur"></div>
+      <p id="nDesc"></p>
+      <div class="chips" id="nChips"></div>
+    </div>
+  </div>
+</section>
+
+<!-- atelier -->
+<section id="atelier">
+  <div class="sec-title">
+    <div class="deco-rule"><span>ATELIER</span></div>
+    <h2>调香室</h2>
+    <div class="en">拖动滑杆 · 重写这支香水的八小时</div>
+  </div>
+  <div class="atelier">
+    <div class="mixer">
+      <div class="mrow">
+        <label><span>前调 HEAD · 风与果皮</span><b id="vHead">60</b></label>
+        <input type="range" id="sHead" min="0" max="100" value="60">
+      </div>
+      <div class="mrow">
+        <label><span>中调 HEART · 月光花束</span><b id="vHeart">75</b></label>
+        <input type="range" id="sHeart" min="0" max="100" value="75">
+      </div>
+      <div class="mrow">
+        <label><span>后调 BASE · 大地与琥珀</span><b id="vBase">50</b></label>
+        <input type="range" id="sBase" min="0" max="100" value="50">
+      </div>
+    </div>
+    <div class="curve-box">
+      <canvas id="curve"></canvas>
+      <p class="poem" id="poem"></p>
+      <div class="curve-cap">VOLATILITY CURVE · 横轴为时间（0 — 8h）· 纵轴为扩散力</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="deco-rule"><span>NUIT · 1927</span></div>
+  <div class="fbig">香气是<em>看不见</em>的航迹。</div>
+  <div class="fine">NUIT 夜航 © 2026 · EAU DE PARFUM 50ML<br>作品 № 10 / WEB DESIGN</div>
+</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ================= art deco sunburst ================= */
+(()=> {
+  let s="";
+  for(let i=0;i<72;i++){
+    const a=i*Math.PI/36, r1=120, r2=i%2?300:340;
+    s+=`<line x1="${300+r1*Math.cos(a)}" y1="${300+r1*Math.sin(a)}" x2="${300+r2*Math.cos(a)}" y2="${300+r2*Math.sin(a)}" stroke="#C9A86A" stroke-width="${i%2?.5:1}" opacity="${i%2?.25:.45}"/>`;
+  }
+  s+=`<circle cx="300" cy="300" r="120" fill="none" stroke="#C9A86A" stroke-width="1.2"/><circle cx="300" cy="300" r="112" fill="none" stroke="#C9A86A" stroke-width=".6" opacity=".6"/>`;
+  $("burstSVG").innerHTML=s;
+})();
+
+/* ================= scent trail canvas ================= */
+const tc=$("trail"),tx=tc.getContext("2d");
+let TW,TH,DPR=Math.min(devicePixelRatio||1,2);
+function tsize(){TW=innerWidth;TH=innerHeight;tc.width=TW*DPR;tc.height=TH*DPR;tc.style.width=TW+"px";tc.style.height=TH+"px";tx.setTransform(DPR,0,0,DPR,0,0);}
+tsize();addEventListener("resize",tsize);
+const COLORS=["201,168,106","217,160,168","110,90,126"];
+let drops=[],mx=innerWidth/2,my=innerHeight/2,pmx=mx,pmy=my;
+addEventListener("pointermove",e=>{mx=e.clientX;my=e.clientY;});
+function addDrop(x,y,big){
+  drops.push({x,y,vx:(Math.random()-.5)*.5,vy:-.25-Math.random()*.5,r:(big?3:1.5)+Math.random()*(big?7:4),
+    life:0,max:110+Math.random()*90,c:COLORS[Math.floor(Math.random()*COLORS.length)],sway:Math.random()*Math.PI*2});
+}
+function trailTick(){
+  tx.clearRect(0,0,TW,TH);
+  const dx=mx-pmx,dy=my-pmy,dist=Math.hypot(dx,dy);
+  if(dist>3){
+    const n=Math.min(Math.floor(dist/9),4);
+    for(let i=0;i<n;i++)addDrop(pmx+dx*i/n,pmy+dy*i/n,dist>26);
+  }
+  pmx+=(mx-pmx)*.5;pmy+=(my-pmy)*.5;
+  // idle wisps
+  if(Math.random()<.05)addDrop(Math.random()*TW,TH*.6+Math.random()*TH*.4,false);
+  for(let i=drops.length-1;i>=0;i--){
+    const d=drops[i];d.life++;
+    d.sway+=.02;d.x+=d.vx+Math.sin(d.sway)*.3;d.y+=d.vy;d.r+=.03;
+    const a=Math.sin(Math.PI*Math.min(d.life/d.max,1));
+    tx.beginPath();tx.arc(d.x,d.y,d.r,0,7);
+    tx.strokeStyle=`rgba(${d.c},${a*.5})`;tx.lineWidth=1;tx.stroke();
+    tx.beginPath();tx.arc(d.x,d.y,d.r*.45,0,7);
+    tx.fillStyle=`rgba(${d.c},${a*.16})`;tx.fill();
+    if(d.life>d.max)drops.splice(i,1);
+  }
+  requestAnimationFrame(trailTick);
+}
+trailTick();
+
+/* ================= pyramid ================= */
+const TIERS=[
+  {k:"HEAD NOTES",n:"前调 · 起飞的风",dur:"挥发 15 — 30 分钟",acc:"head",
+   d:"喷洒的瞬间，苦橙叶与佛手柑像舱门打开时灌进来的风，清冽、微苦、带一点绿。粉红胡椒是引擎点火的那一下震颤——只响一声，然后让位给旅程。",
+   chips:["苦橙叶","佛手柑","粉红胡椒","杜松子"]},
+  {k:"HEART NOTES",n:"中调 · 云上月光",dur:"停留 2 — 4 小时",acc:"heart",
+   d:"爬升到平流层之后，香气安静下来。晚香玉与鸢尾在月光里慢慢展开，像云层顶端一片没有人踏足的原野。这是这支香水最漫长的段落，也是最像梦的部分。",
+   chips:["晚香玉","鸢尾","茉莉","月见草"]},
+  {k:"BASE NOTES",n:"后调 · 黎明之前",dur:"余韵 6 — 8 小时",acc:"base",
+   d:"降落之前的最后一小时，琥珀、香根草与一点檀木贴着皮肤收拢。不是结束，是降落灯亮起的温柔提示：天快亮了，而香气替你记得整段航程。",
+   chips:["琥珀","香根草","檀木","白麝香"]},
+];
+(()=>{
+  const W=520,H=460,apex={x:260,y:30},baseY=H-40;
+  // tier boundaries along the triangle edges
+  const fr=[0,0.34,0.66,1];
+  let s="";
+  const X=f=>apex.x+(W/2-40)*f, Y=f=>apex.y+(baseY-apex.y)*f;
+  // three tier polygons: apex triangle + two trapezoids
+  const poly=t=>{
+    const f0=fr[t],f1=fr[t+1];
+    if(t===0)return `${apex.x},${apex.y} ${apex.x-X(f1)+260},${Y(f1)} ${apex.x+X(f1)-260},${Y(f1)}`;
+    return `${apex.x-X(f0)+260},${Y(f0)} ${apex.x-X(f1)+260},${Y(f1)} ${apex.x+X(f1)-260},${Y(f1)} ${apex.x+X(f0)-260},${Y(f0)}`;
+  };
+  const labels=["I","II","III"];
+  for(let t=0;t<3;t++){
+    const f0=fr[t],f1=fr[t+1],fm=(f0+f1)/2;
+    s+=`<g class="tier" data-t="${t}">
+      <polygon points="${poly(t)}"/>
+      <text x="${apex.x}" y="${Y(fm)+5}" text-anchor="middle" font-size="15">${TIERS[t].n.split(" ")[0]}</text>
+      <text class="tno" x="${apex.x}" y="${Y(fm)-14}" text-anchor="middle" font-size="10">${labels[t]} · ${TIERS[t].k}</text>
+    </g>`;
+  }
+  // deco base line & rays
+  s+=`<line x1="60" y1="${baseY+14}" x2="460" y2="${baseY+14}" stroke="#C9A86A" stroke-width="1" opacity=".6"/>`;
+  for(let i=0;i<7;i++){
+    const x=130+i*43;
+    s+=`<line x1="${x}" y1="${baseY+14}" x2="${x}" y2="${baseY+22+(i%2?0:6)}" stroke="#C9A86A" stroke-width="1" opacity=".5"/>`;
+  }
+  $("pyrSVG").innerHTML=s;
+  document.querySelectorAll(".tier").forEach(g=>{
+    g.addEventListener("click",()=>selectTier(+g.dataset.t));
+  });
+})();
+function selectTier(t){
+  document.querySelectorAll(".tier").forEach((g,i)=>g.classList.toggle("on",i===t));
+  const d=TIERS[t];
+  $("nStage").textContent=d.k;$("nTitle").textContent=d.n;$("nDur").textContent=d.dur;
+  $("nDesc").textContent=d.d;
+  $("nChips").innerHTML=d.chips.map(c=>`<span class="chip">${c}</span>`).join("");
+}
+selectTier(0);
+
+/* ================= volatility curve mixer ================= */
+const cv=$("curve"),cx=cv.getContext("2d");
+const POEMS={
+  head:"这是一支属于出发的香水：风很大，果皮飞溅，旅程刚开始就值得纪念——至于降落，谁在乎呢。",
+  heart:"月光成了主角。花香一层压过一层，像长时间巡航时舷窗外不变的云海，温柔得让人忘记时间。",
+  base:"它几乎放弃了开场白，直接走向黎明前的大地：琥珀与香根草慢慢收拢，适合不想被世界听见的日子。",
+  bal:"三段航程势均力敌：起飞有风，巡航有月，降落有灯。这是一支完整意义上的夜航——从头到尾，被妥善照顾。"};
+function drawCurve(){
+  const head=+$("sHead").value,heart=+$("sHeart").value,base=+$("sBase").value;
+  $("vHead").textContent=head;$("vHeart").textContent=heart;$("vBase").textContent=base;
+  const W=cv.clientWidth||600,Hh=300;
+  cv.width=W*DPR;cv.height=Hh*DPR;cv.style.height=Hh+"px";cx.setTransform(DPR,0,0,DPR,0,0);
+  cx.clearRect(0,0,W,Hh);
+  const pad=30,pw=W-pad*2,ph=Hh-70,baseY=40+ph;
+  // grid
+  cx.strokeStyle="rgba(201,168,106,.15)";cx.lineWidth=1;
+  for(let i=0;i<=8;i++){const x=pad+pw*i/8;cx.beginPath();cx.moveTo(x,30);cx.lineTo(x,baseY);cx.stroke();
+    cx.fillStyle="rgba(239,230,218,.4)";cx.font="9px Menlo";cx.textAlign="center";cx.fillText(i+"h",x,baseY+18);}
+  for(let i=0;i<=4;i++){const y=30+ph*i/4;cx.beginPath();cx.moveTo(pad,y);cx.lineTo(W-pad,y);cx.stroke();}
+  const gauss=(t,mu,si,amp)=>amp*Math.exp(-((t-mu)**2)/(2*si*si));
+  const curve=(mu,si,amp,color)=>{
+    cx.beginPath();
+    for(let i=0;i<=100;i++){
+      const t=i/100*8,v=gauss(t,mu,si,amp/100);
+      const x=pad+pw*i/100,y=baseY-v*ph;
+      i?cx.lineTo(x,y):cx.moveTo(x,y);
+    }
+    cx.strokeStyle=color;cx.lineWidth=1.6;cx.stroke();
+    cx.lineTo(pad+pw,baseY);cx.lineTo(pad,baseY);cx.closePath();
+    cx.fillStyle=color.replace(")",",.08)").replace("rgb","rgba");cx.fill();
+  };
+  curve(0.9,1.0,head,"rgb(217,160,168)");
+  curve(3.2,1.5,heart,"rgb(201,168,106)");
+  curve(6.2,1.7,base,"rgb(150,124,170)");
+  // total silhouette
+  cx.beginPath();
+  for(let i=0;i<=100;i++){
+    const t=i/100*8;
+    const v=gauss(t,.9,1,head/100)+gauss(t,3.2,1.5,heart/100)+gauss(t,6.2,1.7,base/100);
+    const x=pad+pw*i/100,y=baseY-Math.min(v,1)*ph;
+    i?cx.lineTo(x,y):cx.moveTo(x,y);
+  }
+  cx.strokeStyle="rgba(239,230,218,.65)";cx.lineWidth=1;cx.setLineDash([4,5]);cx.stroke();cx.setLineDash([]);
+  // poem
+  const m=Math.max(head,heart,base),mn=Math.min(head,heart,base);
+  $("poem").textContent="「"+((m-mn<18)?POEMS.bal:m===head?POEMS.head:m===heart?POEMS.heart:POEMS.base)+"」";
+}
+["sHead","sHeart","sBase"].forEach(id=>$(id).addEventListener("input",drawCurve));
+addEventListener("resize",drawCurve);
+drawCurve();
+</script>
+</body>
+</html>

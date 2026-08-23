@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DIFFSCOPE — 代码审查对比台</title>
+<style>
+  :root{
+    --bg:#0E0F13; --panel:#14161C; --panel2:#191C24; --line:#23262F; --line2:#2E323E;
+    --ink:#D8DDE5; --dim:#7A8191; --faint:#4A4F5C;
+    --add:#3ECF8E; --add-bg:rgba(62,207,142,.09); --add-line:rgba(62,207,142,.28);
+    --del:#F2555A; --del-bg:rgba(242,85,90,.09); --del-line:rgba(242,85,90,.28);
+    --amber:#E5C07B; --blue:#61AFEF;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink); font-family:var(--sans);
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+  ::selection{background:rgba(229,192,123,.25)}
+
+  /* ---------- header ---------- */
+  header{
+    height:58px; flex:0 0 58px; display:flex; align-items:center; gap:18px;
+    padding:0 20px; border-bottom:1px solid var(--line); background:var(--panel);
+  }
+  .brand{display:flex; align-items:baseline; gap:10px; white-space:nowrap}
+  .brand .no{font-family:var(--mono); font-size:11px; color:var(--amber); letter-spacing:.12em}
+  .brand .name{font-size:13px; font-weight:600; letter-spacing:.22em}
+  .brand .sub{font-size:11px; color:var(--dim); letter-spacing:.06em}
+  .crumb{
+    font-family:var(--mono); font-size:11.5px; color:var(--dim);
+    border:1px solid var(--line); background:var(--bg); padding:5px 10px; border-radius:3px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:340px;
+  }
+  .crumb b{color:var(--ink); font-weight:500}
+  .spacer{flex:1}
+  .ctl{display:flex; align-items:center; gap:10px}
+  .ctl label{font-size:10px; letter-spacing:.14em; color:var(--dim)}
+  input[type=range]{
+    -webkit-appearance:none; appearance:none; width:96px; height:2px; background:var(--line2);
+    border-radius:1px; outline:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:12px; height:12px; border-radius:50%;
+    background:var(--amber); border:2px solid var(--bg);
+    box-shadow:0 0 0 1px var(--amber); transition:transform .15s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:var(--amber);border:2px solid var(--bg)}
+  .ctxval{font-family:var(--mono); font-size:11px; color:var(--amber); width:10px; text-align:right}
+  .btn{
+    font-family:var(--sans); font-size:11px; letter-spacing:.1em; color:var(--ink);
+    background:var(--panel2); border:1px solid var(--line2); border-radius:3px;
+    padding:7px 13px; cursor:pointer; transition:all .18s var(--ease);
+  }
+  .btn:hover{border-color:var(--faint); background:#1F232D}
+  .btn:active{transform:translateY(1px)}
+  .progress{font-family:var(--mono); font-size:11px; color:var(--dim); white-space:nowrap}
+  .progress b{color:var(--amber); font-weight:500}
+
+  /* ---------- layout ---------- */
+  main{flex:1; display:flex; min-height:0; position:relative}
+  #scroll{flex:1; overflow:auto; min-width:0; position:relative}
+  #minimap{
+    flex:0 0 46px; border-left:1px solid var(--line); background:var(--panel);
+    position:relative; cursor:pointer;
+  }
+  #minimap canvas{display:block; width:46px; height:100%}
+
+  /* ---------- diff table ---------- */
+  .file-head{
+    display:grid; grid-template-columns:1fr 1fr; position:sticky; top:0; z-index:5;
+    background:var(--panel); border-bottom:1px solid var(--line);
+    font-family:var(--mono); font-size:11px; color:var(--dim);
+  }
+  .file-head div{padding:8px 14px; letter-spacing:.08em}
+  .file-head div:first-child{border-right:1px solid var(--line); color:#c98a8d}
+  .file-head div:last-child{color:#7ecfa3}
+  .rows{min-width:640px}
+  .row{
+    display:grid; grid-template-columns:1fr 1fr; font-family:var(--mono); font-size:12px;
+    line-height:21px; opacity:0; transform:translateY(4px);
+    animation:rowIn .5s var(--ease) forwards;
+  }
+  @keyframes rowIn{to{opacity:1;transform:none}}
+  .cell{display:flex; min-width:0; border-bottom:1px solid rgba(35,38,47,.35)}
+  .cell:first-child{border-right:1px solid var(--line)}
+  .gutter{
+    flex:0 0 44px; text-align:right; padding-right:12px; color:var(--faint);
+    user-select:none; font-size:10.5px; line-height:21px;
+  }
+  .code{flex:1; padding:0 12px 0 14px; white-space:pre; overflow:hidden; text-overflow:ellipsis}
+  .row.ctx .code{color:#9AA1AE}
+  .cell.c-del{background:var(--del-bg)}
+  .cell.c-del .code{color:#F1A0A3}
+  .cell.c-del .gutter{color:rgba(242,85,90,.55)}
+  .cell.c-add{background:var(--add-bg)}
+  .cell.c-add .code{color:#A8E6C6}
+  .cell.c-add .gutter{color:rgba(62,207,142,.5)}
+  .cell.filler{background:
+    repeating-linear-gradient(-45deg,transparent 0 6px,rgba(255,255,255,.014) 6px 12px)}
+  .sig-add{box-shadow:inset 3px 0 0 var(--add-line)}
+  .sig-del{box-shadow:inset 3px 0 0 var(--del-line)}
+  /* syntax */
+  .kw{color:#C678DD} .str{color:#98C379} .num{color:#D19A66}
+  .com{color:#5C6370; font-style:italic} .fn{color:#61AFEF} .ty{color:#E5C07B}
+
+  /* ---------- hunks ---------- */
+  .hunk{border-top:1px solid var(--line)}
+  .hunk:first-child{border-top:none}
+  .hunk-head{
+    position:sticky; top:29px; z-index:4;
+    display:flex; align-items:center; gap:14px; padding:7px 14px;
+    background:linear-gradient(var(--panel2),var(--panel2));
+    border-bottom:1px solid var(--line); font-size:11px; color:var(--dim);
+    transition:background .3s;
+  }
+  .hunk.focused .hunk-head{background:#20242F; box-shadow:inset 3px 0 0 var(--amber)}
+  .hunk-head .tag{font-family:var(--mono); color:var(--amber); letter-spacing:.1em}
+  .hunk-head .stats{font-family:var(--mono); font-size:10.5px}
+  .hunk-head .stats .a{color:var(--add)} .hunk-head .stats .d{color:var(--del)}
+  .hunk-head .hbtns{margin-left:auto; display:flex; gap:8px; align-items:center}
+  .hbtn{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.08em; padding:4px 12px;
+    border-radius:2px; cursor:pointer; background:transparent; transition:all .16s var(--ease);
+  }
+  .hbtn.acc{color:var(--add); border:1px solid rgba(62,207,142,.35)}
+  .hbtn.acc:hover{background:rgba(62,207,142,.12); border-color:var(--add)}
+  .hbtn.rej{color:var(--del); border:1px solid rgba(242,85,90,.35)}
+  .hbtn.rej:hover{background:rgba(242,85,90,.12); border-color:var(--del)}
+  .hbtn:disabled{opacity:.25; cursor:default; pointer-events:none}
+  .kbd-hint{font-family:var(--mono); font-size:9.5px; color:var(--faint); letter-spacing:.05em}
+  .hunk-body{overflow:hidden; transition:max-height .55s var(--ease), opacity .4s var(--ease)}
+  .hunk.resolved .hunk-body{max-height:0!important; opacity:0}
+  .status-pill{
+    display:none; font-family:var(--mono); font-size:10px; letter-spacing:.12em;
+    padding:3px 10px; border-radius:2px;
+  }
+  .hunk.accepted .status-pill{display:inline-block; color:var(--add); border:1px solid rgba(62,207,142,.4); background:rgba(62,207,142,.08)}
+  .hunk.rejected .status-pill{display:inline-block; color:var(--del); border:1px solid rgba(242,85,90,.4); background:rgba(242,85,90,.08)}
+  .hunk.accepted .hbtns .hbtn,.hunk.rejected .hbtns .hbtn{display:none}
+  .hunk.accepted .hunk-head{opacity:.75} .hunk.rejected .hunk-head{opacity:.75}
+  .gap-row{
+    font-family:var(--mono); font-size:10.5px; color:var(--faint); text-align:center;
+    padding:4px 0; background:rgba(255,255,255,.015); border-bottom:1px solid rgba(35,38,47,.35);
+    letter-spacing:.1em;
+  }
+  .undo-link{font-size:10px; color:var(--blue); cursor:pointer; letter-spacing:.08em; display:none}
+  .hunk.resolved .undo-link{display:inline}
+  .undo-link:hover{text-decoration:underline}
+
+  /* ---------- verdict overlay ---------- */
+  #verdict{
+    position:absolute; inset:0; z-index:20; display:flex; align-items:center; justify-content:center;
+    background:rgba(14,15,19,.72); backdrop-filter:blur(6px);
+    opacity:0; pointer-events:none; transition:opacity .4s var(--ease);
+  }
+  #verdict.show{opacity:1; pointer-events:auto}
+  .verdict-card{
+    width:min(460px,88vw); background:var(--panel); border:1px solid var(--line2);
+    border-radius:4px; padding:38px 40px 32px; text-align:center; position:relative;
+    transform:translateY(14px) scale(.97); transition:transform .45s var(--ease);
+  }
+  #verdict.show .verdict-card{transform:none}
+  .stamp{
+    display:inline-block; font-family:var(--mono); font-size:17px; font-weight:700;
+    letter-spacing:.3em; padding:10px 22px 10px 26px; border:2px solid; border-radius:3px;
+    transform:rotate(-4deg) scale(1.6); opacity:0;
+  }
+  #verdict.show .stamp{animation:stampIn .5s .25s cubic-bezier(.34,1.56,.64,1) forwards}
+  @keyframes stampIn{to{transform:rotate(-4deg) scale(1); opacity:1}}
+  .stamp.ok{color:var(--add); border-color:var(--add); box-shadow:0 0 34px rgba(62,207,142,.15)}
+  .stamp.no{color:var(--del); border-color:var(--del); box-shadow:0 0 34px rgba(242,85,90,.15)}
+  .verdict-card p{margin:22px 0 6px; font-size:13px; color:var(--dim); line-height:1.8}
+  .verdict-card .stat-line{font-family:var(--mono); font-size:11px; color:var(--faint); margin-bottom:24px}
+  .verdict-card .stat-line b{color:var(--ink); font-weight:500}
+
+  footer{
+    flex:0 0 30px; display:flex; align-items:center; padding:0 20px; gap:22px;
+    border-top:1px solid var(--line); background:var(--panel);
+    font-family:var(--mono); font-size:10px; color:var(--faint); letter-spacing:.1em;
+  }
+  footer .keys span{color:var(--dim)}
+  footer .sig{margin-left:auto}
+  @media (max-width:760px){
+    .crumb{display:none} .brand .sub{display:none}
+    .kbd-hint{display:none} footer .keys{display:none}
+    .progress{display:none}
+    header{gap:10px; padding:0 12px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·01</span>
+    <span class="name">DIFFSCOPE</span>
+    <span class="sub">代码审查对比台</span>
+  </div>
+  <div class="crumb">feat/token-rotation → <b>src/auth/session.ts</b> · +18 −7</div>
+  <div class="spacer"></div>
+  <div class="ctl">
+    <label>CONTEXT</label>
+    <input type="range" id="ctx" min="0" max="3" step="1" value="3">
+    <span class="ctxval" id="ctxval">3</span>
+  </div>
+  <div class="progress" id="progress"><b>0</b> / 6 RESOLVED</div>
+  <button class="btn" id="reset">RESET</button>
+</header>
+
+<main>
+  <div id="scroll">
+    <div class="file-head"><div>← HEAD~1 · before</div><div>HEAD · after →</div></div>
+    <div id="hunks"></div>
+    <div id="verdict">
+      <div class="verdict-card">
+        <span class="stamp" id="stamp">APPROVED</span>
+        <p id="verdict-text"></p>
+        <div class="stat-line" id="verdict-stats"></div>
+        <button class="btn" id="again">REVIEW AGAIN</button>
+      </div>
+    </div>
+  </div>
+  <div id="minimap" title="minimap"><canvas id="mm"></canvas></div>
+</main>
+
+<footer>
+  <div class="keys"><span>[j/k]</span> 切换 hunk &nbsp; <span>[a]</span> 接受 &nbsp; <span>[r]</span> 驳回 &nbsp; <span>[u]</span> 撤销</div>
+  <div class="sig">ATELIER M · 2026</div>
+</footer>
+
+<script>
+'use strict';
+/* ================= data ================= */
+const DIFF = [
+  [ // hunk 1 — imports
+    [' ', "import { createHash, randomUUID } from 'crypto';"],
+    ['-', "import { sign, verify } from './jwt';"],
+    ['-', "import { store } from './store';"],
+    ['+', "import { sign, verify, TokenPayload } from './jwt';"],
+    ['+', "import { store, withLock } from './store';"],
+    [' ', "import { logger } from './logger';"],
+  ],
+  [ // hunk 2 — interface
+    [' ', 'interface Session {'],
+    [' ', '  id: string;'],
+    [' ', '  userId: string;'],
+    ['-', '  token: string;'],
+    ['-', '  expiresAt: number;'],
+    ['+', '  accessToken: string;'],
+    ['+', '  refreshToken: string;'],
+    ['+', '  accessExpiresAt: number;'],
+    ['+', '  refreshExpiresAt: number;'],
+    ['+', '  rotationCount: number;'],
+    [' ', '}'],
+  ],
+  [ // hunk 3 — createSession
+    [' ', 'export async function createSession(userId: string): Promise<Session> {'],
+    ['-', "  const token = sign({ sub: userId }, '7d');"],
+    [' ', '  const session: Session = {'],
+    [' ', '    id: randomUUID(),'],
+    [' ', '    userId,'],
+    ['-', '    token,'],
+    ['-', '    expiresAt: Date.now() + 7 * 86400e3,'],
+    ['+', "    accessToken: sign({ sub: userId, typ: 'access' }, '15m'),"],
+    ['+', "    refreshToken: sign({ sub: userId, typ: 'refresh', jti: randomUUID() }, '30d'),"],
+    ['+', '    accessExpiresAt: Date.now() + 15 * 60e3,'],
+    ['+', '    refreshExpiresAt: Date.now() + 30 * 86400e3,'],
+    ['+', '    rotationCount: 0,'],
+    [' ', '  };'],
+    [' ', '  await store.put(session.id, session);'],
+    [' ', '  return session;'],
+    [' ', '}'],
+  ],
+  [ // hunk 4 — refresh
+    ['-', "export async function refresh(token: string): Promise<string> {"],
+    ['-', '  const payload = verify(token);'],
+    ['-', "  return sign({ sub: payload.sub }, '7d');"],
+    ['-', '}'],
+    ['+', 'export async function refresh(refreshToken: string): Promise<Session> {'],
+    ['+', '  const payload = verify(refreshToken) as TokenPayload;'],
+    ['+', '  const session = await store.findByRefresh(payload.jti);'],
+    ['+', '  if (!session || session.refreshToken !== refreshToken) {'],
+    ['+', "    logger.warn('refresh token reuse detected', { jti: payload.jti });"],
+    ['+', '    await store.revokeFamily(payload.jti);'],
+    ['+', "    throw new Error('token_reuse');"],
+    ['+', '  }'],
+    ['+', '  return withLock(session.id, () => rotate(session));'],
+    ['+', '}'],
+  ],
+  [ // hunk 5 — rotate
+    ['+', 'async function rotate(session: Session): Promise<Session> {'],
+    ['+', '  const next: Session = {'],
+    ['+', '    ...session,'],
+    ['+', "    accessToken: sign({ sub: session.userId, typ: 'access' }, '15m'),"],
+    ['+', "    refreshToken: sign({ sub: session.userId, typ: 'refresh', jti: randomUUID() }, '30d'),"],
+    ['+', '    rotationCount: session.rotationCount + 1,'],
+    ['+', '  };'],
+    ['+', '  await store.put(session.id, next);'],
+    ['+', '  return next;'],
+    ['+', '}'],
+    [' ', ''],
+  ],
+  [ // hunk 6 — verifySession
+    [' ', 'export async function verifySession(token: string): Promise<string> {'],
+    [' ', '  const payload = verify(token);'],
+    [' ', '  const session = await store.get(payload.sid);'],
+    ['-', '  if (!session || session.expiresAt < Date.now()) {'],
+    ['+', '  if (!session || session.accessExpiresAt < Date.now()) {'],
+    [' ', "    throw new Error('session_expired');"],
+    [' ', '  }'],
+    [' ', '  return session.userId;'],
+    [' ', '}'],
+  ],
+];
+
+/* ================= syntax highlight ================= */
+const TOKEN = /('[^']*')|\b(import|from|export|async|await|function|return|const|let|interface|if|throw|new|as|typeof)\b|\b(\d+[a-z0-9]*)\b|\b([A-Z][A-Za-z0-9]+)\b|([a-zA-Z_$][\w$]*)(?=\()/g;
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function highlight(src){
+  return esc(src).replace(TOKEN, (m, str, kw, num, ty, fn) => {
+    if(str !== undefined) return '<span class="str">'+str+'</span>';
+    if(kw  !== undefined) return '<span class="kw">'+kw+'</span>';
+    if(num !== undefined) return '<span class="num">'+num+'</span>';
+    if(ty  !== undefined) return '<span class="ty">'+ty+'</span>';
+    return '<span class="fn">'+fn+'</span>';
+  });
+}
+
+/* ================= state & render ================= */
+const state = DIFF.map(()=>'pending'); // pending | accepted | rejected
+let focusIdx = 0, context = 3, rowAnim = 0;
+const $hunks = document.getElementById('hunks');
+const $scroll = document.getElementById('scroll');
+
+function render(){
+  rowAnim = 0;
+  $hunks.innerHTML = '';
+  DIFF.forEach((ops, hi) => {
+    const hunk = document.createElement('div');
+    hunk.className = 'hunk' + (hi===focusIdx?' focused':'') + (state[hi]!=='pending'?' resolved '+state[hi]:'');
+    hunk.dataset.h = hi;
+
+    const adds = ops.filter(o=>o[0]==='+').length;
+    const dels = ops.filter(o=>o[0]==='-').length;
+    const head = document.createElement('div');
+    head.className = 'hunk-head';
+    head.innerHTML =
+      '<span class="tag">@@ HUNK '+(hi+1)+'/6 @@</span>'+
+      '<span class="stats"><span class="a">+'+adds+'</span>&nbsp;<span class="d">−'+dels+'</span></span>'+
+      '<span class="status-pill">'+(state[hi]==='accepted'?'ACCEPTED':'REJECTED')+'</span>'+
+      '<span class="kbd-hint">j/k · a/r</span>'+
+      '<div class="hbtns">'+
+        '<span class="undo-link" data-undo="'+hi+'">撤销</span>'+
+        '<button class="hbtn acc" data-acc="'+hi+'">✓ 接受</button>'+
+        '<button class="hbtn rej" data-rej="'+hi+'">✕ 驳回</button>'+
+      '</div>';
+    hunk.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'hunk-body';
+    let leftNo = 1, rightNo = 1;
+    for(let h2=0; h2<hi; h2++){
+      DIFF[h2].forEach(o=>{ if(o[0]!=='+') leftNo++; if(o[0]!=='-') rightNo++; });
+    }
+    // group ops into segments: ctx runs (collapsible) and change runs (paired left/right)
+    const segs = [];
+    let buf = [], i = 0;
+    while(i < ops.length){
+      const o = ops[i];
+      if(o[0] === ' '){ buf.push(o); i++; continue; }
+      if(buf.length){ segs.push({ctx:buf}); buf = []; }
+      const dels = [], adds = [];
+      while(i < ops.length && ops[i][0] === '-'){ dels.push(ops[i]); i++; }
+      while(i < ops.length && ops[i][0] === '+'){ adds.push(ops[i]); i++; }
+      segs.push({dels, adds});
+    }
+    if(buf.length) segs.push({ctx:buf});
+    segs.forEach(seg=>{
+      if(seg.ctx){
+        const shown = seg.ctx.slice(0, context);
+        const hidden = seg.ctx.length - shown.length;
+        shown.forEach(o=>{
+          body.appendChild(makeRow('ctx',{code:o[1],no:leftNo++},{code:o[1],no:rightNo++}));
+        });
+        if(hidden>0){
+          const g=document.createElement('div');
+          g.className='gap-row'; g.textContent='··· '+hidden+' 行上下文已折叠 ···';
+          body.appendChild(g);
+          leftNo+=hidden; rightNo+=hidden;
+        }
+      } else {
+        const n = Math.max(seg.dels.length, seg.adds.length);
+        for(let k=0;k<n;k++){
+          const d = seg.dels[k], a = seg.adds[k];
+          const l = d ? {code:d[1], no:leftNo++} : null;
+          const r = a ? {code:a[1], no:rightNo++} : null;
+          body.appendChild(makeRow(d ? 'del' : 'add', l, r));
+        }
+      }
+    });
+    hunk.appendChild(body);
+    requestAnimationFrame(()=>{ body.style.maxHeight = body.scrollHeight + 'px'; });
+    $hunks.appendChild(hunk);
+  });
+  bindButtons();
+  updateProgress();
+  drawMinimap();
+}
+
+function makeRow(type, left, right){
+  const r = document.createElement('div');
+  r.className = 'row ' + type;
+  r.style.animationDelay = Math.min(rowAnim*14, 500) + 'ms';
+  rowAnim++;
+  const mkCell = (side, data, sig, tint) => {
+    const c = document.createElement('div');
+    if(!data){ c.className = 'cell filler'; return c; }
+    c.className = 'cell' + (tint ? ' '+tint : '');
+    const g = document.createElement('span'); g.className='gutter'; g.textContent = data.no;
+    const code = document.createElement('span'); code.className = 'code' + (sig?' '+sig:'');
+    code.innerHTML = highlight(data.code) || '&nbsp;';
+    c.appendChild(g); c.appendChild(code);
+    return c;
+  };
+  r.appendChild(mkCell('l', left, type==='del'?'sig-del':'', type==='del'?'c-del':''));
+  r.appendChild(mkCell('r', right, (type==='add'||(type==='del'&&right))?'sig-add':'', (type==='add'||(type==='del'&&right))?'c-add':''));
+  return r;
+}
+
+/* ================= interactions ================= */
+function bindButtons(){
+  $hunks.querySelectorAll('[data-acc]').forEach(b=>b.onclick=e=>{resolve(+e.target.dataset.acc,'accepted');});
+  $hunks.querySelectorAll('[data-rej]').forEach(b=>b.onclick=e=>{resolve(+e.target.dataset.rej,'rejected');});
+  $hunks.querySelectorAll('[data-undo]').forEach(b=>b.onclick=e=>{unresolve(+e.target.dataset.undo);});
+}
+function resolve(i, verdict){
+  if(state[i]!=='pending') return;
+  state[i]=verdict;
+  const el = $hunks.children[i];
+  const body = el.querySelector('.hunk-body');
+  body.style.maxHeight = body.scrollHeight + 'px';
+  requestAnimationFrame(()=>{
+    el.classList.add('resolved', verdict);
+    el.querySelector('.status-pill').textContent = verdict==='accepted'?'ACCEPTED':'REJECTED';
+  });
+  moveFocus(1);
+  updateProgress(); drawMinimap();
+  if(state.every(s=>s!=='pending')) setTimeout(showVerdict, 650);
+}
+function unresolve(i){
+  state[i]='pending';
+  const el = $hunks.children[i];
+  el.classList.remove('resolved','accepted','rejected');
+  const body = el.querySelector('.hunk-body');
+  requestAnimationFrame(()=>{ body.style.maxHeight = body.scrollHeight + 'px'; });
+  document.getElementById('verdict').classList.remove('show');
+  updateProgress(); drawMinimap();
+}
+function moveFocus(dir){
+  const pending = state.map((s,i)=>s==='pending'?i:-1).filter(i=>i>=0);
+  if(!pending.length) return;
+  let idx = pending.indexOf(focusIdx);
+  idx = idx === -1 ? 0 : (idx + dir + pending.length) % pending.length;
+  setFocus(pending[idx]);
+}
+function setFocus(i){
+  focusIdx = i;
+  [...$hunks.children].forEach((el,k)=>el.classList.toggle('focused',k===i));
+  const el = $hunks.children[i];
+  const r = el.getBoundingClientRect(), sr = $scroll.getBoundingClientRect();
+  if(r.top < sr.top + 90 || r.bottom > sr.bottom - 60){
+    $scroll.scrollTo({top: el.offsetTop - 80, behavior:'smooth'});
+  }
+}
+function updateProgress(){
+  const n = state.filter(s=>s!=='pending').length;
+  document.getElementById('progress').innerHTML = '<b>'+n+'</b> / 6 RESOLVED';
+}
+function showVerdict(){
+  const acc = state.filter(s=>s==='accepted').length;
+  const rej = state.length - acc;
+  const ok = rej === 0;
+  const stamp = document.getElementById('stamp');
+  stamp.textContent = ok ? 'APPROVED' : 'CHANGES REQUESTED';
+  stamp.className = 'stamp ' + (ok?'ok':'no');
+  document.getElementById('verdict-text').textContent = ok
+    ? '全部 6 个 hunk 已接受。token 轮换方案可以合入主干。'
+    : '已接受 '+acc+' 处修改，'+rej+' 处被驳回——需要作者 rework 后重新提交。';
+  document.getElementById('verdict-stats').innerHTML =
+    'reviewed <b>src/auth/session.ts</b> · <b>'+acc+'</b> accepted · <b>'+rej+'</b> rejected · <b>+18 −7</b>';
+  document.getElementById('verdict').classList.add('show');
+}
+
+document.addEventListener('keydown', e=>{
+  if(e.target.tagName==='INPUT'&&e.target.type!=='range') return;
+  const k = e.key.toLowerCase();
+  if(k==='j'){ moveFocus(1); e.preventDefault(); }
+  else if(k==='k'){ moveFocus(-1); e.preventDefault(); }
+  else if(k==='a'){ resolve(focusIdx,'accepted'); }
+  else if(k==='r'){ resolve(focusIdx,'rejected'); }
+  else if(k==='u'){ if(state[focusIdx]!=='pending') unresolve(focusIdx); }
+});
+document.getElementById('ctx').addEventListener('input', e=>{
+  context = +e.target.value;
+  document.getElementById('ctxval').textContent = context;
+  render();
+});
+document.getElementById('reset').onclick = ()=>{
+  state.fill('pending');
+  document.getElementById('verdict').classList.remove('show');
+  render(); setFocus(0);
+};
+document.getElementById('again').onclick = ()=>{
+  state.fill('pending');
+  document.getElementById('verdict').classList.remove('show');
+  render(); setFocus(0);
+};
+
+/* ================= minimap ================= */
+const mmC = document.getElementById('mm'), mmX = mmC.getContext('2d');
+function drawMinimap(){
+  const dpr = window.devicePixelRatio||1;
+  const w = 46, h = mmC.parentElement.clientHeight;
+  mmC.width = w*dpr; mmC.height = h*dpr; mmX.setTransform(dpr,0,0,dpr,0,0);
+  mmX.clearRect(0,0,w,h);
+  const total = $scroll.scrollHeight, view = $scroll.clientHeight;
+  if(!total) return;
+  const s = h/total;
+  $hunks.querySelectorAll('.hunk').forEach((el,i)=>{
+    const y = el.offsetTop*s, hh = Math.max(el.scrollHeight*s, 6);
+    const st = state[i];
+    mmX.fillStyle = st==='accepted' ? 'rgba(62,207,142,.85)'
+      : st==='rejected' ? 'rgba(242,85,90,.85)'
+      : i===focusIdx ? 'rgba(229,192,123,.9)' : 'rgba(122,129,145,.4)';
+    mmX.fillRect(12, y, 22, hh);
+  });
+  // viewport
+  mmX.strokeStyle = 'rgba(216,221,229,.35)'; mmX.lineWidth = 1;
+  mmX.strokeRect(4.5, $scroll.scrollTop*s+.5, w-9, view*s-1);
+}
+$scroll.addEventListener('scroll', drawMinimap, {passive:true});
+document.getElementById('minimap').addEventListener('mousedown', e=>{
+  const jump = ev=>{
+    const rect = mmC.getBoundingClientRect();
+    const ratio = (ev.clientY-rect.top)/rect.height;
+    $scroll.scrollTop = ratio*$scroll.scrollHeight - $scroll.clientHeight/2;
+  };
+  jump(e);
+  const mv = ev=>jump(ev), up = ()=>{removeEventListener('mousemove',mv);removeEventListener('mouseup',up);};
+  addEventListener('mousemove',mv); addEventListener('mouseup',up);
+});
+window.addEventListener('resize', drawMinimap);
+
+/* ================= boot ================= */
+render();
+setTimeout(()=>{ setFocus(0); drawMinimap(); }, 60);
+</script>
+</body>
+</html>

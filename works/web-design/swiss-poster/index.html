@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RASTER 栅格排版实验室 — Swiss Grid Playground</title>
+<style>
+  :root{
+    --paper:#F7F6F2;
+    --ink:#111111;
+    --red:#E30613;
+    --gray:#9B9B97;
+    --sans:"Helvetica Neue",-apple-system,Helvetica,"PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--red);color:var(--paper);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:16px 3vw;pointer-events:none;background:linear-gradient(var(--paper) 60%,transparent);}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.12em;line-height:1.75;}
+  .sig .no{color:var(--red);font-weight:700;}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-align:right;line-height:1.9;color:var(--gray);}
+
+  .lab{display:grid;grid-template-columns:1fr 380px;gap:3vw;max-width:1500px;margin:0 auto;
+    padding:14vh 3vw 10vh;min-height:100vh;}
+
+  /* ---- poster side ---- */
+  .stage{position:relative;}
+  .stage .meta{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--gray);
+    display:flex;justify-content:space-between;margin-bottom:12px;}
+  .sheet{background:#fff;border:1px solid rgba(17,17,17,.15);
+    box-shadow:0 24px 60px rgba(17,17,17,.10),0 2px 8px rgba(17,17,17,.06);}
+  #poster{display:block;width:100%;height:auto;}
+
+  /* ---- controls ---- */
+  .controls{border-top:3px solid var(--ink);padding-top:8px;}
+  .controls h1{font-size:clamp(28px,3vw,42px);font-weight:800;letter-spacing:-.01em;line-height:1.05;margin-bottom:6px;}
+  .controls .sub{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--red);margin-bottom:26px;}
+  .ctl{padding:13px 0;border-bottom:1px solid rgba(17,17,17,.14);}
+  .ctl .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+  .ctl label{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--ink);}
+  .ctl .val{font-family:var(--mono);font-size:11px;color:var(--red);font-weight:700;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer;}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink);}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-6px;
+    background:var(--paper);border:2px solid var(--ink);border-radius:0;transition:background .2s,transform .2s var(--ease);}
+  input[type=range]:hover::-webkit-slider-thumb{background:var(--red);border-color:var(--red);}
+  input[type=range]::-moz-range-track{height:2px;background:var(--ink);}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--paper);border:2px solid var(--ink);border-radius:0;}
+  .word-in{width:100%;font-family:var(--sans);font-weight:800;font-size:20px;letter-spacing:.02em;
+    border:none;border-bottom:2px solid var(--ink);background:transparent;padding:6px 2px;text-transform:uppercase;outline:none;}
+  .word-in:focus{border-color:var(--red);}
+  .toggles{display:flex;gap:10px;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid rgba(17,17,17,.14);}
+  .chip{font-family:var(--mono);font-size:10px;letter-spacing:.18em;padding:8px 14px;border:1px solid var(--ink);
+    background:var(--paper);cursor:pointer;transition:all .2s var(--ease);}
+  .chip.on{background:var(--ink);color:var(--paper);}
+  .chip:hover{border-color:var(--red);color:var(--red);}
+  .chip.on:hover{background:var(--red);border-color:var(--red);color:var(--paper);}
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:26px;}
+  .btn{font-family:var(--mono);font-size:12px;letter-spacing:.2em;font-weight:700;padding:16px 10px;
+    border:2px solid var(--ink);cursor:pointer;transition:all .25s var(--ease);background:var(--paper);color:var(--ink);}
+  .btn.primary{background:var(--red);border-color:var(--red);color:#fff;}
+  .btn.primary:hover{background:var(--ink);border-color:var(--ink);}
+  .btn:not(.primary):hover{background:var(--ink);color:var(--paper);}
+  .scale-out{margin-top:24px;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--gray);line-height:2;}
+  .scale-out b{color:var(--ink);}
+
+  .manifesto{max-width:1500px;margin:0 auto;padding:0 3vw 12vh;display:grid;grid-template-columns:repeat(12,1fr);gap:20px;}
+  .manifesto .k{grid-column:1/4;font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--red);}
+  .manifesto p{grid-column:4/11;font-size:clamp(20px,2.4vw,34px);font-weight:700;line-height:1.6;letter-spacing:-.01em;}
+  footer{border-top:1px solid rgba(17,17,17,.2);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    padding:18px 3vw;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--gray);}
+
+  @media(max-width:960px){
+    .lab{grid-template-columns:1fr;padding-top:12vh;}
+    .controls{order:2;}
+    .manifesto .k{grid-column:1/-1;}
+    .manifesto p{grid-column:1/-1;}
+    .hright{display:none;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 07</span> · <b>RASTER 栅格排版实验室</b><br>WEB DESIGN / SWISS GRID PLAYGROUND</div>
+  <div class="hright">INTERNATIONAL TYPOGRAPHIC STYLE<br>ZÜRICH — BASEL — 1957 / 2026<br>栅格即秩序 · DIE ORDNUNG</div>
+</header>
+
+<main class="lab">
+  <div class="stage">
+    <div class="meta"><span>POSTER — A2 / 1:1.414</span><span id="liveTag">LIVE RENDER</span></div>
+    <div class="sheet"><svg id="poster" viewBox="0 0 1000 1414" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="生成的瑞士风格海报"></svg></div>
+  </div>
+
+  <div class="controls">
+    <h1>排版是看不见的<br>建筑。</h1>
+    <div class="sub">TYPOGRAPHY AS ARCHITECTURE — 参数即版式</div>
+
+    <div class="ctl">
+      <div class="row"><label>主词 HEADWORD</label><span class="val">A—Z</span></div>
+      <input class="word-in" id="pWord" value="RASTER" maxlength="12" spellcheck="false">
+    </div>
+    <div class="ctl">
+      <div class="row"><label>字阶 HEADLINE SIZE</label><span class="val" id="vSize">—</span></div>
+      <input type="range" id="pSize" min="60" max="300" value="190">
+    </div>
+    <div class="ctl">
+      <div class="row"><label>字距 TRACKING</label><span class="val" id="vTrack">—</span></div>
+      <input type="range" id="pTrack" min="-6" max="24" value="2">
+    </div>
+    <div class="ctl">
+      <div class="row"><label>栏数 COLUMNS</label><span class="val" id="vCols">—</span></div>
+      <input type="range" id="pCols" min="2" max="12" value="6">
+    </div>
+    <div class="ctl">
+      <div class="row"><label>栏间距 GUTTER</label><span class="val" id="vGut">—</span></div>
+      <input type="range" id="pGut" min="6" max="64" value="24">
+    </div>
+    <div class="ctl">
+      <div class="row"><label>行距 LEADING</label><span class="val" id="vLead">—</span></div>
+      <input type="range" id="pLead" min="11" max="26" value="15">
+    </div>
+    <div class="ctl">
+      <div class="row"><label>红色块 ACCENT</label><span class="val" id="vAcc">—</span></div>
+      <input type="range" id="pAcc" min="0" max="100" value="55">
+    </div>
+
+    <div class="toggles">
+      <button class="chip on" id="tGrid">显示栅格 GRID</button>
+      <button class="chip on" id="tBody">正文栏 BODY</button>
+      <button class="chip" id="tRot">斜轴 8°</button>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="random">随机再生 RANDOMIZE</button>
+      <button class="btn" id="download">下载 SVG ↓</button>
+    </div>
+
+    <div class="scale-out" id="scaleOut"></div>
+  </div>
+</main>
+
+<section class="manifesto">
+  <div class="k">DAS RASTER — 1957</div>
+  <p>栅格不是限制，是自由的前提。当每一磅字、每一条栏、每一块红都服从同一个数学秩序，版式便获得了超越内容的力量。</p>
+</section>
+
+<footer>
+  <span>RASTER LAB — 栅格排版实验室</span>
+  <span>SET IN HELVETICA / SYSTEM STACK · NO FONTS WERE DOWNLOADED</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var SANS='"Helvetica Neue",-apple-system,Helvetica,"PingFang SC",sans-serif';
+var MONO='"SF Mono",Menlo,monospace';
+var W=1000,H=1414,M=64;
+var INK="#111111",RED="#E30613",PAPER="#FFFFFF",GRAY="#9B9B97";
+var svg=document.getElementById("poster");
+var NS="http://www.w3.org/2000/svg";
+
+var WORDS=["RASTER","ORDNUNG","HELVETICA","AKZIDENZ","GITTER","TYPO","SYSTEM","MODUL","FLÄCHE","ZEILE"];
+var BODY=("Das Raster ist das ordnende Prinzip jeder typografischen Arbeit. "+
+"Es teilt die Fläche, führt das Auge und gibt dem Wort Gewicht. "+
+"Weniger ist mehr — aber das Wenige muss exakt sitzen. "+
+"Die Zeile folgt der Linie, die Linie folgt dem System, das System folgt der Vernunft. "+
+"栅格 是 版面 的 骨架 。 字 服从 栏 ， 栏 服从 格 ， 格 服从 数学 。").split(" ");
+
+function el(n,attrs,parent){
+  var e=document.createElementNS(NS,n);
+  for(var k in attrs)e.setAttribute(k,attrs[k]);
+  (parent||svg).appendChild(e);
+  return e;
+}
+
+function params(){
+  return {
+    word:document.getElementById("pWord").value.toUpperCase()||"RASTER",
+    size:+document.getElementById("pSize").value,
+    track:+document.getElementById("pTrack").value,
+    cols:+document.getElementById("pCols").value,
+    gut:+document.getElementById("pGut").value,
+    lead:+document.getElementById("pLead").value,
+    acc:+document.getElementById("pAcc").value,
+    grid:document.getElementById("tGrid").classList.contains("on"),
+    body:document.getElementById("tBody").classList.contains("on"),
+    rot:document.getElementById("tRot").classList.contains("on")
+  };
+}
+
+function render(){
+  var p=params();
+  while(svg.firstChild)svg.removeChild(svg.firstChild);
+
+  var innerW=W-2*M;
+  var colW=(innerW-(p.cols-1)*p.gut)/p.cols;
+  function colX(i){return M+i*(colW+p.gut);}
+
+  // white ground
+  el("rect",{x:0,y:0,width:W,height:H,fill:PAPER});
+
+  // rotation group (斜轴)
+  var root=el("g",p.rot?{transform:"rotate(-8 "+W/2+" "+H/2+")"}:{});
+
+  // grid overlay
+  if(p.grid){
+    var g=el("g",{},root);
+    for(var i=0;i<p.cols;i++)
+      el("rect",{x:colX(i),y:M,width:colW,height:H-2*M,fill:"none",
+        stroke:"rgba(227,6,19,.28)","stroke-width":1},g);
+    for(var by=M;by<=H-M;by+=p.lead*2)
+      el("line",{x1:M,y1:by,x2:W-M,y2:by,stroke:"rgba(17,17,17,.08)","stroke-width":1},g);
+  }
+
+  // top index strip
+  var t1=el("text",{x:M,y:M+6,"font-family":MONO,"font-size":15,"letter-spacing":4,fill:INK},root);
+  t1.textContent="RASTER LAB — INTERNATIONALE TYPOGRAFIE";
+  var t2=el("text",{x:W-M,y:M+6,"text-anchor":"end","font-family":MONO,"font-size":15,"letter-spacing":4,fill:RED,"font-weight":"bold"},root);
+  t2.textContent="№07 / "+p.cols+" COL";
+  el("line",{x1:M,y1:M+22,x2:W-M,y2:M+22,stroke:INK,"stroke-width":3},root);
+
+  // headline — flush left, spans full grid
+  var headY=M+p.size*0.95+40;
+  var h=el("text",{x:M-4,y:headY,"font-family":SANS,"font-weight":"800",
+    "font-size":p.size,"letter-spacing":p.track,fill:INK},root);
+  h.textContent=p.word;
+
+  // red accent: bar along columns + disc
+  var accR=p.acc/100;
+  var barH=10+accR*46;
+  var barY=headY+34;
+  el("rect",{x:colX(0),y:barY,width:colX(Math.max(1,Math.ceil(p.cols*accR)))-colX(0)+colW,height:barH,fill:RED},root);
+  var discX=colX(p.cols-1)+colW-20-accR*60;
+  var discY=barY+barH+60+accR*140;
+  el("circle",{cx:discX,cy:discY,r:26+accR*90,fill:"none",stroke:RED,"stroke-width":6},root);
+  el("circle",{cx:discX,cy:discY,r:6,fill:RED},root);
+
+  // body columns under the bar
+  if(p.body){
+    function tw(str,fs){var wdt=0;for(var k=0;k<str.length;k++)
+      wdt+=str.charCodeAt(k)>0x2E7F?fs:fs*0.55;return wdt;}
+    var nB=Math.min(3,p.cols);
+    var topY=Math.max(barY+barH+44,discY+130);
+    var botY=H-M-60;
+    var fs=13;
+    var lineH=fs*(p.lead/10)+2;
+    var wi=0;
+    for(var c=0;c<nB;c++){
+      var cx=colX(c),maxW=colW,y=topY,line="";
+      var guard=0;
+      while(y+lineH<=botY&&guard<600){
+        guard++;
+        var wword=BODY[wi%BODY.length];wi++;
+        var test=line?line+" "+wword:wword;
+        if(tw(test,fs)>maxW){
+          if(line){
+            var te=el("text",{x:cx,y:y,"font-family":SANS,"font-size":fs,fill:INK},root);
+            te.textContent=line;y+=lineH;line=wword;
+          }else{line=wword;}
+        }else line=test;
+      }
+      if(line&&y<=botY){
+        var t3=el("text",{x:cx,y:y,"font-family":SANS,"font-size":fs,fill:INK},root);
+        t3.textContent=line;
+      }
+    }
+  }
+
+  // footer strip
+  el("line",{x1:M,y1:H-M-24,x2:W-M,y2:H-M-24,stroke:INK,"stroke-width":3},root);
+  var f1=el("text",{x:M,y:H-M+6,"font-family":MONO,"font-size":14,"letter-spacing":3,fill:GRAY},root);
+  f1.textContent="GRID "+p.cols+" × "+p.gut+" · TRACK "+p.track+" · LEAD "+p.lead;
+  var f2=el("text",{x:W-M,y:H-M+6,"text-anchor":"end","font-family":MONO,"font-size":14,"letter-spacing":3,fill:INK},root);
+  f2.textContent="ZÜRICH 1957—2026";
+
+  // readouts
+  document.getElementById("vSize").textContent=p.size+" PT";
+  document.getElementById("vTrack").textContent=(p.track>=0?"+":"")+p.track;
+  document.getElementById("vCols").textContent=p.cols+" 栏";
+  document.getElementById("vGut").textContent=p.gut+" PX";
+  document.getElementById("vLead").textContent=(p.lead/10).toFixed(1)+" ×";
+  document.getElementById("vAcc").textContent=p.acc+" %";
+  document.getElementById("scaleOut").innerHTML=
+    "TYPE SCALE — <b>"+p.size+"</b> / "+Math.round(p.size*0.42)+" / "+Math.round(p.size*0.18)+" / <b>13</b><br>"+
+    "GRID — "+p.cols+" COLS × "+p.gut+" GUTTER · COL "+Math.round(colW)+" PX";
+}
+
+/* ---- wiring ---- */
+["pSize","pTrack","pCols","pGut","pLead","pAcc"].forEach(function(id){
+  document.getElementById(id).addEventListener("input",render);
+});
+document.getElementById("pWord").addEventListener("input",render);
+["tGrid","tBody","tRot"].forEach(function(id){
+  document.getElementById(id).addEventListener("click",function(){
+    this.classList.toggle("on");render();
+  });
+});
+
+function rnd(a,b){return Math.floor(a+Math.random()*(b-a+1));}
+function randomize(){
+  document.getElementById("pWord").value=WORDS[rnd(0,WORDS.length-1)];
+  document.getElementById("pSize").value=rnd(90,300);
+  document.getElementById("pTrack").value=rnd(-4,20);
+  document.getElementById("pCols").value=rnd(3,10);
+  document.getElementById("pGut").value=rnd(8,48);
+  document.getElementById("pLead").value=rnd(11,22);
+  document.getElementById("pAcc").value=rnd(15,95);
+  document.getElementById("tRot").classList.toggle("on",Math.random()<0.3);
+  render();
+}
+document.getElementById("random").addEventListener("click",randomize);
+document.addEventListener("keydown",function(e){
+  if((e.key==="r"||e.key==="R")&&document.activeElement!==document.getElementById("pWord"))randomize();
+});
+
+document.getElementById("download").addEventListener("click",function(){
+  render();
+  var src=new XMLSerializer().serializeToString(svg);
+  src='<?xml version="1.0" encoding="UTF-8"?>\n'+src;
+  var blob=new Blob([src],{type:"image/svg+xml;charset=utf-8"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="raster-poster-"+params().word.toLowerCase()+".svg";
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},400);
+});
+
+render();
+})();
+</script>
+</body>
+</html>

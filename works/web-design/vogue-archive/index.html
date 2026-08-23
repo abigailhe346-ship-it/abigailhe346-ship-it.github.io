@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SILHOUETTE 剪影时装档案 — Fashion Archive 1965—2026</title>
+<style>
+  :root{
+    --cream:#F3EFE6;
+    --ink:#0D0D0D;
+    --red:#D5001F;
+    --serif:Didot,"Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--cream);color:var(--ink);font-family:var(--serif);overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--red);color:var(--cream);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:16px 3vw;pointer-events:none;mix-blend-mode:difference;color:#fff;}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.13em;line-height:1.75;}
+  .sig .no{color:var(--red);font-weight:700;mix-blend-mode:normal;}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-align:right;line-height:1.9;opacity:.7;}
+
+  /* ---- hero ---- */
+  .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;position:relative;
+    padding:0 3vw;overflow:hidden;}
+  .hero .bignum{position:absolute;right:-2vw;bottom:-6vh;font-family:var(--serif);font-style:italic;
+    font-size:56vh;line-height:1;color:transparent;-webkit-text-stroke:1px rgba(13,13,13,.16);pointer-events:none;user-select:none;}
+  .mast-k{font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:var(--red);margin-bottom:3vh;}
+  h1{font-size:clamp(64px,12.5vw,220px);line-height:.9;font-weight:700;letter-spacing:-.02em;text-transform:uppercase;}
+  h1 .it{font-style:italic;font-weight:400;}
+  .hero .sub{display:flex;justify-content:space-between;align-items:flex-end;margin-top:5vh;
+    border-top:1px solid var(--ink);padding-top:18px;flex-wrap:wrap;gap:12px;}
+  .hero .sub p{font-family:var(--sans);font-size:13px;line-height:1.9;max-width:46ch;color:rgba(13,13,13,.75);}
+  .hero .sub .yr{font-family:var(--serif);font-style:italic;font-size:clamp(22px,2.6vw,38px);color:var(--red);}
+
+  /* ---- filter ---- */
+  .filterbar{position:relative;z-index:5;display:flex;gap:0;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+    margin:0 3vw;flex-wrap:wrap;}
+  .filterbar button{flex:1;min-width:110px;background:transparent;border:none;border-right:1px solid var(--ink);
+    font-family:var(--mono);font-size:11px;letter-spacing:.24em;padding:16px 8px;cursor:pointer;color:var(--ink);
+    transition:background .3s var(--ease),color .3s var(--ease);}
+  .filterbar button:last-child{border-right:none;}
+  .filterbar button:hover{background:rgba(13,13,13,.06);}
+  .filterbar button.on{background:var(--ink);color:var(--cream);}
+
+  /* ---- horizontal archive ---- */
+  #hwrap{position:relative;}
+  #hsticky{position:sticky;top:0;height:100vh;overflow:hidden;display:flex;flex-direction:column;justify-content:center;}
+  #htrack{display:flex;gap:4vw;padding:0 6vw;align-items:center;will-change:transform;}
+  .cover{flex:0 0 auto;width:min(330px,66vw);cursor:pointer;position:relative;}
+  .cover .cframe{border:1px solid var(--ink);background:#fff;overflow:hidden;position:relative;
+    transition:transform .5s var(--ease),box-shadow .5s var(--ease);}
+  .cover canvas{display:block;width:100%;height:auto;}
+  .cover:hover .cframe{transform:translateY(-14px);box-shadow:0 30px 50px rgba(13,13,13,.18);}
+  .cover .cap{display:flex;justify-content:space-between;margin-top:12px;font-family:var(--mono);
+    font-size:10px;letter-spacing:.2em;color:rgba(13,13,13,.6);}
+  .cover .cap b{color:var(--red);}
+  .cover.hide{display:none;}
+  #hprog{position:absolute;bottom:6vh;left:6vw;right:6vw;height:1px;background:rgba(13,13,13,.2);}
+  #hprog i{position:absolute;left:0;top:-1px;height:3px;width:0;background:var(--red);}
+  .hhint{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(13,13,13,.5);padding:0 6vw 3vh;}
+
+  /* ---- editorial overlay ---- */
+  #spread{position:fixed;inset:0;z-index:80;display:none;background:var(--cream);}
+  #spread.open{display:block;}
+  #spread .inner{height:100%;overflow-y:auto;padding:12vh 6vw 10vh;opacity:0;transform:translateY(30px);
+    transition:opacity .6s var(--ease),transform .6s var(--ease);}
+  #spread.open .inner{opacity:1;transform:none;}
+  .sp-top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ink);
+    padding-bottom:16px;margin-bottom:6vh;position:sticky;top:0;background:var(--cream);z-index:2;padding-top:2vh;}
+  .sp-top .file{font-family:var(--mono);font-size:11px;letter-spacing:.26em;}
+  #closeSpread{background:var(--ink);color:var(--cream);border:none;font-family:var(--mono);font-size:11px;
+    letter-spacing:.2em;padding:10px 20px;cursor:pointer;transition:background .25s;}
+  #closeSpread:hover{background:var(--red);}
+  .sp-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:5vw;align-items:start;}
+  .sp-head h2{font-size:clamp(44px,6.5vw,110px);line-height:.95;font-weight:700;letter-spacing:-.01em;}
+  .sp-head h2 em{font-style:italic;font-weight:400;color:var(--red);}
+  .sp-head .stand{font-style:italic;font-size:clamp(17px,1.6vw,24px);line-height:1.8;margin-top:3vh;color:rgba(13,13,13,.8);}
+  .sp-body{columns:2;column-gap:3vw;margin-top:5vh;font-family:var(--sans);font-size:14px;line-height:2.1;color:rgba(13,13,13,.85);}
+  .sp-body p{margin-bottom:1.4em;}
+  .sp-body p:first-child::first-letter{font-family:var(--serif);font-size:4.6em;float:left;line-height:.8;
+    padding:6px 12px 0 0;font-weight:700;color:var(--red);}
+  .sp-side canvas{width:100%;height:auto;border:1px solid var(--ink);}
+  .sp-cred{border-top:1px solid var(--ink);margin-top:18px;padding-top:14px;font-family:var(--mono);
+    font-size:10px;letter-spacing:.16em;line-height:2.4;color:rgba(13,13,13,.65);}
+  .sp-cred b{color:var(--ink);}
+  .pull{grid-column:1/-1;font-family:var(--serif);font-style:italic;font-size:clamp(26px,3.4vw,52px);
+    line-height:1.4;text-align:center;padding:8vh 6vw 0;}
+  .pull::before{content:"“";color:var(--red);}
+
+  /* ---- manifesto / footer ---- */
+  .colophon{padding:16vh 3vw;text-align:center;}
+  .colophon .k{font-family:var(--mono);font-size:10px;letter-spacing:.5em;color:var(--red);margin-bottom:4vh;}
+  .colophon p{font-style:italic;font-size:clamp(22px,3vw,44px);line-height:1.7;max-width:26em;margin:0 auto;}
+  footer{border-top:1px solid var(--ink);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+    padding:18px 3vw;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(13,13,13,.55);}
+
+  @media(max-width:900px){
+    .sp-grid{grid-template-columns:1fr;}
+    .sp-body{columns:1;}
+    #hwrap{height:auto !important;}
+    #hsticky{position:relative;height:auto;padding:8vh 0;}
+    #htrack{overflow-x:auto;padding-bottom:4vh;-webkit-overflow-scrolling:touch;}
+    #hprog{display:none;}
+    .hright{display:none;}
+    .hero .bignum{font-size:38vh;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 09</span> · <b>SILHOUETTE 剪影时装档案</b><br>WEB DESIGN / FASHION ARCHIVE</div>
+  <div class="hright">PARIS — MILANO — TOKYO<br>双月刊 · 逢单月发行<br>ISSN 2026-1965</div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="bignum" id="bigYear">68</div>
+  <div class="mast-k">FASHION ARCHIVE — 时装档案 1965—2026</div>
+  <h1>SILHOU<span class="it">ette</span></h1>
+  <div class="sub">
+    <p>六十一年的廓形、布料与姿态。我们把每一期的封面重新生成——不扫描旧纸，只翻译时代。
+      滚动页面，横向翻阅档案；点任意封面，读那一年的专题。</p>
+    <span class="yr">— Est. 1965</span>
+  </div>
+</section>
+
+<!-- ============ FILTER ============ -->
+<div class="filterbar" id="filterbar">
+  <button data-d="all" class="on">全部 ALL</button>
+  <button data-d="1960s">1960s</button>
+  <button data-d="1970s">1970s</button>
+  <button data-d="1980s">1980s</button>
+  <button data-d="1990s">1990s</button>
+  <button data-d="2000s">2000s →</button>
+</div>
+
+<!-- ============ HORIZONTAL ARCHIVE ============ -->
+<div id="hwrap">
+  <div id="hsticky">
+    <div class="hhint">SCROLL — 垂直滚动，横向翻阅 · CLICK COVER TO READ</div>
+    <div id="htrack"></div>
+    <div id="hprog"><i id="hprogBar"></i></div>
+  </div>
+</div>
+
+<!-- ============ SPREAD OVERLAY ============ -->
+<div id="spread" aria-hidden="true">
+  <div class="inner">
+    <div class="sp-top">
+      <span class="file" id="spFile">—</span>
+      <button id="closeSpread">合上 CLOSE ✕</button>
+    </div>
+    <div class="sp-grid">
+      <div>
+        <div class="sp-head">
+          <h2 id="spTitle">—</h2>
+          <p class="stand" id="spStand">—</p>
+        </div>
+        <div class="sp-body" id="spBody"></div>
+      </div>
+      <div class="sp-side">
+        <canvas id="spCanvas" width="600" height="800"></canvas>
+        <div class="sp-cred" id="spCred"></div>
+      </div>
+      <div class="pull" id="spPull"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ COLOPHON ============ -->
+<section class="colophon">
+  <div class="k">COLOPHON — 版权页</div>
+  <p>时尚是唯一合法的时光机：垫肩回到八〇年代，雪纺回到九〇年代，而档案，让每一次回来都有据可查。</p>
+</section>
+
+<footer>
+  <span>SILHOUETTE 剪影时装档案 — 1965–2026</span>
+  <span>PRINTED ON SCREEN · SET IN DIDOT / SYSTEM STACK</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+/* ============ data ============ */
+var ENTRIES=[
+ {yr:1968,dec:"1960s",letter:"G",hue:"#D8A7A0",shape:"#0D0D0D",title:"THE <em>GEOMETRIC</em> CUT",
+  cn:"几何剪裁 ·  Twiggy 与迷你革命",seed:68,
+  stand:"一九六八年，裙子短到了膝盖以上二十厘米，剪裁锋利得像一句宣言。",
+  body:["这一年，巴黎的裁缝们放下了软尺，拿起了三角板。A 字、梯形、箱型——身体第一次被当作建筑来对待，而不是风景。Twiggy 的大眼睛占满整版，她说自己只是一支铅笔，被时代削得很尖。",
+  "我们在档案里找到那年的打版稿：所有的省道都被省略，所有的曲线都被拉直。编辑在页边写道——曲线属于过去，直线属于明天。六十年后回看，这句话依然锋利。",
+  "迷你裙不是一种长度，是一种立场。当裙摆离地二十厘米，目光就必须学会平视。"],
+  pull:"曲线属于过去，直线属于明天。",
+  cred:"摄影 PHOTO — <b>林 遥</b><br>造型 STYLING — <b>M. OKUBO</b><br>模特 MODEL — <b>ANNE-LISE B.</b><br>服装 WARDROBE — 档案馆藏 1968 春夏"},
+ {yr:1974,dec:"1970s",letter:"N",hue:"#C99A2C",shape:"#0D0D0D",title:"NOMAD <em>FRINGE</em>",
+  cn:"游牧流苏 · 公路尽头的衣橱",seed:74,
+  stand:"流苏每摆动一次，就有一英里的公路被甩在身后。",
+  body:["七〇年代的衣橱装在后备箱里：麂皮马甲、扎染衬衫、一条磨白的喇叭裤。造型师从跳蚤市场出发，一路向西，衣服上的每一道流苏都沾着三个州的风尘。",
+  "这一期我们拒绝影棚。所有照片都在加油站的黄昏里完成，模特靠着一辆旧皮卡，头发里有真正的沙。编辑说，时尚从这一年开始学会撒谎——它假装自己从不属于橱窗。",
+  "游牧不是一种风格，是一种离开的方式。"],
+  pull:"时尚假装自己从不属于橱窗。",
+  cred:"摄影 PHOTO — <b>J. VALDEZ</b><br>造型 STYLING — <b>周 野</b><br>模特 MODEL — <b>RUE T.</b><br>服装 WARDROBE — 档案馆藏 1974 秋冬"},
+ {yr:1979,dec:"1970s",letter:"M",hue:"#0D0D0D",shape:"#D5001F",title:"DISCO <em>METALLIC</em>",
+  cn:"金属迪斯科 · 54 号俱乐部的光",seed:79,
+  stand:"灯球转动的时候，每一件金属面料都在替主人放电。",
+  body:["七九年的夜晚是金属做的。镭射面料、漆皮、细吊带——布料在灯球下不再是布料，是导体。我们在旧底片盒里找到一沓未发表的照片：舞池上方漂浮着一百件会发光的身体。",
+  "那一年的剪裁哲学只有一条：布料必须反射光，身体必须反射目光。",
+  "迪斯科死了三次，每一次都在 T 台上复活。"],
+  pull:"布料必须反射光，身体必须反射目光。",
+  cred:"摄影 PHOTO — <b>K. NIGHT</b><br>造型 STYLING — <b>安 灼</b><br>模特 MODEL — <b>DEE D.</b><br>服装 WARDROBE — 档案馆藏 1979 派对系列"},
+ {yr:1985,dec:"1980s",letter:"P",hue:"#D5001F",shape:"#F3EFE6",title:"POWER <em>SHOULDERS</em>",
+  cn:"权力垫肩 · 会议室里的盔甲",seed:85,
+  stand:"垫肩每宽一厘米，会议室里的音量就大一分贝。",
+  body:["八五年，女人们把肩膀穿成了宣言。垫肩西装的轮廓像一座桥——桥的这头是缝纫机，那头是董事会。本刊当年的封面标题只有两个字：让路。",
+  "我们量过那件封面西装：肩宽四十八厘米，比她自己的肩膀宽出十厘米。多出来的十厘米，是时代欠她的空间。",
+  "垫肩不是伪装成男人，是提醒房间：这里不只有一种轮廓。"],
+  pull:"多出来的十厘米，是时代欠她的空间。",
+  cred:"摄影 PHOTO — <b>陆 时</b><br>造型 STYLING — <b>V. ARMAND</b><br>模特 MODEL — <b>SOFIA R.</b><br>服装 WARDROBE — 档案馆藏 1985 秋冬"},
+ {yr:1993,dec:"1990s",letter:"C",hue:"#6B7263",shape:"#F3EFE6",title:"GRUNGE <em>CHIFFON</em>",
+  cn:"垃圾摇滚雪纺 · 精致的崩塌",seed:93,
+  stand:"把雪纺撕一个口子，整个九〇年代就从那个口子里涌出来。",
+  body:["九三年，精致成了一种冒犯。法兰绒系在腰间，雪纺裙配军靴，模特眼下有真实的青黑。那一期专题印出来当天，编辑部收到三百封退订信——和五百个新订阅。",
+  "垃圾摇滚教给时尚的事：美可以不努力，但不可以不诚实。",
+  "所谓风格，就是把崩塌穿在身上，还走得像个胜利者。"],
+  pull:"美可以不努力，但不可以不诚实。",
+  cred:"摄影 PHOTO — <b>E. SNOW</b><br>造型 STYLING — <b>白 尾</b><br>模特 MODEL — <b>NINA K.</b><br>服装 WARDROBE — 档案馆藏 1993 春夏"},
+ {yr:1999,dec:"1990s",letter:"W",hue:"#0D0D0D",shape:"#D8A7A0",title:"THE <em>WHITE</em> SHIRT",
+  cn:"极简白衬衣 · 世纪末的留白",seed:99,
+  stand:"千禧年前夜，全世界都在等烟花，只有她穿了一件白衬衣。",
+  body:["九九年的答案是一件白衬衣：没有 Logo，没有垫肩，没有态度——或者反过来说，全是态度。极简主义把时尚擦到只剩布料和皮肤，编辑写道：少，即是不朽。",
+  "那期封面是我们档案里最安静的一张：白衬衣，素脸，直视。二十六年过去，它依然像昨天拍的。"],
+  pull:"少，即是不朽。",
+  cred:"摄影 PHOTO — <b>森 奈</b><br>造型 STYLING — <b>A. WINTOUR JR.</b><br>模特 MODEL — <b>CLAIRE D.</b><br>服装 WARDROBE — 档案馆藏 1999 白系列"},
+ {yr:2008,dec:"2000s",letter:"D",hue:"#D5001F",shape:"#0D0D0D",title:"DIGITAL <em>PRINT</em> YR.1",
+  cn:"数字印花元年 · 像素成为布料",seed:108,
+  stand:"当印花可以由代码生成，每一米布料都是一次渲染。",
+  body:["〇八年，印花机吞下的第一卷不是设计稿，是一段代码。像素级的花朵在真丝上以任何分辨率盛开，设计师第一次说：我的画布没有边界，只有内存。",
+  "这一年本刊更换了全部印前流程。时尚与屏幕之间那道墙，从这一年开始渗水。",
+  "布料是最古老的显示器。"],
+  pull:"布料是最古老的显示器。",
+  cred:"摄影 PHOTO — <b>U. RAY</b><br>印花 PRINT — <b>STUDIO 008</b><br>模特 MODEL — <b>YUKI M.</b><br>服装 WARDROBE — 档案馆藏 2008 数字系列"},
+ {yr:2021,dec:"2000s",letter:"H",hue:"#8C93A8",shape:"#F3EFE6",title:"COUTURE AT <em>HOME</em>",
+  cn:"居家高定 · 客厅里的发布会",seed:121,
+  stand:"世界停摆的那一年，高定走进客厅，镜头走进卧室。",
+  body:["二一年，秀场被折叠进一块屏幕。裁缝们隔着视频量体，模特在自家走廊里转身，观众穿着睡衣坐在第一排。奇怪的是，衣服反而更认真了——当观众只剩自己，穿给谁看的答案，终于变成：穿给自己。",
+  "那一年我们学会了新的赞美：这件衣服，让居家有了仪式感。",
+  "当时尚回到卧室，它才真正回到了身体。"],
+  pull:"穿给谁看的答案，终于变成：穿给自己。",
+  cred:"摄影 PHOTO — <b>REMOTE UNIT</b><br>造型 STYLING — <b>沈 寂</b><br>模特 MODEL — <b>READERS</b><br>服装 WARDROBE — 档案馆藏 2021 居家高定"}
+];
+
+/* ============ cover generator ============ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+var SERIF='Didot,"Bodoni MT","Songti SC",Georgia,serif';
+var MONO='"SF Mono",Menlo,monospace';
+var CREAM="#F3EFE6",INK="#0D0D0D",RED="#D5001F";
+
+function drawCover(cv,e){
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  var w=cv.clientWidth?cv.clientWidth* 1:300,h=w*4/3;
+  if(cv.id==="spCanvas"){w=600;h=800;}
+  cv.width=w*dpr;cv.height=h*dpr;
+  var ctx=cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var R=mulberry32(e.seed);
+
+  // ground
+  ctx.fillStyle=e.hue;ctx.fillRect(0,0,w,h);
+
+  // halftone dot band
+  var bandY=h*(0.55+R()*0.2);
+  ctx.fillStyle="rgba(13,13,13,.55)";
+  for(var dy=bandY;dy<h*0.94;dy+=9){
+    for(var dx=8;dx<w;dx+=9){
+      var rr=1.6*Math.abs(Math.sin(dx*0.05+dy*0.08+e.seed));
+      if(rr>0.35){ctx.beginPath();ctx.arc(dx,dy,rr,0,7);ctx.fill();}
+    }
+  }
+
+  // arch silhouette (the figure)
+  var ax=w*(0.28+R()*0.3),aw=w*(0.34+R()*0.14),ay=h*0.98,ah=h*(0.5+R()*0.2);
+  ctx.fillStyle=e.shape;
+  ctx.beginPath();
+  ctx.moveTo(ax,ay);
+  ctx.lineTo(ax,ay-ah+aw/2);
+  ctx.arc(ax+aw/2,ay-ah+aw/2,aw/2,Math.PI,0);
+  ctx.lineTo(ax+aw,ay);
+  ctx.closePath();ctx.fill();
+  // crescent cut
+  ctx.fillStyle=e.hue;
+  ctx.beginPath();
+  ctx.ellipse(ax+aw*(0.3+R()*0.4),ay-ah*(0.45+R()*0.2),aw*0.16,aw*0.3,R()*1.2,0,7);
+  ctx.fill();
+
+  // giant letter
+  ctx.fillStyle=e.shape===INK?CREAM:INK;
+  ctx.font="italic 700 "+Math.round(w*0.9)+"px "+SERIF;
+  ctx.textBaseline="alphabetic";
+  ctx.globalAlpha=0.92;
+  ctx.fillText(e.letter,w*(0.42+R()*0.2),h*(0.5+R()*0.16));
+  ctx.globalAlpha=1;
+
+  // masthead
+  ctx.fillStyle=e.hue===INK?CREAM:INK;
+  ctx.font="700 "+Math.round(w*0.075)+"px "+SERIF;
+  ctx.textAlign="center";
+  ctx.fillText("S I L H O U E T T E",w/2,h*0.1);
+  ctx.textAlign="left";
+  // rules + index
+  ctx.strokeStyle=e.hue===INK?CREAM:INK;ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(w*0.08,h*0.135);ctx.lineTo(w*0.92,h*0.135);ctx.stroke();
+  ctx.font="400 "+Math.round(w*0.036)+"px "+MONO;
+  ctx.fillText("N°"+e.yr+" — "+e.dec.toUpperCase(),w*0.08,h*0.175);
+  ctx.fillStyle=RED;
+  ctx.fillRect(w*0.08,h*0.9,w*0.16,3);
+}
+
+/* ============ build track ============ */
+var track=document.getElementById("htrack");
+var coverEls=[];
+ENTRIES.forEach(function(e,i){
+  var el=document.createElement("div");
+  el.className="cover";
+  el.innerHTML='<div class="cframe"><canvas></canvas></div>'+
+    '<div class="cap"><span><b>'+e.yr+'</b> · '+e.dec+'</span><span>'+e.cn.split(" · ")[0]+'</span></div>';
+  el.addEventListener("click",function(){openSpread(i);});
+  track.appendChild(el);
+  coverEls.push(el);
+});
+function paintCovers(){
+  coverEls.forEach(function(el,i){
+    if(!el.classList.contains("hide"))drawCover(el.querySelector("canvas"),ENTRIES[i]);
+  });
+}
+
+/* ============ horizontal scroll ============ */
+var hwrap=document.getElementById("hwrap");
+var hsticky=document.getElementById("hsticky");
+var hprogBar=document.getElementById("hprogBar");
+function layoutH(){
+  var mobile=window.matchMedia("(max-width:900px)").matches;
+  if(mobile){hwrap.style.height="auto";track.style.transform="none";return;}
+  var over=track.scrollWidth-window.innerWidth+window.innerWidth*0.12;
+  hwrap.style.height=(over+window.innerHeight)+"px";
+}
+function onScroll(){
+  if(window.matchMedia("(max-width:900px)").matches)return;
+  var top=hwrap.getBoundingClientRect().top;
+  var max=hwrap.offsetHeight-window.innerHeight;
+  var t=Math.min(Math.max(-top/max,0),1);
+  var over=track.scrollWidth-window.innerWidth+window.innerWidth*0.12;
+  track.style.transform="translateX("+(-t*over)+"px)";
+  hprogBar.style.width=(t*100)+"%";
+}
+window.addEventListener("scroll",onScroll,{passive:true});
+
+/* ============ filter ============ */
+document.getElementById("filterbar").addEventListener("click",function(ev){
+  var b=ev.target.closest("button");if(!b)return;
+  document.querySelectorAll("#filterbar button").forEach(function(x){x.classList.toggle("on",x===b);});
+  var d=b.dataset.d;
+  coverEls.forEach(function(el,i){
+    el.classList.toggle("hide",d!=="all"&&ENTRIES[i].dec!==d);
+  });
+  document.getElementById("bigYear").textContent=d==="all"?"68":d.slice(2,4);
+  layoutH();paintCovers();onScroll();
+});
+
+/* ============ spread ============ */
+var spread=document.getElementById("spread");
+function openSpread(i){
+  var e=ENTRIES[i];
+  document.getElementById("spFile").textContent="ARCHIVE N°"+e.yr+" / "+e.dec.toUpperCase()+" / FILE "+e.seed;
+  document.getElementById("spTitle").innerHTML=e.title;
+  document.getElementById("spStand").textContent=e.stand;
+  document.getElementById("spBody").innerHTML=e.body.map(function(p){return "<p>"+p+"</p>";}).join("");
+  document.getElementById("spCred").innerHTML=e.cred;
+  document.getElementById("spPull").textContent=e.pull;
+  spread.classList.add("open");
+  spread.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+  requestAnimationFrame(function(){drawCover(document.getElementById("spCanvas"),e);});
+  spread.querySelector(".inner").scrollTop=0;
+}
+function closeSpread(){
+  spread.classList.remove("open");
+  spread.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
+}
+document.getElementById("closeSpread").addEventListener("click",closeSpread);
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeSpread();});
+
+/* ============ init / resize ============ */
+var rt;
+window.addEventListener("resize",function(){
+  clearTimeout(rt);
+  rt=setTimeout(function(){layoutH();paintCovers();onScroll();},150);
+});
+layoutH();paintCovers();onScroll();
+})();
+</script>
+</body>
+</html>

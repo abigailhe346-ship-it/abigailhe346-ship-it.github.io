@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>流萤之夜 / Firefly Night — 03</title>
+<style>
+:root{
+  --night:#070d19; --indigo:#132038; --amber:#f2c14e; --moon:#e8e4d4;
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--night);color:#d8d4c8;font-family:var(--sans);overflow:hidden}
+canvas#night{position:fixed;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+.nameplate{position:fixed;top:28px;left:32px;pointer-events:none}
+.nameplate .no{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:rgba(216,212,200,.6)}
+.nameplate h1{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,32px);letter-spacing:.06em;color:#ece8da;margin-top:6px}
+.nameplate .en{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:rgba(216,212,200,.5);margin-top:5px}
+.hint{position:fixed;top:32px;right:32px;text-align:right;font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(216,212,200,.55);pointer-events:none;line-height:1.9}
+.panel{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);display:flex;align-items:center;gap:24px;flex-wrap:wrap;justify-content:center;
+  background:rgba(7,13,25,.72);backdrop-filter:blur(10px);border:1px solid rgba(242,193,78,.28);padding:13px 22px;max-width:calc(100vw - 32px)}
+.ctl{display:flex;flex-direction:column;gap:6px}
+.ctl label{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(216,212,200,.6);display:flex;justify-content:space-between;gap:12px}
+.ctl label output{color:var(--amber)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:18px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:rgba(242,193,78,.5)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:10px;height:10px;margin-top:-4.5px;background:var(--night);border:1px solid var(--amber);border-radius:50%}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--amber)}
+input[type=range]::-moz-range-track{height:1px;background:rgba(242,193,78,.5)}
+input[type=range]::-moz-range-thumb{width:9px;height:9px;background:var(--night);border:1px solid var(--amber);border-radius:50%}
+.btns{display:flex;gap:8px}
+button{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:9px 14px;background:transparent;color:#d8d4c8;border:1px solid rgba(242,193,78,.55);cursor:pointer;transition:all .25s}
+button:hover{background:var(--amber);color:var(--night);border-color:var(--amber)}
+button.primary{border-color:var(--amber);color:var(--amber)}
+button.primary:hover{background:var(--amber);color:var(--night)}
+@media(max-width:700px){
+  .hint{display:none}
+  .panel{gap:12px;padding:11px 14px;bottom:16px}
+  input[type=range]{width:88px}
+  .nameplate{top:20px;left:20px}
+}
+</style>
+</head>
+<body>
+<canvas id="night"></canvas>
+<div class="nameplate">
+  <div class="no">03 / AI·VIDEO</div>
+  <h1>流萤之夜</h1>
+  <div class="en">Firefly Night — a looping summer dark</div>
+</div>
+<div class="hint">移动光标 · 引萤<br>点击夜空 · 激起光波</div>
+<div class="panel">
+  <div class="ctl"><label>萤数 Flies <output id="oCount">120</output></label><input id="count" type="range" min="30" max="240" step="5" value="120"></div>
+  <div class="ctl"><label>晚风 Wind <output id="oWind">和风</output></label><input id="wind" type="range" min="-1" max="1" step="0.05" value="0.25"></div>
+  <div class="btns">
+    <button id="reseed" class="primary">随机再生</button>
+    <button id="save">保存画面</button>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+var canvas=document.getElementById('night');
+var ctx=canvas.getContext('2d');
+var W=0,H=0,dpr=1;
+var mouse={x:-9999,y:-9999};
+var wind=0.25,targetCount=120;
+var stars=[],hills=[],grass=[],flies=[],waves=[];
+var NAMES_WIND=[[-1,'烈风·西'],[-.4,'清风·西'],[-.05,'无风'],[.05,'和风'],[.4,'清风·东'],[1,'烈风·东']];
+
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  W=canvas.clientWidth;H=canvas.clientHeight;
+  canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  buildScenery();
+}
+function rnd(a,b){return a+Math.random()*(b-a);}
+
+function buildScenery(){
+  var i;
+  stars=[];var ns=Math.round(W*H/9000);
+  for(i=0;i<ns;i++)stars.push({x:rnd(0,W),y:rnd(0,H*.62),r:rnd(.4,1.3),ph:rnd(0,6.28),sp:rnd(.5,1.6)});
+  hills=[];
+  for(var l=0;l<2;l++){
+    var pts=[],base=H*(.62+l*.09),amp=H*(.05+l*.02),off=rnd(0,100);
+    for(var x=0;x<=W;x+=W/48){
+      var y=base+Math.sin(x*.004+off)*amp+Math.sin(x*.011+off*2)*amp*.4;
+      pts.push([x,y]);
+    }
+    hills.push({pts:pts,col:l===0?'#0d1526':'#0a111f'});
+  }
+  grass=[];
+  var ng=Math.round(W/4);
+  for(i=0;i<ng;i++){
+    var layer=i%2;
+    grass.push({
+      x:rnd(-20,W+20),
+      h:rnd(H*.06,H*.17)*(layer?1:.72),
+      lean:rnd(-.35,.35),ph:rnd(0,6.28),layer:layer,
+      w:rnd(1.2,2.4)
+    });
+  }
+}
+
+function makeFly(){
+  var cluster=Math.floor(rnd(0,7));
+  return {
+    x:rnd(0,W),y:rnd(H*.15,H*.9),
+    hd:rnd(0,6.28),sp:rnd(.25,.6),
+    cluster:cluster,ph:rnd(0,6.28),
+    spd:rnd(1.1,1.9),boost:0
+  };
+}
+function seedFlies(){flies=[];for(var i=0;i<targetCount;i++)flies.push(makeFly());}
+
+var clusterPhase=[];for(var i=0;i<7;i++)clusterPhase.push(rnd(0,6.28));
+
+function windName(v){
+  var best=NAMES_WIND[0],bd=9;
+  NAMES_WIND.forEach(function(n){var d=Math.abs(n[0]-v);if(d<bd){bd=d;best=n;}});
+  return best[1];
+}
+
+var t0=performance.now();
+function frame(now){
+  var t=(now-t0)/1000;
+  // sky
+  var sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#0a1226');sky.addColorStop(.55,'#0a1020');sky.addColorStop(1,'#05070f');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  // stars
+  var i,s;
+  for(i=0;i<stars.length;i++){s=stars[i];
+    var tw=.35+.65*Math.abs(Math.sin(t*s.sp+s.ph));
+    ctx.globalAlpha=tw*.7;ctx.fillStyle='#cfd6e4';
+    ctx.fillRect(s.x,s.y,s.r,s.r);
+  }
+  ctx.globalAlpha=1;
+  // moon
+  var mx=W*.78,my=H*.2;
+  var halo=ctx.createRadialGradient(mx,my,4,mx,my,90);
+  halo.addColorStop(0,'rgba(232,228,212,.5)');halo.addColorStop(1,'rgba(232,228,212,0)');
+  ctx.fillStyle=halo;ctx.beginPath();ctx.arc(mx,my,90,0,6.29);ctx.fill();
+  ctx.fillStyle='#e8e4d4';ctx.beginPath();ctx.arc(mx,my,17,0,6.29);ctx.fill();
+  ctx.fillStyle='rgba(180,176,160,.5)';ctx.beginPath();ctx.arc(mx-5,my-3,3.2,0,6.29);ctx.fill();
+  ctx.beginPath();ctx.arc(mx+4,my+6,2.1,0,6.29);ctx.fill();
+  // hills
+  hills.forEach(function(h){
+    ctx.fillStyle=h.col;ctx.beginPath();ctx.moveTo(0,H);
+    h.pts.forEach(function(p){ctx.lineTo(p[0],p[1]);});
+    ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+  });
+  // waves (click pulses)
+  for(i=waves.length-1;i>=0;i--){
+    var wv=waves[i];wv.r+=5.2;
+    var wa=Math.max(0,1-wv.r/(Math.max(W,H)*.9));
+    ctx.strokeStyle='rgba(242,193,78,'+(wa*.28)+')';
+    ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(wv.x,wv.y,wv.r,0,6.29);ctx.stroke();
+    if(wa<=0)waves.splice(i,1);
+  }
+  // grass back layer
+  drawGrass(0,t);
+  // fireflies
+  for(i=0;i<flies.length;i++){
+    var f=flies[i];
+    // wander
+    f.hd+=(Math.random()-.5)*.28;
+    // mouse attraction
+    var dx=mouse.x-f.x,dy=mouse.y-f.y,md=Math.sqrt(dx*dx+dy*dy);
+    if(md<170&&md>24){
+      var want=Math.atan2(dy,dx),diff=want-f.hd;
+      while(diff>3.14)diff-=6.28;while(diff<-3.14)diff+=6.28;
+      f.hd+=diff*.04;
+    }
+    f.x+=Math.cos(f.hd)*f.sp+wind*.7;
+    f.y+=Math.sin(f.hd)*f.sp*.7-Math.sin(t*.7+f.ph)*.12;
+    // soft bounds
+    if(f.x<-20)f.x=W+20;if(f.x>W+20)f.x=-20;
+    if(f.y<H*.08)f.y=H*.08;if(f.y>H*.96)f.y=H*.96;
+    // wave boost
+    for(var wi=0;wi<waves.length;wi++){
+      var w2=waves[wi],d2=Math.abs(Math.sqrt((f.x-w2.x)*(f.x-w2.x)+(f.y-w2.y)*(f.y-w2.y))-w2.r);
+      if(d2<46)f.boost=Math.min(1.4,f.boost+.24);
+    }
+    f.boost*=.94;
+    // blink: cluster-synced pulses
+    var b=Math.pow(Math.max(0,Math.sin(t*f.spd+clusterPhase[f.cluster]+f.ph*.2)),6);
+    b=Math.min(1.6,b+f.boost);
+    if(b>.03){
+      var g=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,15);
+      g.addColorStop(0,'rgba(242,193,78,'+(.5*b)+')');
+      g.addColorStop(1,'rgba(242,193,78,0)');
+      ctx.fillStyle=g;ctx.beginPath();ctx.arc(f.x,f.y,15,0,6.29);ctx.fill();
+      ctx.fillStyle='rgba(255,244,214,'+Math.min(1,.95*b)+')';
+      ctx.beginPath();ctx.arc(f.x,f.y,1.7,0,6.29);ctx.fill();
+    }else{
+      ctx.fillStyle='rgba(242,193,78,.07)';
+      ctx.beginPath();ctx.arc(f.x,f.y,1,0,6.29);ctx.fill();
+    }
+  }
+  // grass front layer
+  drawGrass(1,t);
+  requestAnimationFrame(frame);
+}
+
+function drawGrass(layer,t){
+  var sway=Math.abs(wind)*.5+.12;
+  for(var i=0;i<grass.length;i++){
+    var g=grass[i];if(g.layer!==layer)continue;
+    var bend=g.lean+Math.sin(t*1.3+g.ph+g.x*.015)*sway*(layer?1:.6)+wind*.35;
+    var tipX=g.x+bend*g.h,tipY=H-g.h;
+    ctx.strokeStyle=layer?'#060a14':'#0b1322';
+    ctx.lineWidth=g.w;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(g.x,H+4);
+    ctx.quadraticCurveTo(g.x+bend*g.h*.3,H-g.h*.55,tipX,tipY);
+    ctx.stroke();
+  }
+}
+
+canvas.addEventListener('pointermove',function(e){
+  var r=canvas.getBoundingClientRect();
+  mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;
+});
+canvas.addEventListener('pointerleave',function(){mouse.x=-9999;mouse.y=-9999;});
+canvas.addEventListener('pointerdown',function(e){
+  var r=canvas.getBoundingClientRect();
+  waves.push({x:e.clientX-r.left,y:e.clientY-r.top,r:0});
+});
+
+document.getElementById('count').addEventListener('input',function(e){
+  targetCount=parseInt(e.target.value,10);
+  document.getElementById('oCount').textContent=targetCount;
+  while(flies.length<targetCount)flies.push(makeFly());
+  flies.length=Math.min(flies.length,targetCount);
+});
+document.getElementById('wind').addEventListener('input',function(e){
+  wind=parseFloat(e.target.value);
+  document.getElementById('oWind').textContent=windName(wind);
+});
+document.getElementById('reseed').addEventListener('click',function(){
+  clusterPhase=[];for(var i=0;i<7;i++)clusterPhase.push(rnd(0,6.28));
+  seedFlies();buildScenery();
+});
+document.getElementById('save').addEventListener('click',function(){
+  var a=document.createElement('a');
+  a.download='firefly-night.png';
+  a.href=canvas.toDataURL('image/png');
+  a.click();
+});
+
+window.addEventListener('resize',resize);
+resize();seedFlies();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

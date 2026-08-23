@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JÍ TYPE FOUNDRY 集字铸造所 — 字体是看得见的语言</title>
+<style>
+  :root{
+    --paper:#F5F2EA;
+    --ink:#14120F;
+    --accent:#E04E1A;
+    --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow-x:hidden;transition:background .5s,color .5s;}
+  ::selection{background:var(--accent);color:var(--paper);}
+  body.invert{--paper:#14120F;--ink:#F5F2EA;}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:flex-start;
+    padding:20px 3.5vw;mix-blend-mode:difference;pointer-events:none;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.16em;line-height:1.8;color:#fff;}
+  .sig .no{color:var(--accent);}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-align:right;line-height:2;color:#fff;}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:92vh;display:flex;flex-direction:column;justify-content:center;padding:14vh 3.5vw 0;}
+  .hero-meta{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.3em;
+    color:var(--ink);opacity:.55;margin-bottom:4vh;flex-wrap:wrap;gap:10px;}
+  h1.edit{font-family:var(--serif);font-weight:400;font-size:clamp(52px,9.5vw,170px);line-height:1.02;letter-spacing:-.01em;
+    outline:none;caret-color:var(--accent);}
+  h1.edit em{font-style:italic;color:var(--accent);}
+  h1.edit:focus{border-bottom:2px dashed var(--accent);}
+  .hero-hint{margin-top:3vh;font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--ink);opacity:.5;}
+  .hero-hint b{color:var(--accent);font-weight:400;}
+
+  .marquee{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);overflow:hidden;padding:16px 0;margin-top:6vh;}
+  .mq-track{display:flex;width:max-content;animation:mq 26s linear infinite;}
+  .mq-track span{font-family:var(--serif);font-size:22px;white-space:nowrap;padding:0 2.4vw;}
+  .mq-track span i{font-style:normal;color:var(--accent);font-family:var(--mono);font-size:10px;letter-spacing:.3em;vertical-align:middle;margin-left:14px;}
+  @keyframes mq{to{transform:translateX(-50%);}}
+
+  /* ---------- sections ---------- */
+  section{padding:12vh 3.5vw;max-width:1460px;margin:0 auto;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    border-bottom:1px solid var(--ink);padding-bottom:18px;margin-bottom:6vh;}
+  .sec-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(28px,3.6vw,52px);line-height:1;}
+  .sec-head h2 em{font-style:italic;color:var(--accent);}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.28em;opacity:.5;}
+  .reveal{opacity:0;transform:translateY(30px);transition:opacity .9s var(--ease),transform .9s var(--ease);}
+  .reveal.on{opacity:1;transform:none;}
+
+  /* ---------- families ---------- */
+  .fam{border-top:1px solid var(--ink);}
+  .fam-row{display:grid;grid-template-columns:110px 1fr auto;gap:3vw;align-items:center;padding:34px 6px;
+    border-bottom:1px solid var(--ink);cursor:pointer;transition:.4s var(--ease);position:relative;overflow:hidden;}
+  .fam-row:hover{padding-left:24px;}
+  .fam-row.active{background:var(--ink);color:var(--paper);padding-left:24px;}
+  .fam-row.active .fd .fs{opacity:.6;}
+  .fam-row .fno{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--accent);}
+  .fam-row .fd .fn{font-size:clamp(26px,3vw,44px);line-height:1.05;transition:.3s;}
+  .fam-row .fd .fs{font-family:var(--mono);font-size:10px;letter-spacing:.26em;opacity:.5;margin-top:10px;}
+  .fam-row .glyph-preview{font-size:clamp(40px,5vw,84px);line-height:1;transition:.45s var(--ease);white-space:nowrap;}
+  .fam-row:hover .glyph-preview{color:var(--accent);transform:translateX(-8px);}
+  .fam-row .try{position:absolute;right:3.5vw;top:12px;font-family:var(--mono);font-size:9px;letter-spacing:.3em;
+    color:var(--accent);opacity:0;transition:.3s;}
+  .fam-row:hover .try{opacity:1;}
+  @media(max-width:700px){.fam-row{grid-template-columns:1fr;gap:8px;}.fam-row .glyph-preview{display:none;}}
+
+  /* ---------- test drive ---------- */
+  .lab{border:1px solid var(--ink);}
+  .lab-stage{padding:6vh 4vw;min-height:320px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  #labText{font-weight:500;text-align:center;outline:none;caret-color:var(--accent);width:100%;word-break:break-word;}
+  #labText:focus{background:rgba(224,78,26,.05);}
+  .lab-ctrl{border-top:1px solid var(--ink);display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));}
+  .ctrl{padding:22px 26px;border-right:1px solid var(--ink);}
+  .ctrl:last-child{border-right:none;}
+  .ctrl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.28em;
+    opacity:.6;margin-bottom:14px;}
+  .ctrl label b{color:var(--accent);font-weight:400;opacity:1;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--ink);outline:none;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);
+    border-radius:50%;cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;background:var(--accent);border:none;border-radius:50%;cursor:pointer;}
+  .lab-toggles{border-top:1px solid var(--ink);display:flex;flex-wrap:wrap;}
+  .tg{flex:1;min-width:140px;border:none;border-right:1px solid var(--ink);background:none;color:var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.24em;padding:18px 10px;cursor:pointer;transition:.3s;}
+  .tg:last-child{border-right:none;}
+  .tg:hover{background:var(--ink);color:var(--paper);}
+  .tg.on{background:var(--accent);color:var(--paper);}
+
+  /* ---------- glyphs ---------- */
+  .glyph-wrap{border:1px solid var(--ink);position:relative;}
+  #glyphCanvas{width:100%;height:min(58vh,520px);display:block;cursor:crosshair;}
+  .glyph-hud{border-top:1px solid var(--ink);display:flex;justify-content:space-between;align-items:center;
+    padding:16px 24px;font-family:var(--mono);font-size:10px;letter-spacing:.24em;flex-wrap:wrap;gap:8px;}
+  .glyph-hud .gh-char{font-family:var(--serif);font-size:30px;color:var(--accent);letter-spacing:0;}
+  .glyph-hud .gh-info{opacity:.55;}
+  #toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--paper);
+    font-family:var(--mono);font-size:11px;letter-spacing:.2em;padding:14px 28px;transition:.45s var(--ease);z-index:80;}
+  #toast.show{transform:translateX(-50%) translateY(0);}
+
+  /* ---------- license ---------- */
+  .lic{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2px;background:var(--ink);border:1px solid var(--ink);}
+  .lic-c{background:var(--paper);padding:36px 28px;transition:background .3s;}
+  .lic-c:hover{background:#EDE9DD;}
+  body.invert .lic-c:hover{background:#201D18;}
+  .lic-c .lt{font-family:var(--serif);font-size:26px;}
+  .lic-c .lp{font-family:var(--mono);font-size:30px;margin:20px 0 4px;color:var(--accent);}
+  .lic-c .lu{font-family:var(--mono);font-size:9px;letter-spacing:.26em;opacity:.5;}
+  .lic-c ul{list-style:none;margin-top:22px;}
+  .lic-c li{font-size:12px;line-height:2.4;opacity:.72;}
+  .lic-c li::before{content:'— ';color:var(--accent);}
+
+  footer{border-top:1px solid var(--ink);padding:10vh 3.5vw 6vh;max-width:1460px;margin:0 auto;
+    display:flex;justify-content:space-between;gap:6vw;flex-wrap:wrap;}
+  footer .big{font-family:var(--serif);font-size:clamp(30px,4.4vw,60px);line-height:1.15;}
+  footer .big em{font-style:italic;color:var(--accent);}
+  footer .info{font-family:var(--mono);font-size:10px;letter-spacing:.24em;line-height:2.6;opacity:.6;}
+  .copyright{max-width:1460px;margin:0 auto;padding:0 3.5vw 5vh;font-family:var(--mono);font-size:9px;letter-spacing:.3em;opacity:.4;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">Nº 025</span><br>JÍ TYPE FOUNDRY<br>集字铸造所</div>
+  <div class="hright">RETAIL & CUSTOM TYPE<br>SHANGHAI — EST. 2019</div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-meta"><span>TYPE FOUNDRY · 字体铸造所</span><span>4 FAMILIES · 1,204 GLYPHS</span></div>
+  <h1 class="edit" id="heroEdit" contenteditable="true" spellcheck="false">字体是<em>看得见</em>的语言</h1>
+  <div class="hero-hint">↑ 这行字可以直接编辑 — <b>点它，输入你的句子</b></div>
+</div>
+<div class="marquee"><div class="mq-track" id="mqTrack"></div></div>
+
+<!-- FAMILIES -->
+<section id="families">
+  <div class="sec-head reveal"><h2>在售<em>字体家族</em></h2><div class="idx">01 — TYPEFACES / 04</div></div>
+  <div class="fam reveal" id="famList"></div>
+</section>
+
+<!-- TEST DRIVE -->
+<section id="lab">
+  <div class="sec-head reveal"><h2>试驾<em>实验室</em></h2><div class="idx">02 — TEST DRIVE / LIVE SPECIMEN</div></div>
+  <div class="lab reveal">
+    <div class="lab-stage">
+      <div id="labText" contenteditable="true" spellcheck="false">夜晚投递的思想<br>Night Thoughts Delivered 0123456789</div>
+    </div>
+    <div class="lab-ctrl">
+      <div class="ctrl"><label>字号 SIZE <b id="vSize">64px</b></label><input type="range" id="rSize" min="20" max="160" value="64"></div>
+      <div class="ctrl"><label>字距 TRACKING <b id="vTrack">0.00em</b></label><input type="range" id="rTrack" min="-5" max="40" value="0"></div>
+      <div class="ctrl"><label>行高 LEADING <b id="vLead">1.15</b></label><input type="range" id="rLead" min="90" max="200" value="115"></div>
+      <div class="ctrl"><label>字重 WEIGHT <b id="vWeight">500</b></label><input type="range" id="rWeight" min="100" max="900" step="100" value="500"></div>
+    </div>
+    <div class="lab-toggles">
+      <button class="tg on" data-f="serif">集宋 JÍ SONG</button>
+      <button class="tg" data-f="sans">集黑 JÍ GROTESK</button>
+      <button class="tg" data-f="mono">集码 JÍ MONO</button>
+      <button class="tg" id="invertBtn">反相 INVERT</button>
+    </div>
+  </div>
+</section>
+
+<!-- GLYPHS -->
+<section id="glyphs">
+  <div class="sec-head reveal"><h2>字符<em>陈列室</em></h2><div class="idx">03 — GLYPH EXPLORER / 悬停查看 · 点击复制</div></div>
+  <div class="glyph-wrap reveal">
+    <canvas id="glyphCanvas"></canvas>
+    <div class="glyph-hud">
+      <span class="gh-char" id="ghChar">字</span>
+      <span class="gh-info" id="ghInfo">JÍ SONG · U+5B57 · 把鼠标移进陈列室</span>
+    </div>
+  </div>
+</section>
+
+<!-- LICENSE -->
+<section>
+  <div class="sec-head reveal"><h2>授权<em>方式</em></h2><div class="idx">04 — LICENSING</div></div>
+  <div class="lic reveal">
+    <div class="lic-c">
+      <div class="lt">桌面 Desktop</div><div class="lp">¥1,200</div><div class="lu">每字重 / PER STYLE</div>
+      <ul><li>印刷与平面物料</li><li>5 台设备</li><li>永久授权</li></ul>
+    </div>
+    <div class="lic-c">
+      <div class="lt">网页 Web</div><div class="lp">¥2,400</div><div class="lu">每字重 / PER STYLE</div>
+      <ul><li>50 万月浏览量</li><li>WOFF2 交付</li><li>三年续期</li></ul>
+    </div>
+    <div class="lic-c">
+      <div class="lt">定制 Custom</div><div class="lp">面议</div><div class="lu">品牌专属 / BESPOKE</div>
+      <ul><li>从一张草图开始</li><li>汉字 6,700+ 字符</li><li>排他授权可选</li></ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="big">每一个字，<br>都值得被<em>认真铸造</em>。</div>
+  <div class="info">
+    <b style="opacity:1">JÍ TYPE FOUNDRY 集字铸造所</b><br>
+    上海 · 五原路 252 弄 3 号<br>
+    试用字体免费 · 商用请授权<br>
+    TRIAL FONTS ARE FREE — PAY WHEN YOU SHIP
+  </div>
+</footer>
+<div class="copyright">© 2019—2026 JÍ TYPE FOUNDRY · WEB DESIGN Nº 025 · AI PORTFOLIO</div>
+<div id="toast">已复制到剪贴板</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ fonts data ============ */
+var STACKS={
+ serif:{css:'"Didot","Bodoni MT","Songti SC",Georgia,serif',name:'集宋 JÍ SONG',en:'JÍ SONG',sub:'MODERN SERIF · 高对比衬线 · 标题首选',g:'永&'},
+ sans:{css:'-apple-system,"Helvetica Neue","PingFang SC",sans-serif',name:'集黑 JÍ GROTESK',en:'JÍ GROTESK',sub:'NEO-GROTESQUE · 中性无衬线 · 正文利器',g:'型H'},
+ mono:{css:'"SF Mono",Menlo,"PingFang SC",monospace',name:'集码 JÍ MONO',en:'JÍ MONO',sub:'MONOSPACED · 等宽代码体 · 终端气质',g:'{字}'}
+};
+var curFam='serif';
+
+/* ============ marquee ============ */
+var mq='';
+Object.keys(STACKS).forEach(function(k){mq+='<span>'+STACKS[k].name+'<i>TRY FREE</i></span><span>'+STACKS[k].en+'<i>EST. 2019</i></span>';});
+mq+='<span>字体是看得见的语言<i>TYPE IS VISIBLE LANGUAGE</i></span>';
+document.getElementById('mqTrack').innerHTML=mq+mq;
+
+/* ============ families list ============ */
+var fl=document.getElementById('famList');
+Object.keys(STACKS).forEach(function(k,i){
+  var f=STACKS[k];
+  var r=document.createElement('div');r.className='fam-row'+(i===0?' active':'');r.dataset.f=k;
+  r.innerHTML='<div class="fno">F/0'+(i+1)+'</div>'+
+    '<div class="fd"><div class="fn" style="font-family:'+f.css+'">'+f.name+'</div><div class="fs">'+f.sub+'</div></div>'+
+    '<div class="glyph-preview" style="font-family:'+f.css+'">'+f.g+'</div>'+
+    '<div class="try">应用到试驾 →</div>';
+  r.addEventListener('click',function(){applyFamily(k);document.getElementById('lab').scrollIntoView({behavior:'smooth'});});
+  fl.appendChild(r);
+});
+function applyFamily(k){
+  curFam=k;
+  document.querySelectorAll('.fam-row').forEach(function(x){x.classList.toggle('active',x.dataset.f===k);});
+  document.querySelectorAll('.lab-toggles .tg[data-f]').forEach(function(x){x.classList.toggle('on',x.dataset.f===k);});
+  document.getElementById('labText').style.fontFamily=STACKS[k].css;
+}
+document.querySelectorAll('.lab-toggles .tg[data-f]').forEach(function(b){
+  b.addEventListener('click',function(){applyFamily(b.dataset.f);});
+});
+applyFamily('serif');
+
+/* ============ lab sliders ============ */
+var lt=document.getElementById('labText');
+function bind(id,vid,fn,fmt){
+  var el=document.getElementById(id);
+  el.addEventListener('input',function(){
+    fn(+el.value);
+    document.getElementById(vid).textContent=fmt(+el.value);
+  });
+}
+bind('rSize','vSize',function(v){lt.style.fontSize=v+'px';},function(v){return v+'px';});
+bind('rTrack','vTrack',function(v){lt.style.letterSpacing=(v/100)+'em';},function(v){return (v/100).toFixed(2)+'em';});
+bind('rLead','vLead',function(v){lt.style.lineHeight=v/100;},function(v){return (v/100).toFixed(2);});
+bind('rWeight','vWeight',function(v){lt.style.fontWeight=v;},function(v){return v;});
+lt.style.fontSize='64px';lt.style.lineHeight=1.15;
+document.getElementById('invertBtn').addEventListener('click',function(){
+  document.body.classList.toggle('invert');
+  this.classList.toggle('on');
+});
+
+/* ============ glyph explorer ============ */
+var GLYPHS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789&?!§¶abcdefghijklmnopqrstuvwxyz@#%永字八法集铸造所见言形'.split('');
+var gc=document.getElementById('glyphCanvas'),gg=gc.getContext('2d');
+var DPR=Math.min(window.devicePixelRatio||1,2),GW=0,GH=0,cols=8,rows=6,cell=0;
+var hoverI=-1,anim={};
+function gRs(){
+  GW=gc.clientWidth;GH=gc.clientHeight;
+  gc.width=GW*DPR;gc.height=GH*DPR;gg.setTransform(DPR,0,0,DPR,0,0);
+  cols=GW<640?6:10;cell=GW/cols;
+  rows=Math.ceil(GH/cell);
+  drawGlyphs();
+}
+window.addEventListener('resize',gRs);
+function drawGlyphs(){
+  gg.clearRect(0,0,GW,GH);
+  var invert=document.body.classList.contains('invert');
+  var ink=invert?'#F5F2EA':'#14120F',line=invert?'rgba(245,242,234,.14)':'rgba(20,18,15,.14)';
+  for(var i=0;i<cols*rows&&i<GLYPHS.length;i++){
+    var cx0=i%cols,cy0=Math.floor(i/cols);
+    var x=cx0*cell,y=cy0*cell;
+    var t=anim[i]||0; /* 0..1 hover */
+    if(t>0.01){
+      gg.fillStyle='rgba(224,78,26,'+(t*.12)+')';
+      gg.fillRect(x,y,cell,cell);
+    }
+    gg.strokeStyle=line;gg.lineWidth=1;
+    gg.strokeRect(x+.5,y+.5,cell-1,cell-1);
+    var fs=cell*.42*(1+t*.7);
+    gg.font=fs+'px '+STACKS[curFam].css;
+    gg.textAlign='center';gg.textBaseline='middle';
+    gg.fillStyle=t>0.5?'#E04E1A':ink;
+    gg.fillText(GLYPHS[i],x+cell/2,y+cell/2+fs*.04);
+  }
+}
+gc.addEventListener('mousemove',function(e){
+  var r=gc.getBoundingClientRect();
+  var i=Math.floor((e.clientX-r.left)/cell)+Math.floor((e.clientY-r.top)/cell)*cols;
+  if(i!==hoverI&&i>=0&&i<GLYPHS.length){
+    hoverI=i;
+    var ch=GLYPHS[i];
+    document.getElementById('ghChar').textContent=ch;
+    document.getElementById('ghInfo').textContent=STACKS[curFam].en+' · U+'+ch.codePointAt(0).toString(16).toUpperCase().padStart(4,'0')+' · 点击复制';
+  }
+});
+gc.addEventListener('mouseleave',function(){hoverI=-1;});
+gc.addEventListener('click',function(){
+  if(hoverI<0)return;
+  var ch=GLYPHS[hoverI];
+  function toast(){
+    var t=document.getElementById('toast');
+    t.textContent='已复制 「'+ch+'」 到剪贴板';
+    t.classList.add('show');
+    clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('show');},1600);
+  }
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ch).then(toast,toast);}else toast();
+});
+function animLoop(){
+  var need=false;
+  for(var i=0;i<GLYPHS.length;i++){
+    var target=(i===hoverI)?1:0,cur=anim[i]||0;
+    if(Math.abs(cur-target)>.01){anim[i]=cur+(target-cur)*.18;need=true;}
+    else if(anim[i])anim[i]=target;
+  }
+  drawGlyphs();
+  requestAnimationFrame(animLoop);
+}
+gRs();
+requestAnimationFrame(animLoop);
+/* glyph canvas reacts to invert/family changes */
+document.getElementById('invertBtn').addEventListener('click',function(){setTimeout(drawGlyphs,520);});
+fl.addEventListener('click',function(){setTimeout(drawGlyphs,60);});
+
+/* ============ hero edit guard ============ */
+var he=document.getElementById('heroEdit');
+he.addEventListener('paste',function(e){
+  e.preventDefault();
+  var txt=(e.clipboardData||window.clipboardData).getData('text');
+  document.execCommand('insertText',false,txt);
+});
+
+/* ============ reveal ============ */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target);}});
+},{threshold:.12});
+document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

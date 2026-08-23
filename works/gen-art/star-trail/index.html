@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Star Trail — 星轨长曝光模拟器</title>
+<style>
+  :root{
+    --night:#0B1026; --star:#FFE9C8; --cool:#BCD2FF; --amber:#E8A74B;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--night);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;color:var(--cool)}
+  canvas{position:fixed;inset:0;display:block;cursor:crosshair}
+
+  header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:28px 34px;pointer-events:none;z-index:5}
+  .brand{display:flex;gap:14px;align-items:baseline}
+  .num{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--amber);opacity:.9}
+  h1{font-family:Didot,"Bodoni MT",Georgia,serif;font-weight:400;font-size:22px;letter-spacing:.04em;color:#E9EDF8}
+  h1 em{font-style:normal;font-size:12px;letter-spacing:.34em;color:rgba(188,210,255,.45);margin-left:10px;vertical-align:2px}
+  .pal{display:flex;gap:8px;padding-top:6px}
+  .pal i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(188,210,255,.3)}
+
+  .dock{position:fixed;left:34px;bottom:32px;z-index:6;display:flex;flex-direction:column;gap:14px;
+    background:rgba(8,11,26,.8);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(188,210,255,.16);padding:20px 22px;max-width:330px;
+    box-shadow:0 12px 40px rgba(0,0,0,.55);
+    animation:rise .9s var(--ease) both .2s}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .row{display:flex;align-items:center;gap:14px}
+  label{font-size:10px;letter-spacing:.22em;color:rgba(188,210,255,.5);width:74px;flex-shrink:0;text-transform:uppercase}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:2px;background:rgba(188,210,255,.3);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--star);
+    border:none;border-radius:50%;box-shadow:0 0 12px rgba(255,233,200,.9);transition:transform .3s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--star);border:none;border-radius:50%}
+  input[type=range]::-moz-range-track{height:2px;background:rgba(188,210,255,.3)}
+  .val{font-family:"SF Mono",Menlo,monospace;font-size:11px;width:34px;text-align:right;color:var(--star)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+  button{font-family:inherit;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    padding:10px 15px;background:transparent;border:1px solid rgba(188,210,255,.35);color:var(--cool);
+    cursor:pointer;transition:all .35s var(--ease)}
+  button:hover{background:var(--cool);color:var(--night);border-color:var(--cool)}
+  button.accent{border-color:var(--amber);color:var(--amber)}
+  button.accent:hover{background:var(--amber);color:var(--night)}
+
+  .expo{position:fixed;right:34px;top:76px;z-index:5;text-align:right;pointer-events:none;
+    font-family:"SF Mono",Menlo,monospace;font-size:11px;letter-spacing:.14em;color:rgba(188,210,255,.6);line-height:1.9}
+  .expo b{color:var(--star);font-weight:500}
+  .expobar{width:120px;height:2px;background:rgba(188,210,255,.2);margin-top:6px;margin-left:auto}
+  .expobar i{display:block;height:100%;background:var(--star);width:0;transition:width .2s linear}
+
+  .hint{position:fixed;right:34px;bottom:36px;z-index:5;text-align:right;pointer-events:none;
+    font-size:10px;letter-spacing:.18em;color:rgba(188,210,255,.4);line-height:2;text-transform:uppercase;
+    animation:rise .9s var(--ease) both .35s}
+  .hint b{color:#E9EDF8;font-weight:500}
+  @media (max-width:640px){
+    header{padding:18px 20px}
+    h1{font-size:17px}
+    .dock{left:16px;right:16px;bottom:16px;max-width:none;padding:16px}
+    .hint{display:none}
+    .expo{top:auto;bottom:200px;right:20px}
+  }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<header>
+  <div class="brand">
+    <span class="num">N°05 / f2.8</span>
+    <h1>Star Trail<em>星轨长曝光</em></h1>
+  </div>
+  <div class="pal">
+    <i style="background:#0B1026"></i><i style="background:#FFE9C8"></i><i style="background:#BCD2FF"></i>
+  </div>
+</header>
+
+<div class="expo">
+  SHUTTER <b id="expoTime">00:00</b> · ISO 1600<br>
+  <span id="expoState">EXPOSING</span>
+  <div class="expobar"><i id="expoFill"></i></div>
+</div>
+
+<div class="dock">
+  <div class="row">
+    <label>Hours 曝光</label>
+    <input type="range" id="hours" min="1" max="8" value="4">
+    <span class="val" id="hoursVal">4h</span>
+  </div>
+  <div class="row">
+    <label>Stars 星数</label>
+    <input type="range" id="stars" min="200" max="1400" value="750">
+    <span class="val" id="starsVal">750</span>
+  </div>
+  <div class="btns">
+    <button id="btnRandom" class="accent">随机再生</button>
+    <button id="btnSave">下载 PNG</button>
+  </div>
+</div>
+
+<div class="hint">
+  <b>点击夜空</b> 移动天极并重新曝光<br>
+  <b>按 M</b> 召唤一颗流星
+</div>
+
+<script>
+(function(){
+"use strict";
+var canvas=document.getElementById('cv'),ctx=canvas.getContext('2d');
+var acc=document.createElement('canvas'),actx=acc.getContext('2d'); /* accumulation (sensor) */
+var W=0,H=0,DPR=1;
+
+var seed=(Math.random()*1e9)|0;
+function mulberry32(a){return function(){a|=0;a=a+0x6B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var rnd=mulberry32(seed);
+
+var stars=[],ridge=[],pines=[],pole={x:0,y:0};
+var starCount=750,hours=4;
+var exposure=0,EXPOSE_SEC=26,exposeState='EXPOSING',holdT=0;
+var meteors=[],mwAngle=0.5;
+
+var HUES=[[255,233,200],[188,210,255],[255,200,150],[230,238,255],[255,244,224]];
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth;H=window.innerHeight;
+  canvas.width=W*DPR;canvas.height=H*DPR;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  pole.x=W*0.32;pole.y=H*0.24;
+  build();
+}
+
+function build(){
+  rnd=mulberry32(seed);
+  stars=[];ridge=[];pines=[];meteors=[];
+  mwAngle=0.4+rnd()*0.9;
+  var i;
+  var maxR=Math.hypot(W,H)*0.9;
+  for(i=0;i<starCount;i++){
+    var r=Math.pow(rnd(),0.6)*maxR+8;
+    var a=rnd()*Math.PI*2;
+    var hu=HUES[rnd()<0.5?0:(rnd()*HUES.length)|0];
+    var mag=Math.pow(rnd(),2.4);
+    stars.push({r:r,a:a,hue:hu,b:0.25+mag*0.75,w:mag>0.75?1.7:(mag>0.4?1.1:0.7)});
+  }
+  /* brightest few get glow */
+  stars.sort(function(x,y){return x.b-y.b;});
+  /* ridge silhouette: value noise */
+  var oct=[0.5,0.25,0.13,0.07],freq=[1.7,3.9,8.3,17.1];
+  function n1(x,o){ /* 1d value noise */
+    var xi=Math.floor(x),f=x-xi;
+    var r=mulberry32(seed+o*997);
+    var vals=[];for(var k=0;k<64;k++)vals.push(r());
+    var a=vals[xi&63],b=vals[(xi+1)&63];
+    var u=f*f*(3-2*f);return a+(b-a)*u;
+  }
+  var base=H*0.82;
+  for(var x=0;x<=W;x+=6){
+    var y=base;
+    for(var o=0;o<4;o++)y-=n1(x/W*freq[o]*6.3,o)*H*oct[o]*0.34;
+    ridge.push([x,y]);
+  }
+  /* pines on ridge */
+  for(i=0;i<ridge.length;i+=3){
+    if(rnd()<0.30){
+      var h=14+rnd()*38;
+      pines.push({x:ridge[i][0],y:ridge[i][1]+2,h:h,w:h*0.36});
+    }
+  }
+  /* sensor reset */
+  acc.width=W*DPR;acc.height=H*DPR;
+  actx.setTransform(DPR,0,0,DPR,0,0);
+  actx.fillStyle='#05070F';actx.fillRect(0,0,W,H);
+  exposure=0;exposeState='EXPOSING';holdT=0;
+}
+
+/* ---------- interaction ---------- */
+canvas.addEventListener('pointerdown',function(e){
+  if(e.clientY<H*0.72){ /* only sky re-aims the pole */
+    pole.x=e.clientX;pole.y=e.clientY;
+    actx.fillStyle='#05070F';actx.fillRect(0,0,W,H);
+    exposure=0;exposeState='EXPOSING';holdT=0;
+  }
+});
+window.addEventListener('keydown',function(e){
+  if(e.key==='m'||e.key==='M')spawnMeteor();
+});
+function spawnMeteor(){
+  var x=W*(0.15+Math.random()*0.7),y=H*(0.05+Math.random()*0.3);
+  var ang=Math.PI*(0.65+Math.random()*0.25);
+  meteors.push({x:x,y:y,vx:Math.cos(ang)*900,vy:-Math.sin(ang)*520,t:performance.now(),life:1100});
+}
+
+/* ---------- sensor exposure ---------- */
+function expose(dt){
+  /* earth rotation: 15°/hour mapped into exposure */
+  var span=hours*15*Math.PI/180; /* total arc */
+  var prog=Math.min(1,exposure/EXPOSE_SEC);
+  var prevArc=span*Math.max(0,prog-dt/EXPOSE_SEC*1.02),curArc=span*prog;
+  var cx=pole.x,cy=pole.y;
+  actx.globalCompositeOperation='lighter';
+  for(var i=0;i<stars.length;i++){
+    var s=stars[i];
+    var x=cx+Math.cos(s.a+curArc)*s.r,y=cy+Math.sin(s.a+curArc)*s.r;
+    var px=cx+Math.cos(s.a+prevArc)*s.r,py=cy+Math.sin(s.a+prevArc)*s.r;
+    if((x<-40&&px<-40)||(x>W+40&&px>W+40))continue;
+    var a=s.b*(0.05+0.05*Math.random());
+    actx.strokeStyle='rgba('+s.hue[0]+','+s.hue[1]+','+s.hue[2]+','+a.toFixed(3)+')';
+    actx.lineWidth=s.w;
+    actx.lineCap='round';
+    actx.beginPath();actx.moveTo(px,py);actx.lineTo(x,y);actx.stroke();
+  }
+  actx.globalCompositeOperation='source-over';
+}
+
+/* ---------- render ---------- */
+var expoTimeEl=document.getElementById('expoTime'),expoStateEl=document.getElementById('expoState'),expoFill=document.getElementById('expoFill');
+
+function frame(t){
+  var dt=1/60;
+  if(exposeState==='EXPOSING'){
+    exposure+=dt;
+    expose(dt);
+    if(exposure>=EXPOSE_SEC){exposeState='LIVE';holdT=t;}
+  }
+  var prog=Math.min(1,exposure/EXPOSE_SEC);
+  var simMin=prog*hours*60;
+  expoTimeEl.textContent=String(Math.floor(simMin/60)).padStart(2,'0')+':'+String(Math.floor(simMin%60)).padStart(2,'0');
+  expoFill.style.width=(prog*100)+'%';
+  expoStateEl.textContent=exposeState==='EXPOSING'?'EXPOSING':'LONG EXPOSURE COMPLETE';
+
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  /* sky */
+  var sky=ctx.createLinearGradient(0,0,0,H);
+  sky.addColorStop(0,'#070A18');sky.addColorStop(0.55,'#0B1026');sky.addColorStop(0.85,'#14203C');sky.addColorStop(1,'#1B2A44');
+  ctx.fillStyle=sky;ctx.fillRect(0,0,W,H);
+  /* milky way band */
+  ctx.save();
+  ctx.translate(W/2,H*0.34);ctx.rotate(-mwAngle);
+  var mw=ctx.createLinearGradient(0,-H*0.16,0,H*0.16);
+  mw.addColorStop(0,'rgba(120,140,190,0)');
+  mw.addColorStop(0.5,'rgba(150,165,210,0.10)');
+  mw.addColorStop(1,'rgba(120,140,190,0)');
+  ctx.fillStyle=mw;ctx.fillRect(-W,-H*0.16,W*2,H*0.32);
+  var mw2=ctx.createLinearGradient(0,-H*0.05,0,H*0.05);
+  mw2.addColorStop(0,'rgba(190,200,230,0)');
+  mw2.addColorStop(0.5,'rgba(210,215,240,0.08)');
+  mw2.addColorStop(1,'rgba(190,200,230,0)');
+  ctx.fillStyle=mw2;ctx.fillRect(-W,-H*0.05,W*2,H*0.1);
+  ctx.restore();
+  /* faint static stars (sky base) */
+  ctx.globalAlpha=0.5;
+  for(var i=0;i<stars.length;i+=7){
+    var s=stars[i];
+    var x=pole.x+Math.cos(s.a)*s.r,y=pole.y+Math.sin(s.a)*s.r;
+    if(x<0||x>W||y<0||y>H)continue;
+    ctx.fillStyle='rgba('+s.hue[0]+','+s.hue[1]+','+s.hue[2]+',0.35)';
+    ctx.fillRect(x,y,1.1,1.1);
+  }
+  ctx.globalAlpha=1;
+  /* sensor (trails) */
+  ctx.drawImage(acc,0,0,W,H);
+  /* pole marker during exposure */
+  if(exposeState==='EXPOSING'){
+    ctx.save();
+    ctx.strokeStyle='rgba(255,233,200,0.5)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(pole.x,pole.y,5,0,7);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(pole.x-9,pole.y);ctx.lineTo(pole.x+9,pole.y);
+    ctx.moveTo(pole.x,pole.y-9);ctx.lineTo(pole.x,pole.y+9);ctx.stroke();
+    ctx.restore();
+  }
+  /* meteors */
+  meteors=meteors.filter(function(m){return t-m.t<m.life;});
+  meteors.forEach(function(m){
+    var p=(t-m.t)/m.life;
+    var mx=m.x+m.vx*p,myp=m.y+m.vy*p;
+    var tl=90*(1-p);
+    var g=ctx.createLinearGradient(mx,myp,mx-m.vx*0.001*tl,myp-m.vy*0.001*tl);
+    var a=Math.sin(p*Math.PI);
+    g.addColorStop(0,'rgba(255,250,235,'+a+')');
+    g.addColorStop(1,'rgba(255,250,235,0)');
+    ctx.strokeStyle=g;ctx.lineWidth=1.6;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(mx,myp);
+    ctx.lineTo(mx-m.vx*0.001*tl,myp-m.vy*0.001*tl);ctx.stroke();
+  });
+  if(Math.random()<0.003)spawnMeteor();
+  /* ground silhouette */
+  ctx.fillStyle='#04050C';
+  ctx.beginPath();ctx.moveTo(0,H);
+  ctx.lineTo(ridge[0][0],ridge[0][1]);
+  for(i=1;i<ridge.length;i++)ctx.lineTo(ridge[i][0],ridge[i][1]);
+  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+  /* pines */
+  ctx.fillStyle='#03040A';
+  pines.forEach(function(pn){
+    ctx.beginPath();
+    ctx.moveTo(pn.x,pn.y-pn.h);
+    ctx.lineTo(pn.x+pn.w,pn.y);
+    ctx.lineTo(pn.x-pn.w,pn.y);
+    ctx.closePath();ctx.fill();
+  });
+  /* one warm cabin window */
+  var cw=W*0.68,ch=0;
+  for(i=0;i<ridge.length;i++){if(ridge[i][0]>=cw){ch=ridge[i][1];break;}}
+  if(ch){
+    ctx.fillStyle='#070810';ctx.fillRect(cw-11,ch-14,22,14);
+    ctx.fillStyle='rgba(232,167,75,0.9)';ctx.fillRect(cw-3,ch-10,5,6);
+    var wg=ctx.createRadialGradient(cw,ch-7,1,cw,ch-7,26);
+    wg.addColorStop(0,'rgba(232,167,75,0.28)');wg.addColorStop(1,'rgba(232,167,75,0)');
+    ctx.fillStyle=wg;ctx.beginPath();ctx.arc(cw,ch-7,26,0,7);ctx.fill();
+  }
+  /* vignette */
+  var vg=ctx.createRadialGradient(W/2,H/2,Math.min(W,H)*0.42,W/2,H/2,Math.max(W,H)*0.8);
+  vg.addColorStop(0,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(2,3,8,0.5)');
+  ctx.fillStyle=vg;ctx.fillRect(0,0,W,H);
+  requestAnimationFrame(frame);
+}
+
+/* ---------- controls ---------- */
+var hEl=document.getElementById('hours'),hV=document.getElementById('hoursVal');
+hEl.addEventListener('input',function(){hours=+hEl.value;hV.textContent=hEl.value+'h';
+  actx.fillStyle='#05070F';actx.fillRect(0,0,W,H);exposure=0;exposeState='EXPOSING';});
+var stEl=document.getElementById('stars'),stV=document.getElementById('starsVal');
+stEl.addEventListener('input',function(){starCount=+stEl.value;stV.textContent=stEl.value;build();});
+document.getElementById('btnRandom').addEventListener('click',function(){seed=(Math.random()*1e9)|0;build();});
+document.getElementById('btnSave').addEventListener('click',function(){
+  canvas.toBlob(function(b){
+    var a=document.createElement('a');a.href=URL.createObjectURL(b);
+    a.download='star-trail-'+seed+'.png';a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+});
+
+window.addEventListener('resize',resize);
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

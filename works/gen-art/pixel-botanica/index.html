@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PIXEL BOTANICA — 像素植物生成器</title>
+<style>
+  :root{
+    --bg:#0a0f0a; --panel:#0e160e; --line:#243a26; --line2:#1a2b1c;
+    --ink:#cfe6c8; --dim:#5f7d63;
+    --phos:#c8ff65; --bloom:#ff9ec7; --amber:#ffd166;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--mono);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+    background-image:radial-gradient(rgba(200,255,101,.035) 1px,transparent 1px);
+    background-size:22px 22px;
+  }
+  ::selection{background:var(--phos);color:#0a0f0a}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .sig h1{font-size:20px;font-weight:700;letter-spacing:.08em}
+  .sig h1 em{font-style:normal;color:var(--phos)}
+  .sig .no{font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--phos);font-weight:400}
+  header p.tag{font-size:11px;color:var(--dim);letter-spacing:.18em;text-transform:uppercase}
+  .rule{margin:14px 28px 0;border-top:1px solid var(--line);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px dashed var(--line2)}
+
+  main{
+    display:grid;grid-template-columns:1fr 300px;gap:24px;
+    padding:24px 28px 44px;max-width:1280px;margin:0 auto;
+  }
+  @media (max-width:920px){main{grid-template-columns:1fr}}
+
+  .stage{
+    position:relative;background:#0c130c;border:1px solid var(--line);
+    box-shadow:0 0 0 1px #060906,0 0 42px rgba(200,255,101,.07),inset 0 0 60px rgba(0,0,0,.5);
+    overflow:hidden;min-height:320px;display:flex;align-items:flex-start;
+  }
+  .stage canvas{
+    display:block;width:100%;height:auto;cursor:pointer;
+    image-rendering:pixelated;image-rendering:crisp-edges;
+  }
+  .scan{
+    position:absolute;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);
+    mix-blend-mode:multiply;
+  }
+  .vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 90px rgba(0,0,0,.62)}
+  .stamp{
+    position:absolute;right:10px;top:10px;font-size:10px;letter-spacing:.18em;
+    color:var(--phos);border:1px solid var(--line);padding:4px 8px;
+    background:rgba(10,15,10,.8);pointer-events:none;text-transform:uppercase;
+  }
+  .hint{
+    position:absolute;left:10px;bottom:10px;font-size:10px;letter-spacing:.14em;
+    color:rgba(207,230,200,.45);pointer-events:none;text-transform:uppercase;
+  }
+
+  .dock{
+    background:var(--panel);border:1px solid var(--line);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:920px){.dock{position:static}}
+  .dock h2{
+    font-size:11px;font-weight:400;color:var(--dim);letter-spacing:.22em;
+    text-transform:uppercase;border-bottom:1px solid var(--line2);padding-bottom:12px;
+  }
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl .lab{display:flex;justify-content:space-between;font-size:11px;letter-spacing:.1em}
+  .ctl .lab output{color:var(--phos)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--line)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-6px;
+    background:var(--phos);border:1px solid #060906;border-radius:0;
+    box-shadow:0 0 8px rgba(200,255,101,.55);
+    transition:transform .15s var(--ease);
+  }
+  input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.25)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--phos);border:1px solid #060906;border-radius:0}
+
+  .seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line)}
+  .seg button{
+    background:transparent;border:0;color:var(--dim);font-family:var(--mono);
+    font-size:11px;letter-spacing:.08em;padding:11px 4px;cursor:pointer;
+    transition:all .2s var(--ease);
+  }
+  .seg button:nth-child(2n){border-left:1px solid var(--line)}
+  .seg button:nth-child(n+3){border-top:1px solid var(--line)}
+  .seg button.on{background:var(--phos);color:#0a0f0a;font-weight:700}
+  .seg button:not(.on):hover{color:var(--ink);background:rgba(200,255,101,.06)}
+
+  .genome{
+    border:1px dashed var(--line);padding:12px;font-size:10px;line-height:1.9;
+    color:var(--dim);letter-spacing:.06em;word-break:break-all;
+  }
+  .genome b{color:var(--phos);font-weight:400}
+  .genome .rule-str{color:var(--ink)}
+
+  .btns{display:flex;gap:10px}
+  .btn{
+    flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    padding:13px 8px;cursor:pointer;background:transparent;color:var(--ink);
+    border:1px solid var(--line);transition:all .2s var(--ease);
+  }
+  .btn:hover{border-color:var(--phos);color:var(--phos);box-shadow:0 0 12px rgba(200,255,101,.2)}
+  .btn:active{transform:translateY(2px)}
+  .btn.pri{background:var(--phos);color:#0a0f0a;border-color:var(--phos);font-weight:700}
+  .btn.pri:hover{box-shadow:0 0 18px rgba(200,255,101,.45);color:#0a0f0a}
+
+  footer{
+    padding:0 28px 28px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    font-size:10px;color:var(--dim);letter-spacing:.16em;text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="sig">
+    <h1>PIXEL <em>BOTANICA</em> 像素植物园</h1>
+    <span class="no">N°<b>10</b> — GEN-ART / 像素植物生成器</span>
+  </div>
+  <p class="tag">L-System · Growth Engine · 8-bit Flora</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section class="stage" id="stage">
+    <canvas id="cv" width="176" height="224"></canvas>
+    <div class="scan"></div><div class="vig"></div>
+    <span class="stamp" id="stamp">SPECIMEN #0000</span>
+    <span class="hint">CLICK CANVAS TO REPLANT · 点击画布重新种植</span>
+  </section>
+
+  <aside class="dock">
+    <h2>Cultivation Console</h2>
+
+    <div class="ctl">
+      <div class="lab"><span>品种 SPECIES</span></div>
+      <div class="seg" id="segSpecies">
+        <button data-sp="FERN" class="on">蕨型 FERN</button>
+        <button data-sp="BUSH">灌木 BUSH</button>
+        <button data-sp="WEED">花序 WEED</button>
+        <button data-sp="VINE">垂蔓 VINE</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <div class="lab"><span>分叉角 BRANCH ANGLE</span><output id="oAngle">22°</output></div>
+      <input type="range" id="rAngle" min="12" max="40" value="22" step="1">
+    </div>
+    <div class="ctl">
+      <div class="lab"><span>生长代数 ITERATIONS</span><output id="oIter">5</output></div>
+      <input type="range" id="rIter" min="3" max="6" value="5" step="1">
+    </div>
+    <div class="ctl">
+      <div class="lab"><span>花量 BLOOM DENSITY</span><output id="oBloom">70%</output></div>
+      <input type="range" id="rBloom" min="0" max="100" value="70" step="5">
+    </div>
+
+    <div class="genome" id="genome"></div>
+
+    <div class="btns">
+      <button class="btn pri" id="bRegen">随机再生 ↻</button>
+      <button class="btn" id="bSave">下载 PNG</button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>PIXEL BOTANICA — L-SYSTEM SPECIMEN ARCHIVE</span>
+  <span>PRESS [R] TO REGENERATE</span>
+</footer>
+
+<script>
+"use strict";
+/* ============ PIXEL BOTANICA — L-system pixel flora ============ */
+const W = 176, H = 224;                 // logical pixel resolution
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+ctx.imageSmoothingEnabled = false;
+
+const PAL = {
+  bg: "#0c130c",
+  soil: ["#1c2e1a", "#243a20", "#2c4a26"],
+  stem: ["#2b6b33", "#37863f", "#47a94e", "#5fca63", "#8fe08a"],
+  bloom: ["#ff9ec7", "#ffd166", "#ff8fa3", "#f6e27a"],
+  bloomCore: "#fff3d6",
+  leaf: "#7ee081"
+};
+
+const SPECIES = {
+  FERN: { rules: { X: "F[+X][-X]FX",        F: "FF" }, droop: 0,   axiom: "X" },
+  BUSH: { rules: { X: "F[+X]F[-X]X",        F: "FF" }, droop: 0,   axiom: "X" },
+  WEED: { rules: { X: "F-[[X]+X]+F[+FX]-X", F: "FF" }, droop: 0,   axiom: "X" },
+  VINE: { rules: { X: "F[+X]F[-X][X]",      F: "FF" }, droop: 1.6, axiom: "XX" }
+};
+
+const state = {
+  species: "FERN",
+  angle: 22,
+  iter: 5,
+  bloom: 0.7,
+  seed: Math.floor(Math.random() * 65536),
+  program: "",      // expanded command string
+  step: 4,          // fitted step length in px
+  originX: W / 2,   // recentered draw origin
+  ptr: 0,           // animation pointer
+  growing: false,
+  blossomHue: 0
+};
+
+/* ---- seeded rng (stable geometry between dry-run & draw-run) ---- */
+function mulberry32(a){
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/* ---- expand L-system ---- */
+function expand(){
+  const sp = SPECIES[state.species];
+  let s = sp.axiom;
+  for (let i = 0; i < state.iter; i++){
+    let out = "";
+    for (const ch of s) out += sp.rules[ch] || ch;
+    s = out;
+    if (s.length > 90000) break;      // safety cap
+  }
+  return s;
+}
+
+/* ---- turtle simulation; if draw=false only measures bbox ---- */
+function simulate(draw){
+  const sp = SPECIES[state.species];
+  const rng = mulberry32(state.seed);         // geometry rng (both runs)
+  const art = mulberry32(state.seed ^ 0x9e37); // blossom rng (draw run only)
+
+  let x = draw ? state.originX : W / 2, y = H - 10, a = -Math.PI / 2;
+  const stack = [];
+  let minX = x, maxX = x, minY = y, maxY = y;
+  const step = draw ? state.step : 1;
+  const rad = (state.angle * Math.PI) / 180;
+  const bloomCols = PAL.bloom;
+
+  let i0 = draw ? 0 : 0, i1 = draw ? state.program.length : state.program.length;
+  if (draw){ i0 = 0; i1 = state.ptr; }
+
+  /* For the animated pass we must replay deterministically from 0,
+     so dry geometry state is rebuilt from scratch each frame. */
+  for (let i = i0; i < i1; i++){
+    const ch = state.program[i];
+    if (ch === "F"){
+      const nx = x + Math.cos(a) * step;
+      const ny = y + Math.sin(a) * step;
+      if (draw){
+        const d = Math.min(stack.length, PAL.stem.length - 1);
+        pxLine(x, y, nx, ny, PAL.stem[d]);
+      }
+      x = nx; y = ny;
+      a += sp.droop * (Math.PI / 180);        // gravity drift for vines
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    } else if (ch === "+"){
+      a += rad * (0.85 + rng() * 0.3);
+    } else if (ch === "-"){
+      a -= rad * (0.85 + rng() * 0.3);
+    } else if (ch === "["){
+      stack.push([x, y, a]);
+    } else if (ch === "]"){
+      if (draw && stack.length > 2 && art() < 0.3) leaf(x, y, art);
+      const s = stack.pop();
+      if (s){ x = s[0]; y = s[1]; a = s[2]; }
+    } else if (ch === "X"){
+      if (draw && art() < state.bloom) blossom(x, y, art, bloomCols);
+    }
+  }
+  return { minX, maxX, minY, maxY };
+}
+
+/* ---- pixel primitives ---- */
+function px(x, y, c){
+  ctx.fillStyle = c;
+  ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+}
+function pxLine(x0, y0, x1, y1, c){
+  x0 = Math.round(x0); y0 = Math.round(y0);
+  x1 = Math.round(x1); y1 = Math.round(y1);
+  const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx + dy;
+  ctx.fillStyle = c;
+  for (;;){
+    ctx.fillRect(x0, y0, 1, 1);
+    if (x0 === x1 && y0 === y1) break;
+    const e2 = 2 * err;
+    if (e2 >= dy){ err += dy; x0 += sx; }
+    if (e2 <= dx){ err += dx; y0 += sy; }
+  }
+}
+function blossom(x, y, art, cols){
+  x = Math.round(x); y = Math.round(y);
+  const c = cols[Math.floor(art() * cols.length)];
+  ctx.fillStyle = c;
+  ctx.fillRect(x, y - 1, 1, 1); ctx.fillRect(x, y + 1, 1, 1);
+  ctx.fillRect(x - 1, y, 1, 1); ctx.fillRect(x + 1, y, 1, 1);
+  ctx.fillStyle = PAL.bloomCore;
+  ctx.fillRect(x, y, 1, 1);
+}
+function leaf(x, y, art){
+  x = Math.round(x); y = Math.round(y);
+  ctx.fillStyle = PAL.leaf;
+  ctx.fillRect(x, y, 1, 1);
+  ctx.fillRect(x + (art() < 0.5 ? 1 : -1), y, 1, 1);
+}
+
+/* ---- ground / soil ---- */
+function drawGround(){
+  ctx.fillStyle = PAL.bg;
+  ctx.fillRect(0, 0, W, H);
+  const gy = H - 10;
+  const art = mulberry32(state.seed ^ 0x51f7);
+  for (let x = 0; x < W; x++){
+    const d = Math.floor(art() * 3);
+    ctx.fillStyle = PAL.soil[Math.floor(art() * PAL.soil.length)];
+    ctx.fillRect(x, gy, 1, 1 + d);
+  }
+  for (let i = 0; i < 26; i++){   // sparse grass blades
+    const gx = Math.floor(art() * W);
+    ctx.fillStyle = PAL.stem[2 + Math.floor(art() * 3)];
+    ctx.fillRect(gx, gy - 1 - Math.floor(art() * 2), 1, 1);
+  }
+}
+
+/* ---- growth animation ---- */
+function frame(){
+  if (!state.growing) return;
+  const total = state.program.length;
+  const per = Math.max(90, Math.ceil(total / 110));   // ~1.8s growth
+  state.ptr = Math.min(total, state.ptr + per);
+  drawGround();
+  simulate(true);
+  if (state.ptr < total){
+    requestAnimationFrame(frame);
+  } else {
+    state.growing = false;
+  }
+}
+
+function regrow(newSeed){
+  if (newSeed) state.seed = Math.floor(Math.random() * 65536);
+  state.program = expand();
+  /* dry run to fit step length into canvas */
+  const bb = simulate(false);
+  const bw = Math.max(8, bb.maxX - bb.minX);
+  const bh = Math.max(8, bb.minY < 0 ? (H - 10) - bb.minY : (H - 10) - Math.min(bb.minY, H - 10));
+  state.step = Math.max(0.6, Math.min((W - 16) / bw, (H - 26) / bh));
+  /* recenter: dry-run bbox center (unit step) → shifted origin for draw run */
+  state.originX = W / 2 + (W / 2 - (bb.minX + bb.maxX) / 2) * state.step;
+  state.ptr = 0;
+  state.growing = true;
+  updateGenome(bb);
+  requestAnimationFrame(frame);
+}
+
+/* ---- genome readout ---- */
+function updateGenome(){
+  const sp = SPECIES[state.species];
+  const hex = state.seed.toString(16).toUpperCase().padStart(4, "0");
+  document.getElementById("stamp").textContent = "SPECIMEN #" + hex;
+  document.getElementById("genome").innerHTML =
+    "GENOME <b>#" + hex + "</b> · " + state.species + "<br>" +
+    "AXIOM <span class=\"rule-str\">" + sp.axiom + "</span><br>" +
+    "RULE&nbsp;&nbsp;<span class=\"rule-str\">X→" + sp.rules.X + "</span><br>" +
+    "ANGLE <b>" + state.angle + "°</b> · DEPTH <b>" + state.iter + "</b> · " +
+    "CMDS <b>" + state.program.length + "</b>";
+}
+
+/* ---- download ---- */
+function downloadPNG(){
+  const scale = 4;
+  const out = document.createElement("canvas");
+  out.width = W * scale; out.height = H * scale;
+  const octx = out.getContext("2d");
+  octx.imageSmoothingEnabled = false;
+  octx.drawImage(cv, 0, 0, out.width, out.height);
+  const a = document.createElement("a");
+  a.download = "pixel-botanica-" + state.seed.toString(16) + ".png";
+  a.href = out.toDataURL("image/png");
+  a.click();
+}
+
+/* ---- ui wiring ---- */
+const seg = document.getElementById("segSpecies");
+seg.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  seg.querySelectorAll("button").forEach((x) => x.classList.remove("on"));
+  b.classList.add("on");
+  state.species = b.dataset.sp;
+  regrow(false);
+});
+
+const rAngle = document.getElementById("rAngle");
+const rIter = document.getElementById("rIter");
+const rBloom = document.getElementById("rBloom");
+rAngle.addEventListener("input", () => {
+  state.angle = +rAngle.value;
+  document.getElementById("oAngle").textContent = state.angle + "°";
+  regrow(false);
+});
+rIter.addEventListener("input", () => {
+  state.iter = +rIter.value;
+  document.getElementById("oIter").textContent = state.iter;
+  regrow(false);
+});
+rBloom.addEventListener("input", () => {
+  state.bloom = +rBloom.value / 100;
+  document.getElementById("oBloom").textContent = rBloom.value + "%";
+  regrow(false);
+});
+
+document.getElementById("bRegen").addEventListener("click", () => regrow(true));
+document.getElementById("bSave").addEventListener("click", downloadPNG);
+cv.addEventListener("click", () => regrow(true));
+window.addEventListener("keydown", (e) => {
+  if (e.key === "r" || e.key === "R") regrow(true);
+});
+
+regrow(false);
+</script>
+</body>
+</html>

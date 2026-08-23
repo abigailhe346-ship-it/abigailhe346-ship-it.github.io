@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raster — Swiss Type Lab · 瑞士网格实验室</title>
+<style>
+  :root{
+    --red:#E30613;
+    --ink:#141414;
+    --paper:#F4F2ED;
+    --grey:#8a877f;
+    --ease:cubic-bezier(.19,1,.22,1);
+    --sans:"Helvetica Neue",Helvetica,Arial,"PingFang SC",sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+    cursor:default;
+  }
+  ::selection{background:var(--red);color:#fff}
+
+  /* ---- fixed chrome ---- */
+  .chrome{
+    position:fixed;z-index:50;
+    font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    mix-blend-mode:multiply;pointer-events:none;
+  }
+  .chrome.tl{top:18px;left:22px}
+  .chrome.tr{top:18px;right:22px;text-align:right}
+  .chrome.bl{bottom:18px;left:22px;color:var(--grey)}
+  .chrome b{color:var(--red);font-weight:700}
+
+  /* mouse dot */
+  #dot{
+    position:fixed;z-index:40;width:14px;height:14px;border-radius:50%;
+    background:var(--red);left:0;top:0;pointer-events:none;
+    transform:translate(-50%,-50%);
+    mix-blend-mode:multiply;
+  }
+
+  /* ---- hero / poster lab ---- */
+  header{
+    padding:96px 22px 0;
+  }
+  .hero-meta{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-top:2px solid var(--ink);border-bottom:1px solid var(--ink);
+    padding:8px 0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  }
+  .hero-meta span:last-child{color:var(--grey)}
+
+  .poster-wrap{position:relative;margin-top:14px}
+  #poster{
+    width:100%;height:min(74vh,720px);display:block;background:#fff;
+    border:1px solid var(--ink);
+  }
+
+  .controls{
+    display:flex;flex-wrap:wrap;gap:14px;align-items:center;
+    padding:16px 0 8px;
+  }
+  .btn{
+    font-family:var(--sans);font-size:12px;font-weight:700;
+    letter-spacing:.14em;text-transform:uppercase;
+    padding:12px 22px;border:2px solid var(--ink);background:var(--ink);
+    color:var(--paper);cursor:pointer;border-radius:0;
+    transition:background .25s var(--ease),color .25s var(--ease);
+  }
+  .btn:hover{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:var(--ink);color:var(--paper)}
+  .btn.ghost.active{background:var(--red);border-color:var(--red);color:#fff}
+
+  .slider-box{
+    display:flex;align-items:center;gap:12px;margin-left:auto;
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--grey);
+  }
+  .slider-box output{color:var(--ink);font-weight:700;min-width:2ch;text-align:right}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:160px;height:2px;
+    background:var(--ink);outline:none;border-radius:0;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:16px;height:16px;
+    background:var(--red);border:2px solid var(--ink);border-radius:0;cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:14px;height:14px;background:var(--red);
+    border:2px solid var(--ink);border-radius:0;cursor:pointer;
+  }
+
+  /* ---- manifesto ---- */
+  section{padding:110px 22px 0;max-width:1440px;margin:0 auto}
+  .sec-head{
+    display:grid;grid-template-columns:80px 1fr;gap:24px;align-items:baseline;
+    margin-bottom:56px;
+  }
+  .sec-num{font-size:13px;color:var(--red);font-weight:700;letter-spacing:.1em}
+  .sec-title{
+    font-size:clamp(38px,6vw,84px);font-weight:700;line-height:.95;
+    letter-spacing:-.02em;text-transform:uppercase;
+  }
+
+  .rules{border-top:2px solid var(--ink)}
+  .rule{
+    display:grid;grid-template-columns:80px 1fr 2fr;gap:24px;
+    padding:26px 0;border-bottom:1px solid var(--ink);
+    align-items:baseline;
+    transition:padding-left .5s var(--ease),background .5s var(--ease);
+  }
+  .rule:hover{padding-left:24px;background:#fff}
+  .rule .n{font-size:13px;color:var(--red);font-weight:700}
+  .rule h3{
+    font-size:clamp(20px,2.6vw,32px);font-weight:700;
+    letter-spacing:-.01em;text-transform:uppercase;
+  }
+  .rule p{font-size:15px;line-height:1.75;color:#4a4842;max-width:56ch}
+
+  /* ---- specimen ---- */
+  .scale{border-top:2px solid var(--ink)}
+  .scale-row{
+    display:flex;align-items:baseline;gap:28px;
+    border-bottom:1px solid var(--ink);padding:14px 0;overflow:hidden;
+    transition:background .4s var(--ease);
+  }
+  .scale-row:hover{background:#fff}
+  .scale-row .px{font-size:11px;color:var(--grey);width:70px;flex-shrink:0;letter-spacing:.1em}
+  .scale-row .word{font-weight:700;white-space:nowrap;line-height:1;letter-spacing:-.02em}
+
+  /* ---- footer ---- */
+  footer{margin-top:120px;border-top:2px solid var(--ink);overflow:hidden;background:var(--ink);color:var(--paper)}
+  .marquee{white-space:nowrap;display:flex;padding:22px 0}
+  .marquee div{
+    font-size:clamp(40px,7vw,96px);font-weight:700;text-transform:uppercase;
+    letter-spacing:-.02em;flex-shrink:0;padding-right:60px;
+    animation:mq 18s linear infinite;
+  }
+  .marquee em{font-style:normal;color:var(--red)}
+  @keyframes mq{to{transform:translateX(-100%)}}
+  .foot-bar{
+    display:flex;justify-content:space-between;padding:14px 22px;
+    font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#8a877f;
+    border-top:1px solid #333;
+  }
+
+  /* reveal */
+  .rv{opacity:0;transform:translateY(34px);transition:opacity .9s var(--ease),transform .9s var(--ease)}
+  .rv.in{opacity:1;transform:none}
+
+  @media(max-width:720px){
+    .rule{grid-template-columns:52px 1fr}
+    .rule p{grid-column:2}
+    .slider-box{margin-left:0;width:100%}
+    .chrome.bl{display:none}
+    #poster{height:56vh}
+  }
+</style>
+</head>
+<body>
+
+<div class="chrome tl"><b>Raster</b> — Swiss Type Lab</div>
+<div class="chrome tr">N°01 / Helvetica<br>Exposition 1957–2026</div>
+<div class="chrome bl">Müller-Brockmann · Hofmann · Bill</div>
+<div id="dot"></div>
+
+<header>
+  <div class="hero-meta">
+    <span>Die Schweizer Typografie — 活页网格排版机</span>
+    <span id="tplName">Komposition A</span>
+  </div>
+  <div class="poster-wrap">
+    <canvas id="poster"></canvas>
+  </div>
+  <div class="controls">
+    <button class="btn" id="btnCompose">Neu Komponieren · 重新构成</button>
+    <button class="btn ghost" id="btnGrid">Raster · 网格</button>
+    <button class="btn ghost" id="btnExport">Export PNG</button>
+    <div class="slider-box">
+      <label for="cols">Spalten · 栏数</label>
+      <input type="range" id="cols" min="4" max="16" step="2" value="12">
+      <output id="colsOut">12</output>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="sec-head rv">
+    <span class="sec-num">01 /</span>
+    <h2 class="sec-title">Manifest</h2>
+  </div>
+  <div class="rules">
+    <div class="rule rv">
+      <span class="n">01</span>
+      <h3>网格即秩序</h3>
+      <p>网格不是一种风格，而是一种态度。Müller-Brockmann 说，网格把主观表达让位于客观传达——设计师退到幕后，信息自己走上前台。</p>
+    </div>
+    <div class="rule rv">
+      <span class="n">02</span>
+      <h3>无衬线即诚实</h3>
+      <p>Helvetica 原名 Neue Haas Grotesk，1957 年生于瑞士 Münchenstein。它不装饰、不讨好，只是把字母还原为纯粹的形。</p>
+    </div>
+    <div class="rule rv">
+      <span class="n">03</span>
+      <h3>不对称即张力</h3>
+      <p>对齐的边线制造秩序，留白的重量制造张力。瑞士排版从不追求对称的安稳，而是用非对称的平衡让页面保持呼吸。</p>
+    </div>
+    <div class="rule rv">
+      <span class="n">04</span>
+      <h3>红，唯一的颜色</h3>
+      <p>瑞士海报只用一种颜色——通常是红。克制不是贫乏，而是让每一个红色像素都承担起结构的责任。</p>
+    </div>
+    <div class="rule rv">
+      <span class="n">05</span>
+      <h3>客观摄影</h3>
+      <p>摄影取代插画，因为镜头不撒谎。图像与文字一样，是信息的载体，而非情绪的装饰。</p>
+    </div>
+    <div class="rule rv">
+      <span class="n">06</span>
+      <h3>字距即建筑</h3>
+      <p>字母之间的负空间和字母本身同样重要。排印师是纸面上的建筑师，用空白砌出墙与窗。</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head rv">
+    <span class="sec-num">02 /</span>
+    <h2 class="sec-title">Typenleiter</h2>
+  </div>
+  <div class="scale rv" id="scale">
+    <div class="scale-row"><span class="px">144 pt</span><span class="word" style="font-size:clamp(52px,10vw,144px)">Raster</span></div>
+    <div class="scale-row"><span class="px">96 pt</span><span class="word" style="font-size:clamp(38px,7vw,96px)">Helvetica</span></div>
+    <div class="scale-row"><span class="px">64 pt</span><span class="word" style="font-size:clamp(28px,5vw,64px)">Ordnung</span></div>
+    <div class="scale-row"><span class="px">48 pt</span><span class="word" style="font-size:clamp(22px,3.6vw,48px)">Typografie</span></div>
+    <div class="scale-row"><span class="px">32 pt</span><span class="word" style="font-size:clamp(17px,2.4vw,32px)">Klarheit</span></div>
+    <div class="scale-row"><span class="px">24 pt</span><span class="word" style="font-size:clamp(14px,1.8vw,24px)">Neutralität</span></div>
+  </div>
+</section>
+
+<footer>
+  <div class="marquee">
+    <div>Die Grid ist das Gesetz — <em>网格即法则</em> — Zürich 1957 —&nbsp;</div>
+    <div>Die Grid ist das Gesetz — <em>网格即法则</em> — Zürich 1957 —&nbsp;</div>
+  </div>
+  <div class="foot-bar">
+    <span>Swiss Type Lab — Work N°01</span>
+    <span>Set in Helvetica Neue · System Stack</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+/* ============ mouse dot ============ */
+var dot=document.getElementById('dot');
+var mx=innerWidth/2,my=innerHeight/2,dx=mx,dy=my;
+addEventListener('mousemove',function(e){mx=e.clientX;my=e.clientY;});
+(function loopDot(){
+  dx+=(mx-dx)*.16; dy+=(my-dy)*.16;
+  dot.style.transform='translate('+(dx-7)+'px,'+(dy-7)+'px)';
+  requestAnimationFrame(loopDot);
+})();
+
+/* ============ poster lab ============ */
+var cv=document.getElementById('poster');
+var ctx=cv.getContext('2d');
+var W=0,H=0,DPR=1;
+var gridOn=false, cols=12;
+
+/* blocks: shared identity list; templates provide rects (unit 0..1) */
+/* kinds: t=text, c=circle, b=bar, v=vertical text */
+var BLOCKS=[
+  {k:'t', s:'Helvetica', w:700},
+  {k:'c'},
+  {k:'t', s:'Neue Haas Grotesk · 1957', w:400},
+  {k:'v', s:'typografie'},
+  {k:'b'},
+  {k:'t', s:'Zürich — Basel — Genève', w:400},
+  {k:'t', s:'1957', w:700}
+];
+var TEMPLATES=[
+  {name:'Komposition A', rects:[
+    {x:.03,y:.06,w:.62,h:.30},
+    {x:.74,y:.05,w:.22,h:.26},
+    {x:.03,y:.40,w:.42,h:.07},
+    {x:.948,y:.30,w:.045,h:.5},
+    {x:.03,y:.80,w:.24,h:.045},
+    {x:.03,y:.90,w:.40,h:.06},
+    {x:.66,y:.55,w:.31,h:.38}
+  ]},
+  {name:'Komposition B', rects:[
+    {x:.28,y:.38,w:.69,h:.24},
+    {x:.05,y:.62,w:.16,h:.18},
+    {x:.05,y:.08,w:.36,h:.06},
+    {x:.015,y:.06,w:.045,h:.56},
+    {x:.70,y:.14,w:.27,h:.04},
+    {x:.30,y:.68,w:.34,h:.05},
+    {x:.05,y:.28,w:.20,h:.30}
+  ]},
+  {name:'Komposition C', rects:[
+    {x:.03,y:.62,w:.72,h:.28},
+    {x:.80,y:.55,w:.17,h:.20},
+    {x:.03,y:.10,w:.30,h:.05},
+    {x:.948,y:.05,w:.045,h:.44},
+    {x:.55,y:.32,w:.20,h:.05},
+    {x:.03,y:.30,w:.34,h:.06},
+    {x:.36,y:.04,w:.30,h:.34}
+  ]}
+];
+var tplIdx=0;
+var cur=TEMPLATES[0].rects.map(clone), from=cur.map(clone), to=cur.map(clone);
+var animT=1, animStart=0, ANIM=700;
+function clone(r){return {x:r.x,y:r.y,w:r.w,h:r.h};}
+function ease(t){return 1-Math.pow(1-t,4);}
+
+function resize(){
+  DPR=Math.min(devicePixelRatio||1,2);
+  var r=cv.getBoundingClientRect();
+  W=r.width; H=r.height;
+  cv.width=W*DPR; cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+addEventListener('resize',resize);
+
+var RED='#E30613', INK='#141414';
+var FONT='"Helvetica Neue",Helvetica,Arial,sans-serif';
+
+function drawBlock(b,r){
+  var x=r.x*W,y=r.y*H,w=r.w*W,h=r.h*H;
+  if(b.k==='c'){
+    var d=Math.min(w,h)*.92;
+    ctx.fillStyle=RED;
+    ctx.beginPath();
+    ctx.arc(x+w/2,y+h/2,d/2,0,Math.PI*2);
+    ctx.fill();
+    return;
+  }
+  if(b.k==='b'){
+    ctx.fillStyle=RED;
+    ctx.fillRect(x,y,w,h);
+    return;
+  }
+  if(b.k==='v'){
+    /* vertical: stack letters */
+    ctx.fillStyle=INK;
+    var chars=b.s.split('');
+    var fs=Math.min(h/chars.length*.92,w*.9);
+    ctx.font='700 '+fs+'px '+FONT;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    for(var i=0;i<chars.length;i++){
+      ctx.fillText(chars[i], x+w/2, y+h*(i+.5)/chars.length);
+    }
+    return;
+  }
+  /* text: fit by measuring */
+  ctx.fillStyle=INK;
+  var size=h;
+  ctx.font=b.w+' 100px '+FONT;
+  var tw=ctx.measureText(b.s).width;
+  size=Math.min(h, w/(tw/100));
+  ctx.font=b.w+' '+size+'px '+FONT;
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText(b.s,x,y+ (h-size)*0.5 - size*0.06);
+}
+
+function drawGrid(){
+  ctx.strokeStyle='rgba(20,20,20,.14)';
+  ctx.lineWidth=1;
+  var pad=14, gw=W-pad*2, gh=H-pad*2;
+  ctx.beginPath();
+  for(var i=0;i<=cols;i++){
+    var gx=pad+gw*i/cols;
+    ctx.moveTo(gx,pad); ctx.lineTo(gx,pad+gh);
+  }
+  var rows=Math.max(2,Math.round(cols*H/W));
+  for(var j=0;j<=rows;j++){
+    var gy=pad+gh*j/rows;
+    ctx.moveTo(pad,gy); ctx.lineTo(pad+gw,gy);
+  }
+  ctx.stroke();
+  /* red column markers */
+  ctx.fillStyle=RED;
+  for(var k=0;k<=cols;k++){
+    ctx.fillRect(pad+gw*k/cols-1,pad-6,2,4);
+  }
+}
+
+function render(now){
+  if(animT<1){
+    animT=Math.min(1,(now-animStart)/ANIM);
+    var e=ease(animT);
+    for(var i=0;i<cur.length;i++){
+      cur[i].x=from[i].x+(to[i].x-from[i].x)*e;
+      cur[i].y=from[i].y+(to[i].y-from[i].y)*e;
+      cur[i].w=from[i].w+(to[i].w-from[i].w)*e;
+      cur[i].h=from[i].h+(to[i].h-from[i].h)*e;
+    }
+  }
+  ctx.fillStyle='#fff';
+  ctx.fillRect(0,0,W,H);
+  if(gridOn)drawGrid();
+  for(var j=0;j<BLOCKS.length;j++)drawBlock(BLOCKS[j],cur[j]);
+  requestAnimationFrame(render);
+}
+
+function compose(){
+  tplIdx=(tplIdx+1)%TEMPLATES.length;
+  from=cur.map(clone);
+  to=TEMPLATES[tplIdx].rects.map(clone);
+  animT=0; animStart=performance.now();
+  document.getElementById('tplName').textContent=TEMPLATES[tplIdx].name;
+}
+
+document.getElementById('btnCompose').addEventListener('click',compose);
+document.getElementById('btnGrid').addEventListener('click',function(){
+  gridOn=!gridOn; this.classList.toggle('active',gridOn);
+});
+document.getElementById('btnExport').addEventListener('click',function(){
+  var a=document.createElement('a');
+  a.download='raster-komposition-'+String.fromCharCode(65+tplIdx)+'.png';
+  a.href=cv.toDataURL('image/png');
+  a.click();
+});
+var colIn=document.getElementById('cols'), colOut=document.getElementById('colsOut');
+colIn.addEventListener('input',function(){
+  cols=+colIn.value; colOut.textContent=cols;
+  if(!gridOn){gridOn=true;document.getElementById('btnGrid').classList.add('active');}
+});
+
+/* click poster to recompose too */
+cv.addEventListener('click',compose);
+
+resize();
+requestAnimationFrame(render);
+
+/* ============ reveal ============ */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(en){ if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);} });
+},{threshold:.12});
+document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

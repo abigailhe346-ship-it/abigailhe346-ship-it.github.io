@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>静默之室 THE QUIET ROOM — 当代美术馆特展</title>
+<style>
+  :root{
+    --bone:#EDEBE4;
+    --char:#1B1A17;
+    --char2:#242220;
+    --verm:#B3402A;
+    --ink-soft:rgba(27,26,23,.62);
+    --serif:Didot,"Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bone);color:var(--char);font-family:var(--serif);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  ::selection{background:var(--verm);color:var(--bone);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:90;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:16px 3vw;pointer-events:none;mix-blend-mode:difference;color:#fff;}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.14em;line-height:1.8;}
+  .sig .no{color:var(--verm);font-weight:700;mix-blend-mode:normal;}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-align:right;line-height:1.9;opacity:.75;}
+  @media(max-width:720px){.hright{display:none;}}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;
+    padding:0 3vw;position:relative;overflow:hidden;}
+  .hero .ring{position:absolute;right:-8vw;top:50%;transform:translateY(-50%);
+    width:52vw;height:52vw;border:1px solid rgba(27,26,23,.18);border-radius:50%;pointer-events:none;}
+  .hero .ring::after{content:"";position:absolute;inset:12%;border:1px solid rgba(27,26,23,.12);border-radius:50%;}
+  .mast-k{font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:var(--verm);margin-bottom:3vh;}
+  h1{font-size:clamp(56px,10.5vw,190px);line-height:.94;font-weight:700;letter-spacing:-.015em;}
+  h1 .en{display:block;font-style:italic;font-weight:400;font-size:.42em;color:var(--ink-soft);
+    letter-spacing:.01em;margin-top:1.4vh;}
+  .hero .sub{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;
+    border-top:1px solid var(--char);margin-top:5vh;padding-top:18px;}
+  .hero .sub p{font-family:var(--sans);font-size:13px;line-height:2.1;max-width:46ch;color:var(--ink-soft);}
+  .hero .sub .dates{font-family:var(--mono);font-size:11px;letter-spacing:.2em;line-height:2;text-align:right;}
+  .hero .sub .dates b{color:var(--verm);}
+
+  /* ---------- info strip ---------- */
+  .strip{display:flex;border-top:1px solid var(--char);border-bottom:1px solid var(--char);
+    margin:0 3vw;flex-wrap:wrap;}
+  .strip div{flex:1;min-width:160px;padding:20px 22px;border-right:1px solid var(--char);}
+  .strip div:last-child{border-right:none;}
+  .strip .k{font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--verm);margin-bottom:8px;}
+  .strip .v{font-size:clamp(15px,1.3vw,19px);font-style:italic;}
+
+  /* ---------- dark gallery ---------- */
+  .gallery{position:relative;margin-top:12vh;background:#0E0D0B;}
+  .ghead{position:relative;z-index:3;display:flex;justify-content:space-between;align-items:baseline;
+    padding:10vh 3vw 4vh;color:var(--bone);gap:14px;flex-wrap:wrap;}
+  .ghead h2{font-size:clamp(34px,4.6vw,76px);font-weight:700;line-height:1;}
+  .ghead h2 em{font-style:italic;font-weight:400;color:var(--verm);}
+  .ghead .hint{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(237,235,228,.5);line-height:2;}
+  .wallwrap{position:relative;height:88vh;min-height:540px;}
+  #wall{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  #shade{position:absolute;inset:0;pointer-events:none;background:#0E0D0B;
+    transition:opacity .5s;}
+  .gfoot{position:relative;z-index:3;padding:4vh 3vw 9vh;display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:rgba(237,235,228,.45);flex-wrap:wrap;gap:8px;}
+
+  /* ---------- artwork detail ---------- */
+  #detail{position:fixed;inset:0;z-index:120;background:rgba(14,13,11,.0);display:none;
+    align-items:center;justify-content:center;transition:background .5s;}
+  #detail.open{display:flex;}
+  #detail.show{background:rgba(14,13,11,.92);}
+  .dcard{background:var(--bone);width:min(880px,92vw);max-height:88vh;overflow-y:auto;
+    display:grid;grid-template-columns:1fr 1fr;transform:translateY(40px);opacity:0;
+    transition:transform .6s var(--ease),opacity .6s var(--ease);}
+  #detail.show .dcard{transform:none;opacity:1;}
+  .dcard canvas{width:100%;height:100%;display:block;min-height:320px;object-fit:cover;}
+  .dtxt{padding:38px 34px;display:flex;flex-direction:column;}
+  .dtxt .dk{font-family:var(--mono);font-size:9px;letter-spacing:.34em;color:var(--verm);}
+  .dtxt h3{font-size:clamp(26px,2.6vw,40px);margin-top:14px;line-height:1.15;}
+  .dtxt .dy{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--ink-soft);margin-top:12px;}
+  .dtxt p{font-family:var(--sans);font-size:13px;line-height:2.1;color:var(--ink-soft);margin-top:22px;flex:1;}
+  #dclose{align-self:flex-start;background:var(--char);color:var(--bone);border:none;
+    font-family:var(--mono);font-size:10px;letter-spacing:.26em;padding:13px 26px;cursor:pointer;
+    transition:background .3s;margin-top:26px;}
+  #dclose:hover{background:var(--verm);}
+  @media(max-width:760px){.dcard{grid-template-columns:1fr;}}
+
+  /* ---------- visit ---------- */
+  .visit{padding:12vh 3vw;}
+  .visit .sec-head{display:flex;justify-content:space-between;align-items:baseline;
+    padding-bottom:5vh;gap:14px;flex-wrap:wrap;}
+  .visit h2{font-size:clamp(36px,5vw,80px);font-weight:700;line-height:1;}
+  .visit h2 em{font-style:italic;font-weight:400;color:var(--verm);}
+  .visit .idx{font-family:var(--mono);font-size:10px;letter-spacing:.28em;color:var(--ink-soft);line-height:2;}
+  .vgrid{display:grid;grid-template-columns:1.2fr 1fr;gap:5vw;align-items:start;}
+  .vgrid h4{font-family:var(--mono);font-size:10px;letter-spacing:.34em;color:var(--verm);
+    margin:3.5vh 0 14px;font-weight:400;}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;}
+  .chip{border:1px solid var(--char);background:transparent;color:var(--char);font-family:var(--mono);
+    font-size:11px;letter-spacing:.14em;padding:12px 20px;cursor:pointer;transition:all .3s var(--ease);}
+  .chip:hover{background:rgba(27,26,23,.06);}
+  .chip.on{background:var(--char);color:var(--bone);}
+  .ticket{border:1px solid var(--char);padding:32px 30px;position:relative;}
+  .ticket::before{content:"";position:absolute;left:-1px;top:50%;width:14px;height:14px;
+    background:var(--bone);border:1px solid var(--char);border-radius:50%;transform:translate(-50%,-50%);}
+  .ticket::after{content:"";position:absolute;right:-1px;top:50%;width:14px;height:14px;
+    background:var(--bone);border:1px solid var(--char);border-radius:50%;transform:translate(50%,-50%);}
+  .ticket .tk-k{font-family:var(--mono);font-size:9px;letter-spacing:.34em;color:var(--verm);}
+  #tkLine{font-style:italic;font-size:clamp(18px,1.6vw,23px);line-height:1.9;margin:22px 0;min-height:5em;
+    transition:opacity .35s;}
+  #tkLine.fade{opacity:0;}
+  #tkBtn{width:100%;background:var(--char);color:var(--bone);border:none;font-family:var(--mono);
+    font-size:11px;letter-spacing:.3em;padding:17px;cursor:pointer;transition:background .3s;
+    opacity:.35;pointer-events:none;}
+  #tkBtn.ready{opacity:1;pointer-events:auto;}
+  #tkBtn.ready:hover{background:var(--verm);}
+  @media(max-width:900px){.vgrid{grid-template-columns:1fr;}}
+
+  .rv{opacity:0;transform:translateY(34px);transition:opacity 1s var(--ease),transform 1s var(--ease);}
+  .rv.in{opacity:1;transform:none;}
+  footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:20px 3vw;
+    border-top:1px solid var(--char);font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink-soft);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 14</span> · <b>静默之室 THE QUIET ROOM</b><br>MUSEUM OF CONTEMPORARY ART</div>
+  <div class="hright">展厅 HALL 3 · B1F<br>周二至周日 10:00—19:00<br>周一闭馆</div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="ring"></div>
+  <div class="mast-k">SPECIAL EXHIBITION — 秋季特展</div>
+  <h1>静默之室<span class="en">The Quiet Room — seven studies of silence</span></h1>
+  <div class="sub">
+    <p>七件关于安静的作品，被安置在一间几乎没有光的展厅里。
+      向下滚动，拿好你的手电——在黑暗中，光是你唯一的导览员。点击任何一件作品，阅读它的展签。</p>
+    <div class="dates">展期 <b>2026.10.01 — 2027.01.11</b><br>策展人 CURATOR — 沈 聿 · R. HALE</div>
+  </div>
+</section>
+
+<!-- ============ INFO STRIP ============ -->
+<div class="strip">
+  <div><div class="k">ADMISSION — 门票</div><div class="v">¥ 60 · 学生半价</div></div>
+  <div><div class="k">DURATION — 建议观展</div><div class="v">约五十分钟</div></div>
+  <div><div class="k">LIGHT LEVEL — 照度</div><div class="v">&lt; 50 lux，请放轻脚步</div></div>
+  <div><div class="k">AUDIO GUIDE — 语音导览</div><div class="v">中英双语 · 展厅自取</div></div>
+</div>
+
+<!-- ============ DARK GALLERY ============ -->
+<section class="gallery">
+  <div class="ghead">
+    <h2>THE DARK <em>gallery</em></h2>
+    <div class="hint">MOVE TO ILLUMINATE — 移动光标，即移动手电<br>CLICK ARTWORK — 点击作品读展签</div>
+  </div>
+  <div class="wallwrap" id="wallwrap">
+    <canvas id="wall"></canvas>
+    <div id="shade"></div>
+  </div>
+  <div class="gfoot">
+    <span>HALL 3 — 照度 50 LUX 以下 · 请勿使用闪光灯</span>
+    <span id="gcount">WORKS 01—04 / 07</span>
+  </div>
+</section>
+
+<!-- ============ DETAIL ============ -->
+<div id="detail" aria-hidden="true">
+  <div class="dcard">
+    <canvas id="dCanvas" width="700" height="700"></canvas>
+    <div class="dtxt">
+      <span class="dk" id="dk">WORK 01 / 07</span>
+      <h3 id="dtitle">—</h3>
+      <div class="dy" id="dyear">—</div>
+      <p id="dtext">—</p>
+      <button id="dclose">合上展签 CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ VISIT ============ -->
+<section class="visit rv">
+  <div class="sec-head">
+    <h2>PLAN YOUR <em>visit</em></h2>
+    <div class="idx">分时段预约 · 每场限三十人<br>安静是这间展厅的共同作品</div>
+  </div>
+  <div class="vgrid">
+    <div>
+      <h4>选择日期 — DATE</h4>
+      <div class="chips" id="vdays"></div>
+      <h4>选择场次 — SESSION</h4>
+      <div class="chips" id="vslots"></div>
+    </div>
+    <div class="ticket">
+      <span class="tk-k">E-TICKET — 电子票</span>
+      <p id="tkLine">请选择日期与场次。入场时请将手机调至最暗——展厅里最亮的东西，应该是作品。</p>
+      <button id="tkBtn">领取电子票 RESERVE</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>静默之室 THE QUIET ROOM — MOCA · HALL 3 · B1F</span>
+  <span>ALL WORKS RENDERED LIVE · NO PHOTOGRAPH REPRODUCED</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var MONO='"SF Mono",Menlo,monospace';
+var SERIF='Didot,"Bodoni MT","Songti SC",Georgia,serif';
+var BONE="#EDEBE4",CHAR="#1B1A17",VERM="#B3402A";
+
+/* ================= works data ================= */
+var WORKS=[
+ {title:"静物之一：圆",year:"2024 · 布面矿物颜料",seed:401,kind:0,
+  text:"一只正圆被放在画面偏左的位置——画家说，完美的事物不该站在中央，那会显得傲慢。圆的内侧填着朱砂，像一枚被捂住很久的心跳。"},
+ {title:"静物之二：折线",year:"2023 · 纸上炭笔",seed:402,kind:1,
+  text:"三十七条折线，没有两条的夹角相同。观众常在它面前放轻呼吸，仿佛声音大一点，这些线就会断掉。"},
+ {title:"静物之三：半窗",year:"2025 · 综合材料",seed:403,kind:2,
+  text:"半扇窗的光被固定在亚麻布上。每天黄昏，展厅真实的暗与画面里虚构的亮，会在这个位置相遇一次。"},
+ {title:"静物之四：雨",year:"2022 · 墨、胶、绢",seed:404,kind:3,
+  text:"一千二百个落点，构成一场没有声音的雨。艺术家用了整个梅雨季收集它们，然后在一个晴天完成装裱。"}
+];
+
+/* ================= artwork painter ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function paintArt(c,w,h,wk){
+  var R=mulberry32(wk.seed);
+  c.fillStyle=BONE;c.fillRect(0,0,w,h);
+  /* paper grain */
+  c.fillStyle="rgba(27,26,23,.04)";
+  for(var g=0;g<w*h/240;g++)c.fillRect(R()*w,R()*h,1,1);
+  c.strokeStyle=CHAR;c.fillStyle=CHAR;
+  if(wk.kind===0){ /* circle off-center */
+    var cx=w*0.4,cy=h*0.46,r=Math.min(w,h)*0.28;
+    c.lineWidth=w*0.012;
+    c.beginPath();c.arc(cx,cy,r,0,7);c.stroke();
+    c.fillStyle=VERM;
+    c.beginPath();c.arc(cx,cy,r*0.62,0,7);c.fill();
+    c.fillStyle="rgba(27,26,23,.14)";
+    c.beginPath();c.arc(cx+r*0.2,cy-r*0.16,r*0.62,0,7);c.fill();
+    c.fillStyle=CHAR;c.fillRect(w*0.14,h*0.86,w*0.5,2);
+  }else if(wk.kind===1){ /* broken lines */
+    c.lineWidth=1.6;
+    for(var i=0;i<37;i++){
+      var x0=w*0.12+R()*w*0.76,y0=h*0.1+R()*h*0.8;
+      var a=R()*Math.PI*2,l=w*0.05+R()*w*0.22;
+      c.globalAlpha=0.25+R()*0.65;
+      c.strokeStyle=R()<0.14?VERM:CHAR;
+      c.beginPath();c.moveTo(x0,y0);c.lineTo(x0+Math.cos(a)*l,y0+Math.sin(a)*l);c.stroke();
+    }
+    c.globalAlpha=1;
+  }else if(wk.kind===2){ /* half window */
+    c.fillStyle=CHAR;c.fillRect(w*0.3,h*0.16,w*0.4,h*0.6);
+    c.fillStyle=VERM;c.fillRect(w*0.34,h*0.2,w*0.32,h*0.52);
+    var gr=c.createLinearGradient(w*0.34,0,w*0.66,0);
+    gr.addColorStop(0,"rgba(237,235,228,.0)");gr.addColorStop(1,"rgba(237,235,228,.55)");
+    c.fillStyle=gr;c.fillRect(w*0.34,h*0.2,w*0.32,h*0.52);
+    c.fillStyle=CHAR;c.fillRect(w*0.49,h*0.16,w*0.02,h*0.6);
+    c.fillRect(w*0.3,h*0.45,w*0.4,h*0.02);
+  }else{ /* rain */
+    for(var d=0;d<1200;d++){
+      var x=w*R(),y=h*R();
+      c.fillStyle=R()<0.06?VERM:"rgba(27,26,23,"+(0.2+R()*0.7)+")";
+      c.beginPath();c.ellipse(x,y,1.1,2.6+R()*3,0.12,0,7);c.fill();
+    }
+    c.fillStyle=CHAR;c.fillRect(w*0.1,h*0.9,w*0.3,2);
+  }
+}
+
+/* ================= dark gallery wall ================= */
+var wall=document.getElementById("wall"),wc=wall.getContext("2d");
+var shade=document.getElementById("shade"),wrap=document.getElementById("wallwrap");
+var WW=0,WH=0,DPR=Math.min(devicePixelRatio||1,2);
+var frames=[]; /* {x,y,w,h,work} */
+function layoutWall(){
+  WW=wrap.clientWidth;WH=wrap.clientHeight;
+  wall.width=WW*DPR;wall.height=WH*DPR;
+  wc.setTransform(DPR,0,0,DPR,0,0);
+  /* wall ground */
+  var g=wc.createLinearGradient(0,0,0,WH);
+  g.addColorStop(0,"#161512");g.addColorStop(1,"#0E0D0B");
+  wc.fillStyle=g;wc.fillRect(0,0,WW,WH);
+  /* faint wall seams */
+  wc.strokeStyle="rgba(237,235,228,.05)";wc.lineWidth=1;
+  for(var s=1;s<6;s++){wc.beginPath();wc.moveTo(WW*s/6,0);wc.lineTo(WW*s/6,WH);wc.stroke();}
+  /* floor line */
+  wc.fillStyle="rgba(0,0,0,.4)";wc.fillRect(0,WH*0.92,WW,WH*0.08);
+  /* place frames */
+  frames=[];
+  var mobile=WW<760;
+  var specs=mobile?
+    [[0.08,0.06,0.4,0.3],[0.55,0.12,0.36,0.26],[0.1,0.48,0.36,0.26],[0.54,0.55,0.38,0.3]]:
+    [[0.06,0.10,0.24,0.52],[0.36,0.24,0.20,0.38],[0.62,0.08,0.26,0.56],[0.80,0.52,0.16,0.30]];
+  specs.forEach(function(sp,i){
+    var x=sp[0]*WW,y=sp[1]*WH,w=sp[2]*WW,h=sp[3]*WH;
+    frames.push({x:x,y:y,w:w,h:h,work:WORKS[i]});
+    /* frame */
+    wc.fillStyle="#2A2419";wc.fillRect(x-8,y-8,w+16,h+16);
+    wc.strokeStyle="rgba(193,154,63,.5)";wc.lineWidth=1.5;
+    wc.strokeRect(x-8,y-8,w+16,h+16);
+    /* art */
+    var off=document.createElement("canvas");
+    off.width=w*DPR;off.height=h*DPR;
+    var oc=off.getContext("2d");oc.setTransform(DPR,0,0,DPR,0,0);
+    paintArt(oc,w,h,WORKS[i]);
+    wc.drawImage(off,x,y,w,h);
+    /* label plate */
+    wc.fillStyle="rgba(237,235,228,.75)";
+    wc.font="400 9px "+MONO;
+    wc.fillText("0"+(i+1)+" — "+WORKS[i].title,x,y+h+22);
+  });
+}
+layoutWall();
+
+/* spotlight */
+var light={x:0.5,y:0.42,tx:0.5,ty:0.42,r:170,tr:170,auto:true};
+wrap.addEventListener("mousemove",function(e){
+  var b=wrap.getBoundingClientRect();
+  light.tx=(e.clientX-b.left)/b.width;light.ty=(e.clientY-b.top)/b.height;
+  light.tr=190;light.auto=false;
+});
+wrap.addEventListener("mouseleave",function(){light.tr=120;});
+var wallVisible=false;
+new IntersectionObserver(function(es){wallVisible=es[0].isIntersecting;},{threshold:.05}).observe(wrap);
+function shadeLoop(now){
+  if(wallVisible){
+    var t=now/1000;
+    if(light.auto){ /* drift for touch devices */
+      light.tx=0.5+0.3*Math.sin(t*0.4);
+      light.ty=0.45+0.25*Math.sin(t*0.27+1.3);
+    }
+    light.x+=(light.tx-light.x)*0.07;
+    light.y+=(light.ty-light.y)*0.07;
+    light.r+=(light.tr-light.r)*0.08;
+    var px=light.x*WW,py=light.y*WH,r=Math.min(light.r,WW*0.3);
+    var m="radial-gradient(circle "+r+"px at "+px+"px "+py+"px, rgba(14,13,11,0) 0%, rgba(14,13,11,0.25) 55%, rgba(14,13,11,0.985) 100%)";
+    shade.style.webkitMaskImage="radial-gradient(circle "+r+"px at "+px+"px "+py+"px, transparent 0%, rgba(0,0,0,.75) 70%, black 100%)";
+    shade.style.maskImage=shade.style.webkitMaskImage;
+    shade.style.background="rgba(14,13,11,0)";
+    /* actually simpler: use background gradient */
+    shade.style.background=m;
+    shade.style.webkitMaskImage="none";shade.style.maskImage="none";
+  }
+  requestAnimationFrame(shadeLoop);
+}
+requestAnimationFrame(shadeLoop);
+
+/* click artwork */
+wall.addEventListener("click",function(e){
+  var b=wall.getBoundingClientRect();
+  var x=(e.clientX-b.left),y=(e.clientY-b.top);
+  for(var i=0;i<frames.length;i++){
+    var f=frames[i];
+    if(x>=f.x-10&&x<=f.x+f.w+10&&y>=f.y-10&&y<=f.y+f.h+10){openDetail(i);return;}
+  }
+});
+
+/* ================= detail overlay ================= */
+var detail=document.getElementById("detail");
+function openDetail(i){
+  var wk=WORKS[i];
+  document.getElementById("dk").textContent="WORK 0"+(i+1)+" / 07";
+  document.getElementById("dtitle").textContent=wk.title;
+  document.getElementById("dyear").textContent=wk.year;
+  document.getElementById("dtext").textContent=wk.text;
+  detail.classList.add("open");
+  detail.setAttribute("aria-hidden","false");
+  document.body.style.overflow="hidden";
+  requestAnimationFrame(function(){
+    requestAnimationFrame(function(){detail.classList.add("show");});
+    var cv=document.getElementById("dCanvas"),cc=cv.getContext("2d");
+    cc.setTransform(1,0,0,1,0,0);
+    paintArt(cc,cv.width,cv.height,wk);
+  });
+}
+function closeDetail(){
+  detail.classList.remove("show");
+  detail.setAttribute("aria-hidden","true");
+  document.body.style.overflow="";
+  setTimeout(function(){detail.classList.remove("open");},500);
+}
+document.getElementById("dclose").addEventListener("click",closeDetail);
+detail.addEventListener("click",function(e){if(e.target===detail)closeDetail();});
+addEventListener("keydown",function(e){if(e.key==="Escape")closeDetail();});
+
+/* ================= visit booking ================= */
+var DAYS=["周四 10.01","周五 10.02","周六 10.03","周日 10.04","周二 10.06","周三 10.07"];
+var SLOTS=["10:00 — 第一场","13:30 — 午后场","16:00 — 黄昏场","18:00 — 夜场 · 最暗"];
+var sel={d:null,s:null};
+function chips(id,arr,key){
+  var box=document.getElementById(id);
+  arr.forEach(function(a,i){
+    var b=document.createElement("button");b.className="chip";b.textContent=a;
+    b.addEventListener("click",function(){
+      sel[key]=i;
+      box.querySelectorAll(".chip").forEach(function(x){x.classList.toggle("on",x===b);});
+      updateTk();
+    });
+    box.appendChild(b);
+  });
+}
+chips("vdays",DAYS,"d");chips("vslots",SLOTS,"s");
+var tkLine=document.getElementById("tkLine"),tkBtn=document.getElementById("tkBtn");
+function updateTk(){
+  if(sel.d===null||sel.s===null){tkBtn.classList.remove("ready");return;}
+  tkBtn.classList.add("ready");
+  tkLine.classList.add("fade");
+  setTimeout(function(){
+    tkLine.textContent=DAYS[sel.d]+" · "+SLOTS[sel.s]+"，门票 ¥60，一人一票。请于开场前十分钟至 B1F 三号厅入口验票。";
+    tkLine.classList.remove("fade");
+  },350);
+}
+tkBtn.addEventListener("click",function(){
+  tkBtn.textContent="已出票 — SEE YOU IN THE DARK";
+  tkLine.classList.add("fade");
+  setTimeout(function(){
+    tkLine.textContent="电子票已生成。温馨提示：展厅没有指示牌，也没有出口标记——别担心，黑暗比你想象的友好。";
+    tkLine.classList.remove("fade");
+  },350);
+});
+
+/* ================= reveal ================= */
+var io=new IntersectionObserver(function(es){es.forEach(function(e){
+  if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.14});
+document.querySelectorAll(".rv").forEach(function(el){io.observe(el);});
+
+/* ================= resize ================= */
+var rt;
+addEventListener("resize",function(){clearTimeout(rt);rt=setTimeout(layoutWall,160);});
+})();
+</script>
+</body>
+</html>

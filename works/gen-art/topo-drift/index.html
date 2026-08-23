@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOPO DRIFT 漂移地形 — 等高线测绘所</title>
+<style>
+  :root{
+    --paper:#ece8db; --panel:#e4dfd0; --line:#c6bfa8;
+    --ink:#23302a; --acc:#c1502e; --dim:#82806d;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--acc);color:#fff}
+
+  header{display:flex;justify-content:space-between;align-items:flex-end;padding:26px 30px 0;gap:20px;flex-wrap:wrap}
+  .sig{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+  .sig h1{font-family:var(--mono);font-size:24px;font-weight:700;letter-spacing:.08em;line-height:1}
+  .sig h1 em{font-style:normal;color:var(--acc)}
+  .sig .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em;padding-bottom:3px}
+  .sig .no b{color:var(--acc);font-weight:400}
+  header p.tag{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.14em;text-align:right;text-transform:uppercase;line-height:1.9}
+  .rule{margin:16px 30px 0;border-top:1px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{display:grid;grid-template-columns:1fr 292px;gap:26px;padding:24px 30px 48px;max-width:1460px;margin:0 auto}
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .stage{
+    position:relative;background:#f2eee1;border:1px solid var(--ink);
+    box-shadow:7px 7px 0 rgba(35,48,42,.10);overflow:hidden;cursor:crosshair;
+  }
+  .stage::before{content:"";display:block;padding-top:70%}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .readout{
+    position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.12em;color:var(--ink);background:rgba(236,232,219,.9);
+    border:1px solid var(--ink);padding:5px 9px;pointer-events:none;white-space:nowrap;
+  }
+  .stamp{position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink);border:1px solid var(--ink);padding:4px 9px;background:rgba(236,232,219,.9);pointer-events:none;text-transform:uppercase}
+
+  .dock{border:1px solid var(--ink);background:var(--panel);padding:22px 20px;display:flex;flex-direction:column;gap:20px;align-self:start;position:sticky;top:20px}
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);letter-spacing:.24em;text-transform:uppercase;border-bottom:1px solid var(--ink);padding-bottom:12px;display:flex;justify-content:space-between}
+  .dock h2 span{color:var(--acc)}
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+  .ctl label output{color:var(--acc)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;margin-top:-5px;background:var(--acc);border:1px solid var(--ink);border-radius:0}
+  input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--acc);border:1px solid var(--ink);border-radius:0}
+
+  .schemes{display:flex;flex-direction:column;gap:8px}
+  .schemes button{
+    display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);
+    background:transparent;cursor:pointer;transition:all .2s var(--ease);text-align:left;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink);
+  }
+  .schemes button:hover{border-color:var(--ink)}
+  .schemes button.on{border:1px solid var(--ink);background:var(--ink);color:var(--paper)}
+  .schemes .ramp{display:flex;height:10px;flex:0 0 64px;border:1px solid rgba(0,0,0,.2)}
+  .schemes .ramp i{flex:1}
+
+  .btns{display:flex;flex-direction:column;gap:10px}
+  button.act{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;padding:12px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:all .25s var(--ease)}
+  button.act:hover{background:var(--ink);color:var(--paper)}
+  button.act.primary{background:var(--ink);color:var(--paper)}
+  button.act.primary:hover{background:var(--acc);border-color:var(--acc)}
+  button.act.on{background:var(--acc);border-color:var(--acc);color:#fff}
+  button.act:active{transform:translateY(1px)}
+
+  .note{font-size:11px;line-height:2;color:#57534a;border-top:1px solid var(--line);padding-top:14px;letter-spacing:.03em}
+  .note b{color:var(--acc)}
+
+  footer{padding:0 30px 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>TOPO <em>DRIFT</em></h1>
+    <span class="no">N°<b>09</b> — GEN-ART / Perlin 等高线地形图</span>
+  </div>
+  <p class="tag">Marching squares · fbm noise · hypsometric tint<br>等高线提取 × 海拔晕渲 × 缓慢漂移</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="c"></canvas>
+    <div class="stamp">Sheet 1 / 1 · Survey</div>
+    <div class="readout" id="readout">ELEV ---- M · --°--′N ---°--′E</div>
+  </div>
+
+  <aside class="dock">
+    <h2>图例 <span>LEGEND</span></h2>
+    <div class="schemes" id="schemes"></div>
+    <div class="ctl">
+      <label>等高距 Interval <output id="oInt">55</output></label>
+      <input type="range" id="rInt" min="15" max="100" value="55">
+    </div>
+    <div class="btns">
+      <button class="act on" id="bDrift">漂移 Drift · ON</button>
+      <button class="act primary" id="bRegen">随机再生 · Resurvey</button>
+      <button class="act" id="bSave">下载 PNG · Download</button>
+    </div>
+    <p class="note">以分形噪声铺一块<b>假想国土</b>，marching squares 提取等高线，每五条加粗一条计曲线。山体在第四维时间里<b>缓慢漂移</b>——这是一张拒绝装订成册的地图。</p>
+  </aside>
+</main>
+
+<footer>
+  <span>Topo Drift — Cartography of an Imaginary Land</span>
+  <span id="stats">GRID 150×100 · fBM 4 OCT</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ---------- seeded 3D value noise ---------- */
+function makeNoise(seed){
+  var rand=mulberry32(seed), p=new Uint8Array(512), i, t;
+  var perm=new Uint8Array(256);
+  for(i=0;i<256;i++)perm[i]=i;
+  for(i=255;i>0;i--){var j=Math.floor(rand()*(i+1));t=perm[i];perm[i]=perm[j];perm[j]=t;}
+  for(i=0;i<512;i++)p[i]=perm[i&255];
+  var vals=new Float32Array(512);
+  for(i=0;i<512;i++)vals[i]=rand();
+  function fade(t){return t*t*t*(t*(t*6-15)+10)}
+  function n3(x,y,z){
+    var X=Math.floor(x),Y=Math.floor(y),Z=Math.floor(z);
+    var xf=x-X,yf=y-Y,zf=z-Z;
+    var u=fade(xf),v=fade(yf),w=fade(zf);
+    function h(i,j,k){return vals[p[(p[(p[i&255]+j)&255]+k)&255]]}
+    var x1=h(X,Y,Z)+(h(X+1,Y,Z)-h(X,Y,Z))*u;
+    var x2=h(X,Y+1,Z)+(h(X+1,Y+1,Z)-h(X,Y+1,Z))*u;
+    var x3=h(X,Y,Z+1)+(h(X+1,Y,Z+1)-h(X,Y,Z+1))*u;
+    var x4=h(X,Y+1,Z+1)+(h(X+1,Y+1,Z+1)-h(X,Y+1,Z+1))*u;
+    var y1=x1+(x2-x1)*v, y2=x3+(x4-x3)*v;
+    return y1+(y2-y1)*w;
+  }
+  return function fbm(x,y,z){
+    var a=0,amp=.5,f=1;
+    for(var o=0;o<4;o++){a+=amp*n3(x*f,y*f,z*f);amp*=.5;f*=2.1;}
+    return a; // ~0..1
+  };
+}
+
+/* ---------- schemes ---------- */
+function ramp(stops,n){
+  var out=[];
+  for(var k=0;k<n;k++){
+    var t=k/(n-1)*(stops.length-1), i=Math.min(stops.length-2,Math.floor(t)), f=t-i;
+    var a=stops[i],b=stops[i+1];
+    out.push("rgb("+Math.round(a[0]+(b[0]-a[0])*f)+","+Math.round(a[1]+(b[1]-a[1])*f)+","+Math.round(a[2]+(b[2]-a[2])*f)+")");
+  }
+  return out;
+}
+var SCHEMES=[
+  {name:"Atlas 地貌", sea:"#b8cfc8", bathy:"#6f9690", contour:"rgba(107,74,47,.55)", indexC:"#6b4a2f",
+   land:ramp([[125,155,106],[168,170,96],[201,180,88],[150,110,66],[196,186,160],[242,239,232]],24)},
+  {name:"Nautical 海图", sea:"#dbe7e8", bathy:"#7fa3b5", contour:"rgba(46,77,107,.5)", indexC:"#2e4d6b",
+   land:ramp([[238,232,214],[228,220,196],[214,203,172],[198,183,146],[178,158,116],[150,130,96]],24)},
+  {name:"Survey 墨测", sea:"#ece8db", bathy:"#8a8672", contour:"rgba(51,48,42,.42)", indexC:"#c1502e",
+   land:ramp([[236,232,219],[236,232,219],[236,232,219],[230,225,208],[222,215,194],[222,215,194]],24)}
+];
+var SEA=0.42;
+
+/* ---------- state ---------- */
+var canvas=document.getElementById("c"), ctx=canvas.getContext("2d");
+var stage=document.getElementById("stage");
+var seed=Math.floor(Math.random()*1e9);
+var noise=makeNoise(seed);
+var P={interval:55, scheme:0, drift:true};
+var W=0,H=0,dpr=1, mapR={x:0,y:0,w:0,h:0};
+var GW=150, GH=100;
+var grid=new Float32Array((GW+1)*(GH+1));
+var peaks=[];
+var tDrift=Math.random()*100;
+var baseLat, baseLon, surveyNo;
+var needDraw=true;
+
+function metaFromSeed(){
+  var r=mulberry32(seed+3);
+  baseLat=28+Math.floor(r()*24); baseLon=102+Math.floor(r()*22);
+  surveyNo=1000+Math.floor(r()*9000);
+}
+
+/* ---------- height field ---------- */
+function computeGrid(t){
+  var s=3.2, ox=(seed%1000)/1000*40, oy=(seed%777)/777*40;
+  for(var j=0;j<=GH;j++){
+    for(var i=0;i<=GW;i++){
+      var u=i/GW, v=j/GH;
+      var e=noise(u*s+ox,v*s*0.94+oy,t);
+      e=Math.pow(e,1.25);
+      // island falloff so edges can be sea
+      var dx=u-.5, dy=v-.5, d=Math.sqrt(dx*dx*2.4+dy*dy*2.4);
+      e=e*1.06-Math.max(0,d-.52)*.55;
+      grid[j*(GW+1)+i]=e;
+    }
+  }
+}
+
+function findPeaks(){
+  peaks=[];
+  for(var j=2;j<GH-2;j++){
+    for(var i=2;i<GW-2;i++){
+      var h=grid[j*(GW+1)+i];
+      if(h<0.74)continue;
+      var ok=true;
+      for(var dj=-2;dj<=2&&ok;dj++)for(var di=-2;di<=2;di++){
+        if(grid[(j+dj)*(GW+1)+i+di]>h){ok=false;break}
+      }
+      if(ok)peaks.push({i:i,j:j,h:h});
+    }
+  }
+  peaks.sort(function(a,b){return b.h-a.h});
+  // keep separated top 4
+  var keep=[];
+  peaks.forEach(function(p){
+    if(keep.length>=4)return;
+    for(var k=0;k<keep.length;k++){
+      var dx=keep[k].i-p.i, dy=keep[k].j-p.j;
+      if(dx*dx+dy*dy<500)return;
+    }
+    keep.push(p);
+  });
+  peaks=keep;
+}
+
+/* ---------- marching squares ---------- */
+function contourPath(g,level){
+  var cw=mapR.w/GW, ch=mapR.h/GH;
+  var sx=function(i){return mapR.x+i*cw}, sy=function(j){return mapR.y+j*ch};
+  g.beginPath();
+  for(var j=0;j<GH;j++){
+    for(var i=0;i<GW;i++){
+      var a=grid[j*(GW+1)+i], b=grid[j*(GW+1)+i+1],
+          c=grid[(j+1)*(GW+1)+i+1], d=grid[(j+1)*(GW+1)+i];
+      var idx=(a>level?8:0)|(b>level?4:0)|(c>level?2:0)|(d>level?1:0);
+      if(idx===0||idx===15)continue;
+      function pt(edge){
+        if(edge===0){var f=(level-a)/(b-a);return[sx(i)+f*cw,sy(j)]}
+        if(edge===1){var f2=(level-b)/(c-b);return[sx(i+1),sy(j)+f2*ch]}
+        if(edge===2){var f3=(level-d)/(c-d);return[sx(i)+f3*cw,sy(j+1)]}
+        var f4=(level-a)/(d-a);return[sx(i),sy(j)+f4*ch];
+      }
+      function seg(e1,e2){var p1=pt(e1),p2=pt(e2);g.moveTo(p1[0],p1[1]);g.lineTo(p2[0],p2[1])}
+      var center=(a+b+c+d)/4;
+      switch(idx){
+        case 1: seg(3,2);break;
+        case 2: seg(2,1);break;
+        case 3: seg(3,1);break;
+        case 4: seg(0,1);break;
+        case 5: if(center>level){seg(3,0);seg(2,1)}else{seg(3,2);seg(0,1)}break;
+        case 6: seg(0,2);break;
+        case 7: seg(3,0);break;
+        case 8: seg(0,3);break;
+        case 9: seg(0,2);break;
+        case 10: if(center>level){seg(0,1);seg(3,2)}else{seg(0,3);seg(2,1)}break;
+        case 11: seg(0,1);break;
+        case 12: seg(3,1);break;
+        case 13: seg(2,1);break;
+        case 14: seg(3,2);break;
+      }
+    }
+  }
+}
+
+/* ---------- render ---------- */
+function toMeters(h){return Math.round((h)*3600)}
+
+function drawMap(g,w,h,t){
+  var sc=SCHEMES[P.scheme];
+  var cw=mapR.w/GW, ch=mapR.h/GH;
+  // tint cells
+  var i,j;
+  for(j=0;j<GH;j++){
+    for(i=0;i<GW;i++){
+      var v=(grid[j*(GW+1)+i]+grid[j*(GW+1)+i+1]+grid[(j+1)*(GW+1)+i]+grid[(j+1)*(GW+1)+i+1])/4;
+      if(v<SEA){g.fillStyle=sc.sea;}
+      else{
+        var t2=Math.min(0.999,(v-SEA)/(1-SEA));
+        g.fillStyle=sc.land[Math.floor(t2*24)];
+      }
+      g.fillRect(mapR.x+i*cw,mapR.y+j*ch,cw+0.6,ch+0.6);
+    }
+  }
+  // contours
+  var dh=0.135-P.interval/100*0.1; // 0.035..0.12
+  var level, k=0;
+  g.lineCap="round";
+  // bathymetric (below sea), thin
+  for(level=SEA-dh; level>0.06; level-=dh){
+    contourPath(g,level);
+    g.strokeStyle=sc.bathy; g.globalAlpha=.5; g.lineWidth=.7; g.stroke(); g.globalAlpha=1;
+  }
+  for(level=SEA; level<0.98; level+=dh, k++){
+    var isIndex=(k%5===4);
+    contourPath(g,level);
+    g.strokeStyle=isIndex?sc.indexC:sc.contour;
+    g.lineWidth=isIndex?1.6:0.7;
+    g.stroke();
+  }
+  // coastline emphasis
+  contourPath(g,SEA);
+  g.strokeStyle=sc.indexC; g.lineWidth=1.4; g.stroke();
+  // peaks
+  g.font="700 11px 'SF Mono',Menlo,monospace";
+  g.textAlign="left";
+  peaks.forEach(function(p){
+    var x=mapR.x+p.i*cw, y=mapR.y+p.j*ch;
+    g.fillStyle=sc.indexC;
+    g.beginPath(); g.moveTo(x,y-7); g.lineTo(x-6,y+4); g.lineTo(x+6,y+4); g.closePath(); g.fill();
+    var label=toMeters(p.h)+"m";
+    var tw=g.measureText(label).width;
+    g.fillStyle="rgba(236,232,219,.85)";
+    g.fillRect(x+9,y-9,tw+6,14);
+    g.strokeStyle=sc.indexC; g.lineWidth=.6;
+    g.strokeRect(x+9,y-9,tw+6,14);
+    g.fillStyle=sc.indexC;
+    g.fillText(label,x+12,y+2);
+  });
+}
+
+function drawChrome(g,w,h){
+  var sc=SCHEMES[P.scheme];
+  g.clearRect(0,0,w,h);
+  // frame + graticule ticks
+  g.strokeStyle="#23302a"; g.lineWidth=1.4;
+  g.strokeRect(mapR.x,mapR.y,mapR.w,mapR.h);
+  g.lineWidth=.6;
+  g.strokeRect(mapR.x-5,mapR.y-5,mapR.w+10,mapR.h+10);
+  var i;
+  g.fillStyle="#23302a"; g.font="400 9px 'SF Mono',Menlo,monospace"; g.textAlign="center";
+  for(i=1;i<6;i++){
+    var x=mapR.x+mapR.w*i/6;
+    g.beginPath(); g.moveTo(x,mapR.y); g.lineTo(x,mapR.y+6); g.moveTo(x,mapR.y+mapR.h-6); g.lineTo(x,mapR.y+mapR.h); g.stroke();
+    g.fillText((baseLon+i*2)+"°E",x,mapR.y-10);
+    g.fillText((baseLon+i*2)+"°E",x,mapR.y+mapR.h+16);
+  }
+  for(i=1;i<4;i++){
+    var y=mapR.y+mapR.h*i/4;
+    g.beginPath(); g.moveTo(mapR.x,y); g.lineTo(mapR.x+6,y); g.moveTo(mapR.x+mapR.w-6,y); g.lineTo(mapR.x+mapR.w,y); g.stroke();
+    g.save(); g.translate(mapR.x-12,y); g.rotate(-Math.PI/2); g.fillText((baseLat+i*2)+"°N",0,0); g.restore();
+  }
+  // title block
+  g.textAlign="left";
+  g.fillStyle="rgba(236,232,219,.92)";
+  g.fillRect(mapR.x+14,mapR.y+14,228,58);
+  g.strokeStyle="#23302a"; g.lineWidth=1;
+  g.strokeRect(mapR.x+14,mapR.y+14,228,58);
+  g.fillStyle="#23302a";
+  g.font="700 13px 'SF Mono',Menlo,monospace";
+  g.fillText("TOPO DRIFT · 漂移地形",mapR.x+24,mapR.y+35);
+  g.font="400 10px 'SF Mono',Menlo,monospace";
+  g.fillText("SURVEY №"+surveyNo+" · SCALE 1:250000",mapR.x+24,mapR.y+52);
+  g.fillText("CONTOUR "+(P.interval/10).toFixed(1)+"M · fBM-4",mapR.x+24,mapR.y+65);
+  // north arrow
+  var nx=mapR.x+mapR.w-46, ny=mapR.y+52;
+  g.strokeStyle="#23302a"; g.lineWidth=1;
+  g.beginPath(); g.moveTo(nx,ny-24); g.lineTo(nx-9,ny+10); g.lineTo(nx,ny+4); g.lineTo(nx+9,ny+10); g.closePath();
+  g.fillStyle="#23302a"; g.fill();
+  g.font="700 11px 'SF Mono',Menlo,monospace"; g.textAlign="center";
+  g.fillText("N",nx,ny-30);
+  // scale bar
+  var sx0=mapR.x+20, sy0=mapR.y+mapR.h-24;
+  for(i=0;i<4;i++){
+    g.fillStyle=i%2?"#23302a":"rgba(236,232,219,.9)";
+    g.fillRect(sx0+i*40,sy0,40,7);
+  }
+  g.strokeStyle="#23302a"; g.strokeRect(sx0,sy0,160,7);
+  g.fillStyle="#23302a"; g.font="400 9px 'SF Mono',Menlo,monospace";
+  g.textAlign="center";
+  ["0","5","10","15","20 KM"].forEach(function(s,i2){g.fillText(s,sx0+i2*40,sy0+18)});
+  // legend ramp
+  var lx=mapR.x+mapR.w-210, ly=mapR.y+mapR.h-24;
+  for(i=0;i<24;i++){
+    g.fillStyle=SCHEMES[P.scheme].land[i];
+    g.fillRect(lx+i*7,ly,7,7);
+  }
+  g.strokeStyle="#23302a"; g.strokeRect(lx,ly,168,7);
+  g.fillStyle="#23302a";
+  g.fillText("0M",lx,ly+18); g.fillText("2800M",lx+168,ly+18);
+}
+
+/* ---------- frame ---------- */
+var last=0;
+function frame(now){
+  if(P.drift){
+    tDrift+=0.0016;
+    computeGrid(tDrift); findPeaks();
+    needDraw=true;
+  }
+  if(needDraw){
+    ctx.fillStyle="#f2eee1"; ctx.fillRect(0,0,W,H);
+    drawMap(ctx,W,H,tDrift);
+    drawChrome(ctx,W,H);
+    needDraw=false;
+  }
+  requestAnimationFrame(frame);
+}
+
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  var r=stage.getBoundingClientRect();
+  W=r.width; H=r.height;
+  canvas.width=Math.round(W*dpr); canvas.height=Math.round(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var m=Math.max(34,W*0.055);
+  mapR={x:m+14,y:m+14,w:W-m*2-28,h:H-m*2-28};
+  needDraw=true;
+}
+window.addEventListener("resize",resize);
+
+/* ---------- events ---------- */
+stage.addEventListener("pointermove",function(e){
+  var r=stage.getBoundingClientRect();
+  var x=e.clientX-r.left, y=e.clientY-r.top;
+  var gx=(x-mapR.x)/mapR.w*GW, gy=(y-mapR.y)/mapR.h*GH;
+  var el=document.getElementById("readout");
+  if(gx<0||gy<0||gx>GW||gy>GH){el.textContent="ELEV ---- M · --°--′N ---°--′E";return}
+  var i=Math.min(GW-1,Math.floor(gx)), j=Math.min(GH-1,Math.floor(gy));
+  var fx=gx-i, fy=gy-j;
+  var h00=grid[j*(GW+1)+i], h10=grid[j*(GW+1)+i+1], h01=grid[(j+1)*(GW+1)+i], h11=grid[(j+1)*(GW+1)+i+1];
+  var hv=h00*(1-fx)*(1-fy)+h10*fx*(1-fy)+h01*(1-fx)*fy+h11*fx*fy;
+  var m=toMeters(hv);
+  var lat=baseLat+gy/GH*8, lon=baseLon+gx/GW*12;
+  var laD=Math.floor(lat), laM=Math.floor((lat-laD)*60);
+  var loD=Math.floor(lon), loM=Math.floor((lon-loD)*60);
+  el.textContent=(hv<SEA?"DEPTH ":"ELEV ")+("    "+m).slice(-4)+" M · "+laD+"°"+("0"+laM).slice(-2)+"′N "+loD+"°"+("0"+loM).slice(-2)+"′E";
+});
+
+document.getElementById("rInt").addEventListener("input",function(){
+  P.interval=+this.value; document.getElementById("oInt").textContent=this.value; needDraw=true;
+});
+
+var scBox=document.getElementById("schemes");
+SCHEMES.forEach(function(s,idx){
+  var b=document.createElement("button");
+  b.className=idx===0?"on":"";
+  b.innerHTML='<span class="ramp">'+s.land.filter(function(_,k){return k%5===0}).map(function(c){return '<i style="background:'+c+'"></i>'}).join("")+'</span>'+s.name;
+  b.addEventListener("click",function(){
+    P.scheme=idx;
+    scBox.querySelectorAll("button").forEach(function(el,k){el.classList.toggle("on",k===idx)});
+    needDraw=true;
+  });
+  scBox.appendChild(b);
+});
+
+var bDrift=document.getElementById("bDrift");
+bDrift.addEventListener("click",function(){
+  P.drift=!P.drift;
+  bDrift.textContent=P.drift?"漂移 Drift · ON":"漂移 Drift · OFF";
+  bDrift.classList.toggle("on",P.drift);
+});
+document.getElementById("bRegen").addEventListener("click",function(){
+  seed=Math.floor(Math.random()*1e9);
+  noise=makeNoise(seed); metaFromSeed();
+  computeGrid(tDrift); findPeaks(); needDraw=true;
+});
+document.getElementById("bSave").addEventListener("click",function(){
+  var ex=document.createElement("canvas");
+  var ew=1680, eh=ew*(H/W);
+  ex.width=ew; ex.height=eh;
+  var eg=ex.getContext("2d");
+  var keep={ctx:ctx,W:W,H:H,map:mapR};
+  var m=Math.max(34,ew*0.055);
+  ctx=eg; W=ew; H=eh; mapR={x:m+14,y:m+14,w:W-m*2-28,h:H-m*2-28};
+  eg.fillStyle="#f2eee1"; eg.fillRect(0,0,W,H);
+  drawMap(eg,W,H,tDrift); drawChrome(eg,W,H);
+  ctx=keep.ctx; W=keep.W; H=keep.H; mapR=keep.map;
+  var a=document.createElement("a");
+  a.download="topo-drift-"+surveyNo+".png";
+  a.href=ex.toDataURL("image/png");
+  a.click();
+});
+
+metaFromSeed();
+computeGrid(tDrift); findPeaks();
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

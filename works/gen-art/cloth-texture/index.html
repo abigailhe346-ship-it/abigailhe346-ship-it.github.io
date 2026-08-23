@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloth Texture — 织物纹理生成器</title>
+<style>
+  :root{
+    --bg:#efe9dd;
+    --ink:#26221c;
+    --accent:#b8502e;
+    --line:rgba(38,34,28,.18);
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+  #stage{position:fixed;inset:0;display:block}
+  header{position:fixed;top:0;left:0;right:0;padding:28px 36px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:5}
+  .mark .no{font-family:var(--mono);font-size:10px;letter-spacing:.35em;color:var(--accent)}
+  .mark h1{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,34px);letter-spacing:.02em;line-height:1;margin:6px 0}
+  .mark .sub{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:rgba(38,34,28,.5)}
+  .meta{font-family:var(--mono);font-size:10px;line-height:1.9;color:rgba(38,34,28,.45);text-align:right;white-space:pre}
+  .meta b{color:var(--accent);font-weight:400}
+
+  .panel{position:fixed;right:36px;bottom:32px;z-index:6;width:288px;max-height:calc(100vh - 160px);overflow-y:auto;padding:22px;background:rgba(239,233,221,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);transition:transform .6s var(--ease),opacity .6s var(--ease)}
+  .panel.hidden{transform:translateY(24px);opacity:0;pointer-events:none}
+  .panel h2{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:rgba(38,34,28,.55);margin-bottom:14px}
+  .weaves{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:16px}
+  .weaves button{padding:9px 0;font-size:10px;letter-spacing:.08em}
+  .weaves button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .ctl{margin-bottom:13px}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:rgba(38,34,28,.66);margin-bottom:7px}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:rgba(38,34,28,.3)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:9px;height:9px;margin-top:-4px;background:var(--bg);border:1px solid var(--accent);transform:rotate(45deg);transition:background .25s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--accent)}
+  input[type=range]::-moz-range-track{height:1px;background:rgba(38,34,28,.3)}
+  input[type=range]::-moz-range-thumb{width:9px;height:9px;border:none;background:var(--accent);border-radius:0;transform:rotate(45deg)}
+  .swatches{display:flex;gap:8px;margin-bottom:16px}
+  .sw{flex:1;height:26px;border:1px solid var(--line);cursor:pointer;position:relative;transition:transform .3s var(--ease)}
+  .sw:hover{transform:translateY(-2px)}
+  .sw.on::after{content:"";position:absolute;inset:-4px;border:1px solid var(--accent)}
+  button{font-family:var(--sans);font-size:10px;letter-spacing:.2em;text-transform:uppercase;padding:11px 0;background:transparent;color:var(--ink);border:1px solid rgba(38,34,28,.35);cursor:pointer;transition:all .3s var(--ease)}
+  button:hover{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .row{display:flex;gap:10px}
+  .row button{flex:1}
+  button.accent{border-color:var(--accent);color:var(--accent)}
+  button.accent:hover{background:var(--accent);color:var(--bg)}
+  .hint{position:fixed;left:36px;bottom:32px;z-index:5;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:rgba(38,34,28,.4);line-height:2;pointer-events:none}
+  .hint em{font-style:normal;color:rgba(38,34,28,.7)}
+  #panelToggle{position:fixed;right:36px;bottom:32px;z-index:7;width:38px;height:38px;display:none;align-items:center;justify-content:center;border:1px solid rgba(38,34,28,.35);padding:0;flex:none}
+  #panelToggle svg{width:14px;height:14px;stroke:var(--ink);stroke-width:1.5;fill:none}
+  .panel.hidden ~ #panelToggle{display:flex}
+  @media (max-width:640px){
+    header{padding:20px}.meta{display:none}
+    .panel{right:16px;left:16px;bottom:16px;width:auto}
+    #panelToggle{right:16px;bottom:16px}
+    .hint{display:none}
+  }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<header>
+  <div class="mark">
+    <span class="no">GEN-ART · N°02</span>
+    <h1>Cloth Texture</h1>
+    <span class="sub">织物纹理生成器 · Weave Loom</span>
+  </div>
+  <div class="meta" id="meta"></div>
+</header>
+
+<div class="panel" id="panel">
+  <h2>组织 Weave Draft</h2>
+  <div class="weaves" id="weaves"></div>
+  <h2>纱线 Yarn</h2>
+  <div class="swatches" id="swatches"></div>
+  <div class="ctl"><label><span>密度 sett</span><output id="oSett">18</output></label><input type="range" id="pSett" min="10" max="30" step="1" value="18"></div>
+  <div class="ctl"><label><span>饱满 fullness</span><output id="oFull">0.88</output></label><input type="range" id="pFull" min="0.6" max="1" step="0.01" value="0.88"></div>
+  <div class="ctl"><label><span>竹节 slub</span><output id="oSlub">0.35</output></label><input type="range" id="pSlub" min="0" max="1" step="0.01" value="0.35"></div>
+  <div class="row">
+    <button class="accent" id="btnRandom">随机再生</button>
+    <button id="btnSave">下载 PNG</button>
+  </div>
+</div>
+<button id="panelToggle" aria-label="open panel"><svg viewBox="0 0 24 24"><path d="M4 8h16M4 16h10"/></svg></button>
+
+<div class="hint">移动鼠标 — <em>光掠布面</em><br>按 <em>R</em> 随机 · <em>S</em> 存图 · <em>H</em> 收起面板</div>
+
+<script>
+(function(){
+  "use strict";
+  var canvas=document.getElementById('stage'),ctx=canvas.getContext('2d');
+  var off=document.createElement('canvas'),octx=off.getContext('2d');
+  var W=0,H=0,DPR=1;
+  function resize(){
+    DPR=Math.min(window.devicePixelRatio||1,2);
+    W=window.innerWidth;H=window.innerHeight;
+    canvas.width=W*DPR;canvas.height=H*DPR;
+    canvas.style.width=W+'px';canvas.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    renderWeave();
+  }
+
+  /* ---------------- state ---------------- */
+  var WEAVES=[
+    {name:"平纹",fn:function(x,y){return ((x+y)%2+2)%2===0;}},
+    {name:"斜纹 2/2",fn:function(x,y){return ((x+y)%4+4)%4<2;}},
+    {name:"斜纹 3/1",fn:function(x,y){return ((x+y)%4+4)%4<3;}},
+    {name:"缎纹 5",fn:function(x,y){return ((x+2*y)%5+5)%5===0;}},
+    {name:"人字纹",fn:function(x,y){var yy=(Math.floor(x/4)%2===0)?y:-y;return ((x+yy)%4+4)%4<2;}},
+    {name:"千鸟格",fn:function(x,y){return ((x+y)%4+4)%4<2;},hound:true}
+  ];
+  var PALETTES=[
+    {name:"靛蓝土布",warp:"#2b3a67",weft:"#e3dac7",bg:"#e9e2d2"},
+    {name:"墨绿柞丝",warp:"#33473a",weft:"#d3c8ae",bg:"#e6dfcf"},
+    {name:"绛红千鸟",warp:"#6e2b27",weft:"#e8e0cf",bg:"#ece5d6",alt:"#26221c"},
+    {name:"燕麦亚麻",warp:"#a89a80",weft:"#efe8d8",bg:"#e2dac8"},
+    {name:"炭灰法兰绒",warp:"#33302c",weft:"#8d8478",bg:"#ddd5c5"}
+  ];
+  var weaveIdx=1,palIdx=0,sett=18,full=0.88,slub=0.35;
+  var mouse={x:0.5,y:0.42,tx:0.5,ty:0.42};
+  var reveal=1; /* 0..1 entrance animation */
+
+  /* deterministic rng per render */
+  var seed=1234;
+  function rng(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;}
+
+  function hexRgb(h){return [parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+  function shade(h,f){
+    var c=hexRgb(h);
+    return "rgb("+Math.round(c[0]*f)+","+Math.round(c[1]*f)+","+Math.round(c[2]*f)+")";
+  }
+
+  function renderWeave(){
+    seed=(Date.now()%100000)|0;
+    var P=PALETTES[palIdx],WV=WEAVES[weaveIdx];
+    off.width=W*DPR;off.height=H*DPR;
+    octx.setTransform(DPR,0,0,DPR,0,0);
+    octx.fillStyle=P.bg;octx.fillRect(0,0,W,H);
+    var s=sett,cols=Math.ceil(W/s),rows=Math.ceil(H/s);
+    var alt=P.alt||shade(P.warp,0.55);
+    /* per-thread slub widths */
+    var warpW=[],weftW=[];
+    for(var i=0;i<cols;i++)warpW.push(1-(rng()*slub*0.28));
+    for(var j=0;j<rows;j++)weftW.push(1-(rng()*slub*0.28));
+    function warpColor(x){
+      if(WV.hound)return (Math.floor(x/4)%2===0)?P.warp:alt;
+      return P.warp;
+    }
+    function weftColor(y){
+      if(WV.hound)return (Math.floor(y/4)%2===0)?P.weft:shade(P.weft,0.72);
+      return P.weft;
+    }
+    /* pass 1: weft yarns as continuous horizontal runs */
+    for(var y=0;y<rows;y++){
+      var x=0;
+      while(x<cols){
+        if(WV.fn(x,y)){
+          var x0=x;
+          while(x<cols&&WV.fn(x,y))x++;
+          var jit=(rng()-0.5)*slub*1.2;
+          drawYarn(x0*s-s*0.14,y*s+s/2+jit,(x-x0)*s+s*0.28,s*full*weftW[y],true,weftColor(y));
+        }else x++;
+      }
+    }
+    /* pass 2: warp yarns as continuous vertical runs, drawn over weft tails */
+    for(var x2=0;x2<cols;x2++){
+      var y2=0;
+      while(y2<rows){
+        if(!WV.fn(x2,y2)){
+          var y0=y2;
+          while(y2<rows&&!WV.fn(x2,y2))y2++;
+          var jit2=(rng()-0.5)*slub*1.2;
+          drawYarn(x2*s+s/2+jit2,y0*s-s*0.14,(y2-y0)*s+s*0.28,s*full*warpW[x2],false,warpColor(x2));
+        }else y2++;
+      }
+    }
+    reveal=0;
+    updateMeta();
+  }
+  function drawYarn(a,b,len,wd,horiz,color){
+    var g;
+    if(horiz){
+      g=octx.createLinearGradient(0,b-wd/2,0,b+wd/2);
+    }else{
+      g=octx.createLinearGradient(a-wd/2,0,a+wd/2,0);
+    }
+    g.addColorStop(0,shade(color,0.62));
+    g.addColorStop(0.32,shade(color,1.0));
+    g.addColorStop(0.55,shade(color,1.14));
+    g.addColorStop(0.78,shade(color,0.92));
+    g.addColorStop(1,shade(color,0.55));
+    octx.fillStyle=g;
+    var r=wd/2;
+    octx.beginPath();
+    if(horiz){
+      octx.moveTo(a+r,b-wd/2);octx.lineTo(a+len-r,b-wd/2);
+      octx.arc(a+len-r,b,r,-Math.PI/2,Math.PI/2);
+      octx.lineTo(a+r,b+wd/2);
+      octx.arc(a+r,b,r,Math.PI/2,Math.PI*1.5);
+    }else{
+      octx.moveTo(a-wd/2,b+r);octx.lineTo(a-wd/2,b+len-r);
+      octx.arc(a,b+len-r,r,Math.PI,0);
+      octx.lineTo(a+wd/2,b+r);
+      octx.arc(a,b+r,r,0,Math.PI);
+    }
+    octx.closePath();octx.fill();
+    /* fibre flecks */
+    octx.strokeStyle=shade(color,0.7);octx.lineWidth=0.6;octx.globalAlpha=0.5;
+    for(var k=0;k<2+len/36;k++){
+      var t=0.2+rng()*0.6,off2=(rng()-0.5)*wd*0.5;
+      octx.beginPath();
+      if(horiz){octx.moveTo(a+len*t,b+off2);octx.lineTo(a+len*t+len*0.16,b+off2);}
+      else{octx.moveTo(a+off2,b+len*t);octx.lineTo(a+off2,b+len*t+len*0.16);}
+      octx.stroke();
+    }
+    octx.globalAlpha=1;
+  }
+
+  var metaEl=document.getElementById('meta');
+  function updateMeta(){
+    metaEl.innerHTML='组织 <b>'+WEAVES[weaveIdx].name+'</b>   纱色 <b>'+PALETTES[palIdx].name+'</b>\n密度 '+sett+' px/目 · 经纬 '+Math.ceil(W/sett)+' × '+Math.ceil(H/sett);
+  }
+
+  /* ---------------- frame loop: reveal + sheen ---------------- */
+  var last=performance.now();
+  function loop(now){
+    var dt=Math.min(0.05,(now-last)/1000);last=now;
+    mouse.tx+=(mouse.x-mouse.tx)*0.06;
+    mouse.ty+=(mouse.y-mouse.ty)*0.06;
+    if(reveal<1)reveal=Math.min(1,reveal+dt/1.1);
+    var e=1-Math.pow(1-reveal,3);
+    ctx.clearRect(0,0,W,H);
+    ctx.drawImage(off,0,0,W,H);
+    if(reveal<1){
+      var edge=e*(Math.max(W,H)+160)-80;
+      var g=ctx.createLinearGradient(0,edge-160,0,edge+40);
+      g.addColorStop(0,'rgba(233,226,210,0)');
+      g.addColorStop(1,PALETTES[palIdx].bg);
+      ctx.fillStyle=g;ctx.fillRect(0,Math.max(0,edge-160),W,H);
+      ctx.fillStyle=PALETTES[palIdx].bg;
+      ctx.fillRect(0,edge+40,W,H);
+    }
+    /* sheen follows mouse */
+    ctx.save();
+    ctx.globalCompositeOperation='soft-light';
+    var sr=Math.max(W,H)*0.55;
+    var sg=ctx.createRadialGradient(mouse.tx*W,mouse.ty*H,0,mouse.tx*W,mouse.ty*H,sr);
+    sg.addColorStop(0,'rgba(255,250,235,0.85)');
+    sg.addColorStop(0.6,'rgba(255,250,235,0.18)');
+    sg.addColorStop(1,'rgba(0,0,0,0.12)');
+    ctx.fillStyle=sg;ctx.fillRect(0,0,W,H);
+    ctx.restore();
+    requestAnimationFrame(loop);
+  }
+  window.addEventListener('resize',resize);
+
+  /* ---------------- UI ---------------- */
+  var weavesEl=document.getElementById('weaves');
+  WEAVES.forEach(function(w,i){
+    var b=document.createElement('button');b.textContent=w.name;
+    if(i===weaveIdx)b.classList.add('on');
+    b.addEventListener('click',function(){
+      weaveIdx=i;
+      weavesEl.querySelectorAll('button').forEach(function(x,j){x.classList.toggle('on',j===i);});
+      renderWeave();
+    });
+    weavesEl.appendChild(b);
+  });
+  var swEl=document.getElementById('swatches');
+  PALETTES.forEach(function(p,i){
+    var d=document.createElement('div');d.className='sw'+(i===palIdx?' on':'');
+    d.title=p.name;
+    d.style.background='linear-gradient(90deg,'+p.warp+' 0 50%,'+p.weft+' 50% 100%)';
+    d.addEventListener('click',function(){
+      palIdx=i;
+      swEl.querySelectorAll('.sw').forEach(function(x,j){x.classList.toggle('on',j===i);});
+      renderWeave();
+    });
+    swEl.appendChild(d);
+  });
+  function bind(id,out,fn,fmt){
+    var el=document.getElementById(id),o=document.getElementById(out);
+    el.addEventListener('input',function(){var v=parseFloat(el.value);fn(v);o.textContent=fmt(v);renderWeave();});
+  }
+  bind('pSett','oSett',function(v){sett=v;},function(v){return String(v);});
+  bind('pFull','oFull',function(v){full=v;},function(v){return v.toFixed(2);});
+  bind('pSlub','oSlub',function(v){slub=v;},function(v){return v.toFixed(2);});
+
+  function randomize(){
+    weaveIdx=Math.floor(Math.random()*WEAVES.length);
+    if(WEAVES[weaveIdx].hound&&Math.random()<0.6)palIdx=2;
+    else palIdx=Math.floor(Math.random()*PALETTES.length);
+    sett=12+Math.floor(Math.random()*14);
+    full=0.7+Math.random()*0.3;
+    slub=Math.random()*0.8;
+    weavesEl.querySelectorAll('button').forEach(function(x,j){x.classList.toggle('on',j===weaveIdx);});
+    swEl.querySelectorAll('.sw').forEach(function(x,j){x.classList.toggle('on',j===palIdx);});
+    document.getElementById('pSett').value=sett;document.getElementById('oSett').textContent=sett;
+    document.getElementById('pFull').value=full;document.getElementById('oFull').textContent=full.toFixed(2);
+    document.getElementById('pSlub').value=slub;document.getElementById('oSlub').textContent=slub.toFixed(2);
+    renderWeave();
+  }
+  function save(){
+    var a=document.createElement('a');
+    a.download='cloth-'+WEAVES[weaveIdx].name+'-'+Date.now()+'.png';
+    a.href=off.toDataURL('image/png');
+    a.click();
+  }
+  document.getElementById('btnRandom').addEventListener('click',randomize);
+  document.getElementById('btnSave').addEventListener('click',save);
+  window.addEventListener('mousemove',function(e){mouse.x=e.clientX/W;mouse.y=e.clientY/H;});
+  window.addEventListener('touchmove',function(e){if(e.touches.length){mouse.x=e.touches[0].clientX/W;mouse.y=e.touches[0].clientY/H;}},{passive:true});
+  var panel=document.getElementById('panel');
+  document.getElementById('panelToggle').addEventListener('click',function(){panel.classList.remove('hidden');});
+  window.addEventListener('keydown',function(e){
+    var k=e.key.toLowerCase();
+    if(k==='r')randomize();else if(k==='s')save();else if(k==='h')panel.classList.toggle('hidden');
+  });
+
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

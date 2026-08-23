@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clock Tower / 齿轮钟楼 / MIRA</title>
+<style>
+:root{
+  --bg:#171310;--ink:#ece2cd;--dim:#8d7f68;--line:#332a20;
+  --brass:#c9973f;--parch:#e8d9b0;
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --mono:"SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans)}
+header{height:66px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font:10px var(--mono);letter-spacing:.11em;text-transform:uppercase;color:var(--dim)}
+a{color:inherit;text-decoration:none}
+.back{display:flex;align-items:center;gap:12px;color:var(--ink)}
+.back b{font:18px var(--serif);font-weight:400}
+.hero{padding:5vw 4vw 3.4vw;display:grid;grid-template-columns:1fr 1fr;gap:6vw;align-items:end}
+.kicker{font:10px var(--mono);color:var(--brass);letter-spacing:.12em;text-transform:uppercase}
+.hero h1{font:400 clamp(58px,9vw,138px)/.78 var(--serif);letter-spacing:-.06em;margin:22px 0 26px;color:var(--ink)}
+.hero h1 em{font-style:italic;color:var(--brass)}
+.hero p{max-width:420px;color:var(--dim);font-size:15px;line-height:1.7;margin:0}
+.micro{font:9px var(--mono);color:var(--dim);letter-spacing:.1em;text-transform:uppercase;line-height:1.7;text-align:right}
+.stage-wrap{padding:0 4vw 4vw}
+.stage{height:min(63vw,670px);min-height:420px;background:#100d0a;position:relative;overflow:hidden;border:1px solid var(--line)}
+.stage canvas{display:block;width:100%;height:100%;cursor:grab}
+.stage canvas:active{cursor:grabbing}
+.hud{position:absolute;inset:18px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;font:9px var(--mono);letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+.hud strong{color:var(--brass);font-weight:400}
+.hud .bl{position:absolute;left:0;bottom:0}
+.hud .br{position:absolute;right:0;bottom:0}
+.tools{display:flex;align-items:center;gap:26px;flex-wrap:wrap;padding:16px 4vw;border:1px solid var(--line);border-top:none;font:9px var(--mono);letter-spacing:.1em;color:var(--dim);text-transform:uppercase}
+.slider{display:flex;align-items:center;gap:10px}
+.slider b{color:var(--brass);font-weight:400;min-width:34px;text-align:right}
+input[type=range]{-webkit-appearance:none;appearance:none;height:2px;background:var(--line);outline:none;width:100px;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;background:var(--brass);border:none;border-radius:0;cursor:pointer}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--brass);border:none;border-radius:0;cursor:pointer}
+button{font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;background:none;border:1px solid var(--dim);color:var(--ink);padding:8px 14px;cursor:pointer;transition:border-color .25s,color .25s}
+button:hover{border-color:var(--brass);color:var(--brass)}
+.caption{padding:7vw 4vw 8vw;display:grid;grid-template-columns:1.2fr 1fr;gap:6vw;border-top:1px solid var(--line)}
+.caption h2{font:400 clamp(34px,4.6vw,68px)/1.02 var(--serif);letter-spacing:-.03em;margin:0}
+.caption h2 em{font-style:italic;color:var(--brass)}
+.caption p{color:var(--dim);font-size:15px;line-height:1.8;margin:0;align-self:end;max-width:440px}
+@media(max-width:820px){
+  .hero,.caption{grid-template-columns:1fr;gap:26px}
+  .micro{text-align:left}
+  .stage{min-height:340px;height:70vw}
+  .tools{gap:16px}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a>
+  <span>17 / 100 · 3D Worlds</span>
+  <span>Clock Tower</span>
+</header>
+<main>
+<section class="hero">
+  <div>
+    <div class="kicker">Horology study / 2026</div>
+    <h1>Clock<br><em>Tower</em></h1>
+    <p>一座钟楼的心脏：摆锤每过半周期，锚式擒纵就放走一枚齿。上紧发条，听黄铜在黑暗里一秒一秒地咬合；松开手，看振幅像呼吸一样慢慢衰减。</p>
+  </div>
+  <div class="micro">Three.js / Escapement kinematics / Extruded gears<br>Mechanical simulation + brass &amp; dust</div>
+</section>
+<section class="stage-wrap">
+  <div class="stage" id="stage">
+    <div class="hud">
+      <span>BEAT <strong id="beat">0000</strong> · <strong id="hz">0.80 HZ</strong></span>
+      <strong>ESCAPEMENT / ANCHOR</strong>
+      <span class="bl" id="train">TRAIN 15:60:64 · RATIO 1:256</span>
+      <span class="br">CLICK TO WIND</span>
+    </div>
+  </div>
+  <div class="tools">
+    <span>Drag to orbit · wheel to zoom · click to wind</span>
+    <label class="slider">Tempo <input id="tempo" type="range" min="20" max="100" value="55"><b id="tempov">1.25s</b></label>
+    <label class="slider">Drive <input id="drive" type="range" min="10" max="100" value="70"><b id="drivev">70%</b></label>
+    <label class="slider">Lamp <input id="lamp" type="range" min="20" max="160" value="100"><b id="lampv">1.0×</b></label>
+    <button id="wind">Wind mainspring ↻</button>
+    <button id="dl">Download PNG ↓</button>
+  </div>
+</section>
+<section class="caption">
+  <h2>Time is a machine<br>for eating <em>teeth.</em></h2>
+  <p>擒纵机构是机械表的灵魂：它不许时间奔流，只许时间一格一格地漏。每一次"咔哒"，都是摆锤用振幅赎来的一枚齿。这座钟楼没有指针要服务的时刻——它只为节拍本身而存在。</p>
+</section>
+</main>
+<script src="../../../vendor/three.min.js"></script>
+<script>
+const stage=document.getElementById('stage'),beatEl=document.getElementById('beat'),hzEl=document.getElementById('hz');
+let scene,camera,renderer,clock;
+let az=.5,el=.12,rad=10.5,tAz=az,tEl=el,tRad=rad,drag=false,px=0,py=0,lastAct=0,moved=0;
+let period=1.25,drive=.7,lampMul=1,phase=0,lastHalf=0,beats=0;
+let amp=.34,ampTarget=.34;
+let escapeWheel,anchor,pendulum,gearA,gearB,gearC,secHand,minHand,hourHand,dust,dustVel,shaft,lamp,glow;
+let escapeAngle=0,escapeTarget=0,toothFlash=0;
+const ESCAPE_TEETH=15;
+function rnd(a,b){return a+Math.random()*(b-a)}
+/* ---------- geometry helpers ---------- */
+function gearGeo(r,teeth,depth,thickness,saw){
+  const s=new THREE.Shape(),step=Math.PI*2/teeth;
+  for(let i=0;i<teeth;i++){
+    const a=i*step;
+    let pts;
+    if(saw) pts=[[a,r],[a+step*.12,r],[a+step*.3,r+depth],[a+step*.55,r+depth*.92],[a+step*.95,r]];
+    else pts=[[a,r],[a+step*.2,r],[a+step*.32,r+depth],[a+step*.6,r+depth],[a+step*.72,r]];
+    pts.forEach(function(pt,j){
+      const x=Math.cos(pt[0])*pt[1],y=Math.sin(pt[0])*pt[1];
+      if(i===0&&j===0)s.moveTo(x,y);else s.lineTo(x,y);
+    });
+  }
+  s.closePath();
+  const hub=new THREE.Path();hub.absarc(0,0,r*.16,0,Math.PI*2,true);s.holes.push(hub);
+  if(r>1){
+    for(let k=0;k<5;k++){
+      const th=k/5*Math.PI*2,h=new THREE.Path();
+      h.absarc(Math.cos(th)*r*.55,Math.sin(th)*r*.55,r*.2,0,Math.PI*2,true);
+      s.holes.push(h);
+    }
+  }
+  const g=new THREE.ExtrudeGeometry(s,{depth:thickness,bevelEnabled:true,bevelThickness:.02,bevelSize:.02,bevelSegments:1,curveSegments:6});
+  g.translate(0,0,-thickness/2);
+  return g;
+}
+const brass=new THREE.MeshStandardMaterial({color:0xc9973f,metalness:.92,roughness:.34});
+const brassDark=new THREE.MeshStandardMaterial({color:0x8a6526,metalness:.9,roughness:.45});
+const iron=new THREE.MeshStandardMaterial({color:0x3a342c,metalness:.85,roughness:.55});
+const parch=new THREE.MeshStandardMaterial({color:0xe8d9b0,metalness:.05,roughness:.85,emissive:0x776a4a,emissiveIntensity:.35});
+function makeGear(r,teeth,depth,thick,mat,saw){
+  const m=new THREE.Mesh(gearGeo(r,teeth,depth,thick,saw),mat);
+  const hub=new THREE.Mesh(new THREE.CylinderGeometry(r*.16,r*.16,thick+.24,14),iron);
+  hub.rotation.x=Math.PI/2;m.add(hub);
+  const axle=new THREE.Mesh(new THREE.CylinderGeometry(.06,.06,thick+1.4,10),brassDark);
+  axle.rotation.x=Math.PI/2;m.add(axle);
+  return m;
+}
+/* ---------- clock face ---------- */
+function buildFace(){
+  const g=new THREE.Group();
+  const R=3.1;
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(R,.16,12,72),brassDark);
+  g.add(ring);
+  const dial=new THREE.Mesh(new THREE.CylinderGeometry(R-.1,R-.1,.12,72),parch);
+  dial.rotation.x=Math.PI/2;g.add(dial);
+  for(let i=0;i<12;i++){
+    const th=i/12*Math.PI*2,big=i%3===0;
+    const mark=new THREE.Mesh(new THREE.BoxGeometry(big?.1:.06,big?.5:.3,.06),iron);
+    mark.position.set(Math.sin(th)*(R-.45),Math.cos(th)*(R-.45),.1);
+    mark.rotation.z=-th;g.add(mark);
+  }
+  function hand(len,wid,mat,z){
+    const geo=new THREE.BoxGeometry(wid,len,.05);geo.translate(0,len/2-.18,0);
+    const h=new THREE.Mesh(geo,mat);h.position.z=z;return h;
+  }
+  hourHand=hand(1.5,.16,iron,.14);
+  minHand=hand(2.3,.11,iron,.2);
+  secHand=hand(2.55,.045,new THREE.MeshStandardMaterial({color:0x9a3b26,metalness:.4,roughness:.5}),.26);
+  const pin=new THREE.Mesh(new THREE.SphereGeometry(.12,12,10),brass);pin.position.z=.3;
+  g.add(hourHand,minHand,secHand,pin);
+  g.position.set(0,1.1,-4.2);
+  return g;
+}
+/* ---------- escapement ---------- */
+function buildEscapement(){
+  const g=new THREE.Group();
+  escapeWheel=makeGear(1.05,ESCAPE_TEETH,.22,.16,brass,true);
+  escapeWheel.position.set(0,1.15,0);
+  g.add(escapeWheel);
+  // anchor: two pallets on a rocking arm, pivot above wheel
+  anchor=new THREE.Group();
+  const arm=new THREE.Mesh(new THREE.BoxGeometry(2.5,.14,.14),iron);
+  anchor.add(arm);
+  const stem=new THREE.Mesh(new THREE.BoxGeometry(.1,1.5,.1),iron);
+  stem.position.y=.75;anchor.add(stem);
+  const palL=new THREE.Mesh(new THREE.BoxGeometry(.34,.16,.2),brassDark);
+  palL.position.set(-1.18,-.28,0);palL.rotation.z=.5;anchor.add(palL);
+  const palR=palL.clone();palR.position.set(1.18,-.28,0);palR.rotation.z=-.5;anchor.add(palR);
+  anchor.position.set(0,2.45,0);
+  g.add(anchor);
+  return g;
+}
+/* ---------- pendulum ---------- */
+function buildPendulum(){
+  const g=new THREE.Group();
+  const L=4.1;
+  const rod=new THREE.Mesh(new THREE.CylinderGeometry(.045,.045,L,10),brassDark);
+  rod.position.y=-L/2;g.add(rod);
+  const bob=new THREE.Mesh(new THREE.CylinderGeometry(.62,.62,.16,36),brass);
+  bob.rotation.x=Math.PI/2;bob.position.y=-L;g.add(bob);
+  const bobRim=new THREE.Mesh(new THREE.TorusGeometry(.62,.05,8,36),brassDark);
+  bobRim.position.y=-L;g.add(bobRim);
+  const nut=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.2,6),iron);
+  nut.position.y=-L-.5;g.add(nut);
+  g.position.set(0,4.7,.55);
+  return g;
+}
+/* ---------- gear train (decorative, ratio-driven) ---------- */
+function buildTrain(){
+  const g=new THREE.Group();
+  gearA=makeGear(1.55,60,.16,.22,brass,false);gearA.position.set(-2.5,2.3,-1.2);g.add(gearA);
+  gearB=makeGear(.95,32,.14,.18,brassDark,false);gearB.position.set(-1.35,.1,-.8);g.add(gearB);
+  gearC=makeGear(1.9,64,.15,.2,iron,false);gearC.position.set(2.8,2.8,-2);g.add(gearC);
+  const small=makeGear(.7,24,.12,.15,brass,false);small.position.set(2.3,.2,-1.1);g.add(small);
+  g.userData.small=small;
+  return g;
+}
+function makeDotTex(){
+  const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');
+  const gr=x.createRadialGradient(32,32,0,32,32,32);
+  gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.4,'rgba(255,255,255,.4)');gr.addColorStop(1,'rgba(255,255,255,0)');
+  x.fillStyle=gr;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);
+}
+function init(){
+  scene=new THREE.Scene();scene.background=new THREE.Color(0x100d0a);
+  scene.fog=new THREE.FogExp2(0x100d0a,.028);
+  camera=new THREE.PerspectiveCamera(40,stage.clientWidth/stage.clientHeight,.1,120);
+  renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(stage.clientWidth,stage.clientHeight);
+  stage.prepend(renderer.domElement);
+  scene.add(new THREE.HemisphereLight(0x5a4a30,0x0a0806,.9));
+  lamp=new THREE.PointLight(0xffd9a0,2.2,40,1.6);lamp.position.set(-3.5,7,3.5);scene.add(lamp);
+  const fill=new THREE.DirectionalLight(0x4a5a8a,.35);fill.position.set(5,2,6);scene.add(fill);
+  const rim=new THREE.DirectionalLight(0xc9973f,.5);rim.position.set(-4,3,-6);scene.add(rim);
+  // light shaft from high window
+  const shaftGeo=new THREE.CylinderGeometry(.7,2.6,11,20,1,true);
+  shaft=new THREE.Mesh(shaftGeo,new THREE.MeshBasicMaterial({color:0xffd9a0,transparent:true,opacity:.045,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide}));
+  shaft.position.set(-2.4,3.5,-1);shaft.rotation.z=.32;scene.add(shaft);
+  // warm glow behind dial
+  glow=new THREE.Sprite(new THREE.SpriteMaterial({map:makeDotTex(),color:0xd9a860,transparent:true,opacity:.4,blending:THREE.AdditiveBlending,depthWrite:false}));
+  glow.scale.set(11,11,1);glow.position.set(0,1.1,-4.6);scene.add(glow);
+  scene.add(buildFace());
+  scene.add(buildEscapement());
+  pendulum=buildPendulum();scene.add(pendulum);
+  scene.add(buildTrain());
+  // floor hint
+  const floor=new THREE.Mesh(new THREE.CircleGeometry(14,40),new THREE.MeshStandardMaterial({color:0x141009,roughness:.95,metalness:0}));
+  floor.rotation.x=-Math.PI/2;floor.position.y=-3.4;scene.add(floor);
+  // dust motes
+  const dp=[],dv=[];
+  for(let i=0;i<240;i++){dp.push(rnd(-5,2),rnd(-3,8),rnd(-4,3));dv.push(rnd(.05,.2))}
+  const dg=new THREE.BufferGeometry();dg.setAttribute('position',new THREE.Float32BufferAttribute(dp,3));
+  dust=new THREE.Points(dg,new THREE.PointsMaterial({size:.05,map:makeDotTex(),transparent:true,opacity:.55,depthWrite:false,color:0xe8d0a0,blending:THREE.AdditiveBlending}));
+  dustVel=dv;scene.add(dust);
+  clock=new THREE.Clock();bind();loop();
+}
+function wind(){ampTarget=.42;toothFlash=1}
+function bind(){
+  const c=renderer.domElement;
+  c.addEventListener('pointerdown',e=>{drag=true;moved=0;px=e.clientX;py=e.clientY;c.setPointerCapture(e.pointerId)});
+  c.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-px,dy=e.clientY-py;moved+=Math.abs(dx)+Math.abs(dy);
+    tAz+=dx*.006;tEl+=dy*.004;tEl=Math.max(-.4,Math.min(1,tEl));px=e.clientX;py=e.clientY;lastAct=performance.now()});
+  c.addEventListener('pointerup',()=>{drag=false;if(moved<6)wind()});
+  c.addEventListener('wheel',e=>{e.preventDefault();tRad=Math.max(5.5,Math.min(20,tRad+e.deltaY*.02));lastAct=performance.now()},{passive:false});
+  document.getElementById('tempo').addEventListener('input',e=>{period=.7+(100-e.target.value)/100*1.3;
+    document.getElementById('tempov').textContent=period.toFixed(2)+'s';hzEl.textContent=(1/period).toFixed(2)+' HZ'});
+  document.getElementById('drive').addEventListener('input',e=>{drive=e.target.value/100;
+    document.getElementById('drivev').textContent=e.target.value+'%'});
+  document.getElementById('lamp').addEventListener('input',e=>{lampMul=e.target.value/100;
+    document.getElementById('lampv').textContent=lampMul.toFixed(1)+'×'});
+  document.getElementById('wind').addEventListener('click',wind);
+  document.getElementById('dl').addEventListener('click',()=>{renderer.render(scene,camera);
+    const a=document.createElement('a');a.download='clock-tower.png';a.href=renderer.domElement.toDataURL('image/png');a.click()});
+  window.addEventListener('resize',()=>{camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();renderer.setSize(stage.clientWidth,stage.clientHeight)});
+}
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),.05),now=performance.now();
+  // amplitude: mainspring decays, drive slider feeds it
+  ampTarget=Math.max(.07,ampTarget-dt*.006);
+  amp+=(ampTarget-amp)*dt*(.5+drive*2);
+  // pendulum phase
+  phase+=dt*Math.PI*2/period;
+  const half=Math.floor(phase/Math.PI);
+  if(half!==lastHalf){
+    lastHalf=half;beats++;
+    escapeTarget-=Math.PI*2/ESCAPE_TEETH;
+    toothFlash=1;
+    beatEl.textContent=String(beats%10000).padStart(4,'0');
+  }
+  toothFlash=Math.max(0,toothFlash-dt*4);
+  // escape wheel: spring toward stepped target (recoil + settle)
+  escapeAngle+=(escapeTarget-escapeAngle)*Math.min(1,dt*18);
+  const swing=Math.sin(phase);
+  pendulum.rotation.z=swing*amp;
+  anchor.rotation.z=-swing*(amp*.9+.02);
+  escapeWheel.rotation.z=escapeAngle;
+  // train ratios
+  gearA.rotation.z=-escapeAngle*(ESCAPE_TEETH/60)+.1;
+  gearB.rotation.z=escapeAngle*(ESCAPE_TEETH/32)*2;
+  gearC.rotation.z=-escapeAngle*(ESCAPE_TEETH/64)*.5;
+  // hands: one beat = one second
+  const secs=beats;
+  secHand.rotation.z=-(secs%60)/60*Math.PI*2;
+  minHand.rotation.z=-(secs/60%60)/60*Math.PI*2;
+  hourHand.rotation.z=-(secs/720%12)/12*Math.PI*2;
+  // lamp flicker + flash on tick
+  lamp.intensity=(2+lampMul*1.2)*(1+toothFlash*.25)+Math.sin(now*.013)*.08;
+  glow.material.opacity=(.32+toothFlash*.12)*lampMul;
+  shaft.material.opacity=.045*lampMul*(0.8+0.2*Math.sin(now*.0007));
+  if(!drag&&now-lastAct>3000)tAz+=dt*.04;
+  az+=(tAz-az)*.08;el+=(tEl-el)*.08;rad+=(tRad-rad)*.08;
+  camera.position.set(rad*Math.cos(el)*Math.sin(az),1.2+rad*Math.sin(el)*.7,rad*Math.cos(el)*Math.cos(az));
+  camera.lookAt(0,1,0);
+  if(dust){
+    const arr=dust.geometry.attributes.position.array;
+    for(let i=0;i<dustVel.length;i++){
+      arr[i*3+1]-=dustVel[i]*dt;if(arr[i*3+1]<-3)arr[i*3+1]=8;
+      arr[i*3]+=Math.sin(now*.0004+i)*dt*.05;
+    }
+    dust.geometry.attributes.position.needsUpdate=true;
+  }
+  renderer.render(scene,camera);
+}
+init();
+</script>
+</body>
+</html>

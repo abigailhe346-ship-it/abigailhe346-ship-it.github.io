@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MERIDIAN 子午线制表 — Calibre 01</title>
+<style>
+  :root{
+    --ink:#101214;
+    --ink2:#17191C;
+    --ivory:#EFEAE0;
+    --gold:#B08D4F;
+    --serif:"Didot","Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--ink);color:var(--ivory);font-family:var(--sans);overflow-x:hidden;}
+  ::selection{background:var(--gold);color:var(--ink);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;justify-content:space-between;align-items:center;
+    padding:20px 4vw;mix-blend-mode:difference;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.14em;line-height:1.7;color:#fff;}
+  .sig .no{color:var(--gold);mix-blend-mode:normal;}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-align:right;line-height:1.9;color:#fff;}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:0 6vw;gap:4vw;}
+  @media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:14vh;}}
+  .hero-l .over{font-family:var(--mono);font-size:11px;letter-spacing:.44em;color:var(--gold);margin-bottom:3.5vh;}
+  h1{font-family:var(--serif);font-weight:400;font-size:clamp(48px,6.4vw,110px);line-height:1.02;letter-spacing:.01em;}
+  h1 em{font-style:italic;color:var(--gold);}
+  .hero-l .sub{margin-top:3.5vh;font-size:15px;line-height:2.1;color:rgba(239,234,224,.7);max-width:44ch;}
+  .hero-l .price-line{margin-top:4.5vh;display:flex;align-items:baseline;gap:20px;font-family:var(--mono);}
+  .hero-l .price-line .p{font-size:26px;letter-spacing:.06em;color:var(--ivory);}
+  .hero-l .price-line .n{font-size:10px;letter-spacing:.2em;color:rgba(239,234,224,.5);}
+  .hero-l .ctas{margin-top:3vh;display:flex;gap:14px;flex-wrap:wrap;}
+  .cta{border:1px solid var(--ivory);background:transparent;color:var(--ivory);font-family:var(--mono);
+    font-size:11px;letter-spacing:.22em;padding:14px 26px;transition:.35s;}
+  .cta:hover{background:var(--ivory);color:var(--ink);}
+  .cta.gold{border-color:var(--gold);color:var(--gold);}
+  .cta.gold:hover{background:var(--gold);color:var(--ink);}
+
+  .watch-stage{display:flex;align-items:center;justify-content:center;perspective:1100px;min-height:60vh;}
+  #watchWrap{transform-style:preserve-3d;transition:transform .18s ease-out;position:relative;}
+  #dial{display:block;width:min(46vw,520px);height:min(46vw,520px);filter:drop-shadow(0 50px 80px rgba(0,0,0,.6));}
+  .watch-caption{position:absolute;bottom:-46px;left:0;right:0;text-align:center;font-family:var(--mono);
+    font-size:10px;letter-spacing:.3em;color:rgba(239,234,224,.5);}
+
+  /* ---------- sections ---------- */
+  section{padding:13vh 6vw;max-width:1340px;margin:0 auto;}
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:7vh;flex-wrap:wrap;gap:10px;
+    border-bottom:1px solid rgba(239,234,224,.18);padding-bottom:20px;}
+  .sec-head h2{font-family:var(--serif);font-weight:400;font-size:clamp(32px,4.2vw,60px);line-height:1;}
+  .sec-head h2 em{color:var(--gold);}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:rgba(239,234,224,.45);}
+
+  /* ---------- philosophy ---------- */
+  .philo{display:grid;grid-template-columns:1.2fr 1fr;gap:6vw;align-items:start;}
+  @media(max-width:860px){.philo{grid-template-columns:1fr;}}
+  .philo .q{font-family:var(--serif);font-size:clamp(26px,3vw,44px);line-height:1.5;}
+  .philo .q em{color:var(--gold);}
+  .philo .cols p{font-size:14px;line-height:2.2;color:rgba(239,234,224,.72);margin-bottom:1.6em;}
+  .philo .who{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--gold);}
+
+  /* ---------- numbers ---------- */
+  .nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:2px;background:rgba(239,234,224,.16);margin-top:8vh;}
+  .num{background:var(--ink);padding:34px 26px;}
+  .num .nv{font-family:var(--serif);font-size:clamp(38px,3.6vw,56px);color:var(--ivory);line-height:1;}
+  .num .nv i{font-style:normal;color:var(--gold);font-size:.55em;}
+  .num .nl{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:rgba(239,234,224,.5);margin-top:14px;line-height:1.8;}
+
+  /* ---------- calibre ---------- */
+  .caltabs{display:flex;gap:2px;margin-bottom:2px;}
+  .caltab{flex:1;background:var(--ink2);border:1px solid rgba(239,234,224,.16);color:rgba(239,234,224,.55);
+    padding:20px;text-align:left;font-family:var(--mono);font-size:11px;letter-spacing:.18em;transition:.35s;}
+  .caltab b{display:block;font-family:var(--serif);font-weight:400;font-size:24px;letter-spacing:.02em;color:var(--ivory);margin-bottom:8px;}
+  .caltab.active{border-color:var(--gold);color:var(--gold);background:rgba(176,141,79,.08);}
+  .caltab.active b{color:var(--gold);}
+  .calbody{border:1px solid rgba(239,234,224,.16);border-top:none;padding:5vh 4vw;display:grid;
+    grid-template-columns:1fr 1fr;gap:4vw;}
+  @media(max-width:860px){.calbody{grid-template-columns:1fr;}}
+  .specrow{display:flex;justify-content:space-between;align-items:baseline;padding:15px 0;
+    border-bottom:1px solid rgba(239,234,224,.12);font-family:var(--mono);font-size:12px;letter-spacing:.1em;}
+  .specrow span{color:rgba(239,234,224,.5);}
+  .specrow b{font-weight:400;color:var(--ivory);}
+  .caldesc p{font-size:14px;line-height:2.1;color:rgba(239,234,224,.72);margin-bottom:1.5em;}
+  .caldesc .fin{font-family:var(--serif);font-style:italic;font-size:18px;color:var(--gold);line-height:1.7;}
+
+  /* ---------- configurator ---------- */
+  .config{display:grid;grid-template-columns:1fr 340px;gap:5vw;align-items:start;}
+  @media(max-width:900px){.config{grid-template-columns:1fr;}}
+  .optgroup{margin-bottom:44px;}
+  .optgroup .ol{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(239,234,224,.5);margin-bottom:18px;}
+  .opts{display:flex;gap:12px;flex-wrap:wrap;}
+  .opt{border:1px solid rgba(239,234,224,.3);background:transparent;color:var(--ivory);
+    font-family:var(--mono);font-size:11px;letter-spacing:.14em;padding:13px 20px;display:flex;align-items:center;gap:10px;transition:.3s;}
+  .opt:hover{border-color:var(--ivory);}
+  .opt.sel{border-color:var(--gold);color:var(--gold);background:rgba(176,141,79,.08);}
+  .opt .sw{width:16px;height:16px;border-radius:50%;border:1px solid rgba(239,234,224,.4);}
+  .summary{border:1px solid rgba(239,234,224,.22);padding:32px;background:var(--ink2);position:sticky;top:12vh;}
+  .summary .sl{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:rgba(239,234,224,.5);margin-bottom:22px;}
+  .sumrow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;letter-spacing:.1em;
+    padding:11px 0;border-bottom:1px solid rgba(239,234,224,.1);color:rgba(239,234,224,.75);}
+  .sumrow b{font-weight:400;color:var(--ivory);}
+  #sumPrice{font-family:var(--serif);font-size:44px;margin:24px 0 6px;color:var(--ivory);line-height:1;}
+  .summary .pnote{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--gold);margin-bottom:24px;}
+  #reserve{width:100%;background:var(--gold);border:none;color:var(--ink);padding:16px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.26em;transition:filter .3s;}
+  #reserve:hover{filter:brightness(1.12);}
+
+  footer{border-top:1px solid rgba(239,234,224,.16);padding:9vh 6vw 6vh;}
+  footer .fbig{font-family:var(--serif);font-size:clamp(36px,6.5vw,100px);line-height:1.05;margin-bottom:5vh;}
+  footer .fbig em{color:var(--gold);}
+  footer .fgrid{display:flex;justify-content:space-between;flex-wrap:wrap;gap:24px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;line-height:2.2;color:rgba(239,234,224,.5);}
+
+  .toast{position:fixed;left:50%;bottom:6vh;transform:translate(-50%,20px);background:var(--ivory);color:var(--ink);
+    font-family:var(--mono);font-size:11px;letter-spacing:.18em;padding:14px 26px;z-index:90;opacity:0;
+    transition:opacity .4s var(--ease),transform .4s var(--ease);pointer-events:none;}
+  .toast.on{opacity:1;transform:translate(-50%,0);}
+
+  @media(max-width:720px){
+    .hright{display:none;}
+    .sig{font-size:9px;letter-spacing:.08em;}
+    #dial{width:min(86vw,520px);height:min(86vw,520px);}
+    .summary{position:static;}
+  }
+  .reveal{opacity:0;transform:translateY(28px);transition:opacity 1s var(--ease),transform 1s var(--ease);}
+  .reveal.in{opacity:1;transform:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 04</span> · <b>MERIDIAN 子午线制表</b><br>WEB DESIGN / INDEPENDENT WATCHMAKER</div>
+  <div class="hright">GENÈVE — 独立制表工坊<br>年产 300 枚 · 每枚独立编号</div>
+</header>
+
+<div class="hero">
+  <div class="hero-l">
+    <div class="over">MAISON MERIDIAN · 子午线制表</div>
+    <h1>时间不必<br>喧哗，<br><em>只需准确。</em></h1>
+    <div class="sub">一枚机芯，两百三十一个零件，一位制表师，四周时间。我们不追日历上的潮流，只对正午的日影负责。</div>
+    <div class="price-line"><span class="p" id="heroPrice">¥42,800</span><span class="n">REF. M01-S · 精钢 / 小牛皮</span></div>
+    <div class="ctas">
+      <button class="cta gold" id="goConfig">定制你的 MERIDIAN →</button>
+      <button class="cta" id="goCal">机芯详解</button>
+    </div>
+  </div>
+  <div class="watch-stage">
+    <div id="watchWrap">
+      <canvas id="dial" width="1040" height="1040"></canvas>
+      <div class="watch-caption" id="dialCap">CAL. 01 — 手动上链 · 70 小时动储</div>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="sec-head reveal">
+    <h2>工坊的事 <em>Philosophie</em></h2>
+    <span class="idx">01 / MAISON</span>
+  </div>
+  <div class="philo">
+    <div class="q reveal">“手表是少数被允许<br>慢下来的工业。<br>我们用<em>四周</em>做一枚表，<br>再用一辈子对它负责。”</div>
+    <div class="cols reveal">
+      <p>工坊在日内瓦老城一条没有招牌的街上。十二位制表师，每人每年完成二十五枚机芯。夹板的日内瓦纹由手工打磨，每一道纹路的间距是一毫米，光线掠过时像水波一样流动——这件事机器也能做，但机器不会在深夜为它停下来看一眼。</p>
+      <p>子午线系列只有一款表盘：象牙白或墨黑，铅笔形指针，没有日历之外的任何复杂功能。我们相信克制是一种复杂功能。</p>
+      <div class="who">— 创始人 / 首席制表师 顾一辰</div>
+    </div>
+  </div>
+  <div class="nums reveal">
+    <div class="num"><div class="nv"><span data-n="231">0</span></div><div class="nl">零件数<br>COMPONENTS</div></div>
+    <div class="num"><div class="nv"><span data-n="70">0</span><i>h</i></div><div class="nl">动力储存<br>POWER RESERVE</div></div>
+    <div class="num"><div class="nv"><span data-n="28800">0</span></div><div class="nl">振频 / 小时<br>VIBRATIONS</div></div>
+    <div class="num"><div class="nv"><span data-n="300">0</span></div><div class="nl">年产量 / 枚<br>ANNUAL OUTPUT</div></div>
+    <div class="num"><div class="nv">−<span data-n="2">0</span>/+<span data-n="4">0</span><i>s</i></div><div class="nl">日误差<br>DAILY RATE</div></div>
+  </div>
+</section>
+
+<section id="cal-sec">
+  <div class="sec-head reveal">
+    <h2>机芯 <em>Calibre</em></h2>
+    <span class="idx">02 / MOVEMENT — 点击切换</span>
+  </div>
+  <div class="reveal">
+    <div class="caltabs">
+      <button class="caltab active" data-c="0"><b>Cal. 01</b>手动上链 · 小三针</button>
+      <button class="caltab" data-c="1"><b>Cal. 02</b>自动上链 · 日历 · 中央秒针</button>
+    </div>
+    <div class="calbody">
+      <div id="calSpecs"></div>
+      <div class="caldesc" id="calDesc"></div>
+    </div>
+  </div>
+</section>
+
+<section id="config-sec">
+  <div class="sec-head reveal">
+    <h2>定制 <em>Configure</em></h2>
+    <span class="idx">03 / ATELIER — 表盘实时更新</span>
+  </div>
+  <div class="config reveal">
+    <div>
+      <div class="optgroup">
+        <div class="ol">表壳 CASE — 39MM</div>
+        <div class="opts" id="caseOpts"></div>
+      </div>
+      <div class="optgroup">
+        <div class="ol">表盘 DIAL</div>
+        <div class="opts" id="dialOpts"></div>
+      </div>
+      <div class="optgroup">
+        <div class="ol">表带 STRAP</div>
+        <div class="opts" id="strapOpts"></div>
+      </div>
+    </div>
+    <div class="summary">
+      <div class="sl">配置单 YOUR MERIDIAN</div>
+      <div class="sumrow"><span>机芯</span><b id="sCal">Cal. 01</b></div>
+      <div class="sumrow"><span>表壳</span><b id="sCase">精钢</b></div>
+      <div class="sumrow"><span>表盘</span><b id="sDial">象牙白</b></div>
+      <div class="sumrow"><span>表带</span><b id="sStrap">小牛皮 · 栗棕</b></div>
+      <div id="sumPrice">¥42,800</div>
+      <div class="pnote">含五年保养 · 交付周期 14 周</div>
+      <button id="reserve">预约制表师面谈 RESERVE →</button>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="fbig">对正午的日影<em>负责</em>。</div>
+  <div class="fgrid">
+    <div>MAISON MERIDIAN<br>日内瓦老城 · 无招牌的那条街<br>atelier@meridian.example</div>
+    <div>交付<br>每枚独立编号 · 附机芯档案<br>终身保养承诺</div>
+    <div>№ 04 — WEB DESIGN<br>DESIGNED &amp; CODED BY HAND<br>© 2026 MERIDIAN</div>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= state ================= */
+var STATE={cal:0,case:0,dial:0,strap:0};
+var CASES=[{n:'精钢',en:'Steel',p:0,c:'#C8CCD2'},{n:'钛金属',en:'Titanium',p:6800,c:'#9BA0A6'},{n:'玫瑰金',en:'Rose Gold',p:32000,c:'#C99B7A'}];
+var DIALS=[{n:'象牙白',en:'Ivory',p:0,bg:'#EFEAE0',fg:'#101214'},{n:'墨黑',en:'Noir',p:1200,bg:'#15171A',fg:'#EFEAE0'}];
+var STRAPS=[{n:'小牛皮 · 栗棕',en:'Calf',p:0},{n:'麂皮 · 岩灰',en:'Suede',p:400},{n:'米兰尼斯钢带',en:'Milanese',p:2200}];
+var CALS=[
+  {name:'Cal. 01',cap:'CAL. 01 — 手动上链 · 70 小时动储',date:false,sweep:false,
+   specs:[['类型','手动上链'],['直径 / 厚度','30.4mm / 3.2mm'],['动力储存','70 小时'],['振频','28,800 vph'],['宝石数','21'],['秒针','6 点位小秒针']],
+   desc:'没有自动陀的遮挡，Cal. 01 的板桥完整地铺在表背。每天清晨拧动表冠的二十秒，是你和这枚机芯之间的约定——它不为任何人走，只为你上链之后的时间走。',
+   fin:'“手动上链不是麻烦，是仪式。”'},
+  {name:'Cal. 02',cap:'CAL. 02 — 自动上链 · 日历 · 68 小时动储',date:true,sweep:true,
+   specs:[['类型','自动上链 · 微型摆陀'],['直径 / 厚度','31.8mm / 4.6mm'],['动力储存','68 小时'],['振频','28,800 vph'],['宝石数','27'],['秒针','中央扫秒']],
+   desc:'微型摆陀藏进机芯平面之内，让 Cal. 02 保持 4.6 毫米的薄。中央秒针以每秒八次的步进扫过表盘——肉眼看见的是流动，机芯经历的是两万八千次心跳。',
+   fin:'“扫秒是机械表最接近诗的部分。”'}
+];
+
+/* ================= dial canvas ================= */
+var dial=document.getElementById('dial'),dc=dial.getContext('2d');
+var R=520;
+function drawDial(now){
+  var d=DIALS[STATE.dial],cal=CALS[STATE.cal],cs=CASES[STATE.case];
+  dc.clearRect(0,0,1040,1040);
+  /* case */
+  dc.beginPath();dc.arc(R,R,510,0,6.29);
+  var cg=dc.createLinearGradient(0,0,1040,1040);
+  cg.addColorStop(0,cs.c);cg.addColorStop(.5,'#5a5e63');cg.addColorStop(1,cs.c);
+  dc.fillStyle=cg;dc.fill();
+  dc.beginPath();dc.arc(R,R,478,0,6.29);dc.fillStyle='#0a0b0c';dc.fill();
+  /* dial face with sunburst */
+  dc.beginPath();dc.arc(R,R,462,0,6.29);dc.fillStyle=d.bg;dc.fill();
+  dc.save();dc.beginPath();dc.arc(R,R,462,0,6.29);dc.clip();
+  for(var i=0;i<120;i++){
+    dc.save();dc.translate(R,R);dc.rotate(i/120*6.283);
+    dc.fillStyle=i%2?'rgba(255,255,255,0.028)':'rgba(0,0,0,0.03)';
+    if(DIALS[STATE.dial].bg==='#EFEAE0')dc.fillStyle=i%2?'rgba(0,0,0,0.03)':'rgba(255,255,255,0.25)';
+    dc.fillRect(-1.6,-462,3.2,462);dc.restore();
+  }
+  dc.restore();
+  /* minute track */
+  for(var m=0;m<60;m++){
+    dc.save();dc.translate(R,R);dc.rotate(m/60*6.283);
+    var big=m%5===0;
+    dc.fillStyle=big?(d.fg):((DIALS[STATE.dial].bg==='#EFEAE0')?'rgba(16,18,20,.4)':'rgba(239,234,224,.4)');
+    dc.fillRect(big?-3:-1.2,-446,big?6:2.4,big?26:12);dc.restore();
+  }
+  /* applied indices */
+  for(var h2=0;h2<12;h2++){
+    dc.save();dc.translate(R,R);dc.rotate(h2/12*6.283);
+    var ig=dc.createLinearGradient(0,-400,0,-330);
+    ig.addColorStop(0,'#e8e4da');ig.addColorStop(.5,'#8f8a80');ig.addColorStop(1,'#d8d4ca');
+    dc.fillStyle=ig;
+    if(h2===0)dc.fillRect(-7,-400,14,72);else dc.fillRect(-6,-396,12,64);
+    dc.restore();
+  }
+  /* brand */
+  dc.fillStyle=d.fg;dc.textAlign='center';
+  dc.font='46px Didot, "Bodoni MT", Georgia, serif';
+  dc.fillText('MERIDIAN',R,R-140);
+  dc.font='20px "SF Mono", Menlo, monospace';
+  dc.globalAlpha=.65;dc.fillText(cal.date?'CALIBRE 02 · AUTOMATIC':'CALIBRE 01 · MANUAL',R,R-104);dc.globalAlpha=1;
+  dc.font='17px "SF Mono", Menlo, monospace';
+  dc.globalAlpha=.5;dc.fillText('SWISS MADE',R,R+196);dc.globalAlpha=1;
+  /* date window for cal02 */
+  if(cal.date){
+    dc.fillStyle=d.bg==='#EFEAE0'?'#101214':'#EFEAE0';
+    dc.fillRect(R+150,R-24,92,48);
+    dc.fillStyle=d.bg;dc.font='34px "SF Mono", Menlo, monospace';
+    dc.fillText(String(now.getDate()).padStart(2,'0'),R+196,R+12);
+  }
+  /* hands */
+  var ms=now.getMilliseconds(),s=now.getSeconds()+ms/1000,
+      mi=now.getMinutes()+s/60,hr=now.getHours()%12+mi/60;
+  function hand(ang,len,wid,tail,color){
+    dc.save();dc.translate(R,R);dc.rotate(ang);
+    dc.shadowColor='rgba(0,0,0,.35)';dc.shadowBlur=14;dc.shadowOffsetY=8;
+    dc.beginPath();dc.moveTo(-wid,tail);dc.lineTo(wid,tail);dc.lineTo(wid*.32,-len);dc.lineTo(0,-len-16);dc.lineTo(-wid*.32,-len);dc.closePath();
+    dc.fillStyle=color;dc.fill();dc.restore();
+  }
+  var hg=dc.fg==='#101214'?'#101214':'#EFEAE0';
+  hand(hr/12*6.283,200,17,52,hg);
+  hand(mi/60*6.283,320,12,62,hg);
+  /* small seconds sub-dial for cal01, central sweep for cal02 */
+  if(cal.sweep){
+    hand(s/60*6.283,400,3.5,80,'#B08D4F');
+    dc.beginPath();dc.arc(R,R,16,0,6.29);dc.fillStyle='#B08D4F';dc.fill();
+  }else{
+    var sy=R+150;
+    dc.beginPath();dc.arc(R,sy,86,0,6.29);
+    dc.strokeStyle=DIALS[STATE.dial].bg==='#EFEAE0'?'rgba(16,18,20,.35)':'rgba(239,234,224,.35)';
+    dc.lineWidth=2;dc.stroke();
+    for(var sm=0;sm<60;sm+=15){
+      dc.save();dc.translate(R,sy);dc.rotate(sm/60*6.283);
+      dc.fillStyle=d.fg;dc.fillRect(-2,-80,4,14);dc.restore();
+    }
+    dc.save();dc.translate(R,sy);dc.rotate(s/60*6.283);
+    dc.beginPath();dc.moveTo(0,26);dc.lineTo(0,-72);
+    dc.strokeStyle='#B08D4F';dc.lineWidth=4;dc.lineCap='round';dc.stroke();dc.restore();
+    dc.beginPath();dc.arc(R,sy,8,0,6.29);dc.fillStyle='#B08D4F';dc.fill();
+  }
+  dc.beginPath();dc.arc(R,R,9,0,6.29);dc.fillStyle=hg;dc.fill();
+  /* glass highlight */
+  var gg=dc.createLinearGradient(200,100,700,600);
+  gg.addColorStop(0,'rgba(255,255,255,.10)');gg.addColorStop(.45,'rgba(255,255,255,0)');
+  dc.beginPath();dc.arc(R,R,462,0,6.29);dc.fillStyle=gg;dc.fill();
+}
+(function loop(){
+  drawDial(new Date());
+  requestAnimationFrame(loop);
+})();
+
+/* ================= dial tilt ================= */
+(function(){
+  var wrap=document.getElementById('watchWrap');
+  addEventListener('mousemove',function(e){
+    var rx=(e.clientY/innerHeight-.5)*-7,ry=(e.clientX/innerWidth-.5)*9;
+    wrap.style.transform='rotateX('+rx+'deg) rotateY('+ry+'deg)';
+  });
+})();
+
+/* ================= calibre tabs ================= */
+(function(){
+  var tabs=document.querySelectorAll('.caltab');
+  function render(){
+    var c=CALS[STATE.cal];
+    document.getElementById('calSpecs').innerHTML=c.specs.map(function(s){
+      return '<div class="specrow"><span>'+s[0]+'</span><b>'+s[1]+'</b></div>';
+    }).join('');
+    document.getElementById('calDesc').innerHTML='<p>'+c.desc+'</p><div class="fin">'+c.fin+'</div>';
+    document.getElementById('dialCap').textContent=c.cap;
+    document.getElementById('sCal').textContent=c.name;
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){
+    tabs.forEach(function(x){x.classList.remove('active');});t.classList.add('active');
+    STATE.cal=+t.dataset.c;render();updatePrice();
+  });});
+  render();
+})();
+
+/* ================= configurator ================= */
+var BASE=42800,CAL2_EXTRA=9600;
+function price(){
+  return BASE+CASES[STATE.case].p+DIALS[STATE.dial].p+STRAPS[STATE.strap].p+(STATE.cal===1?CAL2_EXTRA:0);
+}
+function fmt(n){return '¥'+n.toLocaleString('en-US');}
+function updatePrice(){
+  document.getElementById('sumPrice').textContent=fmt(price());
+  document.getElementById('heroPrice').textContent=fmt(price());
+}
+(function(){
+  function build(id,arr,key,label){
+    var el=document.getElementById(id);
+    el.innerHTML=arr.map(function(o,i){
+      return '<button class="opt'+(i===0?' sel':'')+'" data-i="'+i+'">'+
+        (o.c?'<span class="sw" style="background:'+o.c+'"></span>':'')+o.n+'</button>';
+    }).join('');
+    el.addEventListener('click',function(e){
+      var b=e.target.closest('.opt');if(!b)return;
+      el.querySelectorAll('.opt').forEach(function(x){x.classList.remove('sel');});
+      b.classList.add('sel');STATE[key]=+b.dataset.i;
+      document.getElementById(label).textContent=arr[STATE[key]].n;
+      updatePrice();
+    });
+  }
+  build('caseOpts',CASES,'case','sCase');
+  build('dialOpts',DIALS,'dial','sDial');
+  build('strapOpts',STRAPS,'strap','sStrap');
+  var toast=document.getElementById('toast');
+  function note(t){toast.textContent=t;toast.classList.add('on');setTimeout(function(){toast.classList.remove('on');},2600);}
+  document.getElementById('reserve').addEventListener('click',function(){
+    note('已为你预留编号 N°'+(141+Math.floor(Math.random()*100))+' — 制表师将在 48h 内联系你');
+  });
+  document.getElementById('goConfig').addEventListener('click',function(){document.getElementById('config-sec').scrollIntoView({behavior:'smooth'});});
+  document.getElementById('goCal').addEventListener('click',function(){document.getElementById('cal-sec').scrollIntoView({behavior:'smooth'});});
+})();
+
+/* ================= count-up + reveal ================= */
+(function(){
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(!e.isIntersecting)return;
+      e.target.classList.add('in');io.unobserve(e.target);
+      e.target.querySelectorAll('[data-n]').forEach(function(el){
+        var target=+el.dataset.n,t0=null;
+        function step(t){
+          if(!t0)t0=t;var p=Math.min(1,(t-t0)/1400),ease=1-Math.pow(1-p,3);
+          el.textContent=Math.round(target*ease).toLocaleString('en-US');
+          if(p<1)requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+    });
+  },{threshold:.2});
+  document.querySelectorAll('.reveal').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

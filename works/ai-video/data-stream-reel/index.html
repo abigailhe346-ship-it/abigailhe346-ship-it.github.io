@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Data Stream Reel — 数据流仪表盘 · AI Video 03</title>
+<style>
+:root{
+  --bg:#060a08; --ok:#57ffa0; --amber:#ffb000; --red:#ff453a;
+  --dim:rgba(87,255,160,.45); --hair:rgba(87,255,160,.22);
+  --mono:"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ok);font-family:var(--mono)}
+::selection{background:var(--ok);color:var(--bg)}
+a{color:inherit;text-decoration:none}
+body.alert{--ok:#ff453a;--dim:rgba(255,69,58,.5);--hair:rgba(255,69,58,.3)}
+.scan{position:fixed;inset:0;pointer-events:none;z-index:9;
+  background:repeating-linear-gradient(0deg,transparent 0 2px,rgba(0,0,0,.16) 2px 4px);}
+header{
+  height:54px;border-bottom:1px solid var(--hair);display:flex;align-items:center;
+  justify-content:space-between;padding:0 24px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+}
+header .lft{display:flex;gap:14px;align-items:center}
+header .no{border:1px solid var(--hair);padding:4px 8px;font-size:11px}
+.blink{animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.console{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);min-height:calc(100vh - 54px)}
+.left{padding:20px 24px;display:flex;flex-direction:column;gap:14px}
+.title-row{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+h1{margin:0;font-size:clamp(20px,3vw,34px);letter-spacing:.04em;font-weight:700;text-transform:uppercase}
+h1 span{color:var(--amber);font-weight:400}
+body.alert h1 span{color:var(--red)}
+.statusline{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.statusline b{color:var(--ok);font-weight:400}
+.frame{border:1px solid var(--hair);position:relative;background:rgba(87,255,160,.02)}
+.frame .tag{position:absolute;top:-1px;left:-1px;font-size:9px;letter-spacing:.16em;text-transform:uppercase;
+  background:var(--ok);color:var(--bg);padding:3px 8px;}
+.frame canvas{display:block;width:100%}
+#gauges{height:min(30vw,270px);min-height:210px}
+#wave{height:min(22vw,190px);min-height:140px}
+.hintline{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.controls{display:flex;gap:20px;align-items:end;flex-wrap:wrap;padding:4px 0 0}
+.ctl{flex:1;min-width:180px}
+.ctl label{display:flex;justify-content:space-between;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.ctl output{color:var(--amber)}
+body.alert .ctl output{color:var(--red)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--hair)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:14px;height:14px;margin-top:-7px;
+  background:var(--bg);border:2px solid var(--ok);border-radius:0}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--ok)}
+input[type=range]::-moz-range-track{height:1px;background:var(--hair)}
+input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--bg);border:2px solid var(--ok);border-radius:0}
+button{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  background:transparent;border:1px solid var(--ok);color:var(--ok);
+  padding:11px 16px;cursor:pointer;transition:all .15s cubic-bezier(.2,.7,.2,1);
+}
+button:hover{background:var(--ok);color:var(--bg)}
+button.warn{border-color:var(--amber);color:var(--amber)}
+button.warn:hover{background:var(--amber);color:var(--bg)}
+body.alert button{border-color:var(--red);color:var(--red)}
+body.alert button:hover{background:var(--red);color:var(--bg)}
+/* right log panel */
+.right{border-left:1px solid var(--hair);display:flex;flex-direction:column;min-height:0}
+.right .loghead{padding:12px 18px;border-bottom:1px solid var(--hair);font-size:10px;letter-spacing:.16em;text-transform:uppercase;display:flex;justify-content:space-between}
+#log{flex:1;overflow-y:auto;padding:12px 18px;font-size:10.5px;line-height:1.9;letter-spacing:.02em;scrollbar-width:thin;scrollbar-color:var(--hair) transparent}
+#log::-webkit-scrollbar{width:4px}
+#log::-webkit-scrollbar-thumb{background:var(--hair)}
+#log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#log .t{color:var(--dim)}
+#log .ok{color:var(--ok)}
+#log .warn{color:var(--amber)}
+#log .crit{color:var(--red)}
+footer{border-top:1px solid var(--hair);padding:10px 24px;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between}
+@media(max-width:860px){
+  .console{grid-template-columns:1fr}
+  .right{border-left:none;border-top:1px solid var(--hair)}
+  #log{max-height:280px}
+  .controls button{flex:1}
+}
+</style>
+</head>
+<body>
+<div class="scan"></div>
+<header>
+  <div class="lft"><span class="no">AV·03</span><a href="../../../index.html#work">← Archive</a></div>
+  <span>Data Stream Reel / 数据流仪表盘</span>
+  <span id="hState">STATE: NOMINAL</span>
+</header>
+
+<div class="console">
+  <div class="left">
+    <div class="title-row">
+      <h1>Data<span>/</span>Stream <span>Reel</span></h1>
+      <div class="statusline">UPLINK <b>STABLE</b> · BUFFER <b id="sBuf">61%</b> · <span id="sClock">00:00:00</span> UTC</div>
+    </div>
+
+    <div class="frame"><span class="tag">RING TELEMETRY — CLICK A DIAL TO CYCLE MODE</span>
+      <canvas id="gauges"></canvas>
+    </div>
+    <div class="frame"><span class="tag">SIGNAL WAVEFORM</span>
+      <canvas id="wave"></canvas>
+    </div>
+    <div class="hintline">键盘 [A] — 切换告警状态 · 指针悬停日志可暂停滚动</div>
+
+    <div class="controls">
+      <div class="ctl"><label>Data rate 数据速率 <output id="oRate">1.0×</output></label>
+        <input type="range" id="sRate" min="20" max="400" value="100"></div>
+      <div class="ctl"><label>Noise floor 噪声基底 <output id="oNoise">18%</output></label>
+        <input type="range" id="sNoise" min="0" max="100" value="18"></div>
+      <button id="bAlert" class="warn">切换告警 [A]</button>
+      <button id="bRegen">随机再生 ↻</button>
+      <button id="bDown">下载 PNG</button>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="loghead"><span>EVENT LOG / 事件流</span><span id="lCount">0000</span></div>
+    <div id="log"></div>
+  </div>
+</div>
+
+<footer><span>AV·03 — DATA STREAM REEL</span><span>AI PORTFOLIO · VIDEO REEL</span></footer>
+
+<script>
+(function(){
+"use strict";
+var alertMode=false, rate=1.0, noise=0.18, t=0, seed=Math.random()*999;
+function rnd(){seed=(seed*9301+49297)%233280;return seed/233280;}
+
+/* ---------- gauges ---------- */
+var gc=document.getElementById('gauges'),gx=gc.getContext('2d');
+var gauges=[
+  {label:'CORE FLUX', unit:'TW', mode:0, val:0.62, tgt:0.62},
+  {label:'NEURAL BUS',unit:'GHz',mode:0, val:0.38, tgt:0.38},
+  {label:'MEM LATTICE',unit:'PB',mode:0, val:0.81, tgt:0.81}
+];
+var modes=['FLOW','PEAK','DELTA'];
+
+/* ---------- waveform ---------- */
+var wc=document.getElementById('wave'),wx=wc.getContext('2d');
+
+/* ---------- sizing ---------- */
+var dpr=1,GW=0,GH=0,WW=0,WH=0;
+function size(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  GW=gc.clientWidth;GH=gc.clientHeight;gc.width=GW*dpr;gc.height=GH*dpr;gx.setTransform(dpr,0,0,dpr,0,0);
+  WW=wc.clientWidth;WH=wc.clientHeight;wc.width=WW*dpr;wc.height=WH*dpr;wx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize',size);
+
+function col(a){return alertMode?'rgba(255,69,58,'+a+')':'rgba(87,255,160,'+a+')';}
+function amb(a){return 'rgba(255,176,0,'+a+')';}
+
+/* ---------- draw gauges ---------- */
+function drawGauges(){
+  gx.clearRect(0,0,GW,GH);
+  var n=gauges.length,cw=GW/n,i;
+  for(i=0;i<n;i++){
+    var g=gauges[i],cx=cw*i+cw/2,cy=GH*0.56,R=Math.min(cw,GH)*0.33;
+    // ease value toward target; alert makes it jittery and climb
+    var jit=alertMode?0.05:0.012;
+    if(rnd()<0.02*rate)g.tgt=Math.min(0.99,Math.max(0.08,g.tgt+(rnd()-0.5)*(alertMode?0.5:0.2)));
+    if(alertMode&&rnd()<0.01*rate)g.tgt=Math.min(0.99,g.tgt+0.1);
+    g.val+=(g.tgt-g.val)*0.06+(rnd()-0.5)*jit;
+
+    // track
+    gx.lineWidth=7;gx.strokeStyle=col(0.15);
+    gx.beginPath();gx.arc(cx,cy,R,Math.PI*0.75,Math.PI*2.25);gx.stroke();
+    // value arc
+    var a0=Math.PI*0.75,a1=a0+(Math.PI*1.5)*g.val;
+    gx.strokeStyle=g.val>0.9?(alertMode?col(1):amb(0.95)):col(0.95);
+    gx.beginPath();gx.arc(cx,cy,R,a0,a1);gx.stroke();
+    // tick marks
+    gx.lineWidth=1;gx.strokeStyle=col(0.4);
+    for(var k=0;k<=20;k++){
+      var ta=a0+(Math.PI*1.5)*k/20;
+      var r1=R+9,r2=R+(k%5===0?16:12);
+      gx.beginPath();
+      gx.moveTo(cx+Math.cos(ta)*r1,cy+Math.sin(ta)*r1);
+      gx.lineTo(cx+Math.cos(ta)*r2,cy+Math.sin(ta)*r2);gx.stroke();
+    }
+    // needle
+    gx.strokeStyle=col(0.9);gx.lineWidth=1.5;
+    gx.beginPath();gx.moveTo(cx,cy);
+    gx.lineTo(cx+Math.cos(a1)*R*0.82,cy+Math.sin(a1)*R*0.82);gx.stroke();
+    gx.fillStyle=col(1);gx.beginPath();gx.arc(cx,cy,3,0,7);gx.fill();
+    // text
+    gx.fillStyle=col(0.95);gx.font='700 13px "SF Mono",Menlo,monospace';gx.textAlign='center';
+    gx.fillText((g.val*100).toFixed(1)+'%',cx,cy+R*0.55);
+    gx.font='9px "SF Mono",Menlo,monospace';gx.fillStyle=col(0.55);
+    gx.fillText(g.label,cx,cy-R-24);
+    gx.fillStyle=amb(0.9);if(alertMode)gx.fillStyle=col(0.9);
+    gx.fillText('['+modes[g.mode]+']',cx,cy+R*0.78);
+    // column divider
+    if(i>0){gx.strokeStyle=col(0.12);gx.beginPath();gx.moveTo(cw*i+.5,14);gx.lineTo(cw*i+.5,GH-14);gx.stroke();}
+  }
+}
+
+/* ---------- waveform ---------- */
+var trace=[],TRACE_N=420;
+function drawWave(){
+  wx.clearRect(0,0,WW,WH);
+  // grid
+  wx.strokeStyle=col(0.1);wx.lineWidth=1;wx.beginPath();
+  for(var gy=0;gy<WH;gy+=Math.max(18,WH/6)){wx.moveTo(0,gy+.5);wx.lineTo(WW,gy+.5);}
+  for(var gx2=0;gx2<WW;gx2+=Math.max(24,WW/16)){wx.moveTo(gx2+.5,0);wx.lineTo(gx2+.5,WH);}
+  wx.stroke();
+  // push sample
+  var base=Math.sin(t*1.3)*0.3+Math.sin(t*3.7)*0.18+Math.sin(t*0.31)*0.22;
+  var n1=(rnd()-0.5)*noise*2;
+  var spike=(alertMode&&rnd()<0.05)?(rnd()-0.5)*1.4:0;
+  trace.push(base+n1+spike);
+  if(trace.length>TRACE_N)trace.shift();
+  // draw layered traces
+  for(var layer=0;layer<3;layer++){
+    wx.strokeStyle=layer===0?col(0.95):col(0.25-layer*0.08);
+    wx.lineWidth=layer===0?1.6:1;
+    wx.beginPath();
+    for(var i=0;i<trace.length;i++){
+      var x=i/(TRACE_N-1)*WW;
+      var y=WH*0.5+trace[i]*WH*0.34+layer*3;
+      if(i===0)wx.moveTo(x,y);else wx.lineTo(x,y);
+    }
+    wx.stroke();
+  }
+  // alert threshold line
+  if(alertMode){
+    wx.strokeStyle=col(0.5);wx.setLineDash([4,4]);wx.beginPath();
+    wx.moveTo(0,WH*0.16);wx.lineTo(WW,WH*0.16);
+    wx.moveTo(0,WH*0.84);wx.lineTo(WW,WH*0.84);wx.stroke();wx.setLineDash([]);
+  }
+}
+
+/* ---------- event log ---------- */
+var logEl=document.getElementById('log'),logCount=0,logPause=false;
+logEl.addEventListener('mouseenter',function(){logPause=true;});
+logEl.addEventListener('mouseleave',function(){logPause=false;});
+var subj=['NEURAL BUS','CORE FLUX','MEM LATTICE','UPLINK','TOKENIZER','LATENT MAP','SCHEDULER','CHECKPOINT','RAY CLUSTER','CODEC'];
+var okMsg=['handshake verified','batch committed','checksum clean','latency nominal','weights synced','cache warm','heartbeat ack','stream aligned'];
+var warnMsg=['drift above baseline','retry 2/3 on shard','queue depth rising','thermal note logged','jitter beyond window'];
+var critMsg=['THRESHOLD BREACH','packet storm detected','lane saturation','failsafe armed','manual review required'];
+function hex(n){var s='';for(var i=0;i<n;i++)s+='0123456789ABCDEF'[Math.floor(rnd()*16)];return s;}
+function addLog(){
+  logCount++;
+  var d=new Date();
+  var ts=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+  var roll=rnd(),cls='ok',msg;
+  if(alertMode){ if(roll<0.34){cls='crit';msg=critMsg[Math.floor(rnd()*critMsg.length)];}
+    else if(roll<0.7){cls='warn';msg=warnMsg[Math.floor(rnd()*warnMsg.length)];}
+    else{msg=okMsg[Math.floor(rnd()*okMsg.length)];}
+  }else{ if(roll<0.05){cls='warn';msg=warnMsg[Math.floor(rnd()*warnMsg.length)];}
+    else{msg=okMsg[Math.floor(rnd()*okMsg.length)];}
+  }
+  var el=document.createElement('div');
+  el.innerHTML='<span class="t">'+ts+'</span> <span class="'+cls+'">['+subj[Math.floor(rnd()*subj.length)]+']</span> '+msg+' <span class="t">0x'+hex(6)+'</span>';
+  logEl.appendChild(el);
+  while(logEl.children.length>220)logEl.removeChild(logEl.firstChild);
+  if(!logPause)logEl.scrollTop=logEl.scrollHeight;
+  document.getElementById('lCount').textContent=String(logCount).padStart(4,'0');
+}
+var logTimer=0;
+
+/* ---------- alert toggle ---------- */
+function setAlert(on){
+  alertMode=on;
+  document.body.classList.toggle('alert',on);
+  document.getElementById('hState').textContent='STATE: '+(on?'ALERT':'NOMINAL');
+  document.getElementById('hState').className=on?'blink':'';
+}
+document.getElementById('bAlert').addEventListener('click',function(){setAlert(!alertMode);});
+window.addEventListener('keydown',function(e){
+  if(e.key==='a'||e.key==='A')setAlert(!alertMode);
+});
+
+/* ---------- click gauge to cycle mode ---------- */
+gc.addEventListener('click',function(e){
+  var r=gc.getBoundingClientRect();
+  var idx=Math.floor((e.clientX-r.left)/r.width*gauges.length);
+  if(gauges[idx]){gauges[idx].mode=(gauges[idx].mode+1)%modes.length;gauges[idx].tgt=rnd();}
+});
+
+/* ---------- sliders / buttons ---------- */
+document.getElementById('sRate').addEventListener('input',function(){
+  rate=+this.value/100;document.getElementById('oRate').textContent=rate.toFixed(1)+'×';
+});
+document.getElementById('sNoise').addEventListener('input',function(){
+  noise=+this.value/100;document.getElementById('oNoise').textContent=this.value+'%';
+});
+document.getElementById('bRegen').addEventListener('click',function(){
+  seed=Math.random()*999;
+  gauges.forEach(function(g){g.tgt=0.1+rnd()*0.85;});
+  trace=[];
+});
+document.getElementById('bDown').addEventListener('click',function(){
+  var out=document.createElement('canvas');
+  out.width=gc.width;out.height=gc.height+wc.height;
+  var o=out.getContext('2d');
+  o.fillStyle='#060a08';o.fillRect(0,0,out.width,out.height);
+  o.drawImage(gc,0,0);o.drawImage(wc,0,gc.height);
+  var a=document.createElement('a');
+  a.download='data-stream-reel-av03.png';a.href=out.toDataURL('image/png');a.click();
+});
+
+/* ---------- clock ---------- */
+setInterval(function(){
+  var d=new Date();
+  document.getElementById('sClock').textContent=
+    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+  document.getElementById('sBuf').textContent=Math.floor(50+rnd()*30)+'%';
+},1000);
+
+/* ---------- main loop ---------- */
+function frame(){
+  t+=0.016*rate;
+  logTimer+=0.016*rate;
+  var interval=alertMode?0.12:0.4;
+  if(logTimer>interval){logTimer=0;addLog();}
+  drawGauges();
+  drawWave();
+  requestAnimationFrame(frame);
+}
+size();
+for(var i=0;i<8;i++)addLog();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

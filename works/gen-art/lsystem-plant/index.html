@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Herbarium — L-System 植物生成器</title>
+<style>
+  :root{
+    --paper:#F5F1E8; --panel:#EFEADD; --leaf:#2E3B2F; --bloom:#C26E4A;
+    --dim:#8F8776; --faint:#D5CDBB; --ink:#2A261E;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(194,110,74,.25)}
+
+  header{height:56px;display:flex;align-items:center;gap:16px;padding:0 22px;
+         border-bottom:1px solid var(--faint);position:relative;z-index:5;background:var(--paper)}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--bloom);letter-spacing:.14em}
+  .brand .name{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.24em;text-transform:uppercase}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--mono);
+          font-size:11px;color:var(--dim)}
+  .dotlive{width:7px;height:7px;background:var(--leaf);animation:pulse 2.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  main{display:grid;grid-template-columns:1fr 300px;height:calc(100% - 56px)}
+  .stage{position:relative;overflow:hidden;background:var(--paper)}
+  canvas{display:block;position:absolute;inset:0}
+  .hint{position:absolute;left:22px;bottom:16px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);letter-spacing:.14em;text-transform:uppercase;pointer-events:none;
+        transition:opacity .6s}
+
+  aside{border-left:1px solid var(--faint);background:var(--panel);display:flex;flex-direction:column;
+        overflow-y:auto}
+  .panel{padding:20px 20px 8px}
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--faint)}
+
+  .field{margin-bottom:16px}
+  .field label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+               letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+  .field label .val{color:var(--bloom)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--faint)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;
+      border-radius:50%;background:var(--leaf);box-shadow:0 0 0 1px var(--leaf);
+      transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--faint)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--leaf);border:0}
+
+  .species{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .sp{border:1px solid var(--faint);padding:10px 12px;cursor:pointer;text-align:left;
+      background:transparent;transition:all .3s var(--ease)}
+  .sp b{display:block;font-family:var(--serif);font-size:14px;font-weight:400;color:var(--ink)}
+  .sp span{font-family:var(--mono);font-size:8px;letter-spacing:.1em;color:var(--dim);
+           text-transform:uppercase}
+  .sp.on{border-color:var(--leaf);background:var(--leaf)}
+  .sp.on b,.sp.on span{color:var(--paper)}
+
+  .actions{margin-top:auto;padding:16px 20px 20px;border-top:1px solid var(--faint);
+           display:flex;flex-direction:column;gap:10px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 0;
+       border:1px solid var(--leaf);background:var(--leaf);color:var(--paper);
+       font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+       cursor:pointer;transition:all .3s var(--ease)}
+  .btn:hover{background:var(--bloom);border-color:var(--bloom)}
+  .btn.ghost{background:transparent;color:var(--leaf)}
+  .btn.ghost:hover{background:var(--leaf);color:var(--paper)}
+  .btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .credit{padding:0 20px 16px;font-family:var(--mono);font-size:9px;color:var(--dim);
+          letter-spacing:.14em;line-height:1.8;text-transform:uppercase}
+
+  @media (max-width:840px){
+    body{overflow:auto}
+    main{display:flex;flex-direction:column;height:auto}
+    .stage{height:60vh;min-height:420px}
+    aside{border-left:0;border-top:1px solid var(--faint)}
+    header .sub{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="no">GA·05</span>
+    <span class="name">Herbarium</span>
+    <span class="sub">L-System Botany</span>
+  </div>
+  <div class="crumbs"><span class="dotlive"></span><span id="plateOut">TAB. IV</span></div>
+</header>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="hint" id="hint">MOVE CURSOR — THE WIND FOLLOWS · 移动鼠标，风随指尖</div>
+  </div>
+
+  <aside>
+    <div class="panel">
+      <div class="blocklabel">Species · 物种</div>
+      <div class="species" id="species">
+        <button class="sp on" data-s="fern"><b>蕨</b><span>Filix</span></button>
+        <button class="sp" data-s="bush"><b>灌木</b><span>Frutex</span></button>
+        <button class="sp" data-s="tree"><b>乔木</b><span>Arbor</span></button>
+        <button class="sp" data-s="algae"><b>藻蔓</b><span>Alga</span></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="blocklabel">Growth · 生长</div>
+      <div class="field">
+        <label>Angle 分枝角 <span class="val" id="angleVal">25°</span></label>
+        <input type="range" id="angle" min="10" max="45" value="25">
+      </div>
+      <div class="field">
+        <label>Iterations 迭代 <span class="val" id="iterVal">5</span></label>
+        <input type="range" id="iter" min="3" max="6" value="5">
+      </div>
+      <div class="field">
+        <label>Wind 风 <span class="val" id="windVal">35</span></label>
+        <input type="range" id="wind" min="0" max="100" value="35">
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="randomBtn">
+        <svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0 1 14-4.5M20 14a8 8 0 0 1-14 4.5"/></svg>
+        随机变异
+      </button>
+      <button class="btn ghost" id="regrowBtn">重新生长</button>
+      <button class="btn ghost" id="dlBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>
+        下载 PNG
+      </button>
+    </div>
+    <div class="credit">Herbarium Generativum — grammar-grown<br>specimens, pressed &amp; numbered. © MMXXVI</div>
+  </aside>
+</main>
+
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage'), cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+var DPR=1, W=0, H=0;
+
+var P={species:'fern', angle:25, iter:5, wind:35};
+var seed=114, growth=0, ops=[], totalSegs=0, maxDepth=1, segLen=8, bloomsAt=[];
+var mouse={x:0.5,sx:0.5};
+
+var SPECIES={
+  fern:{cn:'FILIX PROCEDURALIS', axiom:'X',
+        rules:{X:'F+[[X]-X]-F[-FX]+X', F:'FF'}, angle:25, iter:5, len:1, bloomAtX:true},
+  bush:{cn:'FRUTEX GENERATIVUS', axiom:'F',
+        rules:{F:'FF+[+F-F-F]-[-F+F+F]'}, angle:22, iter:4, len:1, bloomAtX:false},
+  tree:{cn:'ARBOR ALGORITHMI', axiom:'X',
+        rules:{X:'F[+X]F[-X]+X', F:'FF'}, angle:20, iter:6, len:1, bloomAtX:true},
+  algae:{cn:'ALGA SERPENS', axiom:'F',
+        rules:{F:'F[+F]F[-F]F'}, angle:24, iter:5, len:1, bloomAtX:false}
+};
+
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+
+/* ---------- build ops ---------- */
+function build(){
+  var sp=SPECIES[P.species];
+  var rng=mulberry(seed);
+  var s=sp.axiom;
+  for(var i=0;i<P.iter;i++){
+    var out='';
+    for(var j=0;j<s.length;j++){
+      var ch=s[j];
+      out+=sp.rules[ch]||ch;
+      if(out.length>60000)break;
+    }
+    s=out;
+    if(s.length>60000)break;
+  }
+  ops=[]; totalSegs=0; maxDepth=1;
+  var depth=0;
+  for(var k=0;k<s.length;k++){
+    var c=s[k];
+    if(c==='F'){ ops.push({t:0,d:depth,j:(rng()-0.5)*2.4}); totalSegs++; }
+    else if(c==='+') ops.push({t:1,d:depth,j:(rng()-0.5)*2*4});
+    else if(c==='-') ops.push({t:2,d:depth,j:(rng()-0.5)*2*4});
+    else if(c==='['){ ops.push({t:3}); depth++; if(depth>maxDepth)maxDepth=depth; }
+    else if(c===']'){ ops.push({t:4}); depth--; }
+    else if(c==='X'&&sp.bloomAtX) ops.push({t:5,d:depth});
+  }
+  if(!sp.bloomAtX){
+    /* sprinkle blooms at branch tips (pops) */
+    var rng2=mulberry(seed+7);
+    var out2=[];
+    for(var m=0;m<ops.length;m++){
+      out2.push(ops[m]);
+      if(ops[m].t===4&&rng2()<0.14)out2.push({t:5,d:ops[m].d||1});
+    }
+    ops=out2;
+  }
+  /* measure extent with unit length to fit canvas */
+  var x=0,y=0,a=-Math.PI/2,minY=0,maxX=0,minX=0;
+  var stack=[];
+  for(var n=0;n<ops.length;n++){
+    var o=ops[n];
+    if(o.t===0){ x+=Math.cos(a); y+=Math.sin(a);
+      if(y<minY)minY=y; if(x>maxX)maxX=x; if(x<minX)minX=x; }
+    else if(o.t===1)a+=(P.angle+o.j)*Math.PI/180;
+    else if(o.t===2)a-=(P.angle+o.j)*Math.PI/180;
+    else if(o.t===3)stack.push([x,y,a]);
+    else if(o.t===4){var st=stack.pop();x=st[0];y=st[1];a=st[2];}
+  }
+  var hNeed=Math.max(1,-minY), wNeed=Math.max(1,maxX-minX);
+  segLen=Math.min((H*0.76)/hNeed,(W*0.82)/wNeed,34);
+  growth=0;
+}
+
+/* ---------- render ---------- */
+function drawPlant(t,g){
+  var baseX=W/2, baseY=H*0.86;
+  var windBase=P.wind/100;
+  var gust=(mouse.sx-0.5)*0.8;
+  var x=baseX, y=baseY, a=-Math.PI/2;
+  var stack=[], segCount=0;
+  var limit=Math.floor(g*totalSegs);
+  ctx.lineCap='round';
+
+  for(var n=0;n<ops.length;n++){
+    var o=ops[n];
+    if(o.t===0){
+      /* wind sway grows with depth */
+      var depthF=o.d/maxDepth;
+      var sway=Math.sin(t*1.25 + o.d*0.9 + o.j)*(windBase*0.5+gust)*depthF*depthF*0.32;
+      a+=sway;
+      var nx=x+Math.cos(a)*segLen, ny=y+Math.sin(a)*segLen;
+      if(segCount<limit){
+        var w=Math.max(0.7, 6.0*(1-depthF*0.85));
+        ctx.strokeStyle='rgba(46,59,47,'+(0.92-depthF*0.25)+')';
+        ctx.lineWidth=w;
+        ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(nx,ny); ctx.stroke();
+      }
+      x=nx; y=ny; segCount++;
+    }
+    else if(o.t===1)a+=(P.angle+o.j)*Math.PI/180;
+    else if(o.t===2)a-=(P.angle+o.j)*Math.PI/180;
+    else if(o.t===3)stack.push([x,y,a]);
+    else if(o.t===4){var st=stack.pop();x=st[0];y=st[1];a=st[2];}
+    else if(o.t===5){
+      if(g>0.85){
+        var bs=Math.min(1,(g-0.85)/0.15);
+        var bt=(Math.sin(t*0.8+o.d)+1)/2;
+        drawBloom(x,y,(2.4+o.d*0.22)*bs,0.75+bt*0.25);
+      }
+    }
+  }
+}
+function drawBloom(x,y,r,alpha){
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.fillStyle='#C26E4A';
+  for(var i=0;i<5;i++){
+    var a=i/5*Math.PI*2 + r;
+    ctx.beginPath();
+    ctx.arc(x+Math.cos(a)*r*1.1, y+Math.sin(a)*r*1.1, r*0.72, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.fillStyle='#8F4A2E';
+  ctx.beginPath(); ctx.arc(x,y,r*0.55,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+/* ---------- paper texture ---------- */
+var paper=document.createElement('canvas');
+function makePaper(){
+  paper.width=W*DPR; paper.height=H*DPR;
+  var p=paper.getContext('2d');
+  p.setTransform(DPR,0,0,DPR,0,0);
+  p.fillStyle='#F5F1E8'; p.fillRect(0,0,W,H);
+  var rng=mulberry(99);
+  for(var i=0;i<900;i++){
+    p.fillStyle='rgba(143,135,118,'+(rng()*0.05)+')';
+    p.fillRect(rng()*W,rng()*H,rng()<0.5?1:2,1);
+  }
+  var g=p.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3,W/2,H/2,Math.max(W,H)*0.75);
+  g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(90,80,60,.10)');
+  p.fillStyle=g; p.fillRect(0,0,W,H);
+}
+
+/* ---------- botanical plate chrome ---------- */
+function drawChrome(){
+  var m=24;
+  ctx.strokeStyle='rgba(42,38,30,.75)'; ctx.lineWidth=1;
+  ctx.strokeRect(m,m,W-2*m,H-2*m);
+  ctx.strokeStyle='rgba(42,38,30,.3)';
+  ctx.strokeRect(m+4,m+4,W-2*m-8,H-2*m-8);
+  /* ground line */
+  var compact=H<560||W<560;
+  ctx.strokeStyle='rgba(42,38,30,.5)';
+  ctx.beginPath(); ctx.moveTo(W/2-90,H*0.86); ctx.lineTo(W/2+90,H*0.86); ctx.stroke();
+  if(!compact){
+    for(var i=-4;i<=4;i++){
+      ctx.beginPath(); ctx.moveTo(W/2+i*20,H*0.86); ctx.lineTo(W/2+i*20-6,H*0.86+6); ctx.stroke();
+    }
+  }
+  /* caption block */
+  ctx.textAlign='center';
+  ctx.fillStyle='#2A261E';
+  ctx.font='italic 15px Didot,"Bodoni MT",Georgia,serif';
+  var capY=compact?H*0.86+26:H-m-38;
+  ctx.fillText(SPECIES[P.species].cn.toLowerCase(), W/2, capY);
+  ctx.font='9px "SF Mono",Menlo,monospace'; ctx.fillStyle='#8F8776';
+  ctx.fillText('SPECIMEN Nº '+(seed%900+100)+' · ANGLE '+P.angle+'° · DEPTH '+P.iter,
+               W/2, compact?capY+14:H-m-22);
+  ctx.textAlign='left';
+  ctx.fillText('HERBARIUM GENERATIVUM', m+12, m+16);
+  ctx.textAlign='right';
+  ctx.fillText('TAB. '+['IV','V','VI','VII'][seed%4], W-m-12, m+16);
+  /* scale */
+  ctx.textAlign='left';
+  ctx.strokeStyle='rgba(42,38,30,.6)';
+  var sy=H-m-30;
+  ctx.beginPath(); ctx.moveTo(m+12,sy); ctx.lineTo(m+52,sy);
+  ctx.moveTo(m+12,sy-3); ctx.lineTo(m+12,sy+3); ctx.moveTo(m+52,sy-3); ctx.lineTo(m+52,sy+3);
+  ctx.stroke();
+  ctx.fillStyle='#8F8776';
+  ctx.fillText('4 CM', m+12, sy+12);
+}
+
+/* ---------- loop ---------- */
+var last=performance.now();
+function frame(now){
+  var dt=Math.min((now-last)/1000,0.05); last=now;
+  var t=now/1000;
+  growth=Math.min(1,growth+dt/2.4);
+  var g=1-Math.pow(1-growth,2.6);
+  mouse.sx+=(mouse.x-mouse.sx)*0.04;
+
+  ctx.drawImage(paper,0,0,W,H);
+  drawPlant(t,g);
+  drawChrome();
+  requestAnimationFrame(frame);
+}
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=stage.clientWidth; H=stage.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  makePaper();
+  build();
+}
+window.addEventListener('resize',resize);
+
+/* ---------- events ---------- */
+stage.addEventListener('pointermove',function(e){
+  var r=stage.getBoundingClientRect();
+  mouse.x=(e.clientX-r.left)/r.width;
+  document.getElementById('hint').style.opacity=0;
+});
+
+document.getElementById('species').addEventListener('click',function(e){
+  var b=e.target.closest('.sp'); if(!b)return;
+  document.querySelectorAll('.sp').forEach(function(x){x.classList.remove('on');});
+  b.classList.add('on');
+  P.species=b.dataset.s;
+  var sp=SPECIES[P.species];
+  P.angle=sp.angle; P.iter=sp.iter;
+  document.getElementById('angle').value=P.angle;
+  document.getElementById('angleVal').textContent=P.angle+'°';
+  document.getElementById('iter').value=P.iter;
+  document.getElementById('iterVal').textContent=P.iter;
+  seed=Math.floor(Math.random()*9999);
+  build();
+});
+function bindRange(id,key,label,suffix){
+  var el=document.getElementById(id);
+  el.addEventListener('input',function(){
+    P[key]=+el.value;
+    document.getElementById(label).textContent=el.value+(suffix||'');
+    build();
+  });
+}
+bindRange('angle','angle','angleVal','°');
+bindRange('iter','iter','iterVal');
+document.getElementById('wind').addEventListener('input',function(){
+  P.wind=+this.value; document.getElementById('windVal').textContent=this.value;
+});
+
+document.getElementById('randomBtn').addEventListener('click',function(){
+  seed=Math.floor(Math.random()*99999);
+  P.angle=12+Math.floor(Math.random()*26);
+  document.getElementById('angle').value=P.angle;
+  document.getElementById('angleVal').textContent=P.angle+'°';
+  build();
+});
+document.getElementById('regrowBtn').addEventListener('click',function(){growth=0;});
+document.getElementById('dlBtn').addEventListener('click',function(){
+  cv.toBlob(function(blob){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='herbarium-'+P.species+'-'+(seed%900+100)+'.png';
+    a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+});
+
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

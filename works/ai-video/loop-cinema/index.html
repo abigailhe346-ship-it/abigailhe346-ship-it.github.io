@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOOP CINEMA — 无缝循环影像生成器</title>
+<style>
+  :root{
+    --bg:#0d0f12; --panel:#14171c; --line:#262b33;
+    --ink:#e8e2d4; --dim:#7d8791;
+    --amber:#e0a437; --mist:#9fb0b8;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;min-height:100vh;
+    background-image:radial-gradient(120% 90% at 50% 0%,#13161b 0%,var(--bg) 60%);}
+  ::selection{background:var(--amber);color:#0d0f12}
+
+  header{display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap}
+  .sig{display:flex;align-items:baseline;gap:14px}
+  .sig h1{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.05em}
+  .sig h1 em{font-style:italic;color:var(--amber)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.16em}
+  .sig .no b{color:var(--amber);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.05em}
+  .rule{margin:14px 28px 0;border-top:1px solid var(--ink);opacity:.9;position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:1px;width:100%;border-top:1px solid var(--line)}
+
+  main{display:grid;grid-template-columns:1fr 290px;gap:24px;
+    padding:24px 28px 44px;max-width:1420px;margin:0 auto}
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .stage{position:relative;background:#000;border:1px solid var(--line);
+    box-shadow:0 30px 80px -20px rgba(0,0,0,.8),0 0 0 1px #000;overflow:hidden}
+  .stage canvas{display:block;width:100%;height:auto;cursor:crosshair}
+  .corner{position:absolute;width:14px;height:14px;pointer-events:none;opacity:.7}
+  .corner::before,.corner::after{content:"";position:absolute;background:var(--ink)}
+  .corner::before{width:100%;height:1px}.corner::after{width:1px;height:100%}
+  .c-tl{left:10px;top:10px}.c-tr{right:10px;top:10px;transform:scaleX(-1)}
+  .c-bl{left:10px;bottom:10px;transform:scaleY(-1)}.c-br{right:10px;bottom:10px;transform:scale(-1)}
+  .stamp{position:absolute;right:14px;top:12px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.22em;color:var(--ink);opacity:.65;pointer-events:none;text-transform:uppercase}
+  .hint{position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;color:rgba(232,226,212,.55);pointer-events:none;text-transform:uppercase}
+  .held{position:absolute;left:50%;top:12px;transform:translateX(-50%);
+    font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:#0d0f12;
+    background:var(--amber);padding:4px 12px 3px;opacity:0;transition:opacity .25s var(--ease);
+    pointer-events:none;text-transform:uppercase}
+  .stage.is-held .held{opacity:1}
+
+  .loopline{display:flex;align-items:center;gap:14px;padding:12px 2px 0}
+  .loopbar{flex:1;height:2px;background:var(--line);position:relative;overflow:visible}
+  .loopbar i{position:absolute;left:0;top:0;height:100%;width:0;background:var(--amber)}
+  .loopbar s{position:absolute;right:0;top:-3px;width:1px;height:8px;background:var(--dim)}
+  .tc{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.1em;white-space:nowrap}
+  .tc b{color:var(--ink);font-weight:400}
+
+  .dock{background:var(--panel);border:1px solid var(--line);
+    padding:20px;display:flex;flex-direction:column;gap:20px;
+    align-self:start;position:sticky;top:20px}
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.24em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px}
+  .ctl{display:flex;flex-direction:column;gap:9px}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:10px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+  .ctl label output{color:var(--amber)}
+
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .seg button{appearance:none;border:1px solid var(--line);background:transparent;
+    color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    padding:9px 4px;cursor:pointer;transition:all .25s var(--ease);text-transform:uppercase}
+  .seg button:hover{border-color:var(--dim);color:var(--ink)}
+  .seg button.on{background:var(--amber);border-color:var(--amber);color:#0d0f12}
+
+  input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:2px;
+    background:var(--line);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;
+    width:14px;height:14px;background:var(--amber);border:2px solid var(--bg);
+    border-radius:50%;box-shadow:0 0 0 1px var(--amber);transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--amber);
+    border:2px solid var(--bg);border-radius:50%;box-shadow:0 0 0 1px var(--amber)}
+
+  .btnrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .btn{appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    padding:12px 8px;cursor:pointer;transition:all .25s var(--ease)}
+  .btn:hover{background:var(--ink);color:#0d0f12}
+  .btn.prime{background:var(--amber);border-color:var(--amber);color:#0d0f12}
+  .btn.prime:hover{background:#f0b850;border-color:#f0b850}
+
+  .note{font-size:11px;line-height:1.8;color:var(--dim);border-top:1px solid var(--line);padding-top:14px}
+  .note b{color:var(--mist);font-weight:400}
+
+  footer{padding:0 28px 26px;font-family:var(--mono);font-size:10px;color:#4a515a;
+    letter-spacing:.16em;text-transform:uppercase;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>LOOP <em>Cinema</em></h1>
+    <span class="no">AI-VIDEO / <b>01</b> — 无缝循环影像生成器</span>
+  </div>
+  <p class="tag">照片里活着的那一部分，在一个完美的圆里无尽循环。</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <i class="corner c-tl"></i><i class="corner c-tr"></i>
+      <i class="corner c-bl"></i><i class="corner c-br"></i>
+      <span class="stamp">SEAMLESS&nbsp;LOOP</span>
+      <span class="hint">CLICK&nbsp;FRAME&nbsp;TO&nbsp;HOLD</span>
+      <span class="held">FRAME&nbsp;HELD</span>
+    </div>
+    <div class="loopline">
+      <div class="loopbar"><i id="loopfill"></i><s></s></div>
+      <span class="tc"><b id="tc">00:00:00</b> / LOOP <b id="tcper">6.0</b>s</span>
+    </div>
+  </section>
+
+  <aside class="dock">
+    <h2>Director&nbsp;Console</h2>
+
+    <div class="ctl">
+      <label>场景 SCENE</label>
+      <div class="seg" id="segScene">
+        <button data-scene="tides" class="on">潮汐</button>
+        <button data-scene="smoke">烟霭</button>
+        <button data-scene="embers">余烬</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label>流速 FLOW <output id="oSpeed">1.00×</output></label>
+      <input type="range" id="rSpeed" min="0.25" max="3" step="0.05" value="1">
+    </div>
+
+    <div class="ctl">
+      <label>循环周期 CYCLE <output id="oPeriod">6.0s</output></label>
+      <input type="range" id="rPeriod" min="4" max="10" step="0.5" value="6">
+    </div>
+
+    <div class="btnrow">
+      <button class="btn" id="bRand">随机再生</button>
+      <button class="btn prime" id="bDL">下载首帧 PNG</button>
+    </div>
+
+    <p class="note">所有运动都被约束在以 <b>2π</b> 为周期的轨道上——正弦相位、粒子寿命与闪烁频率均为循环的整数倍，因此尾帧与首帧<b>严格相接</b>。随机再生会重排波相位与粒子种子。</p>
+  </aside>
+</main>
+
+<footer>
+  <span>LOOP CINEMA — PROCEDURAL CINEMAGRAPH</span>
+  <span>CANVAS 2D · NO FOOTAGE · NO CUTS</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage'),cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var loopfill=document.getElementById('loopfill'),tcEl=document.getElementById('tc'),tcPer=document.getElementById('tcper');
+var ASPECT=2.35,W=0,H=0,DPR=1;
+var TAU=Math.PI*2;
+
+var state={scene:'tides',speed:1,period:6,phi:0,held:false,seed:7};
+var P={}; /* per-scene params */
+
+function hash(n){var x=Math.sin(n*127.1+state.seed*311.7)*43758.5453;return x-Math.floor(x);}
+function rnd(a,b){return a+(b-a)*hash(a*13.7+b*91.3+hash(a+b)*57.7);}
+function lerp(a,b,t){return a+(b-a)*t;}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function mix(c1,c2,t){
+  return 'rgb('+Math.round(lerp(c1[0],c2[0],t))+','+Math.round(lerp(c1[1],c2[1],t))+','+Math.round(lerp(c1[2],c2[2],t))+')';
+}
+
+/* ---------- scene builders : every motion term is periodic in phi ---------- */
+function build(){
+  var i;
+  if(state.scene==='tides'){
+    P.hue=state.seed%3; /* 0 dusk amber, 1 cold mist, 2 mono */
+    P.sunX=lerp(.52,.72,hash(1.3));
+    P.sunY=lerp(.30,.38,hash(2.1));
+    P.bands=[];
+    for(i=0;i<5;i++){
+      P.bands.push({
+        k1:2+Math.floor(hash(i*3+1)*4), m1:1+Math.floor(hash(i*3+2)*2), d1:hash(i*3+3)*TAU,
+        k2:5+Math.floor(hash(i*5+1)*6), m2:2+Math.floor(hash(i*5+2)*3), d2:hash(i*5+4)*TAU,
+        a1:lerp(4,9,hash(i*7+1)), a2:lerp(2,5,hash(i*7+3))
+      });
+    }
+  }else if(state.scene==='smoke'){
+    P.srcX=lerp(.30,.44,hash(4.2));
+    P.parts=[];
+    var N=110;
+    for(i=0;i<N;i++){
+      P.parts.push({s:hash(i*1.7)*TAU,s2:hash(i*2.9)*TAU,s3:hash(i*4.1)*TAU,
+        sp:lerp(.5,1.4,hash(i*5.3)),w:lerp(.6,1.3,hash(i*6.7))});
+    }
+    P.count=N;
+  }else{ /* embers */
+    P.fireX=lerp(.44,.56,hash(8.8));
+    P.parts=[];
+    var M=130;
+    for(i=0;i<M;i++){
+      P.parts.push({s:hash(i*3.3)*TAU,s2:hash(i*7.7)*TAU,s3:hash(i*9.1)*TAU,
+        h:lerp(.5,1,hash(i*2.2)),life:1+Math.floor(hash(i*6.1)*2)}); /* life: integer lives per loop */
+    }
+    P.count=M;
+  }
+}
+
+/* ---------- palettes ---------- */
+function tidePalette(){
+  if(P.hue===1)return{skyTop:[28,36,44],skyBot:[159,176,184],far:[159,176,184],near:[13,17,22],sun:[224,164,55],foam:[232,226,212]};
+  if(P.hue===2)return{skyTop:[20,20,22],skyBot:[180,178,170],far:[170,168,160],near:[10,10,12],sun:[232,226,212],foam:[232,226,212]};
+  return{skyTop:[24,22,26],skyBot:[214,164,96],far:[196,152,100],near:[14,13,16],sun:[224,164,55],foam:[238,228,208]};
+}
+
+/* ---------- renderers ---------- */
+function drawTides(phi){
+  var pal=tidePalette(),x,y,i;
+  var horizon=H*0.46;
+  var g=ctx.createLinearGradient(0,0,0,horizon);
+  g.addColorStop(0,'rgb('+pal.skyTop.join(',')+')');g.addColorStop(1,'rgb('+pal.skyBot.join(',')+')');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,horizon+1);
+
+  /* sun with breathing glow (period 2pi) */
+  var sx=W*P.sunX,sy=H*P.sunY,sr=H*0.085*(1+0.03*Math.sin(2*phi));
+  var glow=ctx.createRadialGradient(sx,sy,0,sx,sy,sr*4);
+  glow.addColorStop(0,'rgba('+pal.sun.join(',')+',.55)');glow.addColorStop(1,'rgba('+pal.sun.join(',')+',0)');
+  ctx.fillStyle=glow;ctx.fillRect(sx-sr*4,sy-sr*4,sr*8,sr*8);
+  ctx.fillStyle='rgb('+pal.sun.join(',')+')';
+  ctx.beginPath();ctx.arc(sx,sy,sr,0,TAU);ctx.fill();
+
+  /* water base */
+  g=ctx.createLinearGradient(0,horizon,0,H);
+  g.addColorStop(0,'rgb('+pal.far.join(',')+')');g.addColorStop(1,'rgb('+pal.near.join(',')+')');
+  ctx.fillStyle=g;ctx.fillRect(0,horizon,W,H-horizon);
+
+  /* sun reflection column, flicker terms integer in phi */
+  var ref=ctx.createLinearGradient(0,horizon,0,H);
+  ref.addColorStop(0,'rgba('+pal.sun.join(',')+',.30)');ref.addColorStop(1,'rgba('+pal.sun.join(',')+',0)');
+  ctx.fillStyle=ref;
+  var rw=W*0.012;
+  for(i=0;i<14;i++){
+    var ry=horizon+(H-horizon)*i/14;
+    var off=Math.sin(3*phi+i*1.7)*rw*1.6+Math.sin(phi+i*2.3)*rw;
+    var ww=rw*(1+i*0.12)*(0.7+0.3*Math.sin(2*phi+i));
+    ctx.fillRect(sx+off-ww/2,ry,ww,(H-horizon)/14*0.62);
+  }
+
+  /* wave bands, far -> near */
+  var nB=P.bands.length,bandH=(H-horizon)*0.9/nB;
+  for(var b=0;b<nB;b++){
+    var bd=P.bands[b];
+    var baseY=horizon+bandH*(b+0.55);
+    var amp=(bd.a1+b*2.4)*(H/480);
+    var t=(b+1)/(nB+1);
+    ctx.beginPath();ctx.moveTo(-8,H+8);
+    for(x=-8;x<=W+8;x+=5){
+      y=baseY
+        +amp*bd.a1/9*Math.sin(TAU*bd.k1*x/W+bd.m1*phi+bd.d1)
+        +amp*bd.a2/9*Math.sin(TAU*bd.k2*x/W*2+bd.m2*phi+bd.d2);
+      ctx.lineTo(x,y);
+    }
+    ctx.lineTo(W+8,H+8);ctx.closePath();
+    ctx.fillStyle=mix(pal.far,pal.near,Math.pow(t,1.15));
+    ctx.fill();
+    /* crest foam */
+    ctx.strokeStyle='rgba('+pal.foam.join(',')+','+(0.10+t*0.16)+')';
+    ctx.lineWidth=1.1;
+    ctx.beginPath();
+    for(x=-8;x<=W+8;x+=5){
+      y=baseY
+        +amp*bd.a1/9*Math.sin(TAU*bd.k1*x/W+bd.m1*phi+bd.d1)
+        +amp*bd.a2/9*Math.sin(TAU*bd.k2*x/W*2+bd.m2*phi+bd.d2);
+      if(x===-8)ctx.moveTo(x,y);else ctx.lineTo(x,y);
+    }
+    ctx.stroke();
+  }
+}
+
+function drawSmoke(phi){
+  var g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#0b0c0f');g.addColorStop(1,'#14161b');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+
+  /* warm room glow, breathing periodically */
+  var gx=W*P.srcX,gy=H*0.97;
+  var gl=ctx.createRadialGradient(gx,gy,0,gx,gy,H*0.85);
+  var gb=0.30+0.08*Math.sin(2*phi);
+  gl.addColorStop(0,'rgba(224,164,55,'+gb+')');gl.addColorStop(1,'rgba(224,164,55,0)');
+  ctx.fillStyle=gl;ctx.fillRect(0,0,W,H);
+
+  /* smoke column: particle life psi wraps with zero alpha at both ends -> seamless */
+  var i,p,psi,t,px,py,r,a;
+  for(i=0;i<P.count;i++){
+    p=P.parts[i];
+    psi=(phi*p.sp+TAU*i/P.count)%TAU;
+    t=psi/TAU;
+    py=H*0.94-H*0.78*t;
+    px=gx+Math.sin(3*psi+p.s)*H*0.035*p.w+Math.sin(5*psi+p.s2)*H*0.016
+        +t*t*H*0.10*Math.sin(p.s3+2*phi);
+    r=(H*0.012+H*0.055*t)*(0.85+0.3*Math.sin(p.s));
+    a=Math.pow(Math.sin(psi/2),1.6)*0.16*(0.85+0.15*Math.sin(8*psi+p.s2));
+    if(a<0.004)continue;
+    var warm=clamp(1-t*1.8,0,1);
+    var cr=Math.round(lerp(159,224,warm)),cg=Math.round(lerp(176,190,warm)),cb=Math.round(lerp(184,110,warm));
+    var rg=ctx.createRadialGradient(px,py,0,px,py,r);
+    rg.addColorStop(0,'rgba('+cr+','+cg+','+cb+','+a+')');
+    rg.addColorStop(1,'rgba('+cr+','+cg+','+cb+',0)');
+    ctx.fillStyle=rg;
+    ctx.beginPath();ctx.arc(px,py,r,0,TAU);ctx.fill();
+  }
+
+  /* incense stick + ember tip */
+  ctx.strokeStyle='rgba(232,226,212,.5)';ctx.lineWidth=1.4;
+  ctx.beginPath();ctx.moveTo(gx-1,H*0.995);ctx.lineTo(gx+3,H*0.90);ctx.stroke();
+  ctx.fillStyle='rgba(224,164,55,'+(0.65+0.35*Math.sin(2*phi))+')';
+  ctx.beginPath();ctx.arc(gx+3,H*0.90,1.8,0,TAU);ctx.fill();
+}
+
+function drawEmbers(phi){
+  var g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#070a10');g.addColorStop(1,'#101318');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+
+  var fx=W*P.fireX,fy=H*0.93;
+  var pulse=1+0.06*Math.sin(2*phi)+0.03*Math.sin(5*phi);
+  var gl=ctx.createRadialGradient(fx,fy,0,fx,fy,H*0.62*pulse);
+  gl.addColorStop(0,'rgba(224,164,55,.5)');gl.addColorStop(.4,'rgba(190,90,40,.22)');gl.addColorStop(1,'rgba(190,90,40,0)');
+  ctx.fillStyle=gl;ctx.fillRect(0,0,W,H);
+
+  /* ground silhouette */
+  ctx.fillStyle='#05070a';
+  ctx.beginPath();ctx.moveTo(0,H);
+  for(var x=0;x<=W;x+=W/24)ctx.lineTo(x,H*0.96+Math.sin(x*0.05+2)*3);
+  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+  /* logs */
+  ctx.save();ctx.translate(fx,fy);
+  ctx.fillStyle='#0a0806';
+  ctx.rotate(0.10);ctx.fillRect(-H*0.075,-H*0.014,H*0.15,H*0.028);
+  ctx.rotate(-0.24);ctx.fillRect(-H*0.075,-H*0.014,H*0.15,H*0.028);
+  ctx.restore();
+  /* flame core: layered periodic lobes */
+  ctx.globalCompositeOperation='lighter';
+  for(var f=0;f<3;f++){
+    var fh=H*(0.05+0.02*f)*pulse*(1+0.10*Math.sin((f+2)*phi+f*2));
+    var fg=ctx.createRadialGradient(fx,fy-fh*0.4,0,fx,fy-fh*0.4,fh);
+    fg.addColorStop(0,'rgba(255,'+(200-30*f)+','+(110-25*f)+','+(0.34-0.08*f)+')');
+    fg.addColorStop(1,'rgba(255,120,40,0)');
+    ctx.fillStyle=fg;
+    ctx.beginPath();ctx.arc(fx,fy-fh*0.4,fh,0,TAU);ctx.fill();
+  }
+  /* embers: integer lives per loop keep the swarm periodic */
+  for(var i=0;i<P.count;i++){
+    var p=P.parts[i];
+    var psi=(p.life*phi+TAU*i/P.count)%TAU;
+    var t=psi/TAU;
+    var py=fy-H*0.06-t*H*0.72*p.h;
+    var px=fx+Math.sin(3*psi+p.s)*H*0.02+Math.sin(2*psi+p.s2)*H*0.05*t;
+    var r=(2.4-1.8*t)*(H/460);
+    var a=Math.pow(Math.sin(psi/2),1.2)*(0.75+0.25*Math.sin(6*psi+p.s3));
+    if(a<0.02)continue;
+    var cr=255,cg=Math.round(lerp(190,60,t)),cb=Math.round(lerp(90,20,t));
+    ctx.fillStyle='rgba('+cr+','+cg+','+cb+','+a+')';
+    ctx.beginPath();ctx.arc(px,py,Math.max(r,0.4),0,TAU);ctx.fill();
+  }
+  ctx.globalCompositeOperation='source-over';
+}
+
+/* ---------- grain + vignette ---------- */
+function grade(){
+  ctx.fillStyle='rgba(232,226,212,.05)';
+  for(var i=0;i<260;i++){
+    ctx.fillRect(Math.random()*W,Math.random()*H,1.1,1.1);
+  }
+  var v=ctx.createRadialGradient(W/2,H/2,H*0.35,W/2,H/2,W*0.62);
+  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.42)');
+  ctx.fillStyle=v;ctx.fillRect(0,0,W,H);
+  /* scanline whisper */
+  ctx.fillStyle='rgba(0,0,0,.05)';
+  for(var y=0;y<H;y+=4)ctx.fillRect(0,y,W,1);
+}
+
+function render(){
+  ctx.clearRect(0,0,W,H);
+  if(state.scene==='tides')drawTides(state.phi);
+  else if(state.scene==='smoke')drawSmoke(state.phi);
+  else drawEmbers(state.phi);
+  grade();
+}
+
+/* ---------- sizing ---------- */
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  var cw=stage.clientWidth;
+  W=cw;H=Math.round(cw/ASPECT);
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  render();
+}
+
+/* ---------- main loop ---------- */
+var last=performance.now();
+function tick(now){
+  var dt=Math.min((now-last)/1000,0.1);last=now;
+  if(!state.held){
+    state.phi=(state.phi+dt*TAU/state.period*state.speed)%TAU;
+    render();
+  }
+  loopfill.style.width=(state.phi/TAU*100)+'%';
+  var lt=state.phi/TAU*state.period;
+  var mm=Math.floor(lt/60),ss=Math.floor(lt%60),ff=Math.floor((lt*24)%24);
+  tcEl.textContent=(mm<10?'0':'')+mm+':'+(ss<10?'0':'')+ss+':'+(ff<10?'0':'')+ff;
+  requestAnimationFrame(tick);
+}
+
+/* ---------- controls ---------- */
+document.getElementById('segScene').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  this.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+  b.classList.add('on');
+  state.scene=b.dataset.scene;build();render();
+});
+var rSpeed=document.getElementById('rSpeed'),oSpeed=document.getElementById('oSpeed');
+rSpeed.addEventListener('input',function(){state.speed=+this.value;oSpeed.textContent=state.speed.toFixed(2)+'×';});
+var rPeriod=document.getElementById('rPeriod'),oPeriod=document.getElementById('oPeriod');
+rPeriod.addEventListener('input',function(){state.period=+this.value;oPeriod.textContent=state.period.toFixed(1)+'s';tcPer.textContent=state.period.toFixed(1);});
+
+document.getElementById('bRand').addEventListener('click',function(){
+  state.seed=Math.floor(Math.random()*9999)+1;build();render();
+});
+document.getElementById('bDL').addEventListener('click',function(){
+  var keep=state.phi;state.phi=0;render();
+  var a=document.createElement('a');
+  a.download='loop-cinema-'+state.scene+'-frame0.png';
+  a.href=cv.toDataURL('image/png');
+  a.click();
+  state.phi=keep;render();
+});
+stage.addEventListener('click',function(){
+  state.held=!state.held;
+  stage.classList.toggle('is-held',state.held);
+});
+
+window.addEventListener('resize',resize);
+build();resize();requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

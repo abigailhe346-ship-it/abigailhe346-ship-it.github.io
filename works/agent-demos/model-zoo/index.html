@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Model Zoo — 模型仓库浏览器</title>
+<style>
+  :root{
+    --bg:#0D0F12; --panel:#13161B; --panel2:#0A0C0F; --line:rgba(255,255,255,.08);
+    --ink:#E9EAE6; --dim:#71767F; --faint:#363B43;
+    --lime:#A3E635; --cyan:#5CC8E0;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(163,230,53,.3)}
+  button{font-family:inherit}
+
+  /* ---------- header ---------- */
+  header{height:56px;display:flex;align-items:center;gap:20px;padding:0 22px;
+         border-bottom:1px solid var(--line);position:relative;z-index:5}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--lime);letter-spacing:.12em}
+  .brand .name{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.22em;text-transform:uppercase}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--mono);
+          font-size:11px;color:var(--dim)}
+  .dotlive{width:7px;height:7px;border-radius:50%;background:var(--lime);
+           box-shadow:0 0 8px var(--lime);animation:pulse 2.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  main{display:flex;flex-direction:column;height:calc(100% - 56px)}
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{display:flex;align-items:center;gap:18px;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .search{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--panel);
+          padding:0 13px;min-width:240px;transition:border-color .3s}
+  .search:focus-within{border-color:rgba(163,230,53,.5)}
+  .search svg{flex:none;opacity:.5}
+  .search input{background:transparent;border:0;outline:none;color:var(--ink);height:36px;
+                font-family:var(--mono);font-size:12px;width:100%;caret-color:var(--lime)}
+  .search input::placeholder{color:var(--faint)}
+  .facet{display:flex;align-items:center;gap:6px}
+  .facet .fk{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--faint);
+             text-transform:uppercase;margin-right:2px}
+  .chip{font-family:var(--mono);font-size:10.5px;padding:6px 11px;border:1px solid var(--line);
+        color:var(--dim);cursor:pointer;user-select:none;transition:all .22s var(--ease);background:transparent}
+  .chip:hover{color:var(--ink);border-color:rgba(255,255,255,.25)}
+  .chip.on{color:var(--lime);border-color:rgba(163,230,53,.55);background:rgba(163,230,53,.07)}
+  .sortsel{margin-left:auto;display:flex;align-items:center;gap:8px;font-family:var(--mono);
+           font-size:10px;color:var(--dim)}
+  .sortsel select{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+                  font-family:var(--mono);font-size:11px;padding:7px 10px;outline:none;cursor:pointer}
+  .sortsel select:focus{border-color:rgba(163,230,53,.5)}
+
+  /* ---------- grid ---------- */
+  .countline{padding:12px 22px 0;font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.12em}
+  .countline b{color:var(--lime);font-weight:600}
+  .grid{flex:1;overflow-y:auto;padding:14px 22px 26px;display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px;align-content:start;
+        scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  .grid::-webkit-scrollbar{width:4px}
+  .grid::-webkit-scrollbar-thumb{background:var(--faint)}
+
+  .card{border:1px solid var(--line);background:var(--panel);padding:18px 18px 15px;cursor:pointer;
+        transition:transform .35s var(--ease),border-color .35s var(--ease),box-shadow .35s var(--ease);
+        animation:cardin .5s var(--ease) both;position:relative;overflow:hidden}
+  @keyframes cardin{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .card:hover{transform:translateY(-4px);border-color:rgba(163,230,53,.45);
+              box-shadow:0 18px 40px rgba(0,0,0,.4)}
+  .card .top{display:flex;align-items:baseline;gap:8px}
+  .card .org{font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .card .mn{font-size:16px;font-weight:700;letter-spacing:.01em}
+  .card .mod{margin-left:auto;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;
+             padding:3px 8px;border:1px solid var(--faint);color:var(--dim);text-transform:uppercase;flex:none}
+  .card.mm .mod{color:var(--cyan);border-color:rgba(92,200,224,.4)}
+  .card .dc{font-size:11.5px;color:var(--dim);line-height:1.65;margin-top:8px;min-height:38px;
+            display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .specs{margin-top:13px;display:flex;flex-direction:column;gap:7px}
+  .spec{display:grid;grid-template-columns:52px 1fr 40px;align-items:center;gap:10px}
+  .spec .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
+  .spec .track{height:3px;background:var(--faint);overflow:hidden}
+  .spec .fill{height:100%;width:0;transition:width .9s var(--ease)}
+  .spec .v{font-family:var(--mono);font-size:9.5px;color:var(--dim);text-align:right}
+  .card .foot{display:flex;align-items:center;gap:14px;margin-top:14px;padding-top:11px;
+              border-top:1px solid var(--line);font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .card .foot b{color:var(--ink);font-weight:600}
+  .trend{color:var(--lime)}
+
+  .noresult{grid-column:1/-1;text-align:center;padding:70px 0;font-family:var(--mono);
+            font-size:12px;color:var(--faint);letter-spacing:.1em}
+
+  /* ---------- drawer ---------- */
+  #scrim{position:fixed;inset:0;background:rgba(4,5,7,.55);opacity:0;pointer-events:none;
+         transition:opacity .4s;z-index:40}
+  #scrim.show{opacity:1;pointer-events:auto}
+  #drawer{position:fixed;top:0;right:0;bottom:0;width:min(430px,92vw);z-index:50;
+          background:#10131A;border-left:1px solid var(--line);
+          transform:translateX(103%);transition:transform .5s var(--ease);
+          display:flex;flex-direction:column}
+  #drawer.show{transform:none}
+  .dh{padding:24px 26px 18px;border-bottom:1px solid var(--line)}
+  .dh .org{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .dh .mn{font-family:var(--serif);font-size:30px;margin-top:4px}
+  .dh .tags{display:flex;gap:7px;margin-top:12px;flex-wrap:wrap}
+  .dh .tag{font-family:var(--mono);font-size:9px;letter-spacing:.1em;padding:3px 9px;
+           border:1px solid var(--faint);color:var(--dim);text-transform:uppercase}
+  .dclose{position:absolute;top:18px;right:20px;width:28px;height:28px;border:1px solid var(--line);
+          background:transparent;color:var(--dim);cursor:pointer;font-size:14px;font-family:var(--mono);
+          transition:all .25s}
+  .dclose:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+  .db{flex:1;overflow-y:auto;padding:20px 26px;display:flex;flex-direction:column;gap:22px;
+      scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  .db::-webkit-scrollbar{width:4px}
+  .db::-webkit-scrollbar-thumb{background:var(--faint)}
+  .dnums{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--line);
+         border:1px solid var(--line)}
+  .dnum{background:var(--panel2);padding:13px 14px}
+  .dnum .k{font-family:var(--mono);font-size:8.5px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+  .dnum .v{font-family:var(--mono);font-size:17px;margin-top:4px;font-variant-numeric:tabular-nums}
+  .dnum .v em{font-style:normal;font-size:10px;color:var(--dim)}
+  .caps{display:flex;flex-direction:column;gap:11px}
+  .cap{display:grid;grid-template-columns:86px 1fr 34px;align-items:center;gap:12px}
+  .cap .k{font-family:var(--mono);font-size:10px;color:var(--dim)}
+  .cap .track{height:4px;background:var(--faint)}
+  .cap .fill{height:100%;width:0;background:var(--lime);transition:width 1s var(--ease)}
+  .cap .v{font-family:var(--mono);font-size:10px;color:var(--ink);text-align:right}
+  .ctxviz .track{display:flex;height:22px;border:1px solid var(--line);overflow:hidden;margin-top:8px}
+  .ctxviz .seg{height:100%}
+  .ctxviz .lab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;
+               color:var(--dim);margin-top:6px}
+  pre.cmd{font-family:var(--mono);font-size:11px;line-height:1.8;background:var(--panel2);
+          border:1px solid var(--line);padding:13px 15px;color:#B9C0CB;overflow-x:auto;white-space:pre}
+  pre.cmd .p{color:var(--lime)}
+  .dfoot{padding:16px 26px;border-top:1px solid var(--line);display:flex;gap:10px}
+  .btn{flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:12px 0;cursor:pointer;
+       border:1px solid var(--line);background:transparent;color:var(--ink);
+       transition:all .25s var(--ease);text-align:center}
+  .btn.primary{background:var(--lime);border-color:var(--lime);color:#141A08;font-weight:600}
+  .btn.primary:hover{background:#BCF25C;box-shadow:0 0 22px rgba(163,230,53,.22)}
+  .btn:not(.primary):hover{border-color:rgba(255,255,255,.3)}
+
+  @media (max-width:760px){
+    body{overflow:auto}
+    main{height:auto}
+    .grid{overflow:visible}
+    .sortsel{margin-left:0}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">No.06</span>
+    <span class="name">Model Zoo</span>
+    <span class="sub">Model Hub Browser</span>
+  </div>
+  <div class="crumbs">
+    <span class="dotlive"></span><span>REGISTRY · LOCAL SNAPSHOT 2026.08</span>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="search">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#E9EAE6" stroke-width="2.4">
+        <circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>
+      </svg>
+      <input id="q" type="text" placeholder="搜索模型 / 组织 / 标签…" spellcheck="false">
+    </div>
+    <div class="facet" id="f-mod">
+      <span class="fk">模态</span>
+      <button class="chip on" data-v="all">全部</button>
+      <button class="chip" data-v="text">文本</button>
+      <button class="chip" data-v="vision">视觉</button>
+      <button class="chip" data-v="audio">语音</button>
+      <button class="chip" data-v="multi">多模态</button>
+    </div>
+    <div class="facet" id="f-lic">
+      <span class="fk">协议</span>
+      <button class="chip on" data-v="all">全部</button>
+      <button class="chip" data-v="open">开源</button>
+      <button class="chip" data-v="proprietary">专有</button>
+    </div>
+    <div class="sortsel">SORT
+      <select id="sort">
+        <option value="dl">下载量 ↓</option>
+        <option value="trend">上升趋势 ↓</option>
+        <option value="new">最新发布</option>
+        <option value="ctx">上下文长度</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="countline" id="countline"></div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<div id="scrim"></div>
+<aside id="drawer">
+  <button class="dclose" id="dclose">×</button>
+  <div class="dh">
+    <div class="org" id="d-org">—</div>
+    <div class="mn" id="d-mn">—</div>
+    <div class="tags" id="d-tags"></div>
+  </div>
+  <div class="db">
+    <div class="dnums">
+      <div class="dnum"><div class="k">Downloads</div><div class="v" id="d-dl">—</div></div>
+      <div class="dnum"><div class="k">Context</div><div class="v" id="d-ctx">—</div></div>
+      <div class="dnum"><div class="k">Params</div><div class="v" id="d-par">—</div></div>
+    </div>
+    <div>
+      <div class="blocklabel" style="margin-bottom:12px">Capability Profile</div>
+      <div class="caps" id="d-caps"></div>
+    </div>
+    <div class="ctxviz">
+      <div class="blocklabel">Context Window</div>
+      <div class="track"><div class="seg" id="d-ctxseg"></div></div>
+      <div class="lab"><span>0</span><span id="d-ctxlab">—</span></div>
+    </div>
+    <div>
+      <div class="blocklabel" style="margin-bottom:10px">Quick Start</div>
+      <pre class="cmd" id="d-cmd"></pre>
+    </div>
+  </div>
+  <div class="dfoot">
+    <button class="btn primary" id="d-copy">COPY MODEL ID</button>
+    <button class="btn" id="d-close2">CLOSE</button>
+  </div>
+</aside>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+
+/* ================= registry (fictional snapshot) ================= */
+const MODELS=[
+ {id:"kimi-k2",org:"moonshot",mod:"text",lic:"proprietary",par:"1T MoE",ctx:256,dl:4820,trend:97,date:"2026-07",
+  tags:["agentic","coding","tool-use"],dc:"万亿参数 MoE，长链路工具调用与代码 agent 场景的当家模型。",
+  caps:{推理:92,代码:95,创作:84,速度:61,多语言:88}},
+ {id:"moon-v1-8k",org:"moonshot",mod:"text",lic:"proprietary",par:"68B",ctx:8,dl:1210,trend:12,date:"2024-11",
+  tags:["legacy","stable"],dc:"上一代稳定版，延迟低、行为可预期，适合保守的线上业务。",
+  caps:{推理:71,代码:66,创作:74,速度:78,多语言:70}},
+ {id:"lite-turbo",org:"moonshot",mod:"text",lic:"proprietary",par:"3B",ctx:32,dl:2980,trend:74,date:"2026-05",
+  tags:["edge","cheap","fast"],dc:"3B 小钢炮，端侧与高频低客单场景的首选，单 token 成本近乎可忽略。",
+  caps:{推理:58,代码:52,创作:60,速度:97,多语言:64}},
+ {id:"atlas-vision-2",org:"atlas-lab",mod:"vision",lic:"open",par:"34B",ctx:64,dl:1860,trend:68,date:"2026-06",
+  tags:["ocr","document","grounding"],dc:"文档理解特化视觉模型，表格还原与版面分析评测第一梯队。",
+  caps:{推理:76,代码:41,创作:52,速度:66,多语言:72}},
+ {id:"sage-70b",org:"open-guild",mod:"text",lic:"open",par:"70B",ctx:128,dl:3410,trend:55,date:"2026-03",
+  tags:["self-host","fine-tune"],dc:"可完全自托管的 70B 基座，社区微调生态最繁荣的开源选项之一。",
+  caps:{推理:83,代码:79,创作:81,速度:44,多语言:76}},
+ {id:"whisperline-v4",org:"atlas-lab",mod:"audio",lic:"open",par:"1.6B",ctx:16,dl:5230,trend:81,date:"2026-04",
+  tags:["asr","streaming","dialect"],dc:"流式语音识别，方言与噪声场景字错率再降 18%，支持 41 种语言。",
+  caps:{推理:62,代码:12,创作:30,速度:93,多语言:91}},
+ {id:"nova-omni",org:"nova-ai",mod:"multi",lic:"proprietary",par:"—",ctx:512,dl:2640,trend:89,date:"2026-08",
+  tags:["video","realtime","voice-in-out"],dc:"原生音视频流进流出的全模态模型，实时对话延迟压进 300ms。",
+  caps:{推理:88,代码:74,创作:86,速度:71,多语言:85}},
+ {id:"ferret-rerank",org:"open-guild",mod:"text",lic:"open",par:"0.6B",ctx:8,dl:4110,trend:34,date:"2025-12",
+  tags:["rag","rerank","retrieval"],dc:"检索重排小模型，RAG 管线的性价比零件，BEIR 均分超同档 6 个点。",
+  caps:{推理:55,代码:20,创作:25,速度:95,多语言:70}},
+ {id:"palette-diff-3",org:"nova-ai",mod:"vision",lic:"proprietary",par:"12B",ctx:4,dl:3390,trend:63,date:"2026-06",
+  tags:["image-gen","inpaint","control"],dc:"第三代图像生成，文字渲染与多图一致性大幅改善，支持精确局部编辑。",
+  caps:{推理:48,代码:15,创作:96,速度:58,多语言:60}},
+ {id:"qilin-math-r1",org:"open-guild",mod:"text",lic:"open",par:"32B",ctx:64,dl:1540,trend:92,date:"2026-07",
+  tags:["reasoning","math","rl"],dc:"强化学习推理特化，AIME 级别竞赛数学开源 SOTA，思维链全程可读。",
+  caps:{推理:96,代码:70,创作:45,速度:38,多语言:58}},
+ {id:"babel-tts-x",org:"atlas-lab",mod:"audio",lic:"proprietary",par:"4B",ctx:32,dl:980,trend:47,date:"2026-02",
+  tags:["tts","voice-clone","expressive"],dc:"表现力语音合成，三秒参考音频即可克隆音色，情绪标签细粒度可控。",
+  caps:{推理:40,代码:8,创作:78,速度:82,多语言:88}},
+ {id:"moss-embed-v2",org:"open-guild",mod:"text",lic:"open",par:"1.2B",ctx:32,dl:6020,trend:58,date:"2026-01",
+  tags:["embedding","multilingual","rag"],dc:"多语言向量模型，MTEB 中英双榜前十常驻，量化后可在 CPU 上跑。",
+  caps:{推理:60,代码:18,创作:22,速度:90,多语言:94}},
+];
+const MODCN={text:"文本",vision:"视觉",audio:"语音",multi:"多模态"};
+const F={q:"",mod:"all",lic:"all",sort:"dl"};
+
+const fmtDL=n=>n>=1000?(n/1000).toFixed(1)+"M":n+"K";
+const CTXMAX=512;
+
+/* ================= grid ================= */
+function filtered(){
+  let m=MODELS.filter(m=>{
+    if(F.mod!=="all"&&m.mod!==F.mod)return false;
+    if(F.lic==="open"&&m.lic!=="open")return false;
+    if(F.lic==="proprietary"&&m.lic!=="open")return false;
+    if(F.q){
+      const q=F.q.toLowerCase();
+      if(!(m.id+" "+m.org+" "+m.tags.join(" ")+" "+m.dc).toLowerCase().includes(q))return false;
+    }
+    return true;
+  });
+  const k=F.sort;
+  m.sort((a,b)=>k==="dl"?b.dl-a.dl:k==="trend"?b.trend-a.trend:
+                 k==="ctx"?b.ctx-a.ctx:(b.date>a.date?1:-1));
+  return m;
+}
+function renderGrid(){
+  const g=$("grid");
+  const list=filtered();
+  $("countline").innerHTML=`INDEXED <b>${list.length}</b> / ${MODELS.length} MODELS`+
+    (F.q?` · QUERY “${F.q}”`:"");
+  g.innerHTML="";
+  if(!list.length){
+    g.innerHTML=`<div class="noresult">// 没有匹配的模型 — 试试放宽筛选条件</div>`;
+    return;
+  }
+  list.forEach((m,i)=>{
+    const el=document.createElement("div");
+    el.className="card"+(m.mod==="multi"?" mm":"");
+    el.style.animationDelay=(i*45)+"ms";
+    const q=m.caps.推理, s=m.caps.速度, c=Math.round((m.caps.推理+m.caps.代码+m.caps.创作)/3);
+    el.innerHTML=`
+      <div class="top"><span class="org">${m.org} /</span><span class="mn">${m.id}</span>
+        <span class="mod">${MODCN[m.mod]}</span></div>
+      <div class="dc">${m.dc}</div>
+      <div class="specs">
+        <div class="spec"><span class="k">reason</span><div class="track"><div class="fill" data-w="${q}" style="background:var(--lime)"></div></div><span class="v">${q}</span></div>
+        <div class="spec"><span class="k">speed</span><div class="track"><div class="fill" data-w="${s}" style="background:var(--cyan)"></div></div><span class="v">${s}</span></div>
+        <div class="spec"><span class="k">overall</span><div class="track"><div class="fill" data-w="${c}" style="background:#E9EAE6"></div></div><span class="v">${c}</span></div>
+      </div>
+      <div class="foot"><span>↓ <b>${fmtDL(m.dl)}</b></span>
+        <span>ctx <b>${m.ctx}K</b></span>
+        <span class="trend">▲ ${m.trend}%</span>
+        <span style="margin-left:auto">${m.lic==="open"?"OPEN":"PROPR."}</span></div>`;
+    el.addEventListener("click",()=>openDrawer(m));
+    g.appendChild(el);
+  });
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    g.querySelectorAll(".fill").forEach(f=>f.style.width=f.dataset.w+"%");
+  }));
+}
+
+/* ================= filters ================= */
+$("q").addEventListener("input",e=>{F.q=e.target.value.trim();renderGrid()});
+[["f-mod","mod"],["f-lic","lic"]].forEach(([id,key])=>{
+  $(id).addEventListener("click",e=>{
+    const c=e.target.closest(".chip");if(!c)return;
+    $(id).querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+    c.classList.add("on");F[key]=c.dataset.v;renderGrid();
+  });
+});
+$("sort").addEventListener("change",e=>{F.sort=e.target.value;renderGrid()});
+
+/* ================= drawer ================= */
+function openDrawer(m){
+  $("d-org").textContent=m.org+" / · "+m.date+" 发布";
+  $("d-mn").textContent=m.id;
+  $("d-tags").innerHTML=m.tags.map(t=>`<span class="tag">${t}</span>`).join("")+
+    `<span class="tag" style="color:${m.lic==="open"?"var(--lime)":"var(--dim)"}">${m.lic==="open"?"open weights":"proprietary"}</span>`;
+  $("d-dl").innerHTML=fmtDL(m.dl)+"<em> / mo</em>";
+  $("d-ctx").innerHTML=m.ctx+"<em>K tok</em>";
+  $("d-par").textContent=m.par;
+  const caps=$("d-caps");caps.innerHTML="";
+  Object.entries(m.caps).forEach(([k,v])=>{
+    const el=document.createElement("div");
+    el.className="cap";
+    el.innerHTML=`<span class="k">${k}</span><div class="track"><div class="fill" data-w="${v}"></div></div><span class="v">${v}</span>`;
+    caps.appendChild(el);
+  });
+  const pct=Math.max(6,m.ctx/CTXMAX*100);
+  $("d-ctxseg").style.width="0";
+  $("d-ctxseg").style.background="var(--lime)";
+  $("d-ctxseg").style.transition="width 1s var(--ease)";
+  $("d-ctxlab").textContent=m.ctx+"K tokens（相对本表最大 "+CTXMAX+"K）";
+  $("d-cmd").innerHTML=`<span class="p">$</span> zoo pull ${m.org}/${m.id}\n<span class="p">$</span> zoo run  ${m.org}/${m.id} --ctx ${m.ctx}k`;
+  $("scrim").classList.add("show");
+  $("drawer").classList.add("show");
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    caps.querySelectorAll(".fill").forEach(f=>f.style.width=f.dataset.w+"%");
+    $("d-ctxseg").style.width=pct+"%";
+  }));
+}
+function closeDrawer(){$("scrim").classList.remove("show");$("drawer").classList.remove("show")}
+$("scrim").addEventListener("click",closeDrawer);
+$("dclose").addEventListener("click",closeDrawer);
+$("d-close2").addEventListener("click",closeDrawer);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeDrawer()});
+$("d-copy").addEventListener("click",()=>{
+  const id=$("d-mn").textContent, org=$("d-org").textContent.split(" ")[0];
+  const txt=org+"/"+id;
+  if(navigator.clipboard)navigator.clipboard.writeText(txt).catch(()=>{});
+  $("d-copy").textContent="COPIED ✓";
+  setTimeout(()=>$("d-copy").textContent="COPY MODEL ID",1400);
+});
+
+/* ================= init ================= */
+renderGrid();
+</script>
+</body>
+</html>

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MORI 森煎珈琲 — Specialty Coffee Roasters, Kyoto</title>
+<style>
+  :root{
+    --cream:#F2EAD9;
+    --cream2:#EAE0CB;
+    --esp:#2A1B10;
+    --esp-soft:rgba(42,27,16,.62);
+    --caramel:#B46A28;
+    --serif:Didot,"Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--cream);color:var(--esp);font-family:var(--serif);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  ::selection{background:var(--caramel);color:var(--cream);}
+
+  header{position:fixed;top:0;left:0;right:0;z-index:90;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:16px 3vw;pointer-events:none;}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.14em;line-height:1.8;}
+  .sig .no{color:var(--caramel);font-weight:700;}
+  nav{display:flex;gap:30px;font-family:var(--mono);font-size:10px;letter-spacing:.28em;padding-top:4px;}
+  nav a{color:var(--esp);text-decoration:none;border-bottom:1px solid transparent;padding-bottom:3px;
+    transition:border-color .3s;}
+  nav a:hover{border-color:var(--caramel);}
+  @media(max-width:720px){nav{display:none;}}
+
+  /* ---------- hero ---------- */
+  .hero{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr;align-items:center;
+    gap:3vw;padding:12vh 3vw 6vh;position:relative;}
+  .mast-k{font-family:var(--mono);font-size:11px;letter-spacing:.5em;color:var(--caramel);margin-bottom:3vh;}
+  h1{font-size:clamp(52px,7.6vw,130px);line-height:.96;font-weight:700;letter-spacing:-.01em;}
+  h1 em{font-style:italic;font-weight:400;color:var(--caramel);}
+  .hero p{font-family:var(--sans);font-size:13px;line-height:2.2;color:var(--esp-soft);
+    max-width:40ch;margin-top:3.5vh;}
+  .hero .meta{margin-top:4vh;border-top:1px solid var(--esp);padding-top:14px;display:flex;
+    gap:34px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--esp-soft);flex-wrap:wrap;}
+  .steamwrap{position:relative;}
+  #steam{display:block;width:100%;height:auto;}
+  .steamhint{position:absolute;bottom:6px;left:0;right:0;text-align:center;font-family:var(--mono);
+    font-size:9px;letter-spacing:.34em;color:var(--esp-soft);}
+  .vtext{position:absolute;top:12vh;right:2vw;writing-mode:vertical-rl;font-family:var(--serif);
+    font-size:clamp(15px,1.4vw,20px);letter-spacing:.5em;color:var(--esp-soft);}
+  @media(max-width:900px){.hero{grid-template-columns:1fr;padding-top:16vh;}.vtext{display:none;}}
+
+  /* ---------- section head ---------- */
+  .sec-head{display:flex;justify-content:space-between;align-items:baseline;gap:18px;flex-wrap:wrap;
+    padding:11vh 3vw 5vh;}
+  .sec-head h2{font-size:clamp(36px,5vw,80px);line-height:1;font-weight:700;text-transform:uppercase;}
+  .sec-head h2 em{font-style:italic;font-weight:400;color:var(--caramel);}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.28em;color:var(--esp-soft);line-height:2;}
+  .rv{opacity:0;transform:translateY(34px);transition:opacity 1s var(--ease),transform 1s var(--ease);}
+  .rv.in{opacity:1;transform:none;}
+
+  /* ---------- origins / roast lab ---------- */
+  .roastlab{margin:0 3vw 10vh;border:1px solid var(--esp);display:grid;grid-template-columns:1fr 1.1fr;}
+  .origins{border-right:1px solid var(--esp);}
+  .orow{padding:22px 24px;border-bottom:1px solid rgba(42,27,16,.25);cursor:pointer;
+    transition:background .35s var(--ease),color .35s var(--ease);display:flex;
+    justify-content:space-between;align-items:baseline;gap:12px;}
+  .orow:last-child{border-bottom:none;}
+  .orow h3{font-size:clamp(19px,1.7vw,26px);font-weight:700;}
+  .orow h3 span{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.24em;
+    color:var(--esp-soft);margin-top:6px;font-weight:400;transition:color .35s;}
+  .orow .alt{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--esp-soft);
+    text-align:right;transition:color .35s;}
+  .orow:hover{background:rgba(42,27,16,.05);}
+  .orow.sel{background:var(--esp);color:var(--cream);}
+  .orow.sel h3 span,.orow.sel .alt{color:rgba(242,234,217,.6);}
+  .labpane{padding:34px 30px;display:flex;flex-direction:column;gap:3vh;}
+  .labtop{display:flex;gap:30px;align-items:center;}
+  #beanCv{width:120px;height:150px;flex:0 0 auto;}
+  .labname{font-size:clamp(22px,2.2vw,34px);font-style:italic;line-height:1.3;}
+  .labname small{display:block;font-family:var(--mono);font-style:normal;font-size:10px;
+    letter-spacing:.26em;color:var(--esp-soft);margin-top:10px;}
+  /* custom range */
+  .rslider{display:block;}
+  .rslider .rlabels{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:9px;letter-spacing:.3em;color:var(--esp-soft);margin-top:10px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;
+    background:linear-gradient(90deg,#D9B07C,#2A1B10);outline:none;margin:18px 0 0;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;
+    border-radius:50%;background:var(--cream);border:2px solid var(--esp);cursor:pointer;
+    transition:transform .25s var(--ease),background .25s;}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25);background:var(--caramel);}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--cream);
+    border:2px solid var(--esp);cursor:pointer;}
+  .flavor{display:flex;gap:8px;flex-wrap:wrap;}
+  .flavor span{border:1px solid var(--esp);border-radius:999px;padding:8px 16px;font-family:var(--mono);
+    font-size:10px;letter-spacing:.18em;transition:all .4s var(--ease);}
+  #roastNote{font-family:var(--sans);font-size:13px;line-height:2.1;color:var(--esp-soft);
+    min-height:3.4em;transition:opacity .35s;}
+  #roastNote.fade{opacity:0;}
+  @media(max-width:900px){.roastlab{grid-template-columns:1fr;}.origins{border-right:none;border-bottom:1px solid var(--esp);}}
+
+  /* ---------- brew timer ---------- */
+  .brew{background:var(--esp);color:var(--cream);padding:0 3vw 12vh;}
+  .brew .sec-head h2{color:var(--cream);}
+  .brew .sec-head .idx{color:rgba(242,234,217,.55);}
+  .brewgrid{display:grid;grid-template-columns:1fr 1.2fr;gap:5vw;align-items:start;}
+  #brewCv{width:100%;height:auto;display:block;border:1px solid rgba(242,234,217,.3);}
+  .timer{font-family:var(--mono);font-size:clamp(52px,6vw,96px);font-weight:700;letter-spacing:.02em;
+    font-variant-numeric:tabular-nums;line-height:1;color:var(--cream);}
+  .timer small{font-size:.22em;color:var(--caramel);letter-spacing:.3em;display:block;margin-top:8px;}
+  .steps{margin-top:4vh;border-top:1px solid rgba(242,234,217,.3);}
+  .step{display:flex;justify-content:space-between;gap:14px;padding:15px 4px;
+    border-bottom:1px solid rgba(242,234,217,.3);font-family:var(--mono);font-size:11px;
+    letter-spacing:.16em;color:rgba(242,234,217,.5);transition:color .4s,padding-left .4s var(--ease);}
+  .step.now{color:var(--caramel);padding-left:16px;}
+  .step.done{color:rgba(242,234,217,.9);}
+  .step.done .st::after{content:" ✓";color:var(--caramel);}
+  .brewctl{display:flex;gap:10px;margin-top:4vh;flex-wrap:wrap;}
+  .bbtn{background:transparent;border:1px solid var(--cream);color:var(--cream);font-family:var(--mono);
+    font-size:11px;letter-spacing:.26em;padding:16px 30px;cursor:pointer;transition:all .35s var(--ease);}
+  .bbtn:hover{background:var(--cream);color:var(--esp);}
+  .bbtn.primary{background:var(--caramel);border-color:var(--caramel);color:var(--esp);}
+  .bbtn.primary:hover{background:var(--cream);border-color:var(--cream);}
+  .brewlog{font-family:var(--sans);font-size:13px;line-height:2;color:rgba(242,234,217,.6);
+    margin-top:3vh;min-height:3em;}
+  @media(max-width:900px){.brewgrid{grid-template-columns:1fr;}}
+
+  /* ---------- marquee + footer ---------- */
+  .marquee{border-top:1px solid var(--esp);border-bottom:1px solid var(--esp);overflow:hidden;padding:14px 0;}
+  .mq{display:flex;width:max-content;animation:mq 26s linear infinite;}
+  .mq span{font-style:italic;font-size:14px;letter-spacing:.3em;color:var(--esp-soft);
+    padding:0 30px;white-space:nowrap;}
+  .mq span b{color:var(--caramel);font-family:var(--mono);font-style:normal;font-size:10px;letter-spacing:.26em;}
+  @keyframes mq{to{transform:translateX(-50%);}}
+  footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:20px 3vw;
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--esp-soft);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 13</span> · <b>MORI 森煎珈琲</b><br>SPECIALTY COFFEE ROASTERS — KYOTO</div>
+  <nav>
+    <a href="#origins">产区 ORIGINS</a>
+    <a href="#brew">冲煮 BREW</a>
+  </nav>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div>
+    <div class="mast-k">深煎りの森 — ROASTED IN KYOTO, SINCE 1998</div>
+    <h1>一杯的<br><em>森林浴</em></h1>
+    <p>京都北山的小烘焙所。我们相信深煎不是把豆子烤黑，
+      而是把一座森林的潮气、腐叶与晨光，慢慢收进一颗豆子里。
+      移动指尖，替这杯咖啡扇一扇风。</p>
+    <div class="meta">
+      <span>焙煎度 — 中深煎 CITY+</span>
+      <span>抽出 — 21 g / 92°C</span>
+      <span>定休 — 水曜日</span>
+    </div>
+  </div>
+  <div class="steamwrap">
+    <canvas id="steam"></canvas>
+    <div class="steamhint">MOVE CURSOR — 风会改变蒸汽的方向</div>
+  </div>
+  <div class="vtext">湯気の向こうに、森が見える。</div>
+</section>
+
+<!-- ============ ORIGINS / ROAST LAB ============ -->
+<section id="origins">
+  <div class="sec-head rv">
+    <h2>ORIGINS <em>&amp; roast</em></h2>
+    <div class="idx">三个产区 · 滑动调节烘焙度<br>风味随火候实时改写</div>
+  </div>
+  <div class="roastlab rv">
+    <div class="origins" id="orows"></div>
+    <div class="labpane">
+      <div class="labtop">
+        <canvas id="beanCv" width="240" height="300"></canvas>
+        <div class="labname"><span id="oName">—</span><small id="oMeta">—</small></div>
+      </div>
+      <div class="rslider">
+        <input type="range" id="roast" min="0" max="100" value="62">
+        <div class="rlabels"><span>浅煎 LIGHT</span><span id="roastVal">中深煎 CITY+ · 62</span><span>深煎 DARK</span></div>
+      </div>
+      <div class="flavor" id="flavors"></div>
+      <p id="roastNote">—</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BREW ============ -->
+<section class="brew" id="brew">
+  <div class="sec-head rv">
+    <h2>POUR<em>-over</em></h2>
+    <div class="idx">手冲引导 · 按下开始，跟着水位走<br>粉水比 1 : 15 · 水温 92°C</div>
+  </div>
+  <div class="brewgrid rv">
+    <div>
+      <div class="timer" id="clock">00:00<small>ELAPSED — 経過時間</small></div>
+      <div class="steps" id="steps"></div>
+      <div class="brewctl">
+        <button class="bbtn primary" id="startBtn">开始冲煮 START</button>
+        <button class="bbtn" id="resetBtn">重来 RESET</button>
+      </div>
+      <p class="brewlog" id="brewlog">准备：21 克中深煎，研磨度中粗。滤纸先用热水淋透——纸味不属于这杯咖啡。</p>
+    </div>
+    <canvas id="brewCv"></canvas>
+  </div>
+</section>
+
+<!-- ============ MARQUEE ============ -->
+<div class="marquee"><div class="mq" id="mq"></div></div>
+
+<footer>
+  <span>MORI 森煎珈琲 — 京都市北区紫野 · 水曜定休</span>
+  <span>STEAM &amp; POUR SIMULATED LIVE · SET IN DIDOT / SYSTEM</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var MONO='"SF Mono",Menlo,monospace';
+var CREAM="#F2EAD9",ESP="#2A1B10",CARAMEL="#B46A28";
+
+/* ================= steam hero ================= */
+var scv=document.getElementById("steam"),sc=scv.getContext("2d");
+var SW=0,SH=0,DPR=Math.min(devicePixelRatio||1,2);
+function sizeSteam(){SW=scv.clientWidth||400;SH=SW*1.18;
+  scv.width=SW*DPR;scv.height=SH*DPR;sc.setTransform(DPR,0,0,DPR,0,0);}
+sizeSteam();
+var wind={x:0,v:0,tx:0};
+var lastMX=null;
+addEventListener("mousemove",function(e){
+  if(lastMX!==null)wind.tx=Math.max(-60,Math.min(60,(e.clientX-lastMX)*3));
+  lastMX=e.clientX;});
+function cup(c){
+  var w=SW,h=SH,cx=w/2,cy=h*0.72,R=w*0.30;
+  /* saucer */
+  c.strokeStyle="rgba(42,27,16,.55)";c.lineWidth=2;
+  c.beginPath();c.ellipse(cx,cy+R*0.86,R*1.5,R*0.22,0,0,7);c.stroke();
+  /* cup body */
+  var g=c.createLinearGradient(cx-R,0,cx+R,0);
+  g.addColorStop(0,"#3A2415");g.addColorStop(.5,"#241609");g.addColorStop(1,"#3A2415");
+  c.fillStyle=g;
+  c.beginPath();
+  c.moveTo(cx-R,cy-R*0.5);
+  c.bezierCurveTo(cx-R*0.94,cy+R*0.35,cx-R*0.6,cy+R*0.78,cx,cy+R*0.8);
+  c.bezierCurveTo(cx+R*0.6,cy+R*0.78,cx+R*0.94,cy+R*0.35,cx+R,cy-R*0.5);
+  c.closePath();c.fill();
+  /* handle */
+  c.strokeStyle="#241609";c.lineWidth=w*0.035;
+  c.beginPath();c.arc(cx+R*1.02,cy-R*0.05,R*0.34,-1.2,1.2);c.stroke();
+  /* coffee surface */
+  var cg=c.createRadialGradient(cx-R*0.2,cy-R*0.56,4,cx,cy-R*0.5,R);
+  cg.addColorStop(0,"#7A4A20");cg.addColorStop(1,"#3A2210");
+  c.fillStyle=cg;
+  c.beginPath();c.ellipse(cx,cy-R*0.5,R,R*0.16,0,0,7);c.fill();
+  /* crema swirl */
+  c.strokeStyle="rgba(214,166,102,.5)";c.lineWidth=1.4;
+  c.beginPath();c.ellipse(cx-R*0.15,cy-R*0.52,R*0.45,R*0.07,0.2,0.4,4.6);c.stroke();
+}
+var puffs=[];
+for(var i=0;i<34;i++)puffs.push(spawn(Math.random()));
+function spawn(off){
+  return {x:0.5+(Math.random()-.5)*0.22,y:0.62+off*0.1,r:6+Math.random()*16,
+    life:off,vy:0.0016+Math.random()*0.0016,ph:Math.random()*6.28,fq:1.5+Math.random()*2};
+}
+var t0=performance.now();
+function drawSteam(now){
+  var t=(now-t0)/1000;
+  wind.v+=(wind.tx-wind.v)*0.06;wind.tx*=0.94;wind.x+=wind.v*0.004;
+  sc.clearRect(0,0,SW,SH);
+  cup(sc);
+  puffs.forEach(function(p){
+    p.life+=p.vy*1.6;if(p.life>1){Object.assign(p,spawn(0));p.life=0;}
+    var prog=p.life;
+    var px=(p.x+Math.sin(t*p.fq+p.ph)*0.02*(1+prog*2)+wind.x*prog)*SW;
+    var py=(p.y-prog*0.52)*SH;
+    var rr=p.r*(0.5+prog*1.6);
+    var a=0.16*Math.sin(prog*Math.PI);
+    var g=sc.createRadialGradient(px,py,0,px,py,rr);
+    g.addColorStop(0,"rgba(250,246,238,"+a+")");
+    g.addColorStop(1,"rgba(250,246,238,0)");
+    sc.fillStyle=g;sc.beginPath();sc.arc(px,py,rr,0,7);sc.fill();
+  });
+  requestAnimationFrame(drawSteam);
+}
+requestAnimationFrame(drawSteam);
+
+/* ================= origins & roast ================= */
+var ORIGINS=[
+ {name:"耶加雪菲 · 歌德",en:"YIRGACHEFFE GEDEB",alt:"1 950 m · 水洗",seed:11,
+  notes:["茉莉","柠檬皮","红茶","青柠"],base:[196,144,86],
+  txt:"水洗耶加在浅煎时是一杯花茶：茉莉在前，柠檬皮收尾。烘焙加深，花香退成蜂蜜与烤杏仁。"},
+ {name:"慧兰 · 圣奥古斯丁",en:"HUILA SAN AGUSTÍN",alt:"1 750 m · 日晒",seed:23,
+  notes:["黑莓","可可","红糖","樱桃酒"],base:[168,102,52],
+  txt:"日晒慧兰天生带浆果的甜。中深煎是它的甜点区间：黑莓沉下去，可可与红糖浮上来。"},
+ {name:"曼特宁 · 林东",en:"MANDHELING LINTONG",alt:"1 400 m · 湿刨",seed:37,
+  notes:["雪松","黑巧","草药","焦糖"],base:[120,72,36],
+  txt:"湿刨法给了曼特宁厚重的body。浅煎是浪费，深煎才见真章——雪松与黑巧，像走进雨后的木屋。"}
+];
+var curO=0,roast=62;
+var orows=document.getElementById("orows");
+ORIGINS.forEach(function(o,i){
+  var d=document.createElement("div");d.className="orow"+(i===0?" sel":"");
+  d.innerHTML="<h3>"+o.name+"<span>"+o.en+"</span></h3><span class='alt'>"+o.alt+"</span>";
+  d.addEventListener("click",function(){curO=i;
+    document.querySelectorAll(".orow").forEach(function(x,x2){x.classList.toggle("sel",x2===i);});
+    renderOrigin();});
+  orows.appendChild(d);
+});
+function lerp(a,b,k){return a+(b-a)*k;}
+function roastColor(o,r){ /* r:0..100 -> color */
+  var light=[222,184,132],dark=[42,26,14],k=r/100;
+  var b=o.base;
+  var c1=[lerp(light[0],b[0],Math.min(k*2,1)),lerp(light[1],b[1],Math.min(k*2,1)),lerp(light[2],b[2],Math.min(k*2,1))];
+  var k2=Math.max(0,(k-0.5)*2);
+  return [lerp(c1[0],dark[0],k2)|0,lerp(c1[1],dark[1],k2)|0,lerp(c1[2],dark[2],k2)|0];
+}
+var beanCv=document.getElementById("beanCv"),bc=beanCv.getContext("2d");
+function drawBean(){
+  var o=ORIGINS[curO];
+  bc.setTransform(2,0,0,2,0,0);bc.clearRect(0,0,120,150);
+  var R=(function(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};})(o.seed);
+  for(var n=0;n<3;n++){
+    var cx=60+(n-1)*26+(R()-.5)*8,cy=40+n*38+(R()-.5)*8;
+    var rw=20+R()*6,rh=28+R()*8,rot=(R()-.5)*0.8;
+    var col=roastColor(o,roast+n*4-4);
+    bc.save();bc.translate(cx,cy);bc.rotate(rot);
+    var g=bc.createRadialGradient(-rw*0.3,-rh*0.3,2,0,0,rh*1.2);
+    g.addColorStop(0,"rgb("+(col[0]+34|0)+","+(col[1]+26|0)+","+(col[2]+18|0)+")");
+    g.addColorStop(1,"rgb("+col[0]+","+col[1]+","+col[2]+")");
+    bc.fillStyle=g;
+    bc.beginPath();bc.ellipse(0,0,rw,rh,0,0,7);bc.fill();
+    /* center crack */
+    bc.strokeStyle="rgba(20,10,4,.75)";bc.lineWidth=2.2;
+    bc.beginPath();bc.moveTo(0,-rh*0.85);
+    bc.bezierCurveTo(rw*0.25,-rh*0.3,-rw*0.25,rh*0.3,0,rh*0.85);bc.stroke();
+    /* sheen grows with roast (oil) */
+    if(roast>55){bc.fillStyle="rgba(255,240,220,"+((roast-55)/450)+")";
+      bc.beginPath();bc.ellipse(-rw*0.34,-rh*0.4,rw*0.22,rh*0.16,-0.5,0,7);bc.fill();}
+    bc.restore();
+  }
+}
+var roastNames=[[20,"浅煎 LIGHT"],[45,"中煎 MEDIUM"],[70,"中深煎 CITY+"],[101,"深煎 FRENCH"]];
+function renderOrigin(){
+  var o=ORIGINS[curO];
+  document.getElementById("oName").textContent=o.name;
+  document.getElementById("oMeta").textContent=o.en+" · "+o.alt;
+  var nm=roastNames.filter(function(x){return roast<x[0];})[0][1];
+  document.getElementById("roastVal").textContent=nm+" · "+roast;
+  var fl=document.getElementById("flavors");fl.innerHTML="";
+  var k=roast/100;
+  o.notes.forEach(function(n2,i){
+    var s=document.createElement("span");s.textContent=n2;
+    /* later notes emerge with darker roast, earlier fade */
+    var on=i<2?k<0.75:k>0.25;
+    s.style.opacity=on?1:0.28;
+    s.style.borderColor=on?"#2A1B10":"rgba(42,27,16,.3)";
+    if(on&&i>=2)s.style.background="rgba(180,106,40,.16)";
+    fl.appendChild(s);
+  });
+  var note=document.getElementById("roastNote");
+  note.classList.add("fade");
+  setTimeout(function(){note.textContent=o.txt;note.classList.remove("fade");},330);
+  drawBean();
+}
+document.getElementById("roast").addEventListener("input",function(e){
+  roast=+e.target.value;renderOrigin();});
+renderOrigin();
+
+/* ================= brew timer ================= */
+var PHASES=[
+ {t:0,  end:45, label:"闷蒸 BLOOM",water:45,log:"从中心注水 45 克，看粉床像苔藓一样膨胀、呼吸。"},
+ {t:45, end:90, label:"第一段注水 1ST POUR",water:120,log:"绕圈注至 120 克。水流要细，像在写毛笔字。"},
+ {t:90, end:150,label:"第二段注水 2ND POUR",water:225,log:"注至 225 克后收水。保持水位，别惊动粉床。"},
+ {t:150,end:210,label:"等待滴滤 DRAW DOWN",water:225,log:"静静等待。液面下降的声音，是咖啡在说可以了。"},
+ {t:210,end:999,label:"完成 ENJOY",water:225,log:"完成。趁热，先闻，再喝——森林就在杯子里。"}
+];
+var stepsBox=document.getElementById("steps");
+PHASES.forEach(function(p){
+  var d=document.createElement("div");d.className="step";
+  var mm=String(Math.floor(p.t/60)).padStart(2,"0"),ss2=String(p.t%60).padStart(2,"0");
+  d.innerHTML="<span class='st'>"+p.label+"</span><span>"+mm+":"+ss+"</span>";
+  stepsBox.appendChild(d);
+});
+var stepEls=stepsBox.children;
+var brewing=false,elapsed=0,lastT=0;
+var clock=document.getElementById("clock");
+var startBtn=document.getElementById("startBtn");
+var brewlog=document.getElementById("brewlog");
+startBtn.addEventListener("click",function(){
+  brewing=!brewing;
+  startBtn.textContent=brewing?"暂停 PAUSE":"继续 RESUME";
+  if(brewing&&elapsed>=210){elapsed=0;}
+  lastT=performance.now();
+});
+document.getElementById("resetBtn").addEventListener("click",function(){
+  brewing=false;elapsed=0;startBtn.textContent="开始冲煮 START";
+  brewlog.textContent="准备：21 克中深煎，研磨度中粗。滤纸先用热水淋透——纸味不属于这杯咖啡。";
+  tick(performance.now());
+});
+var bcv=document.getElementById("brewCv"),bx=bcv.getContext("2d");
+var BW=0,BH=0;
+function sizeBrew(){BW=bcv.clientWidth||500;BH=BW*1.05;
+  bcv.width=BW*DPR;bcv.height=BH*DPR;bx.setTransform(DPR,0,0,DPR,0,0);}
+sizeBrew();
+function phaseAt(t){for(var i=0;i<PHASES.length;i++)if(t<PHASES[i].end)return i;return PHASES.length-1;}
+function waterAt(t){
+  var w=0;
+  for(var i=0;i<PHASES.length;i++){
+    if(t>=PHASES[i].end){w=PHASES[i].water;continue;}
+    var span=PHASES[i].end-PHASES[i].t,prev=i?PHASES[i-1].water:0;
+    var k=Math.max(0,(t-PHASES[i].t)/span);
+    w=prev+(PHASES[i].water-prev)*Math.min(k,1);break;
+  }
+  return w;
+}
+var drops=[];for(var d2=0;d2<24;d2++)drops.push({x:Math.random(),y:Math.random(),v:0.004+Math.random()*0.006});
+function drawBrew(t){
+  bx.clearRect(0,0,BW,BH);
+  var cx=BW/2;
+  bx.strokeStyle="rgba(242,234,217,.75)";bx.lineWidth=1.6;
+  bx.fillStyle="rgba(242,234,217,.85)";
+  bx.font="400 10px "+MONO;
+  var water=waterAt(t),phase=phaseAt(t);
+  var pouring=phase<=2&&t<PHASES[phase].end-3&&(water>PHASES[phase].water-1?false:true);
+  /* kettle spout */
+  bx.beginPath();bx.moveTo(cx-BW*0.3,BH*0.1);bx.lineTo(cx-BW*0.1,BH*0.14);
+  bx.lineTo(cx-BW*0.1,BH*0.2);bx.stroke();
+  /* pour stream */
+  if(pouring&&phase<=2){
+    var sway=Math.sin(t*0.9)*BW*0.06;
+    bx.strokeStyle="rgba(242,234,217,.9)";bx.lineWidth=2.4;
+    bx.beginPath();bx.moveTo(cx-BW*0.1+sway,BH*0.2);bx.lineTo(cx+sway*0.4,BH*0.34);bx.stroke();
+  }
+  /* dripper cone */
+  bx.strokeStyle="rgba(242,234,217,.75)";bx.lineWidth=1.6;
+  bx.beginPath();bx.moveTo(cx-BW*0.26,BH*0.32);bx.lineTo(cx,BH*0.62);bx.lineTo(cx+BW*0.26,BH*0.32);bx.closePath();bx.stroke();
+  /* slurry inside cone */
+  var fillK=Math.min(water/225,1);
+  var slY=BH*(0.62-0.24*fillK);
+  bx.fillStyle="rgba(122,74,32,.85)";
+  bx.beginPath();bx.moveTo(cx-BW*0.26*(1-(0.62-(slY/BH))/0.3*0+fillK*0.02),slY);
+  var wl=BW*0.26*(1-fillK*0.08);
+  bx.moveTo(cx-wl,slY);bx.lineTo(cx,BH*0.62);bx.lineTo(cx+wl,slY);bx.closePath();bx.fill();
+  /* coffee bed */
+  bx.fillStyle="rgba(58,34,16,.95)";
+  bx.beginPath();bx.moveTo(cx-BW*0.12,BH*0.545);bx.lineTo(cx,BH*0.62);bx.lineTo(cx+BW*0.12,BH*0.545);bx.closePath();bx.fill();
+  /* dripping drops */
+  if(t>8&&t<205){
+    drops.forEach(function(dr){
+      dr.y+=dr.v*(t>150?0.5:1.4);if(dr.y>1)dr.y=0;
+      var dy=BH*(0.62+dr.y*0.14);
+      bx.fillStyle="rgba(160,100,48,"+(0.7*(1-dr.y))+")";
+      bx.beginPath();bx.arc(cx+(dr.x-0.5)*BW*0.05,dy,1.6,0,7);bx.fill();
+    });
+  }
+  /* server */
+  bx.strokeStyle="rgba(242,234,217,.75)";
+  bx.beginPath();bx.moveTo(cx-BW*0.2,BH*0.78);
+  bx.bezierCurveTo(cx-BW*0.2,BH*0.92,cx-BW*0.14,BH*0.95,cx,BH*0.95);
+  bx.bezierCurveTo(cx+BW*0.14,BH*0.95,cx+BW*0.2,BH*0.92,cx+BW*0.2,BH*0.78);
+  bx.stroke();
+  /* collected coffee */
+  var coll=Math.max(0,Math.min((t-8)/197,1))*Math.min(water/225,1);
+  if(coll>0.01){
+    var cy2=BH*(0.95-0.13*coll);
+    bx.fillStyle="rgba(74,44,20,.9)";
+    bx.beginPath();bx.moveTo(cx-BW*0.19,cy2);
+    bx.lineTo(cx+BW*0.19,cy2);
+    bx.bezierCurveTo(cx+BW*0.2,BH*0.92,cx+BW*0.14,BH*0.95,cx,BH*0.95);
+    bx.bezierCurveTo(cx-BW*0.14,BH*0.95,cx-BW*0.2,BH*0.92,cx-BW*0.19,cy2);
+    bx.fill();
+  }
+  /* progress ring */
+  var pr=Math.min(t/210,1);
+  bx.strokeStyle="rgba(242,234,217,.2)";bx.lineWidth=3;
+  bx.beginPath();bx.arc(BW*0.87,BH*0.13,BW*0.06,0,7);bx.stroke();
+  bx.strokeStyle="#B46A28";
+  bx.beginPath();bx.arc(BW*0.87,BH*0.13,BW*0.06,-Math.PI/2,-Math.PI/2+pr*Math.PI*2);bx.stroke();
+  bx.fillStyle="rgba(242,234,217,.8)";bx.textAlign="center";
+  bx.fillText(Math.round(pr*100)+"%",BW*0.87,BH*0.135+3);bx.textAlign="left";
+  /* water readout */
+  bx.fillStyle="rgba(242,234,217,.65)";
+  bx.fillText("WATER "+Math.round(water)+" g / 225 g",BW*0.05,BH*0.07);
+  bx.fillText("TEMP 92°C · RATIO 1:15",BW*0.05,BH*0.105);
+}
+function tick(now){
+  if(brewing){elapsed+=(now-lastT)/1000;if(elapsed>225){brewing=false;startBtn.textContent="再来一次 AGAIN";elapsed=225;}}
+  lastT=now;
+  var mm=String(Math.floor(elapsed/60)).padStart(2,"0"),ss2=String(Math.floor(elapsed%60)).padStart(2,"0");
+  clock.innerHTML=mm+":"+ss2+"<small>ELAPSED — 経過時間</small>";
+  var ph=phaseAt(elapsed);
+  for(var i=0;i<stepEls.length;i++){
+    stepEls[i].classList.toggle("now",i===ph&&elapsed<210);
+    stepEls[i].classList.toggle("done",elapsed>=PHASES[i].end);
+  }
+  if(brewing||elapsed>0)brewlog.textContent=PHASES[ph].log;
+  drawBrew(elapsed);
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ================= marquee ================= */
+var items=["京都市北区紫野","<b>水曜定休</b>","深煎りの森","<b>EST. 1998</b>",
+  "21g / 92°C / 1:15","<b>SINGLE ORIGIN</b>"];
+var html=items.map(function(s){return "<span>"+s+"</span>";}).join("");
+document.getElementById("mq").innerHTML=html+html;
+
+/* ================= reveal ================= */
+var io=new IntersectionObserver(function(es){es.forEach(function(e){
+  if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.14});
+document.querySelectorAll(".rv").forEach(function(el){io.observe(el);});
+
+/* ================= resize ================= */
+var rt;
+addEventListener("resize",function(){clearTimeout(rt);
+  rt=setTimeout(function(){sizeSteam();sizeBrew();},160);});
+})();
+</script>
+</body>
+</html>

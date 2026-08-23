@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CYCLE — 自动化任务调度面板</title>
+<style>
+  :root{
+    --paper:#F4F1EA; --paper2:#EDE9DD; --card:#FBF9F3;
+    --line:#DCD5C2; --line2:#C9C1AA;
+    --ink:#1C1B17; --dim:#6E6A5C; --faint:#A39C88;
+    --orange:#D95D39; --teal:#2F6B5E; --amber:#B98A2F;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow:hidden;display:flex;flex-direction:column}
+  ::selection{background:rgba(217,93,57,.2)}
+  body::before{ /* paper grain */
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:50;opacity:.5;
+    background-image:radial-gradient(rgba(28,27,23,.045) 1px, transparent 1px);
+    background-size:4px 4px;
+  }
+
+  header{flex:0 0 64px;display:flex;align-items:center;gap:20px;padding:0 24px;
+    border-bottom:1px solid var(--line2);background:var(--paper)}
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--orange);letter-spacing:.12em}
+  .brand .name{font-family:var(--serif);font-size:20px;font-weight:700;letter-spacing:.08em}
+  .brand .sub{font-size:11px;color:var(--dim)}
+  .spacer{flex:1}
+  .clock{font-family:var(--mono);font-size:22px;letter-spacing:.06em;color:var(--ink)}
+  .clock .colon{animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:.15}}
+  .clock-day{font-size:10px;letter-spacing:.16em;color:var(--dim);text-align:center;margin-top:1px}
+  .speed{display:flex;border:1px solid var(--line2);border-radius:3px;overflow:hidden;background:var(--card)}
+  .speed button{font-family:var(--mono);font-size:11px;padding:8px 12px;background:transparent;
+    color:var(--dim);border:none;cursor:pointer;transition:all .2s var(--ease)}
+  .speed button.active{background:var(--ink);color:var(--paper)}
+  .speed button:not(.active):hover{color:var(--ink)}
+
+  main{flex:1;display:grid;grid-template-columns:360px 1fr;min-height:0}
+
+  /* ---------- editor column ---------- */
+  .editor{border-right:1px solid var(--line2);padding:22px 22px 16px;overflow-y:auto;
+    display:flex;flex-direction:column;gap:18px;background:var(--paper)}
+  .sec-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.22em;color:var(--faint)}
+  .job-chip{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);
+    border-radius:3px;background:var(--card);font-size:12px}
+  .job-chip .dot{width:8px;height:8px;border-radius:50%;flex:0 0 8px}
+  .job-chip b{font-weight:600}
+  .job-chip .en{margin-left:auto;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em}
+  .job-chip .en.on{color:var(--teal)} .job-chip .en.off{color:var(--orange)}
+  #cron-input{
+    width:100%;font-family:var(--mono);font-size:19px;letter-spacing:.14em;text-align:center;
+    padding:13px 10px;border:1px solid var(--line2);border-radius:3px;background:var(--card);
+    color:var(--ink);outline:none;transition:all .25s var(--ease)}
+  #cron-input:focus{border-color:var(--ink);box-shadow:0 0 0 3px rgba(28,27,23,.07)}
+  #cron-input.invalid{border-color:var(--orange);box-shadow:0 0 0 3px rgba(217,93,57,.12);color:var(--orange)}
+  .field-labels{display:flex;justify-content:space-around;font-family:var(--mono);
+    font-size:9px;letter-spacing:.14em;color:var(--faint);margin-top:-12px}
+  #human{font-family:var(--serif);font-size:17px;font-style:italic;line-height:1.55;
+    color:var(--ink);min-height:26px}
+  #human.err{font-family:var(--mono);font-style:normal;font-size:11px;color:var(--orange)}
+  .presets{display:flex;flex-wrap:wrap;gap:7px}
+  .preset{font-family:var(--mono);font-size:10.5px;padding:5px 11px;border:1px solid var(--line2);
+    border-radius:20px;background:transparent;color:var(--dim);cursor:pointer;transition:all .2s var(--ease)}
+  .preset:hover{border-color:var(--ink);color:var(--ink);transform:translateY(-1px)}
+  #nextruns{list-style:none;border-top:1px solid var(--line)}
+  #nextruns li{display:flex;justify-content:space-between;padding:8px 2px;
+    border-bottom:1px solid var(--line);font-size:12px;
+    opacity:0;transform:translateX(-6px);animation:nrIn .4s var(--ease) forwards}
+  @keyframes nrIn{to{opacity:1;transform:none}}
+  #nextruns li span:first-child{color:var(--dim)}
+  #nextruns li span:last-child{font-family:var(--mono);font-size:11.5px}
+  #feed{margin-top:auto;border-top:1px solid var(--line);padding-top:10px;
+    display:flex;flex-direction:column;gap:6px;max-height:180px;overflow:hidden}
+  .feed-item{font-family:var(--mono);font-size:10.5px;color:var(--dim);display:flex;gap:8px;
+    opacity:0;animation:nrIn .4s var(--ease) forwards}
+  .feed-item b{color:var(--teal);font-weight:500}
+  .feed-item .t{color:var(--faint);flex:0 0 auto}
+
+  /* ---------- timeline ---------- */
+  .timeline{display:flex;flex-direction:column;min-width:0;background:var(--paper2)}
+  .tl-head{flex:0 0 40px;display:flex;align-items:flex-end;position:relative;
+    border-bottom:1px solid var(--line2);margin:0 34px 0 206px}
+  .tl-ticks{position:absolute;inset:0}
+  .tl-tick{position:absolute;bottom:6px;font-family:var(--mono);font-size:9px;color:var(--faint);
+    transform:translateX(-50%);letter-spacing:.05em}
+  .tl-tick::after{content:'';position:absolute;left:50%;bottom:-7px;width:1px;height:5px;background:var(--line2)}
+  .lanes{flex:1;overflow-y:auto;position:relative;padding:10px 26px 20px}
+  .lane{position:relative;height:58px;border-bottom:1px dashed var(--line);
+    display:flex;align-items:center}
+  .lane.sel{background:linear-gradient(90deg,rgba(217,93,57,.06),transparent 55%)}
+  .lane-label{flex:0 0 168px;display:flex;align-items:center;gap:9px;cursor:pointer;
+    user-select:none;padding-right:12px}
+  .lane-label .dot{width:9px;height:9px;border-radius:50%;flex:0 0 9px}
+  .lane-label .nm{font-size:12.5px;font-weight:600;letter-spacing:.02em;line-height:1.3}
+  .lane-label .cr{font-family:var(--mono);font-size:9.5px;color:var(--faint)}
+  .lane.disabled .nm{color:var(--faint);text-decoration:line-through}
+  .lane-track{position:absolute;left:180px;right:8px;top:0;bottom:0}
+  .fire{position:absolute;top:50%;height:26px;transform:translateY(-50%);
+    border-radius:2px;cursor:pointer;transition:box-shadow .2s, transform .2s var(--ease)}
+  .fire:hover{transform:translateY(-50%) scaleY(1.18);z-index:3;box-shadow:0 3px 10px rgba(28,27,23,.18)}
+  .lane.disabled .fire{background:transparent!important;border:1px dashed var(--line2)}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(217,93,57,.55)}
+    100%{box-shadow:0 0 0 14px rgba(217,93,57,0)}
+  }
+  .fire.pulse{animation:pulse .9s var(--ease) 2}
+  #nowline{position:absolute;top:0;bottom:0;width:1.5px;background:var(--orange);z-index:6;
+    pointer-events:none}
+  #nowline::before{content:'';position:absolute;top:0;left:-3.5px;width:8px;height:8px;
+    border-radius:50%;background:var(--orange)}
+  #tooltip{position:fixed;z-index:60;pointer-events:none;background:var(--ink);color:var(--paper);
+    font-family:var(--mono);font-size:10.5px;padding:6px 10px;border-radius:3px;
+    opacity:0;transition:opacity .15s;white-space:nowrap;letter-spacing:.04em}
+
+  footer{flex:0 0 30px;display:flex;align-items:center;padding:0 24px;gap:22px;
+    border-top:1px solid var(--line2);background:var(--paper);
+    font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em}
+  footer .sig{margin-left:auto}
+  @media (max-width:860px){
+    main{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+    .editor{border-right:none;border-bottom:1px solid var(--line2);max-height:46vh}
+    .lane-label{flex-basis:120px}
+    .lane-track{left:130px}
+    .tl-head{margin-left:156px}
+    .tl-tick:nth-child(even){display:none}
+    .brand .sub{display:none}
+    header{padding:0 14px;gap:12px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·03</span>
+    <span class="name">CYCLE</span>
+    <span class="sub">自动化任务调度面板</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="speed" id="speed">
+    <button data-v="1">1×</button>
+    <button data-v="60" class="active">60×</button>
+    <button data-v="600">600×</button>
+  </div>
+  <div>
+    <div class="clock" id="clock">--<span class="colon">:</span>--</div>
+    <div class="clock-day" id="clock-day">—</div>
+  </div>
+</header>
+
+<main>
+  <aside class="editor">
+    <div class="sec-label">SELECTED JOB</div>
+    <div class="job-chip" id="job-chip"></div>
+    <div>
+      <input id="cron-input" spellcheck="false" autocomplete="off" value="">
+      <div class="field-labels"><span>分</span><span>时</span><span>日</span><span>月</span><span>周</span></div>
+    </div>
+    <div id="human"></div>
+    <div class="sec-label">PRESETS</div>
+    <div class="presets" id="presets"></div>
+    <div class="sec-label">NEXT RUNS</div>
+    <ul id="nextruns"></ul>
+    <div class="sec-label" style="margin-top:auto">执行记录</div>
+    <div id="feed"></div>
+  </aside>
+
+  <section class="timeline">
+    <div class="tl-head"><div class="tl-ticks" id="tl-ticks"></div></div>
+    <div class="lanes" id="lanes"><div id="nowline"></div></div>
+  </section>
+</main>
+
+<div id="tooltip"></div>
+
+<footer>
+  <div>编辑 cron 表达式实时生效 · 点击泳道选择任务 · 时间轴为今日 24h</div>
+  <div class="sig">ATELIER M · 2026</div>
+</footer>
+
+<script>
+'use strict';
+/* ================= cron parser ================= */
+const MON_NAMES = {jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+const DOW_NAMES = {sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+function parseField(spec, min, max, names, label){
+  const out = new Set();
+  spec = spec.toLowerCase().trim();
+  if(!spec) throw new Error(label+' 字段为空');
+  spec.split(',').forEach(part=>{
+    if(!part) throw new Error(label+' 字段语法错误');
+    let step = 1;
+    const si = part.indexOf('/');
+    if(si >= 0){
+      step = parseInt(part.slice(si+1), 10);
+      if(!step || step < 1) throw new Error(label+' 步长无效');
+      part = part.slice(0, si);
+    }
+    let lo, hi;
+    if(part === '*' || part === ''){ lo = min; hi = max; }
+    else{
+      const resolve = v => {
+        if(names && names[v] !== undefined) return names[v];
+        const n = parseInt(v, 10);
+        if(isNaN(n)) throw new Error(label+' 含无法识别的值 「'+v+'」');
+        return n;
+      };
+      const ri = part.indexOf('-');
+      if(ri >= 0){ lo = resolve(part.slice(0,ri)); hi = resolve(part.slice(ri+1)); }
+      else { lo = resolve(part); hi = si >= 0 ? max : lo; }
+      if(lo < min || hi > max || lo > hi) throw new Error(label+' 越界 ('+min+'–'+max+')');
+    }
+    for(let v = lo; v <= hi; v += step) out.add(label==='周' && v===7 ? 0 : v);
+  });
+  return out;
+}
+function parseCron(expr){
+  const f = expr.trim().split(/\s+/);
+  if(f.length !== 5) throw new Error('需要 5 个字段：分 时 日 月 周');
+  return {
+    min: parseField(f[0], 0, 59, null, '分'),
+    hour: parseField(f[1], 0, 23, null, '时'),
+    dom: parseField(f[2], 1, 31, null, '日'),
+    mon: parseField(f[3], 1, 12, MON_NAMES, '月'),
+    dow: parseField(f[4], 0, 7, DOW_NAMES, '周'),
+    domStar: f[2] === '*', dowStar: f[4] === '*',
+  };
+}
+function dayMatches(c, d){
+  const monOk = c.mon.has(d.getMonth()+1);
+  if(!monOk) return false;
+  const domOk = c.dom.has(d.getDate()), dowOk = c.dow.has(d.getDay());
+  if(!c.domStar && !c.dowStar) return domOk || dowOk;   // Vixie OR rule
+  return domOk && dowOk;
+}
+function sortedTimes(c){
+  const hs = [...c.hour].sort((a,b)=>a-b), ms = [...c.min].sort((a,b)=>a-b);
+  const t = [];
+  hs.forEach(h=>ms.forEach(m=>t.push(h*60+m)));
+  return t.sort((a,b)=>a-b);
+}
+function nextRuns(c, from, count){
+  const res = [], times = sortedTimes(c);
+  const fromMin = from.getHours()*60 + from.getMinutes();
+  const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  for(let i=0; i<370 && res.length<count; i++){
+    if(dayMatches(c, d)){
+      times.forEach(tm=>{
+        if(res.length>=count) return;
+        if(i===0 && tm <= fromMin) return;
+        res.push(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, tm));
+      });
+    }
+    d.setDate(d.getDate()+1);
+  }
+  return res;
+}
+function firesToday(c, day){
+  if(!dayMatches(c, day)) return [];
+  return sortedTimes(c);
+}
+
+/* ================= humanizer ================= */
+const pad = n => String(n).padStart(2,'0');
+const hm = m => pad(Math.floor(m/60))+':'+pad(m%60);
+const DOW_CN = ['周日','周一','周二','周三','周四','周五','周六'];
+function humanize(expr, c){
+  const f = expr.trim().split(/\s+/);
+  const [fm, fh, fdom, fmon, fdow] = f;
+  const times = sortedTimes(c).map(hm);
+  const tm = times.length <= 4 ? times.join(' 与 ') : times[0]+' 起共 '+times.length+' 次';
+  if(expr === '* * * * *') return '每分钟，从不缺席。';
+  if(/^\*\/\d+$/.test(fm) && fh==='*' && fdom==='*' && fmon==='*' && fdow==='*')
+    return '每 '+fm.slice(2)+' 分钟一次，全天候。';
+  if(fh==='*' && fdom==='*' && fmon==='*' && fdow==='*')
+    return '每小时的第 '+[...c.min].sort((a,b)=>a-b).join('、')+' 分。';
+  const dowSet = c.dow;
+  const isWeek = [1,2,3,4,5].every(d=>dowSet.has(d)) && dowSet.size===5;
+  const isWknd = [0,6].every(d=>dowSet.has(d)) && dowSet.size===2;
+  if(fdom==='*' && fmon==='*' && fdow!=='*'){
+    if(isWeek) return '每个工作日 '+tm+'。';
+    if(isWknd) return '每个周末 '+tm+'。';
+    return '每'+[...dowSet].sort((a,b)=>a-b).map(d=>DOW_CN[d]).join('、')+' '+tm+'。';
+  }
+  if(fdom!=='*' && fmon==='*' && fdow==='*')
+    return '每月 '+[...c.dom].sort((a,b)=>a-b).join('、')+' 日 '+tm+'。';
+  if(fdom==='*' && fmon!=='*' && fdow==='*')
+    return '每年 '+[...c.mon].sort((a,b)=>a-b).join('、')+' 月，每天 '+tm+'。';
+  if(fdom!=='*' && fmon!=='*') return '每年 '+[...c.mon].join('、')+' 月 '+[...c.dom].join('、')+' 日 '+tm+'。';
+  if(fh.includes('-') && fm.startsWith('*/'))
+    return fh+' 点之间，每 '+fm.slice(2)+' 分钟一次。';
+  return '每天 '+tm+'。';
+}
+
+/* ================= jobs ================= */
+const JOBS = [
+  {id:'db-backup', name:'数据库快照',   cron:'0 3 * * *',      dur:25, color:'#2F6B5E', on:true},
+  {id:'report',    name:'晨报生成',     cron:'30 8 * * 1-5',   dur:12, color:'#D95D39', on:true},
+  {id:'cache',     name:'缓存预热',     cron:'*/20 6-23 * * *',dur:2,  color:'#B98A2F', on:true},
+  {id:'webhook',   name:'Webhook 重试', cron:'*/5 * * * *',    dur:1,  color:'#1C1B17', on:true},
+  {id:'logs',      name:'日志归档',     cron:'15 0 * * 0',     dur:8,  color:'#7A5C8F', on:true},
+  {id:'ml',        name:'模型重训',     cron:'0 2 * * 6',      dur:90, color:'#A34A2A', on:false},
+];
+let selected = JOBS[1];
+const parsedCache = {};
+function jobCron(job){
+  if(!parsedCache[job.id] || parsedCache[job.id].expr !== job.cron){
+    parsedCache[job.id] = {expr:job.cron, parsed:parseCron(job.cron)};
+  }
+  return parsedCache[job.id].parsed;
+}
+
+/* ================= simulated clock ================= */
+let simTime = new Date();
+simTime.setSeconds(0, 0);
+let speed = 60;
+let lastTick = performance.now();
+document.getElementById('speed').addEventListener('click', e=>{
+  const b = e.target.closest('button'); if(!b) return;
+  speed = +b.dataset.v;
+  [...e.currentTarget.children].forEach(x=>x.classList.toggle('active', x===b));
+});
+
+/* ================= editor ================= */
+const input = document.getElementById('cron-input');
+const human = document.getElementById('human');
+const PRESETS = [
+  ['@hourly','0 * * * *'], ['@daily','0 0 * * *'], ['@weekly','0 0 * * 0'],
+  ['工作日 09:30','30 9 * * 1-5'], ['每 10 分钟','*/10 * * * *'], ['每月 1 日 06:00','0 6 1 * *'],
+];
+const presetsEl = document.getElementById('presets');
+PRESETS.forEach(([label, expr])=>{
+  const b = document.createElement('button');
+  b.className = 'preset'; b.textContent = label;
+  b.onclick = ()=>{ input.value = expr; applyCron(); };
+  presetsEl.appendChild(b);
+});
+function relDay(d){
+  const today = new Date(simTime.getFullYear(), simTime.getMonth(), simTime.getDate());
+  const dd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = Math.round((dd-today)/864e5);
+  if(diff===0) return '今天';
+  if(diff===1) return '明天';
+  if(diff===2) return '后天';
+  return (d.getMonth()+1)+'月'+d.getDate()+'日 '+DOW_CN[d.getDay()];
+}
+function applyCron(){
+  const expr = input.value.trim();
+  try{
+    const c = parseCron(expr);
+    selected.cron = expr;
+    input.classList.remove('invalid');
+    human.classList.remove('err');
+    human.textContent = humanize(expr, c);
+    const runs = nextRuns(c, simTime, 5);
+    const ul = document.getElementById('nextruns');
+    ul.innerHTML = '';
+    runs.forEach((d,i)=>{
+      const li = document.createElement('li');
+      li.style.animationDelay = (i*60)+'ms';
+      li.innerHTML = '<span>'+relDay(d)+'</span><span>'+pad(d.getHours())+':'+pad(d.getMinutes())+'</span>';
+      ul.appendChild(li);
+    });
+    renderLanes();
+    renderChip();
+  }catch(err){
+    input.classList.add('invalid');
+    human.classList.add('err');
+    human.textContent = '⚠ '+err.message;
+  }
+}
+input.addEventListener('input', applyCron);
+function renderChip(){
+  const chip = document.getElementById('job-chip');
+  chip.innerHTML = '<span class="dot" style="background:'+selected.color+'"></span>'+
+    '<b>'+selected.name+'</b>'+
+    '<span class="en '+(selected.on?'on':'off')+'">'+(selected.on?'● ENABLED':'○ DISABLED')+'</span>';
+}
+
+/* ================= timeline ================= */
+const lanesEl = document.getElementById('lanes');
+const tooltip = document.getElementById('tooltip');
+const ticksEl = document.getElementById('tl-ticks');
+for(let h=0; h<=24; h+=2){
+  const t = document.createElement('div');
+  t.className = 'tl-tick';
+  t.style.left = (h/24*100)+'%';
+  t.textContent = pad(h)+':00';
+  if(h===24) t.style.transform = 'translateX(-100%)';
+  ticksEl.appendChild(t);
+}
+const laneEls = {};
+function renderLanes(){
+  const day = new Date(simTime.getFullYear(), simTime.getMonth(), simTime.getDate());
+  // remove old lanes except nowline
+  [...lanesEl.querySelectorAll('.lane')].forEach(l=>l.remove());
+  JOBS.forEach(job=>{
+    const lane = document.createElement('div');
+    lane.className = 'lane'+(job===selected?' sel':'')+(job.on?'':' disabled');
+    const label = document.createElement('div');
+    label.className = 'lane-label';
+    label.innerHTML = '<span class="dot" style="background:'+(job.on?job.color:'#C9C1AA')+'"></span>'+
+      '<span><span class="nm">'+job.name+'</span><br><span class="cr">'+job.cron+'</span></span>';
+    label.onclick = ()=>selectJob(job);
+    label.ondblclick = ()=>{ job.on = !job.on; renderLanes(); renderChip(); };
+    lane.appendChild(label);
+    const track = document.createElement('div');
+    track.className = 'lane-track';
+    let fires = [];
+    try{ fires = firesToday(jobCron(job), day); }catch(e){ fires = []; }
+    fires.forEach(m=>{
+      const f = document.createElement('div');
+      f.className = 'fire';
+      f.dataset.min = m;
+      f.dataset.job = job.id;
+      const l = m/1440*100, w = Math.max(job.dur/1440*100, 0.35);
+      f.style.left = l+'%';
+      f.style.width = 'calc('+w+'% + 1px)';
+      if(job.on) f.style.background = job.color;
+      f.style.opacity = job.on ? (0.85) : 1;
+      f.addEventListener('mouseenter', e=>{
+        tooltip.textContent = job.name+' · '+hm(m)+' · '+job.dur+'min';
+        tooltip.style.opacity = 1;
+      });
+      f.addEventListener('mousemove', e=>{
+        tooltip.style.left = (e.clientX+12)+'px';
+        tooltip.style.top = (e.clientY-30)+'px';
+      });
+      f.addEventListener('mouseleave', ()=>{ tooltip.style.opacity = 0; });
+      f.addEventListener('click', ()=>selectJob(job));
+      track.appendChild(f);
+    });
+    lane.appendChild(track);
+    lanesEl.appendChild(lane);
+    laneEls[job.id] = {track, lane};
+  });
+  updateNowline();
+}
+function selectJob(job){
+  selected = job;
+  input.value = job.cron;
+  applyCron();
+}
+function updateNowline(){
+  const m = simTime.getHours()*60 + simTime.getMinutes() + simTime.getSeconds()/60;
+  const nl = document.getElementById('nowline');
+  const track = lanesEl.querySelector('.lane-track');
+  if(!track) return;
+  const lanesRect = lanesEl.getBoundingClientRect();
+  const tr = track.getBoundingClientRect();
+  nl.style.left = (tr.left - lanesRect.left + tr.width * m/1440)+'px';
+}
+
+/* ================= fire detection & feed ================= */
+const feedEl = document.getElementById('feed');
+let lastCheckMin = simTime.getHours()*60 + simTime.getMinutes();
+function checkFires(prevMin, nowMin){
+  const day = new Date(simTime.getFullYear(), simTime.getMonth(), simTime.getDate());
+  JOBS.forEach(job=>{
+    if(!job.on) return;
+    let fires = [];
+    try{ fires = firesToday(jobCron(job), day); }catch(e){ return; }
+    fires.forEach(m=>{
+      const crossed = prevMin <= nowMin ? (m > prevMin && m <= nowMin) : (m > prevMin || m <= nowMin);
+      if(crossed) onFire(job, m);
+    });
+  });
+}
+function onFire(job, m){
+  const el = laneEls[job.id];
+  if(el){
+    const f = el.track.querySelector('.fire[data-min="'+m+'"]');
+    if(f){ f.classList.remove('pulse'); void f.offsetWidth; f.classList.add('pulse'); }
+  }
+  const item = document.createElement('div');
+  item.className = 'feed-item';
+  item.innerHTML = '<span class="t">'+hm(m)+'</span><span><b>'+job.name+'</b> 触发 · 耗时 '+job.dur+'min</span>';
+  feedEl.prepend(item);
+  while(feedEl.children.length > 9) feedEl.lastChild.remove();
+}
+
+/* ================= clock loop ================= */
+function fmtClock(){
+  return pad(simTime.getHours())+'<span class="colon">:</span>'+pad(simTime.getMinutes())+
+    '<span style="font-size:13px;color:var(--dim)">'+':'+pad(simTime.getSeconds())+'</span>';
+}
+const WEEK_CN = ['日','一','二','三','四','五','六'];
+function loop(now){
+  const dt = Math.min(100, now - lastTick); lastTick = now;
+  simTime = new Date(simTime.getTime() + dt*speed);
+  const nowMin = simTime.getHours()*60 + simTime.getMinutes();
+  if(nowMin !== lastCheckMin){
+    checkFires(lastCheckMin, nowMin);
+    lastCheckMin = nowMin;
+  }
+  document.getElementById('clock').innerHTML = fmtClock();
+  document.getElementById('clock-day').textContent =
+    simTime.getFullYear()+'.'+pad(simTime.getMonth()+1)+'.'+pad(simTime.getDate())+' 周'+WEEK_CN[simTime.getDay()];
+  updateNowline();
+  requestAnimationFrame(loop);
+}
+window.addEventListener('resize', updateNowline);
+
+/* ================= boot ================= */
+renderChip();
+input.value = selected.cron;
+applyCron();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KINETIC TYPE REEL — 动力学字体短片</title>
+<style>
+  :root{
+    --paper:#f2f0ea; --panel:#e9e6de; --line:#cfccc2;
+    --ink:#101010; --dim:#8a877e;
+    --red:#e02b1d;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--red);color:#fff}
+
+  header{display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap}
+  .sig{display:flex;align-items:baseline;gap:14px}
+  .sig h1{font-family:var(--sans);font-size:21px;font-weight:800;letter-spacing:.02em;text-transform:uppercase}
+  .sig h1 em{font-style:normal;color:var(--red)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.16em}
+  .sig .no b{color:var(--red);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.05em}
+  .rule{margin:14px 28px 0;border-top:2px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{display:grid;grid-template-columns:1fr 290px;gap:24px;
+    padding:24px 28px 44px;max-width:1420px;margin:0 auto}
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .stage{position:relative;background:var(--paper);border:1px solid var(--ink)}
+  .stage canvas{display:block;width:100%;height:auto}
+  .seqtag{position:absolute;left:12px;top:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.2em;color:var(--ink);pointer-events:none;text-transform:uppercase}
+  .seqtag b{color:var(--red);font-weight:400}
+  .redsquare{position:absolute;right:12px;top:10px;width:10px;height:10px;background:var(--red)}
+
+  .tl{margin-top:14px;border:1px solid var(--ink);background:var(--panel);user-select:none;position:relative}
+  .tlhead{display:flex;justify-content:space-between;padding:8px 12px;
+    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:10px;
+    letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+  .tlhead b{color:var(--ink);font-weight:400}
+  .ruler{position:relative;height:22px;border-bottom:1px solid var(--line);cursor:ew-resize;margin:0 12px}
+  .ruler i{position:absolute;top:0;bottom:0;width:1px;background:var(--line)}
+  .ruler i s{position:absolute;left:4px;top:3px;font-style:normal;font-family:var(--mono);
+    font-size:8px;color:var(--dim);text-decoration:none}
+  .lanes{position:relative;padding:8px 0 10px;cursor:ew-resize}
+  .lane{position:relative;height:7px;margin:3px 12px}
+  .lane u{position:absolute;top:0;bottom:0;background:var(--ink);display:block}
+  .lane u.hot{background:var(--red)}
+  .lane span{position:absolute;left:0;top:-1px;font-family:var(--mono);font-size:7px;
+    color:var(--dim);letter-spacing:.1em;transform:translateX(-2px)}
+  .playhead{position:absolute;top:0;bottom:0;width:1px;background:var(--red);pointer-events:none;z-index:3}
+  .playhead::before{content:"";position:absolute;top:0;left:-4px;border:4px solid transparent;border-top:5px solid var(--red)}
+
+  .dock{background:var(--panel);border:1px solid var(--ink);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px}
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.26em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px}
+  .ctl{display:flex;flex-direction:column;gap:9px}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:10px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+  .ctl label output{color:var(--red)}
+
+  .txtin{appearance:none;width:100%;border:1px solid var(--ink);background:var(--paper);
+    font-family:var(--sans);font-weight:700;font-size:16px;padding:10px 12px;
+    color:var(--ink);outline:none;letter-spacing:.04em}
+  .txtin:focus{border-color:var(--red);box-shadow:3px 3px 0 rgba(224,43,29,.2)}
+  .maxc{font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.14em;text-align:right}
+
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .seg button{appearance:none;border:1px solid var(--ink);background:transparent;
+    color:var(--ink);font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+    padding:10px 4px;cursor:pointer;transition:all .22s var(--ease);text-transform:uppercase}
+  .seg button:hover{background:var(--ink);color:var(--paper)}
+  .seg button.on{background:var(--red);border-color:var(--red);color:#fff}
+
+  .btn{appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    padding:12px 6px;cursor:pointer;transition:all .22s var(--ease)}
+  .btn:hover{background:var(--ink);color:var(--paper)}
+  .btn.prime{background:var(--ink);color:var(--paper)}
+  .btn.prime:hover{background:var(--red);border-color:var(--red);color:#fff}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:2px;
+    background:var(--line);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;
+    width:12px;height:12px;background:var(--red);border:none;border-radius:0;
+    transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.3)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--red);border:none;border-radius:0}
+
+  .note{font-size:11px;line-height:1.8;color:var(--dim);border-top:1px solid var(--line);padding-top:12px}
+  .note b{color:var(--ink);font-weight:400}
+
+  footer{padding:0 28px 26px;font-family:var(--mono);font-size:10px;color:#a5a296;
+    letter-spacing:.16em;text-transform:uppercase;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>Kinetic <em>Type</em> Reel</h1>
+    <span class="no">AI-VIDEO / <b>04</b> — 动力学字体短片</span>
+  </div>
+  <p class="tag">每一个字都是演员，时间轴是它的舞台调度表。</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section>
+    <div class="stage" id="stage">
+      <canvas id="cv"></canvas>
+      <span class="seqtag" id="seqtag">SEQ <b>A</b> — RISE — LOOP</span>
+      <i class="redsquare"></i>
+    </div>
+
+    <div class="tl" id="tl">
+      <div class="tlhead"><span>TIMELINE&nbsp;时间轴</span><b id="tltime">0.00s / 4.0s</b></div>
+      <div class="ruler" id="ruler"></div>
+      <div class="lanes" id="lanes"></div>
+      <div class="playhead" id="playhead"></div>
+    </div>
+  </section>
+
+  <aside class="dock">
+    <h2>Composition</h2>
+
+    <div class="ctl">
+      <label>短句 TEXT</label>
+      <input class="txtin" id="txt" maxlength="14" value="动势即秩序">
+      <span class="maxc">MAX 14 CHARS</span>
+    </div>
+
+    <div class="ctl">
+      <label>动画预设 PRESET</label>
+      <div class="seg" id="segPreset">
+        <button data-p="rise" class="on">升起 RISE</button>
+        <button data-p="focus">聚焦 FOCUS</button>
+        <button data-p="wave">波动 WAVE</button>
+        <button data-p="scatter">散落 SCATTER</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label>时长 DURATION <output id="oDur">4.0s</output></label>
+      <input type="range" id="rDur" min="2" max="8" step="0.5" value="4">
+    </div>
+
+    <div class="grid2">
+      <button class="btn prime" id="bPlay">暂停</button>
+      <button class="btn" id="bRand">随机短句</button>
+    </div>
+    <button class="btn" id="bDL">下载当前帧 PNG</button>
+
+    <p class="note">逐字错拍入场，<b>缓出立方</b>收束；拖动时间轴可逐帧检查每个字的调度窗口——红条是当前正在运动的字。</p>
+  </aside>
+</main>
+
+<footer>
+  <span>KINETIC TYPE REEL — PER-CHARACTER STAGING</span>
+  <span>GRID · GROTESQUE · EASE-OUT</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage'),cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var seqtag=document.getElementById('seqtag');
+var ruler=document.getElementById('ruler'),lanes=document.getElementById('lanes'),
+    playhead=document.getElementById('playhead'),tltime=document.getElementById('tltime'),tl=document.getElementById('tl');
+var ASPECT=16/8,W=0,H=0,DPR=1;
+
+var S={text:'动势即秩序',preset:'rise',dur:4,t:0,playing:true,seed:5};
+var PHRASES=['动势即秩序','MOTION IS ORDER','少即是多','FORM FOLLOWS MOTION','节奏即语言','GRID & GRAVITY','动中有序','TYPE IN TIME','字如其动'];
+
+function hash(n){var x=Math.sin(n*127.1+S.seed*31.7)*43758.5453;return x-Math.floor(x);}
+function clamp(v,a,b){return v<a?a:v>b?b:v;}
+function easeOut(p){return 1-Math.pow(1-p,3);}
+function easeInOut(p){return p<0.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;}
+
+function chars(){return Array.from(S.text.replace(/\s+$/,'')).slice(0,14);}
+function stag(){return Math.min(0.28,S.dur*0.5/Math.max(chars().length,1))*0.55;}
+function charDur(){return Math.min(S.dur*0.55,1.1);}
+function startAt(i){return i*stag();}
+
+/* ---------- layout ---------- */
+var layoutCache={key:'',items:[],size:0,total:0};
+function layout(spacingExtra){
+  var cs=chars();
+  var key=cs.join('')+'|'+W+'|'+H;
+  if(layoutCache.key!==key){
+    var size=Math.min(H*0.30,W*0.9/Math.max(cs.length,1)*1.35);
+    ctx.font='800 '+size+'px -apple-system,"Helvetica Neue","PingFang SC",sans-serif';
+    var ws=cs.map(function(c){return ctx.measureText(c).width;});
+    var tot=ws.reduce(function(a,b){return a+b;},0);
+    if(tot>W*0.86){size=size*W*0.86/tot;ctx.font='800 '+size+'px -apple-system,"Helvetica Neue","PingFang SC",sans-serif';
+      ws=cs.map(function(c){return ctx.measureText(c).width;});tot=ws.reduce(function(a,b){return a+b;},0);}
+    layoutCache={key:key,items:ws,size:size,total:tot};
+  }
+  var size2=layoutCache.size,ws=layoutCache.items;
+  var tot2=layoutCache.total+spacingExtra*(cs.length-1);
+  var x=W/2-tot2/2,out=[];
+  for(var i=0;i<cs.length;i++){out.push({ch:cs[i],x:x,w:ws[i]});x+=ws[i]+spacingExtra;}
+  return{items:out,size:size2};
+}
+
+/* ---------- stage drawing ---------- */
+function grid(){
+  ctx.fillStyle='#f2f0ea';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(16,16,16,.06)';ctx.lineWidth=1;
+  var gx=W/12,gy=H/6,i;
+  for(i=1;i<12;i++){ctx.beginPath();ctx.moveTo(gx*i,0);ctx.lineTo(gx*i,H);ctx.stroke();}
+  for(i=1;i<6;i++){ctx.beginPath();ctx.moveTo(0,gy*i);ctx.lineTo(W,gy*i);ctx.stroke();}
+  /* registration crosses */
+  ctx.strokeStyle='rgba(16,16,16,.4)';
+  [[gx,gy],[W-gx,gy],[gx,H-gy],[W-gx,H-gy]].forEach(function(p){
+    ctx.beginPath();ctx.moveTo(p[0]-6,p[1]);ctx.lineTo(p[0]+6,p[1]);
+    ctx.moveTo(p[0],p[1]-6);ctx.lineTo(p[0],p[1]+6);ctx.stroke();
+  });
+}
+
+function render(){
+  grid();
+  var cs=chars();if(!cs.length)return;
+  var t=S.t,preset=S.preset;
+  var spacing=0;
+  if(preset==='focus'){
+    var gp=easeInOut(clamp(t/(S.dur*0.55),0,1));
+    spacing=layout(0).size*0.55*(1-gp);
+  }
+  var L=layout(spacing),baseY=H*0.58,size=L.size;
+  ctx.textBaseline='alphabetic';
+  ctx.font='800 '+size+'px -apple-system,"Helvetica Neue","PingFang SC",sans-serif';
+
+  for(var i=0;i<L.items.length;i++){
+    var it=L.items[i];
+    var p=easeOut(clamp((t-startAt(i))/charDur(),0,1));
+    var dx=0,dy=0,rot=0,alpha=1,blur=0,scale=1;
+    if(preset==='rise'){
+      dy=(1-p)*size*1.15;alpha=p;scale=0.94+0.06*p;
+    }else if(preset==='focus'){
+      blur=(1-p)*10;alpha=0.15+0.85*p;
+    }else if(preset==='wave'){
+      alpha=p;dy=(1-p)*size*0.8+Math.sin(t*4.2+i*0.62)*size*0.14*p;
+      scale=1+0.05*Math.sin(t*4.2+i*0.62+1.2)*p;
+    }else{ /* scatter */
+      var a0=(hash(i*3.1)-0.5)*W*0.7,b0=(hash(i*5.7)-0.5)*H*0.9;
+      dx=a0*(1-p);dy=b0*(1-p);rot=(hash(i*7.3)-0.5)*1.6*(1-p);alpha=p;
+    }
+    ctx.save();
+    ctx.translate(it.x+it.w/2+dx,baseY+dy);
+    if(rot)ctx.rotate(rot);
+    if(scale!==1)ctx.scale(scale,scale);
+    ctx.globalAlpha=alpha;
+    if(blur>0.4&&'filter' in ctx)ctx.filter='blur('+blur.toFixed(1)+'px)';
+    ctx.fillStyle='#101010';
+    ctx.fillText(it.ch,-it.w/2,0);
+    ctx.restore();
+  }
+
+  /* baseline rule + red marker */
+  ctx.strokeStyle='rgba(16,16,16,.85)';ctx.lineWidth=2;
+  var first=L.items[0],lastIt=L.items[L.items.length-1];
+  ctx.beginPath();ctx.moveTo(first.x,baseY+size*0.18);ctx.lineTo(lastIt.x+lastIt.w,baseY+size*0.18);ctx.stroke();
+  ctx.fillStyle='#e02b1d';
+  ctx.fillRect(first.x-size*0.16,baseY+size*0.18-4,8,8);
+}
+
+/* ---------- timeline ---------- */
+function buildTimeline(){
+  ruler.innerHTML='';lanes.innerHTML='';
+  var i,n=S.dur;
+  for(i=0;i<=n;i++){
+    var tick=document.createElement('i');
+    tick.style.left=(i/n*100)+'%';
+    tick.innerHTML='<s>'+i+'s</s>';
+    ruler.appendChild(tick);
+  }
+  var cs=chars();
+  cs.forEach(function(c,idx){
+    var lane=document.createElement('div');lane.className='lane';
+    var bar=document.createElement('u');
+    var st=startAt(idx)/S.dur*100,wd=charDur()/S.dur*100;
+    bar.style.left=st+'%';bar.style.width=wd+'%';
+    bar.dataset.i=idx;
+    var lab=document.createElement('span');lab.textContent=c===' '?'␣':c;
+    lane.appendChild(bar);lane.appendChild(lab);
+    lanes.appendChild(lane);
+  });
+}
+function syncTimeline(){
+  var tw=tl.clientWidth-24;
+  playhead.style.left=(12+S.t/S.dur*tw)+'px';
+  tltime.textContent=S.t.toFixed(2)+'s / '+S.dur.toFixed(1)+'s';
+  var bars=lanes.querySelectorAll('u');
+  for(var i=0;i<bars.length;i++){
+    var hot=S.t>=startAt(i)&&S.t<=startAt(i)+charDur();
+    bars[i].classList.toggle('hot',hot);
+  }
+}
+
+/* scrub */
+var scrubbing=false,wasPlaying=false;
+function scrubTo(e){
+  var r=tl.getBoundingClientRect();
+  var x=(e.clientX-r.left-12)/(r.width-24);
+  S.t=clamp(x,0,1)*S.dur;
+  render();syncTimeline();
+}
+tl.addEventListener('pointerdown',function(e){
+  scrubbing=true;wasPlaying=S.playing;S.playing=false;
+  tl.setPointerCapture(e.pointerId);scrubTo(e);
+});
+tl.addEventListener('pointermove',function(e){if(scrubbing)scrubTo(e);});
+tl.addEventListener('pointerup',function(){scrubbing=false;S.playing=wasPlaying;syncPlayBtn();});
+
+/* ---------- loop ---------- */
+var last=performance.now();
+function tick(now){
+  var dt=Math.min((now-last)/1000,0.05);last=now;
+  if(S.playing){S.t+=dt;if(S.t>S.dur)S.t-=S.dur;render();}
+  syncTimeline();
+  requestAnimationFrame(tick);
+}
+
+/* ---------- controls ---------- */
+var txt=document.getElementById('txt');
+txt.addEventListener('input',function(){S.text=this.value||' ';S.seed++;layoutCache.key='';buildTimeline();render();});
+
+document.getElementById('segPreset').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  this.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+  b.classList.add('on');
+  S.preset=b.dataset.p;S.t=0;
+  seqtag.innerHTML='SEQ <b>A</b> — '+S.preset.toUpperCase()+' — LOOP';
+  render();
+});
+
+var rDur=document.getElementById('rDur'),oDur=document.getElementById('oDur');
+rDur.addEventListener('input',function(){S.dur=+this.value;oDur.textContent=S.dur.toFixed(1)+'s';buildTimeline();});
+
+var bPlay=document.getElementById('bPlay');
+function syncPlayBtn(){bPlay.textContent=S.playing?'暂停':'播放';}
+bPlay.addEventListener('click',function(){S.playing=!S.playing;syncPlayBtn();});
+
+document.getElementById('bRand').addEventListener('click',function(){
+  var p=PHRASES[Math.floor(Math.random()*PHRASES.length)];
+  S.text=p;txt.value=p;S.seed=Math.floor(Math.random()*999)+1;S.t=0;
+  layoutCache.key='';buildTimeline();render();
+});
+document.getElementById('bDL').addEventListener('click',function(){
+  render();
+  var a=document.createElement('a');
+  a.download='kinetic-type-'+S.preset+'-'+S.t.toFixed(2)+'s.png';
+  a.href=cv.toDataURL('image/png');a.click();
+});
+window.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT')return;
+  if(e.code==='Space'){e.preventDefault();S.playing=!S.playing;syncPlayBtn();}
+});
+
+/* ---------- sizing ---------- */
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  var cw=stage.clientWidth;
+  W=cw;H=Math.round(cw/ASPECT);
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  layoutCache.key='';render();
+}
+window.addEventListener('resize',resize);
+buildTimeline();resize();requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

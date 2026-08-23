@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Molecule Lab / 14 / MIRA</title>
+<style>
+:root{
+  --paper:#f5f3ee; --ink:#14161a; --red:#d8442e; --blue:#2f5fd0; --teal:#0fa3a3;
+  --dim:#8b877c; --line:#14161a1f;
+  --mono:"SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+::selection{background:var(--blue);color:var(--paper)}
+header{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+a{color:inherit;text-decoration:none}
+.back{display:flex;align-items:center;gap:12px;transition:color .25s}
+.back:hover{color:var(--blue)}
+.back b{font-weight:400;font-size:16px;transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.back:hover b{transform:translateX(-4px)}
+.hero{padding:5vw 4vw 3.5vw;display:grid;grid-template-columns:1.5fr 1fr;gap:5vw;align-items:end;border-bottom:1px solid var(--line)}
+.kicker{font:10px var(--mono);color:var(--teal);letter-spacing:.2em;text-transform:uppercase}
+.kicker::before{content:"◆ "}
+h1{font:400 clamp(40px,6.8vw,96px)/0.98 var(--serif);letter-spacing:-.015em;margin:22px 0 24px;color:var(--ink)}
+h1 em{font-style:italic;color:var(--red)}
+.hero p{max-width:440px;color:#6f6a5e;font-size:14px;line-height:1.8;margin:0}
+.readout{font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);line-height:2.1;text-align:right}
+.readout b{color:var(--blue);font-weight:400}
+.stage-wrap{padding:4vw 4vw 4.5vw}
+.stage{border:1px solid var(--line);height:min(64vw,680px);min-height:420px;position:relative;overflow:hidden;background:#efece4;cursor:grab}
+.stage.grabbing{cursor:grabbing}
+.stage canvas{display:block;width:100%;height:100%}
+.corner{position:absolute;width:22px;height:22px;z-index:4;pointer-events:none}
+.corner.tl{top:10px;left:10px;border-top:1px solid #14161a66;border-left:1px solid #14161a66}
+.corner.tr{top:10px;right:10px;border-top:1px solid #14161a66;border-right:1px solid #14161a66}
+.corner.bl{bottom:10px;left:10px;border-bottom:1px solid #14161a66;border-left:1px solid #14161a66}
+.corner.br{bottom:10px;right:10px;border-bottom:1px solid #14161a66;border-right:1px solid #14161a66}
+.hud{position:absolute;inset:0;pointer-events:none;font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;z-index:4;color:#14161a77}
+.hud span{position:absolute}
+.hud .a{top:18px;left:22px}.hud .b{top:18px;right:22px;color:var(--red)}
+.hud .c{bottom:18px;left:22px}.hud .d{bottom:18px;right:22px}
+.info{position:absolute;top:52px;right:22px;z-index:5;width:210px;border:1px solid #14161a33;background:#f5f3eeeb;padding:14px 16px;font:9px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);line-height:2;opacity:0;transform:translateY(-8px);transition:opacity .35s cubic-bezier(.22,1,.36,1),transform .35s cubic-bezier(.22,1,.36,1);pointer-events:none}
+.info.show{opacity:1;transform:translateY(0)}
+.info .el{font:400 30px/1.1 var(--serif);color:var(--ink);text-transform:none;letter-spacing:0}
+.info .el em{font-style:italic;color:var(--red)}
+.info .row{display:flex;justify-content:space-between;border-top:1px solid #14161a14;padding-top:4px;margin-top:4px}
+.info .row b{color:var(--ink);font-weight:400}
+.tools{border-top:1px solid var(--line);padding:22px 4vw}
+.mol-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.mol-row button.sel{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tool-row{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
+.sliders{display:flex;gap:34px;flex-wrap:wrap}
+label{font:9px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);display:flex;align-items:center;gap:10px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:120px;height:1px;background:#14161a44;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:10px;height:10px;background:var(--blue);border:none;transform:rotate(45deg);cursor:grab}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--blue);border:none;transform:rotate(45deg);cursor:grab}
+output{color:var(--blue);min-width:24px}
+.tool-btns{display:flex;gap:10px;flex-wrap:wrap}
+button{font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink);background:transparent;border:1px solid #14161a44;padding:9px 14px;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+button:hover{background:#14161a10;border-color:var(--ink)}
+button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.caption{padding:6vw 4vw;display:grid;grid-template-columns:1fr 1fr;gap:5vw;border-top:1px solid var(--line)}
+.caption h2{font:400 clamp(26px,3.4vw,44px)/1.25 var(--serif);margin:0;color:var(--ink)}
+.caption h2 em{font-style:italic;color:var(--blue)}
+.caption p{color:#6f6a5e;font-size:13px;line-height:1.9;margin:0}
+.sig{font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-top:26px}
+footer{padding:20px 4vw;border-top:1px solid var(--line);font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);display:flex;justify-content:space-between}
+@media(max-width:820px){
+  .hero,.caption{grid-template-columns:1fr;gap:28px}
+  .readout{text-align:left}
+  .stage{height:72vw;min-height:340px}
+  .info{width:170px;top:44px}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a>
+  <span>Molecule Lab / 14</span>
+  <span>MIRA — Specimen Series</span>
+</header>
+<main>
+  <section class="hero">
+    <div>
+      <div class="kicker">Ball &amp; Stick Bench · 球棍模型实验台</div>
+      <h1>Molecule<br><em>Lab</em></h1>
+      <p>一张明亮的实验台，上面摆着五种经典分子的球棍模型。拖动让它在指尖旋转，点选任何一颗原子读取它的档案——从一滴水的弯曲，到苯环那只完美的六边形。</p>
+    </div>
+    <div class="readout">
+      Engine — Three.js r128<br>
+      Specimen — <b id="roName">WATER</b><br>
+      Formula — <b id="roFormula">H₂O</b><br>
+      Composition — <b id="roComp">3 atoms · 2 bonds</b>
+    </div>
+  </section>
+  <section class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+      <div class="hud">
+        <span class="a">SPECIMEN BENCH UNIT 14</span>
+        <span class="b" id="hudSel">NO ATOM SELECTED</span>
+        <span class="c">DRAG ROTATE · WHEEL ZOOM · CLICK ATOM</span>
+        <span class="d" id="hudSpin">SPIN LIVE</span>
+      </div>
+      <div class="info" id="info">
+        <div class="el" id="infoEl">O <em>氧</em></div>
+        <div class="row"><span>Element</span><b id="infoName">Oxygen</b></div>
+        <div class="row"><span>Atomic No.</span><b id="infoNo">8</b></div>
+        <div class="row"><span>Radius</span><b id="infoRad">0.66 Å</b></div>
+        <div class="row"><span>Role</span><b id="infoRole">—</b></div>
+      </div>
+    </div>
+    <div class="tools">
+      <div class="mol-row" id="molRow"></div>
+      <div class="tool-row">
+        <div class="sliders">
+          <label>Scale 球径 <input type="range" id="sScale" min="50" max="150" value="100"><output id="oScale">100</output></label>
+          <label>Spin 转速 <input type="range" id="sSpin" min="0" max="100" value="30"><output id="oSpin">30</output></label>
+        </div>
+        <div class="tool-btns">
+          <button id="bLabels">Labels 标签</button>
+          <button id="bSpin">Spin 自转</button>
+          <button id="bDown">Download PNG</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="caption">
+    <h2>Three atoms of water,<br>an ocean of <em>geometry.</em></h2>
+    <div>
+      <p>球棍模型是化学最古老的视觉语言：球是原子，棍是键，双键用两根平行的棍，苯环的芳香性用一圈悬浮的离域电子环表示。五种标本——水、甲烷、二氧化碳、乙醇、苯——从最简单的水开始，逐个点开原子，你会发现同一个氧原子在不同分子里扮演着完全不同的角色。</p>
+      <div class="sig">MIRA — Specimen Series · 14</div>
+    </div>
+  </section>
+</main>
+<footer><span>© MIRA Studio</span><span>Self-contained · No external assets</span></footer>
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage');
+var renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+stage.appendChild(renderer.domElement);
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0xefece4);
+var camera=new THREE.PerspectiveCamera(36,1,0.1,100);
+
+var key=new THREE.DirectionalLight(0xffffff,0.95);
+key.position.set(6,9,7);key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);
+key.shadow.camera.left=-8;key.shadow.camera.right=8;key.shadow.camera.top=8;key.shadow.camera.bottom=-8;
+scene.add(key);
+var fill=new THREE.DirectionalLight(0xd8e4ff,0.35);fill.position.set(-6,3,-4);scene.add(fill);
+scene.add(new THREE.HemisphereLight(0xffffff,0xd8d0c0,0.55));
+
+var ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.ShadowMaterial({opacity:0.13}));
+ground.rotation.x=-Math.PI/2;ground.position.y=-3.1;ground.receiveShadow=true;
+scene.add(ground);
+var disc=new THREE.Mesh(new THREE.CircleGeometry(4.4,48),new THREE.MeshPhongMaterial({color:0xe6e1d5,shininess:4}));
+disc.rotation.x=-Math.PI/2;disc.position.y=-3.09;disc.receiveShadow=true;
+scene.add(disc);
+
+// ---------- data ----------
+var ELEMENTS={
+  H:{no:1,cn:'氢',en:'Hydrogen',r:0.32,color:0xf4f2ec,rad:'0.31 Å'},
+  C:{no:6,cn:'碳',en:'Carbon',r:0.55,color:0x4a4f57,rad:'0.70 Å'},
+  N:{no:7,cn:'氮',en:'Nitrogen',r:0.52,color:0x2f5fd0,rad:'0.65 Å'},
+  O:{no:8,cn:'氧',en:'Oxygen',r:0.53,color:0xd8442e,rad:'0.66 Å'}
+};
+var T=0.62; // tetrahedral unit
+var MOLECULES=[
+ {id:'water',name:'Water 水',en:'WATER',formula:'H₂O',
+  atoms:[['O',0,0.35,0],['H',0.78,-0.24,0],['H',-0.78,-0.24,0]],
+  bonds:[[0,1,1],[0,2,1]],
+  roles:['中心原子 · 孤对电子让分子弯成 104.5°','氢 · 极性共价键的供体','氢 · 极性共价键的供体']},
+ {id:'methane',name:'Methane 甲烷',en:'METHANE',formula:'CH₄',
+  atoms:[['C',0,0,0],['H',T,T,T],['H',T,-T,-T],['H',-T,T,-T],['H',-T,-T,T]],
+  bonds:[[0,1,1],[0,2,1],[0,3,1],[0,4,1]],
+  roles:['中心碳 · sp³ 正四面体构型','氢 · 四面体顶点','氢 · 四面体顶点','氢 · 四面体顶点','氢 · 四面体顶点']},
+ {id:'co2',name:'Carbon Dioxide 二氧化碳',en:'CARBON DIOXIDE',formula:'CO₂',
+  atoms:[['C',0,0,0],['O',-1.35,0,0],['O',1.35,0,0]],
+  bonds:[[0,1,2],[0,2,2]],
+  roles:['中心碳 · sp 直线构型','氧 · 双键受体','氧 · 双键受体']},
+ {id:'ethanol',name:'Ethanol 乙醇',en:'ETHANOL',formula:'C₂H₆O',
+  atoms:[['C',-1.15,-0.1,0],['C',0.15,0.35,0],['O',1.3,-0.35,0],
+         ['H',-1.9,0.65,0.1],['H',-1.55,-0.85,0.75],['H',-1.5,-0.55,-0.9],
+         ['H',0.05,1.05,0.85],['H',0.35,0.95,-0.85],['H',2.1,0.2,0]],
+  bonds:[[0,1,1],[1,2,1],[0,3,1],[0,4,1],[0,5,1],[1,6,1],[1,7,1],[2,8,1]],
+  roles:['甲基碳 · 疏水端','亚甲基碳 · 连接两端','羟基氧 · 亲水端',
+         '氢','氢','氢','氢','氢','羟基氢 · 氢键的来源']},
+ {id:'benzene',name:'Benzene 苯',en:'BENZENE',formula:'C₆H₆',aromatic:true,
+  atoms:(function(){var a=[],i;for(i=0;i<6;i++){var t=i/6*Math.PI*2;a.push(['C',Math.cos(t)*1.4,0,Math.sin(t)*1.4]);}
+    for(i=0;i<6;i++){var t2=i/6*Math.PI*2;a.push(['H',Math.cos(t2)*2.5,0,Math.sin(t2)*2.5]);}return a;})(),
+  bonds:(function(){var b=[],i;for(i=0;i<6;i++){b.push([i,(i+1)%6,1.5]);b.push([i,i+6,1]);}return b;})(),
+  roles:(function(){var r=[],i;for(i=0;i<6;i++)r.push('环碳 · sp² 共平面');for(i=0;i<6;i++)r.push('氢 · 环外取代位');return r;})()}
+];
+
+// ---------- build ----------
+var molGroup=new THREE.Group();scene.add(molGroup);
+var atomMeshes=[],labelSprites=[],birthT=0;
+var atomScale=1,cur=0,selected=null;
+var ringMesh=null;
+var sphereGeo=new THREE.SphereGeometry(1,28,20);
+var cylGeo=new THREE.CylinderGeometry(1,1,1,12);
+cylGeo.translate(0,0.5,0); // pivot at base
+
+function makeLabel(sym,color){
+  var cv=document.createElement('canvas');cv.width=128;cv.height=128;
+  var c=cv.getContext('2d');
+  c.fillStyle='#f5f3ee';c.strokeStyle='#14161a';c.lineWidth=4;
+  c.beginPath();c.arc(64,64,46,0,7);c.fill();c.stroke();
+  c.fillStyle=color;c.font='600 52px -apple-system,Helvetica,sans-serif';c.textAlign='center';c.textBaseline='middle';
+  c.fillText(sym,64,68);
+  var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),depthTest:false,transparent:true}));
+  sp.scale.set(0.7,0.7,1);sp.visible=false;sp.renderOrder=5;
+  return sp;
+}
+
+function disposeGroup(){
+  while(molGroup.children.length){
+    var o=molGroup.children[0];
+    o.traverse(function(n){if(n.material&&n.material.map)n.material.map.dispose();if(n.material)n.material.dispose();});
+    molGroup.remove(o);
+  }
+  atomMeshes=[];labelSprites=[];ringMesh=null;selected=null;
+}
+
+function build(idx){
+  cur=idx;disposeGroup();
+  var m=MOLECULES[idx];
+  birthT=clock.getElapsedTime();
+  var mats={};
+  function matFor(el){
+    if(!mats[el])mats[el]=new THREE.MeshPhongMaterial({color:ELEMENTS[el].color,shininess:90,specular:0x888888});
+    return mats[el];
+  }
+  m.atoms.forEach(function(a,i){
+    var el=a[0],E=ELEMENTS[el];
+    var mesh=new THREE.Mesh(sphereGeo,matFor(el).clone());
+    mesh.position.set(a[1],a[2],a[3]);
+    mesh.scale.set(0.001,0.001,0.001);
+    mesh.castShadow=true;
+    mesh.userData={idx:i,el:el,r:E.r,delay:i*0.06};
+    molGroup.add(mesh);atomMeshes.push(mesh);
+    var label=makeLabel(el,'#'+new THREE.Color(E.color).getHexString());
+    label.position.set(a[1],a[2]+E.r+0.42,a[3]);
+    molGroup.add(label);labelSprites.push(label);
+  });
+  m.bonds.forEach(function(b){
+    var A=new THREE.Vector3(m.atoms[b[0]][1],m.atoms[b[0]][2],m.atoms[b[0]][3]);
+    var B=new THREE.Vector3(m.atoms[b[1]][1],m.atoms[b[1]][2],m.atoms[b[1]][3]);
+    var order=b[2];
+    var dirs=[[0,0,0]];
+    if(order===2){var perp=new THREE.Vector3().subVectors(B,A).cross(new THREE.Vector3(0,0,1)).normalize();if(perp.length()<0.5)perp.set(0,1,0);perp.multiplyScalar(0.11);dirs=[[perp.x,perp.y,perp.z],[-perp.x,-perp.y,-perp.z]];}
+    dirs.forEach(function(off){
+      var a2=A.clone().add(new THREE.Vector3(off[0],off[1],off[2]));
+      var b2=B.clone().add(new THREE.Vector3(off[0],off[1],off[2]));
+      var len=a2.distanceTo(b2);
+      var bond=new THREE.Mesh(cylGeo,new THREE.MeshPhongMaterial({color:0xb9b2a4,shininess:40,specular:0x444444}));
+      bond.position.copy(a2);
+      bond.scale.set(order===2?0.07:0.1,0.001,order===2?0.07:0.1);
+      bond.userData={bondLen:len};
+      var up=new THREE.Vector3(0,1,0);
+      var dir=new THREE.Vector3().subVectors(b2,a2).normalize();
+      bond.quaternion.setFromUnitVectors(up,dir);
+      bond.castShadow=true;
+      molGroup.add(bond);
+    });
+  });
+  if(m.aromatic){
+    ringMesh=new THREE.Mesh(new THREE.TorusGeometry(1.4,0.045,10,48),new THREE.MeshPhongMaterial({color:0x0fa3a3,shininess:120,specular:0x99ffff,transparent:true,opacity:0.9}));
+    ringMesh.rotation.x=Math.PI/2;
+    molGroup.add(ringMesh);
+  }
+  document.getElementById('roName').textContent=m.en;
+  document.getElementById('roFormula').textContent=m.formula;
+  document.getElementById('roComp').textContent=m.atoms.length+' atoms · '+m.bonds.length+' bonds';
+  document.getElementById('hudSel').textContent='NO ATOM SELECTED';
+  document.getElementById('info').classList.remove('show');
+  var btns=document.getElementById('molRow').children;
+  for(var i=0;i<btns.length;i++)btns[i].classList.toggle('sel',i===idx);
+  applyLabels();
+}
+
+// molecule selector
+var molRow=document.getElementById('molRow');
+MOLECULES.forEach(function(m,i){
+  var b=document.createElement('button');
+  b.textContent=m.name;
+  b.addEventListener('click',function(){build(i);});
+  molRow.appendChild(b);
+});
+
+// ---------- interaction ----------
+var rotX=0.35,rotY=0.6,zoom=9.5,dragging=false,moved=0,px0=0,py0=0;
+stage.addEventListener('pointerdown',function(e){dragging=true;moved=0;px0=e.clientX;py0=e.clientY;stage.classList.add('grabbing');stage.setPointerCapture(e.pointerId);});
+stage.addEventListener('pointermove',function(e){
+  if(!dragging)return;
+  var dx=e.clientX-px0,dy=e.clientY-py0;
+  moved+=Math.abs(dx)+Math.abs(dy);
+  rotY+=dx*0.006;rotX+=dy*0.005;
+  rotX=Math.max(-1.4,Math.min(1.4,rotX));
+  px0=e.clientX;py0=e.clientY;
+});
+var ray=new THREE.Raycaster(),mouse=new THREE.Vector2();
+stage.addEventListener('pointerup',function(e){
+  dragging=false;stage.classList.remove('grabbing');
+  if(moved>6)return; // treat as click
+  var r=stage.getBoundingClientRect();
+  mouse.x=((e.clientX-r.left)/r.width)*2-1;
+  mouse.y=-((e.clientY-r.top)/r.height)*2+1;
+  ray.setFromCamera(mouse,camera);
+  var hits=ray.intersectObjects(atomMeshes);
+  if(hits.length)selectAtom(hits[0].object);
+  else{selected=null;document.getElementById('info').classList.remove('show');document.getElementById('hudSel').textContent='NO ATOM SELECTED';}
+});
+stage.addEventListener('wheel',function(e){
+  e.preventDefault();
+  zoom=Math.max(5,Math.min(16,zoom+e.deltaY*0.01));
+},{passive:false});
+
+var infoBox=document.getElementById('info');
+function selectAtom(mesh){
+  if(selected)selected.material.emissive.setHex(0x000000);
+  selected=mesh;
+  var el=mesh.userData.el,E=ELEMENTS[el],m=MOLECULES[cur];
+  document.getElementById('infoEl').innerHTML=el+' <em>'+E.cn+'</em>';
+  document.getElementById('infoName').textContent=E.en;
+  document.getElementById('infoNo').textContent=E.no;
+  document.getElementById('infoRad').textContent=E.rad;
+  document.getElementById('infoRole').textContent=m.roles[mesh.userData.idx]||'—';
+  document.getElementById('hudSel').textContent='ATOM #'+(mesh.userData.idx+1)+' · '+E.en.toUpperCase();
+  infoBox.classList.add('show');
+}
+
+var labelsOn=false;
+function applyLabels(){labelSprites.forEach(function(s){s.visible=labelsOn;});}
+var bL=document.getElementById('bLabels');
+bL.addEventListener('click',function(){labelsOn=!labelsOn;bL.classList.toggle('on',labelsOn);applyLabels();});
+var spinOn=false,spinV=0.3;
+var bS=document.getElementById('bSpin');
+bS.addEventListener('click',function(){spinOn=!spinOn;bS.classList.toggle('on',spinOn);document.getElementById('hudSpin').textContent=spinOn?'SPIN LIVE':'SPIN HELD';});
+document.getElementById('sScale').addEventListener('input',function(){atomScale=this.value/100;document.getElementById('oScale').textContent=this.value;});
+document.getElementById('sSpin').addEventListener('input',function(){spinV=this.value/100;document.getElementById('oSpin').textContent=this.value;});
+document.getElementById('bDown').addEventListener('click',function(){
+  renderer.render(scene,camera);
+  var a=document.createElement('a');a.download='molecule-lab.png';a.href=renderer.domElement.toDataURL('image/png');a.click();
+});
+
+function resize(){
+  var w=stage.clientWidth,h=stage.clientHeight;
+  renderer.setSize(w,h,false);
+  camera.aspect=w/h;camera.updateProjectionMatrix();
+}
+window.addEventListener('resize',resize);
+resize();
+
+var clock=new THREE.Clock();
+build(0);
+function easeOutBack(t){var c=1.70158;return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2);}
+function tick(){
+  requestAnimationFrame(tick);
+  var t=clock.getElapsedTime();
+  if(spinOn&&!dragging)rotY+=0.006*spinV*2;
+  molGroup.rotation.x+=(rotX-molGroup.rotation.x)*0.12;
+  molGroup.rotation.y+=(rotY-molGroup.rotation.y)*0.12;
+  molGroup.position.y=Math.sin(t*0.8)*0.12;
+  // birth animation
+  atomMeshes.forEach(function(m){
+    var k=(t-birthT-m.userData.delay)/0.55;
+    k=Math.max(0,Math.min(1,k));
+    var s=m.userData.r*atomScale*(k>=1?1:easeOutBack(k));
+    m.scale.set(Math.max(0.001,s),Math.max(0.001,s),Math.max(0.001,s));
+    if(selected===m)m.material.emissive.setHex(0x332211);
+  });
+  molGroup.children.forEach(function(o){
+    if(o.userData&&o.userData.bondLen){
+      var k2=(t-birthT-0.3)/0.5;k2=Math.max(0.001,Math.min(1,k2));
+      o.scale.y=o.userData.bondLen*k2;
+    }
+  });
+  if(ringMesh)ringMesh.rotation.z=t*0.4;
+  camera.position.set(0,0.6,zoom);
+  camera.lookAt(0,0,0);
+  renderer.render(scene,camera);
+}
+tick();
+})();
+</script>
+</body>
+</html>

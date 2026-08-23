@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>玻璃拟态系统 Lumen OS</title>
+<style>
+:root{
+  --night:#0B1030; --violet:#8B7CFF; --mint:#6FE8C8; --rose:#FF8FB2;
+  --glass:rgba(255,255,255,.10); --glass-hi:rgba(255,255,255,.22);
+  --stroke:rgba(255,255,255,.28); --ink:rgba(245,248,255,.94); --dim:rgba(220,230,255,.55);
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+  --ease:cubic-bezier(.22,.9,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;user-select:none}
+canvas#wp{position:fixed;inset:0;width:100%;height:100%;display:block}
+body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:60;opacity:.35;mix-blend-mode:overlay;
+  background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:3px 3px}
+#glare{position:fixed;width:520px;height:520px;border-radius:50%;pointer-events:none;z-index:2;
+  background:radial-gradient(circle,rgba(255,255,255,.14),transparent 62%);transform:translate(-50%,-50%);left:50%;top:40%}
+
+/* ---------- menu bar ---------- */
+.bar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:18px;
+  height:38px;padding:0 18px;font-size:12px;
+  background:rgba(20,26,58,.38);backdrop-filter:blur(22px) saturate(1.6);-webkit-backdrop-filter:blur(22px) saturate(1.6);
+  border-bottom:1px solid rgba(255,255,255,.14)}
+.bar .brand{display:flex;align-items:center;gap:8px;font-weight:600;letter-spacing:.02em}
+.bar .brand svg{width:15px;height:15px}
+.bar .tag{font:10px var(--mono);letter-spacing:.16em;color:var(--dim)}
+.bar .spacer{flex:1}
+.bar a,.bar .clock{font:11px var(--mono);letter-spacing:.08em;color:var(--ink);text-decoration:none;opacity:.85;transition:opacity .2s}
+.bar a:hover{opacity:.5}
+.bar .clock{font-variant-numeric:tabular-nums}
+@media(max-width:640px){.bar .tag{display:none}}
+
+/* ---------- desktop icons ---------- */
+.icons{position:fixed;top:64px;left:22px;z-index:10;display:flex;flex-direction:column;gap:22px}
+.icon{display:flex;flex-direction:column;align-items:center;gap:7px;width:76px;cursor:pointer;
+  transition:transform .3s var(--ease)}
+.icon:hover{transform:translateY(-3px)}
+.icon:active{transform:scale(.94)}
+.icon .glyph{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;
+  background:var(--glass);border:1px solid var(--stroke);
+  backdrop-filter:blur(14px) saturate(1.5);-webkit-backdrop-filter:blur(14px) saturate(1.5);
+  box-shadow:0 8px 24px rgba(4,8,30,.35),inset 0 1px 0 var(--glass-hi)}
+.icon .glyph svg{width:26px;height:26px}
+.icon span{font:10px var(--mono);letter-spacing:.1em;color:var(--dim);text-shadow:0 1px 8px rgba(0,0,0,.5)}
+
+/* ---------- windows ---------- */
+.win{position:fixed;min-width:300px;border-radius:16px;overflow:hidden;z-index:20;
+  background:rgba(24,30,66,.42);border:1px solid var(--stroke);
+  backdrop-filter:blur(26px) saturate(1.7);-webkit-backdrop-filter:blur(26px) saturate(1.7);
+  box-shadow:0 30px 80px rgba(3,6,26,.55),inset 0 1px 0 var(--glass-hi);
+  transition:opacity .35s var(--ease),transform .35s var(--ease)}
+.win.closed{opacity:0;transform:scale(.86) translateY(30px);pointer-events:none}
+.win .titlebar{display:flex;align-items:center;gap:8px;height:38px;padding:0 12px;cursor:grab;
+  background:linear-gradient(rgba(255,255,255,.09),rgba(255,255,255,.02));border-bottom:1px solid rgba(255,255,255,.12)}
+.win .titlebar:active{cursor:grabbing}
+.dot{width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.2);cursor:pointer;flex:none}
+.dot.r{background:#FF5F57}.dot.y{background:#FEBC2E}.dot.g{background:#28C840}
+.win .ttl{flex:1;text-align:center;font:11px var(--mono);letter-spacing:.14em;color:var(--dim);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.win .body{padding:18px}
+.win.focused{border-color:rgba(255,255,255,.42);box-shadow:0 40px 110px rgba(3,6,26,.7),inset 0 1px 0 var(--glass-hi)}
+
+/* notes app */
+#w-notes .body textarea{width:100%;height:170px;resize:none;background:transparent;border:none;outline:none;
+  color:var(--ink);font:13px/1.9 var(--sans);caret-color:var(--mint)}
+#w-notes .meta{font:10px var(--mono);letter-spacing:.1em;color:var(--dim);border-top:1px dashed rgba(255,255,255,.18);
+  padding-top:10px;margin-top:10px;display:flex;justify-content:space-between}
+
+/* spectrum app */
+#w-spectrum .row{display:flex;align-items:center;gap:12px;margin:13px 0}
+#w-spectrum label{width:64px;font:10px var(--mono);letter-spacing:.12em;color:var(--dim)}
+input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;
+  background:rgba(255,255,255,.25);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+  background:#fff;border:none;box-shadow:0 2px 10px rgba(0,0,0,.45),0 0 0 4px rgba(255,255,255,.15);cursor:pointer;transition:transform .2s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.2)}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:none;cursor:pointer}
+.swatches{display:flex;gap:8px;margin-top:14px}
+.sw{width:26px;height:26px;border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,.35);transition:transform .25s var(--ease)}
+.sw:hover{transform:translateY(-3px)}
+
+/* about app */
+#w-about .body{display:flex;gap:16px;align-items:center}
+.avatar{width:64px;height:64px;border-radius:50%;flex:none;display:grid;place-items:center;font:600 22px var(--sans);
+  background:conic-gradient(from 200deg,var(--violet),var(--mint),var(--rose),var(--violet));
+  border:1px solid var(--stroke);box-shadow:inset 0 1px 0 var(--glass-hi)}
+#w-about h4{font-size:15px;font-weight:600;letter-spacing:.01em}
+#w-about p{font:11px/1.8 var(--mono);color:var(--dim);margin-top:4px}
+.stats{display:flex;gap:0;margin-top:14px;border-top:1px dashed rgba(255,255,255,.18);padding-top:12px;width:100%}
+.stat{flex:1;text-align:center}
+.stat b{display:block;font:600 16px var(--mono)}
+.stat i{font:9px var(--mono);letter-spacing:.14em;color:var(--dim);font-style:normal}
+
+/* ---------- dock ---------- */
+.dock{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:40;display:flex;align-items:flex-end;gap:10px;
+  padding:10px 14px;border-radius:22px;background:rgba(255,255,255,.09);border:1px solid var(--stroke);
+  backdrop-filter:blur(24px) saturate(1.7);-webkit-backdrop-filter:blur(24px) saturate(1.7);
+  box-shadow:0 18px 50px rgba(3,6,26,.5),inset 0 1px 0 var(--glass-hi)}
+.dock button{position:relative;width:52px;height:52px;border:none;border-radius:15px;cursor:pointer;display:grid;place-items:center;
+  background:var(--glass);border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 var(--glass-hi);
+  transition:width .18s var(--ease),height .18s var(--ease),margin .18s var(--ease)}
+.dock button svg{width:26px;height:26px}
+.dock button::after{content:"";position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);
+  width:4px;height:4px;border-radius:50%;background:#fff;opacity:0;transition:opacity .25s}
+.dock button.run::after{opacity:.9}
+.dock button .tip{position:absolute;bottom:calc(100% + 14px);left:50%;transform:translateX(-50%) translateY(4px);
+  padding:5px 10px;border-radius:8px;font:10px var(--mono);letter-spacing:.1em;white-space:nowrap;
+  background:rgba(20,26,58,.7);border:1px solid var(--stroke);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  opacity:0;pointer-events:none;transition:.25s var(--ease)}
+.dock button:hover .tip{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.hint{position:fixed;bottom:16px;left:22px;z-index:5;font:10px/1.8 var(--mono);letter-spacing:.12em;color:var(--dim)}
+@media(max-width:640px){.hint{display:none}.icons{left:12px;top:56px;gap:14px}.dock button{width:44px;height:44px}}
+</style>
+</head>
+<body>
+<canvas id="wp"></canvas>
+<div id="glare"></div>
+
+<header class="bar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="url(#lg)" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18" fill="rgba(255,255,255,.35)"/><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8B7CFF"/><stop offset="1" stop-color="#6FE8C8"/></linearGradient></defs></svg>
+    Lumen OS
+  </div>
+  <span class="tag">№ 31 · GLASS OS — 玻璃拟态界面</span>
+  <div class="spacer"></div>
+  <a href="../../../index.html#work">返回总目</a>
+  <span class="clock" id="clock">--:--</span>
+</header>
+
+<div class="icons" id="icons"></div>
+
+<!-- windows -->
+<section class="win" id="w-notes" data-app="notes">
+  <div class="titlebar">
+    <span class="dot r" data-act="close"></span><span class="dot y" data-act="min"></span><span class="dot g"></span>
+    <span class="ttl">备忘录 — FIELD NOTES</span>
+  </div>
+  <div class="body">
+    <textarea id="note" spellcheck="false">光穿过玻璃的时候会迟疑一下——这套界面想留住那半秒。
+
+· 拖动标题栏可以移动窗口
+· Dock 悬停有放大镜效果
+· 「调色」里的滑杆实时改写壁纸极光
+
+双击桌面图标，把刚刚关掉的窗再开回来。</textarea>
+    <div class="meta"><span>自动保存于本地</span><span id="wc">0 字</span></div>
+  </div>
+</section>
+
+<section class="win" id="w-spectrum" data-app="spectrum">
+  <div class="titlebar">
+    <span class="dot r" data-act="close"></span><span class="dot y" data-act="min"></span><span class="dot g"></span>
+    <span class="ttl">调色 — SPECTRUM</span>
+  </div>
+  <div class="body">
+    <div class="row"><label>色相 HUE</label><input type="range" id="r-hue" min="0" max="360" value="245"></div>
+    <div class="row"><label>流速 FLOW</label><input type="range" id="r-flow" min="0" max="100" value="40"></div>
+    <div class="row"><label>光晕 BLOOM</label><input type="range" id="r-bloom" min="10" max="100" value="60"></div>
+    <div class="swatches" id="swatches"></div>
+  </div>
+</section>
+
+<section class="win" id="w-about" data-app="about">
+  <div class="titlebar">
+    <span class="dot r" data-act="close"></span><span class="dot y" data-act="min"></span><span class="dot g"></span>
+    <span class="ttl">关于 — OPERATOR</span>
+  </div>
+  <div class="body">
+    <div style="display:flex;gap:16px;align-items:center">
+      <div class="avatar">L</div>
+      <div><h4>陆离 · Li Lu</h4><p>界面设计师 / 前端工程师<br>相信透明是一种诚实的材质。</p></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><b>31</b><i>WORKS</i></div>
+      <div class="stat"><b>7y</b><i>PRACTICE</i></div>
+      <div class="stat"><b>60fps</b><i>RELIGION</i></div>
+    </div>
+  </div>
+</section>
+
+<nav class="dock" id="dock"></nav>
+<div class="hint">DRAG TITLEBAR TO MOVE<br>DOUBLE-CLICK DESKTOP ICON TO REOPEN</div>
+
+<script>
+/* ================= wallpaper: aurora blobs ================= */
+const cv=document.getElementById('wp'),cx=cv.getContext('2d');
+let W,H,DPR;
+function fit(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*DPR;cv.height=H*DPR;cx.setTransform(DPR,0,0,DPR,0,0)}
+fit();addEventListener('resize',fit);
+
+const P={hue:245,flow:.4,bloom:.6};
+const BLOBS=[];
+for(let i=0;i<6;i++)BLOBS.push({x:Math.random(),y:Math.random(),
+  r:.32+Math.random()*.3,ph:Math.random()*Math.PI*2,sp:.5+Math.random()*.8,
+  off:(Math.random()*120-60)|0});
+
+function drawWP(t){
+  t*=.001;
+  const g=cx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,`hsl(${P.hue+20},58%,10%)`);
+  g.addColorStop(1,`hsl(${P.hue-30},64%,6%)`);
+  cx.fillStyle=g;cx.fillRect(0,0,W,H);
+  cx.globalCompositeOperation='lighter';
+  for(const b of BLOBS){
+    const s=P.flow*.9+.15;
+    const x=(b.x+Math.sin(t*b.sp*s+b.ph)*.16)*W;
+    const y=(b.y+Math.cos(t*b.sp*.8*s+b.ph*1.7)*.14)*H;
+    const r=b.r*Math.min(W,H)*(.7+P.bloom*.7);
+    const rg=cx.createRadialGradient(x,y,0,x,y,r);
+    rg.addColorStop(0,`hsla(${P.hue+b.off},85%,62%,${.34+P.bloom*.22})`);
+    rg.addColorStop(1,'hsla(0,0%,0%,0)');
+    cx.fillStyle=rg;cx.beginPath();cx.arc(x,y,r,0,7);cx.fill();
+  }
+  cx.globalCompositeOperation='source-over';
+  requestAnimationFrame(drawWP);
+}
+requestAnimationFrame(drawWP);
+
+/* ================= glare follows mouse ================= */
+const glare=document.getElementById('glare');
+let gx=innerWidth/2,gy=innerHeight*.4,tx=gx,ty=gy;
+addEventListener('pointermove',e=>{tx=e.clientX;ty=e.clientY});
+(function loop(){gx+=(tx-gx)*.08;gy+=(ty-gy)*.08;
+  glare.style.left=gx+'px';glare.style.top=gy+'px';requestAnimationFrame(loop)})();
+
+/* ================= clock ================= */
+const clock=document.getElementById('clock');
+function tick(){const d=new Date();
+  clock.textContent=d.toLocaleDateString('zh-CN',{month:'short',day:'numeric',weekday:'short'})+' '+
+  String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0')}
+tick();setInterval(tick,1000);
+
+/* ================= window manager ================= */
+const APPS={
+  notes:{name:'备忘录',glyph:'<svg viewBox="0 0 24 24" fill="none" stroke="#6FE8C8" stroke-width="1.6"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>'},
+  spectrum:{name:'调色',glyph:'<svg viewBox="0 0 24 24" fill="none" stroke="#8B7CFF" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16" stroke="#FF8FB2"/></svg>'},
+  about:{name:'关于',glyph:'<svg viewBox="0 0 24 24" fill="none" stroke="#FF8FB2" stroke-width="1.6"><circle cx="12" cy="9" r="4"/><path d="M4 20c1.5-4 5-5 8-5s6.5 1 8 5"/></svg>'}
+};
+let zTop=30;
+const wins={};
+document.querySelectorAll('.win').forEach(w=>{
+  wins[w.dataset.app]=w;
+  const tb=w.querySelector('.titlebar');
+  let sx,sy,ox,oy,drag=false;
+  tb.addEventListener('pointerdown',e=>{
+    if(e.target.classList.contains('dot'))return;
+    focus(w.dataset.app);drag=true;sx=e.clientX;sy=e.clientY;
+    const r=w.getBoundingClientRect();ox=r.left;oy=r.top;
+    tb.setPointerCapture(e.pointerId);
+  });
+  tb.addEventListener('pointermove',e=>{
+    if(!drag)return;
+    w.style.left=Math.max(-80,Math.min(innerWidth-120,ox+e.clientX-sx))+'px';
+    w.style.top=Math.max(40,Math.min(innerHeight-70,oy+e.clientY-sy))+'px';
+  });
+  tb.addEventListener('pointerup',()=>drag=false);
+  w.addEventListener('pointerdown',()=>focus(w.dataset.app));
+  w.querySelectorAll('.dot').forEach(d=>d.addEventListener('click',()=>{
+    if(d.dataset.act==='close'||d.dataset.act==='min'){
+      w.classList.add('closed');
+      dock.querySelector(`[data-app="${w.dataset.app}"]`).classList.remove('run');
+    }
+  }));
+});
+function focus(app){const w=wins[app];if(!w)return;
+  document.querySelectorAll('.win').forEach(x=>x.classList.remove('focused'));
+  w.classList.add('focused');w.style.zIndex=++zTop}
+function openApp(app){const w=wins[app];if(!w)return;
+  w.classList.remove('closed');focus(app);
+  dock.querySelector(`[data-app="${app}"]`).classList.add('run')}
+
+/* initial placement */
+function place(){
+  const m=innerWidth<720;
+  const pos=m
+    ?{notes:[12,90],spectrum:[12,330],about:[12,560]}
+    :{notes:[innerWidth*.14,110],spectrum:[innerWidth*.48,190],about:[innerWidth*.32,420]};
+  for(const k in pos){const w=wins[k];w.style.left=pos[k][0]+'px';w.style.top=pos[k][1]+'px';
+    w.style.width=m?(innerWidth-24)+'px':(k==='notes'?'360px':k==='spectrum'?'330px':'340px')}
+}
+place();
+
+/* ================= dock + desktop icons ================= */
+const dock=document.getElementById('dock'),icons=document.getElementById('icons');
+for(const app in APPS){
+  const b=document.createElement('button');
+  b.dataset.app=app;b.innerHTML=APPS[app].glyph+`<span class="tip">${APPS[app].name}</span>`;
+  b.addEventListener('click',()=>{
+    const w=wins[app];
+    if(!w.classList.contains('closed')&&w.classList.contains('focused')){
+      w.classList.add('closed');b.classList.remove('run');
+    }else openApp(app);
+  });
+  dock.appendChild(b);
+  const ic=document.createElement('div');
+  ic.className='icon';
+  ic.innerHTML=`<div class="glyph">${APPS[app].glyph}</div><span>${APPS[app].name}</span>`;
+  ic.addEventListener('dblclick',()=>openApp(app));
+  ic.addEventListener('click',()=>openApp(app));
+  icons.appendChild(ic);
+}
+/* macOS-style dock magnification */
+dock.addEventListener('pointermove',e=>{
+  dock.querySelectorAll('button').forEach(b=>{
+    const r=b.getBoundingClientRect();
+    const d=Math.abs(e.clientX-(r.left+r.width/2));
+    const s=Math.max(0,1-d/130);
+    const sz=52+s*30;
+    b.style.width=sz+'px';b.style.height=sz+'px';
+    b.style.marginBottom=s*10+'px';
+  });
+});
+dock.addEventListener('pointerleave',()=>{
+  dock.querySelectorAll('button').forEach(b=>{b.style.width='52px';b.style.height='52px';b.style.marginBottom='0'})
+});
+for(const a in wins)openApp(a);
+
+/* ================= notes: word count + local save ================= */
+const note=document.getElementById('note'),wc=document.getElementById('wc');
+try{const s=localStorage.getItem('glassos-note');if(s)note.value=s}catch(e){}
+function cnt(){wc.textContent=note.value.replace(/\s/g,'').length+' 字'}
+note.addEventListener('input',()=>{cnt();try{localStorage.setItem('glassos-note',note.value)}catch(e){}});
+cnt();
+
+/* ================= spectrum controls ================= */
+document.getElementById('r-hue').addEventListener('input',e=>P.hue=+e.target.value);
+document.getElementById('r-flow').addEventListener('input',e=>P.flow=e.target.value/100);
+document.getElementById('r-bloom').addEventListener('input',e=>P.bloom=e.target.value/100);
+const PRESETS=[[245,'极光夜'],[165,'深海'],[18,'落日'],[300,'霓虹'],[210,'冰川']];
+const sw=document.getElementById('swatches');
+PRESETS.forEach(([h,n])=>{
+  const s=document.createElement('div');s.className='sw';s.title=n;
+  s.style.background=`linear-gradient(135deg,hsl(${h},85%,60%),hsl(${h+50},85%,55%))`;
+  s.addEventListener('click',()=>{P.hue=h;document.getElementById('r-hue').value=h;openApp('spectrum')});
+  sw.appendChild(s);
+});
+</script>
+</body>
+</html>

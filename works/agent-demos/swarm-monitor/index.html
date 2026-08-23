@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Swarm Monitor — 多智能体集群监控台</title>
+<style>
+  :root{
+    --bg:#06090B; --panel:#0B1113; --panel2:#080D0F; --line:rgba(255,255,255,.07);
+    --ink:#E4EFEA; --dim:#5A6E6A; --faint:#22333A;
+    --mint:#54F2B6; --cyan:#46D4E0; --alert:#FF5A6E; --amber:#FFC24B;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(84,242,182,.25)}
+
+  header{height:56px;display:flex;align-items:center;gap:16px;padding:0 22px;
+         border-bottom:1px solid var(--line);position:relative;z-index:6}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--mint);letter-spacing:.12em}
+  .brand .name{font-family:var(--serif);font-size:19px}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.22em;text-transform:uppercase}
+  .ticker{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--dim);
+          overflow:hidden;white-space:nowrap;max-width:44vw;text-overflow:ellipsis}
+  .ticker b{color:var(--mint);font-weight:500}
+
+  main{display:grid;grid-template-columns:236px 1fr;height:calc(100% - 56px)}
+
+  /* ---------- sidebar ---------- */
+  aside{border-right:1px solid var(--line);display:flex;flex-direction:column;
+        background:var(--panel2);overflow-y:auto}
+  .side{padding:16px 18px;border-bottom:1px solid var(--line)}
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:13px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--line)}
+  .counts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .count .v{font-family:var(--mono);font-size:21px;font-variant-numeric:tabular-nums}
+  .count .k{font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase}
+  .count .v.m{color:var(--mint)} .count .v.c{color:var(--cyan)}
+  .count .v.a{color:var(--amber)} .count .v.r{color:var(--alert)}
+
+  .modes{display:flex;flex-direction:column;gap:8px}
+  .mbtn{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:11px;
+        letter-spacing:.08em;padding:10px 12px;border:1px solid var(--line);background:transparent;
+        color:var(--dim);cursor:pointer;transition:all .25s var(--ease);text-align:left}
+  .mbtn svg{flex:none;opacity:.7}
+  .mbtn:hover{color:var(--ink);border-color:rgba(255,255,255,.25)}
+  .mbtn.on{color:var(--mint);border-color:rgba(84,242,182,.55);background:rgba(84,242,182,.06)}
+  .mbtn.on svg{opacity:1}
+
+  .row2{display:flex;gap:8px}
+  .btn{flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.06em;padding:9px 0;
+       border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;
+       transition:all .25s var(--ease);text-align:center}
+  .btn:hover{border-color:rgba(84,242,182,.5);color:var(--mint)}
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;
+          font-family:var(--mono);font-size:10.5px;color:var(--dim);cursor:pointer;user-select:none}
+  .tswitch{width:34px;height:18px;border:1px solid var(--faint);position:relative;transition:all .25s}
+  .tswitch::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:12px;
+                  background:var(--dim);transition:all .25s var(--ease)}
+  .toggle.on .tswitch{border-color:var(--mint)}
+  .toggle.on .tswitch::after{left:18px;background:var(--mint)}
+
+  .side p.note{font-size:10.5px;line-height:1.7;color:var(--dim)}
+
+  /* ---------- stage ---------- */
+  .stage{position:relative;min-width:0}
+  canvas#field{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .hint{position:absolute;left:20px;bottom:14px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);letter-spacing:.06em;pointer-events:none}
+
+  /* ---------- inspector ---------- */
+  #insp{position:absolute;top:16px;right:16px;width:250px;background:rgba(8,13,15,.92);
+        border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(8px);
+        transform:translateX(120%);transition:transform .5s var(--ease);z-index:5;
+        font-family:var(--mono)}
+  #insp.show{transform:none}
+  #insp .head{display:flex;align-items:baseline;gap:10px;padding:13px 15px;border-bottom:1px solid var(--line)}
+  #insp .head .id{font-size:14px;color:var(--mint)}
+  #insp .head .cs{font-size:10px;color:var(--dim);letter-spacing:.14em}
+  #insp .head .x{margin-left:auto;cursor:pointer;color:var(--dim);font-size:15px;padding:0 4px}
+  #insp .head .x:hover{color:var(--alert)}
+  #insp .rows{padding:12px 15px;display:grid;grid-template-columns:1fr 1fr;gap:11px 12px}
+  #insp .cell .k{font-size:8.5px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+  #insp .cell .v{font-size:13px;margin-top:3px;font-variant-numeric:tabular-nums}
+  #insp .battwrap{padding:2px 15px 14px}
+  #insp .battlabel{display:flex;justify-content:space-between;font-size:8.5px;letter-spacing:.18em;
+                   color:var(--dim);text-transform:uppercase;margin-bottom:5px}
+  #insp .batt{height:4px;background:var(--faint)}
+  #insp .batt i{display:block;height:100%;background:var(--mint);transition:width .4s linear}
+
+  @media (max-width:860px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr;height:auto}
+    aside{border-right:0;border-bottom:1px solid var(--line)}
+    .stage{height:62vh;min-height:400px}
+    #insp{width:min(250px,80vw)}
+    .ticker{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">No.03</span>
+    <span class="name">Swarm Monitor</span>
+    <span class="sub">Multi-Agent Fleet Console</span>
+  </div>
+  <div class="ticker" id="ticker">BUS ▸ <b>fleet online</b></div>
+</header>
+
+<main>
+  <aside>
+    <div class="side">
+      <div class="blocklabel">Fleet</div>
+      <div class="counts">
+        <div class="count"><div class="v m" id="c-work">0</div><div class="k">Working</div></div>
+        <div class="count"><div class="v c" id="c-comm">0</div><div class="k">Comms</div></div>
+        <div class="count"><div class="v a" id="c-dock">0</div><div class="k">Docking</div></div>
+        <div class="count"><div class="v r" id="c-err">0</div><div class="k">Fault</div></div>
+      </div>
+    </div>
+    <div class="side">
+      <div class="blocklabel">Formation</div>
+      <div class="modes" id="modes">
+        <button class="mbtn on" data-mode="explore">
+          <svg width="12" height="12" viewBox="0 0 12 12"><path d="M1 6h10M6 1v10" stroke="currentColor" stroke-width="1.2"/></svg>EXPLORE · 巡航</button>
+        <button class="mbtn" data-mode="cluster">
+          <svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="2.4" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="2" cy="3" r="1" fill="currentColor"/><circle cx="10" cy="9" r="1" fill="currentColor"/></svg>CLUSTER · 集结</button>
+        <button class="mbtn" data-mode="orbit">
+          <svg width="12" height="12" viewBox="0 0 12 12"><circle cx="6" cy="6" r="4.4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 2"/><circle cx="6" cy="6" r="1.2" fill="currentColor"/></svg>ORBIT · 环绕</button>
+      </div>
+    </div>
+    <div class="side">
+      <div class="blocklabel">Fleet Size</div>
+      <div class="row2">
+        <button class="btn" id="spawn">+ SPAWN</button>
+        <button class="btn" id="retire">− RETIRE</button>
+      </div>
+    </div>
+    <div class="side">
+      <div class="blocklabel">Pointer</div>
+      <div class="toggle" id="attractoggle"><span>HOLD-TO-ATTRACT</span><span class="tswitch"></span></div>
+    </div>
+    <div class="side">
+      <p class="note">每架智能体具备分离 / 对齐 / 聚集三规则转向行为。电量低于 15% 会自主返坞充电；偶发故障由调度器自动重启。</p>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <canvas id="field"></canvas>
+    <div class="hint">CLICK AGENT → INSPECT&nbsp;&nbsp;·&nbsp;&nbsp;HOLD MOUSE → ATTRACT FIELD</div>
+    <div id="insp">
+      <div class="head"><span class="id" id="i-id">—</span><span class="cs" id="i-cs">—</span><span class="x" id="i-close">×</span></div>
+      <div class="rows">
+        <div class="cell"><div class="k">State</div><div class="v" id="i-state">—</div></div>
+        <div class="cell"><div class="k">Task</div><div class="v" id="i-task">—</div></div>
+        <div class="cell"><div class="k">Uptime</div><div class="v" id="i-up">—</div></div>
+        <div class="cell"><div class="k">Msgs</div><div class="v" id="i-msg">—</div></div>
+        <div class="cell"><div class="k">Velocity</div><div class="v" id="i-vel">—</div></div>
+        <div class="cell"><div class="k">Sector</div><div class="v" id="i-sec">—</div></div>
+      </div>
+      <div class="battwrap">
+        <div class="battlabel"><span>Battery</span><span id="i-battv">—</span></div>
+        <div class="batt"><i id="i-batt"></i></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const canvas=$("field"),ctx=canvas.getContext("2d");
+let W=0,H=0;
+function resize(){
+  const dpr=Math.min(2,devicePixelRatio||1);
+  const r=canvas.parentElement.getBoundingClientRect();
+  W=r.width;H=r.height;
+  canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener("resize",resize);resize();
+
+/* ================= agents ================= */
+const CALL=["KESTREL","MAGPIE","HERON","IBIS","SWIFT","CRANE","FALCON","LARK","OSPREY","RAVEN",
+            "PLOVER","TERN","EGRET","KITE","MERLIN","PETREL","CONDOR","JACANA","AVOCET","SNIPE"];
+const TASKS=["survey-grid","relay-uplink","map-perimeter","sample-air","track-beacon","scan-sector"];
+const agents=[];
+let seq=0, mode="explore", attract=false, mouse={x:-999,y:-999,down:false}, selected=null;
+
+function spawn(){
+  if(agents.length>=72)return;
+  const a=Math.random()*Math.PI*2;
+  agents.push({
+    id:"AGT-"+String(++seq).padStart(3,"0"),
+    cs:CALL[seq%CALL.length],
+    x:W/2+Math.cos(a)*40,y:H/2+Math.sin(a)*40,
+    vx:Math.cos(a)*40,vy:Math.sin(a)*40,
+    batt:.55+Math.random()*.45, state:"WORK",
+    task:TASKS[Math.floor(Math.random()*TASKS.length)],
+    up:0,msg:0,errT:0,trail:[],wa:Math.random()*Math.PI*2,
+  });
+  tick(`<b>${agents[agents.length-1].id}</b> joined fleet`);
+}
+function retire(){
+  if(agents.length<=6)return;
+  const i=agents.findIndex(a=>a!==selected);
+  if(i<0)return;
+  tick(`<b>${agents[i].id}</b> decommissioned`);
+  agents.splice(i,1);
+}
+for(let i=0;i<34;i++)spawn();
+
+/* ================= ticker ================= */
+const tickBox=$("ticker");
+let tickQ=[],tickBusy=false;
+function tick(html){
+  tickQ.push(html);
+  if(tickBusy)return;tickBusy=true;
+  const next=()=>{
+    if(!tickQ.length){tickBusy=false;return}
+    tickBox.innerHTML="BUS ▸ "+tickQ.shift();
+    setTimeout(next,1800);
+  };next();
+}
+
+/* ================= modes / pointer ================= */
+$("modes").addEventListener("click",e=>{
+  const b=e.target.closest(".mbtn");if(!b)return;
+  document.querySelectorAll(".mbtn").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");mode=b.dataset.mode;
+  tick(`formation → <b>${mode.toUpperCase()}</b>`);
+});
+$("attractoggle").addEventListener("click",e=>{
+  attract=!attract;e.currentTarget.classList.toggle("on",attract);
+});
+$("spawn").addEventListener("click",spawn);
+$("retire").addEventListener("click",retire);
+
+canvas.addEventListener("mousemove",e=>{
+  const r=canvas.getBoundingClientRect();
+  mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;
+});
+canvas.addEventListener("mouseleave",()=>{mouse.x=-999;mouse.down=false});
+canvas.addEventListener("mousedown",()=>mouse.down=true);
+addEventListener("mouseup",()=>mouse.down=false);
+
+canvas.addEventListener("click",e=>{
+  const r=canvas.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  let hit=null,best=18;
+  agents.forEach(a=>{
+    const d=Math.hypot(a.x-mx,a.y-my);
+    if(d<best){best=d;hit=a}
+  });
+  selected=hit;
+  $("insp").classList.toggle("show",!!hit);
+});
+$("i-close").addEventListener("click",()=>{selected=null;$("insp").classList.remove("show")});
+
+/* ================= steering ================= */
+function step(dt){
+  const cx=W/2,cy=H/2;
+  const t=performance.now()/1000;
+  const clusterP={x:cx+Math.cos(t*.13)*W*.18,y:cy+Math.sin(t*.17)*H*.16};
+  agents.forEach(a=>{
+    a.up+=dt;
+    // battery / docking
+    if(a.state!=="ERR"){
+      a.batt-=dt*.006;
+      if(a.batt<.15&&a.state!=="DOCK"){a.state="DOCK";tick(`<b>${a.id}</b> low battery → docking`)}
+      if(a.state==="DOCK"&&a.batt>=.98){a.state="WORK";tick(`<b>${a.id}</b> recharged, back on task`)}
+    }
+    // random faults
+    if(a.state!=="ERR"&&Math.random()<dt*.006){
+      a.state="ERR";a.errT=3+Math.random()*4;
+      tick(`<b style="color:var(--alert)">${a.id}</b> FAULT — watchdog rebooting`);
+    }
+    if(a.state==="ERR"){
+      a.errT-=dt;a.vx*=.96;a.vy*=.96;
+      if(a.errT<=0){a.state="WORK";a.batt=Math.max(a.batt,.5);tick(`<b>${a.id}</b> reboot ok`)}
+    }
+
+    let fx=0,fy=0;
+    if(a.state!=="ERR"){
+      // flock rules
+      let nx=0,ny=0,avx=0,avy=0,acx=0,acy=0,cnt=0;
+      agents.forEach(b=>{
+        if(b===a||b.state==="ERR")return;
+        const dx=a.x-b.x,dy=a.y-b.y,d2=dx*dx+dy*dy;
+        if(d2<1600&&d2>0.01){fx+=dx/d2*900;fy+=dy/d2*900} // separation
+        if(d2<12000){nx+=b.x;ny+=b.y;avx+=b.vx;avy+=b.vy;cnt++}
+      });
+      if(cnt){
+        acx=nx/cnt;acy=ny/cnt;
+        fx+=(avx/cnt-a.vx)*.6;fy+=(avy/cnt-a.vy)*.6;      // alignment
+        if(mode==="explore"){fx+=(acx-a.x)*.12;fy+=(acy-a.y)*.12} // mild cohesion
+      }
+      // mode targets
+      if(mode==="cluster"){fx+=(clusterP.x-a.x)*.9;fy+=(clusterP.y-a.y)*.9}
+      else if(mode==="orbit"){
+        const dx=a.x-cx,dy=a.y-cy,d=Math.hypot(dx,dy)||1,R=Math.min(W,H)*.3;
+        fx+=(-dy/d*60)+(R-d)*dx/d*1.4;
+        fy+=( dx/d*60)+(R-d)*dy/d*1.4;
+      }else{ // wander
+        a.wa+=(Math.random()-.5)*dt*6;
+        fx+=Math.cos(a.wa)*26;fy+=Math.sin(a.wa)*26;
+      }
+      // docking target
+      if(a.state==="DOCK"){
+        a.batt+=dt*.09;
+        fx+=(30-a.x)*2.2;fy+=(30-a.y)*2.2;
+      }
+      // pointer attract
+      if(mouse.down&&attract){
+        const dx=mouse.x-a.x,dy=mouse.y-a.y,d=Math.hypot(dx,dy)||1;
+        if(d>26){fx+=dx/d*140;fy+=dy/d*140}
+      }
+      // soft bounds
+      const m=26;
+      if(a.x<m)fx+=(m-a.x)*4;if(a.x>W-m)fx-=(a.x-(W-m))*4;
+      if(a.y<m)fy+=(m-a.y)*4;if(a.y>H-m)fy-=(a.y-(H-m))*4;
+    }
+    a.vx+=fx*dt;a.vy+=fy*dt;
+    const sp=Math.hypot(a.vx,a.vy),max=a.state==="DOCK"?150:110;
+    if(sp>max){a.vx*=max/sp;a.vy*=max/sp}
+    a.x+=a.vx*dt;a.y+=a.vy*dt;
+    // comms flips + messages
+    if(a.state==="WORK"&&Math.random()<dt*.05)a.state="COMMS";
+    else if(a.state==="COMMS"&&Math.random()<dt*.25)a.state="WORK";
+    if(a.state==="COMMS")a.msg++;
+    // trail
+    a.trail.push({x:a.x,y:a.y});
+    if(a.trail.length>16)a.trail.shift();
+  });
+}
+
+/* ================= drawing ================= */
+const STATE_C={WORK:"#54F2B6",COMMS:"#46D4E0",DOCK:"#FFC24B",ERR:"#FF5A6E"};
+let sweep=0;
+function draw(dt){
+  ctx.clearRect(0,0,W,H);
+  const cx=W/2,cy=H/2;
+  // range rings
+  ctx.strokeStyle="rgba(84,242,182,.05)";ctx.lineWidth=1;
+  const R=Math.min(W,H)*.3;
+  [R*.5,R,R*1.5].forEach(r=>{ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke()});
+  // radar sweep
+  sweep+=dt*.5;
+  const g=ctx.createConicGradient?ctx.createConicGradient(sweep,cx,cy):null;
+  if(g){
+    g.addColorStop(0,"rgba(84,242,182,.10)");g.addColorStop(.08,"rgba(84,242,182,0)");
+    g.addColorStop(1,"rgba(84,242,182,0)");
+    ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,R*1.5,0,7);ctx.fill();
+  }
+  // dock pad
+  ctx.strokeStyle="rgba(255,194,75,.4)";ctx.setLineDash([3,3]);
+  ctx.strokeRect(14,14,32,32);ctx.setLineDash([]);
+  ctx.fillStyle="rgba(255,194,75,.7)";ctx.font="8px 'SF Mono',Menlo,monospace";ctx.textAlign="left";
+  ctx.fillText("DOCK",16,58);
+  // orbit beacon
+  if(mode==="orbit"){
+    ctx.save();ctx.shadowColor="#54F2B6";ctx.shadowBlur=14;
+    ctx.fillStyle="#54F2B6";ctx.beginPath();ctx.arc(cx,cy,3,0,7);ctx.fill();ctx.restore();
+  }
+  // comm links
+  ctx.lineWidth=1;
+  for(let i=0;i<agents.length;i++){
+    const a=agents[i];if(a.state!=="COMMS")continue;
+    for(let j=i+1;j<agents.length;j++){
+      const b=agents[j];
+      const d=Math.hypot(a.x-b.x,a.y-b.y);
+      if(d<110){
+        ctx.strokeStyle=`rgba(70,212,224,${(1-d/110)*.35})`;
+        ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();
+      }
+    }
+  }
+  // agents
+  agents.forEach(a=>{
+    // trail
+    if(a.trail.length>1){
+      ctx.beginPath();ctx.moveTo(a.trail[0].x,a.trail[0].y);
+      a.trail.forEach(p=>ctx.lineTo(p.x,p.y));
+      ctx.strokeStyle=a.state==="ERR"?"rgba(255,90,110,.15)":"rgba(84,242,182,.13)";
+      ctx.stroke();
+    }
+    const c=STATE_C[a.state];
+    const blink=a.state==="ERR"?(Math.sin(performance.now()/90)>0?1:.25):1;
+    ctx.save();ctx.globalAlpha=blink;
+    ctx.shadowColor=c;ctx.shadowBlur=a===selected?16:8;
+    ctx.fillStyle=c;
+    const ang=Math.atan2(a.vy,a.vx);
+    ctx.translate(a.x,a.y);ctx.rotate(ang);
+    ctx.beginPath();ctx.moveTo(7,0);ctx.lineTo(-5,4);ctx.lineTo(-2.6,0);ctx.lineTo(-5,-4);
+    ctx.closePath();ctx.fill();
+    ctx.restore();
+    if(a===selected){
+      ctx.strokeStyle="rgba(84,242,182,.7)";ctx.setLineDash([3,4]);
+      ctx.beginPath();ctx.arc(a.x,a.y,14+Math.sin(performance.now()/300)*2,0,7);ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle="rgba(228,239,234,.85)";ctx.font="9px 'SF Mono',Menlo,monospace";
+      ctx.fillText(a.id,a.x+16,a.y-8);
+    }
+  });
+  // attractor ring
+  if(mouse.down&&attract){
+    ctx.strokeStyle="rgba(84,242,182,.5)";
+    ctx.beginPath();ctx.arc(mouse.x,mouse.y,20+Math.sin(performance.now()/120)*4,0,7);ctx.stroke();
+    ctx.beginPath();ctx.arc(mouse.x,mouse.y,3,0,7);ctx.stroke();
+  }
+}
+
+/* ================= HUD ================= */
+let hudA=0;
+function hud(dt){
+  hudA+=dt;if(hudA<.2)return;hudA=0;
+  const c={WORK:0,COMMS:0,DOCK:0,ERR:0};
+  agents.forEach(a=>c[a.state==='ERR'?'ERR':a.state]++);
+  $("c-work").textContent=c.WORK;$("c-comm").textContent=c.COMMS;
+  $("c-dock").textContent=c.DOCK;$("c-err").textContent=c.ERR;
+  if(selected&&!agents.includes(selected)){selected=null;$("insp").classList.remove("show")}
+  if(selected){
+    const a=selected;
+    $("i-id").textContent=a.id;$("i-cs").textContent=a.cs;
+    $("i-state").textContent=a.state;$("i-state").style.color=STATE_C[a.state];
+    $("i-task").textContent=a.task;
+    $("i-up").textContent=Math.floor(a.up/60)+"m "+String(Math.floor(a.up%60)).padStart(2,"0")+"s";
+    $("i-msg").textContent=a.msg;
+    $("i-vel").textContent=Math.round(Math.hypot(a.vx,a.vy))+" u/s";
+    $("i-sec").textContent="S-"+(1+Math.floor(a.x/W*3))+(1+Math.floor(a.y/H*3));
+    $("i-batt").style.width=Math.round(a.batt*100)+"%";
+    $("i-batt").style.background=a.batt<.2?"var(--alert)":a.batt<.45?"var(--amber)":"var(--mint)";
+    $("i-battv").textContent=Math.round(a.batt*100)+"%";
+  }
+}
+
+/* ================= loop ================= */
+let last=performance.now();
+(function loop(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  step(dt);draw(dt);hud(dt);
+  requestAnimationFrame(loop);
+})(last);
+</script>
+</body>
+</html>

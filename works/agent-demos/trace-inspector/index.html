@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRACE INSPECTOR — 执行 Trace 检视器</title>
+<style>
+  :root{
+    --bp:#0E2A47; --bp2:#123354; --gridA:rgba(111,195,232,.07); --gridB:rgba(111,195,232,.16);
+    --paper:#E8F1F8; --cyan:#6FC3E8; --amber:#FFC53D; --red:#FF6B5E; --dim:#7FA3C0;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+    --namecol:268px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow-x:clip}
+  body{background:var(--bp);color:var(--paper);font-family:var(--mono);
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;
+    background-image:
+      linear-gradient(var(--gridA) 1px,transparent 1px),
+      linear-gradient(90deg,var(--gridA) 1px,transparent 1px),
+      linear-gradient(var(--gridB) 1px,transparent 1px),
+      linear-gradient(90deg,var(--gridB) 1px,transparent 1px);
+    background-size:20px 20px,20px 20px,100px 100px,100px 100px}
+  ::selection{background:rgba(255,197,61,.35)}
+
+  header{flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:12px 22px;
+    border-bottom:1.5px solid rgba(232,241,248,.35);background:rgba(14,42,71,.85);flex-wrap:wrap}
+  .brand{display:flex;align-items:baseline;gap:11px;white-space:nowrap}
+  .brand .no{font-size:10px;letter-spacing:.14em;color:var(--amber)}
+  .brand .name{font-size:12.5px;font-weight:700;letter-spacing:.26em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.1em}
+  .spacer{flex:1}
+  .hbtns{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .hb{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;padding:7px 11px;cursor:pointer;
+    background:transparent;border:1.5px solid rgba(232,241,248,.4);color:var(--paper);transition:all .16s var(--ease)}
+  .hb:hover{border-color:var(--paper);background:rgba(232,241,248,.08)}
+  .hb.on{border-color:var(--red);color:var(--red);background:rgba(255,107,94,.1)}
+  .hb.amber{border-color:var(--amber);color:var(--amber)}
+  .hb.amber:hover{background:rgba(255,197,61,.12)}
+  #zoomv{font-size:9.5px;color:var(--dim);min-width:44px;text-align:center}
+
+  /* ruler */
+  .rulerow{flex:0 0 auto;display:flex;border-bottom:1.5px solid rgba(232,241,248,.35);background:rgba(14,42,71,.7)}
+  .nameside{flex:0 0 var(--namecol);padding:8px 14px;font-size:8.5px;letter-spacing:.26em;color:var(--dim);
+    border-right:1.5px dashed rgba(232,241,248,.25);display:flex;align-items:center;justify-content:space-between}
+  #ruler{flex:1;position:relative;height:34px;overflow:hidden;cursor:ew-resize}
+  .rt{position:absolute;top:0;bottom:0;border-left:1px solid rgba(232,241,248,.4)}
+  .rt span{position:absolute;top:9px;left:4px;font-size:8.5px;color:var(--dim);white-space:nowrap}
+  .rt.major{border-left-color:rgba(232,241,248,.7)}
+  .rt.major span{color:var(--paper)}
+
+  main{flex:1;overflow-y:auto;position:relative;min-height:0}
+  #rows{position:relative;padding:10px 0 40px}
+  .wrow{position:relative;display:flex;align-items:stretch;min-height:34px;cursor:pointer;
+    animation:rowIn .4s var(--ease) both}
+  @keyframes rowIn{from{opacity:0;transform:translateY(5px)}}
+  .wrow:hover .nm,.wrow:hover .barzone{background:rgba(111,195,232,.06)}
+  .wrow.sel .nm,.wrow.sel .barzone{background:rgba(255,197,61,.07)}
+  .nm{flex:0 0 var(--namecol);display:flex;align-items:center;gap:6px;padding:0 14px;font-size:10.5px;
+    border-right:1.5px dashed rgba(232,241,248,.25);overflow:hidden;white-space:nowrap}
+  .nm .caret{flex:0 0 12px;font-size:8px;color:var(--dim);transition:transform .2s var(--ease);cursor:pointer;user-select:none}
+  .nm .caret.cl{transform:rotate(-90deg)}
+  .nm .caret.leaf{visibility:hidden}
+  .nm .tag{flex:0 0 auto;font-size:7.5px;letter-spacing:.1em;padding:2px 5px;border:1px solid}
+  .nm .sname{overflow:hidden;text-overflow:ellipsis;letter-spacing:.04em}
+  .nm .dur{margin-left:auto;color:var(--dim);font-size:9px;padding-left:8px}
+  .barzone{flex:1;position:relative;min-width:0}
+  .bar{position:absolute;top:8px;height:18px;border:1.5px solid;transition:none;pointer-events:none}
+  .bar .self{position:absolute;top:0;bottom:0;left:0}
+  .bar .lbl{position:absolute;top:3px;left:6px;font-size:8px;letter-spacing:.06em;white-space:nowrap}
+  .bar.err::after{content:"ERR";position:absolute;top:2px;right:4px;font-size:7.5px;letter-spacing:.1em;color:var(--bp)}
+  .collapsed-note{position:absolute;top:11px;font-size:8px;color:var(--dim);letter-spacing:.1em;pointer-events:none;white-space:nowrap}
+
+  .detail{display:none;border-top:1px dashed rgba(232,241,248,.3);border-bottom:1px dashed rgba(232,241,248,.3);
+    background:rgba(18,51,84,.6);padding:12px 14px 12px calc(var(--namecol) + 14px);
+    animation:rowIn .3s var(--ease)}
+  .detail.show{display:block}
+  .detail .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px 22px}
+  .detail .kv{font-size:9.5px;line-height:1.7}
+  .detail .k{color:var(--dim);letter-spacing:.14em;font-size:8px}
+  .detail .v{color:var(--paper);word-break:break-all}
+  .detail .v.errv{color:var(--red)}
+  .detail .v.amber{color:var(--amber)}
+
+  /* crosshair */
+  #xhair{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed rgba(255,197,61,.7);
+    display:none;pointer-events:none;z-index:5}
+  #xhair span{position:absolute;top:4px;left:5px;font-size:8.5px;color:var(--amber);white-space:nowrap;
+    background:rgba(14,42,71,.9);padding:2px 5px;border:1px solid rgba(255,197,61,.4)}
+
+  footer{flex:0 0 auto;display:flex;gap:20px;align-items:center;padding:9px 22px;
+    border-top:1.5px solid rgba(232,241,248,.35);font-size:8.5px;letter-spacing:.16em;color:var(--dim);
+    background:rgba(14,42,71,.85)}
+  .sq{width:6px;height:6px;background:var(--amber)}
+  #meta-line{margin-left:auto;color:var(--cyan)}
+
+  @media (max-width:760px){
+    :root{--namecol:150px}
+    .brand .sub{display:none}
+    .nm .dur{display:none}
+    .nm .tag{display:none}
+    .detail{padding-left:14px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·09</span>
+    <span class="name">TRACE INSPECTOR</span>
+    <span class="sub">执行 trace 时间轴检视器</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="hbtns">
+    <button class="hb" id="z-out">−</button>
+    <span id="zoomv">100%</span>
+    <button class="hb" id="z-in">+</button>
+    <button class="hb" id="z-fit">FIT</button>
+    <button class="hb" id="f-err">仅错误</button>
+    <button class="hb amber" id="regen">随机再生 REGEN</button>
+    <button class="hb amber" id="dl">下载 SVG</button>
+  </div>
+</header>
+
+<div class="rulerow">
+  <div class="nameside"><span>SPAN / 层级</span><span>DUR</span></div>
+  <div id="ruler"></div>
+</div>
+
+<main id="scroll">
+  <div id="rows"></div>
+  <div id="xhair"><span></span></div>
+</main>
+
+<footer>
+  <span class="sq"></span>
+  <span>TRACE INSPECTOR — A·09 — AGENT DEMOS</span>
+  <span>拖拽平移 · 滚轮缩放 · 点击行展开属性</span>
+  <span id="meta-line"></span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var rowsEl = document.getElementById("rows");
+  var ruler = document.getElementById("ruler");
+  var scroll = document.getElementById("scroll");
+  var xhair = document.getElementById("xhair");
+  var xhairTxt = xhair.querySelector("span");
+  var metaLine = document.getElementById("meta-line");
+  var zoomv = document.getElementById("zoomv");
+
+  /* ---------- trace generator ---------- */
+  function rid(){ return Math.random().toString(16).slice(2, 10); }
+  function R(a, b){ return a + Math.random() * (b - a); }
+  function pick(a){ return a[Math.floor(Math.random() * a.length)]; }
+
+  var MODELS = ["kimi-k2-0711", "kimi-k2-thinking", "kimi-latest"];
+  var SEARCH_Q = ["site:arxiv.org mixture-of-experts", "2026 Q2 出海投放 竞品 预算", "rust async runtime benchmark", "EU AI Act compliance checklist", "vector index hnsw 参数调优"];
+  var URLS = ["https://arxiv.org/abs/2401.04", "https://blog.example.com/moe", "https://docs.example.com/hnsw", "https://news.example.com/ai-act"];
+
+  function genTrace(){
+    var t = 0;
+    var spans = [];
+    function span(name, kind, start, dur, attrs, parent){
+      var s = { id: rid(), name:name, kind:kind, start:start, dur:Math.max(20, Math.round(dur)),
+        attrs:attrs || {}, parent:parent, children:[], status:attrs && attrs.error ? "ERROR" : "OK" };
+      spans.push(s);
+      if (parent) parent.children.push(s);
+      return s;
+    }
+    var root = span("agent.run", "root", 0, 0, {session:"sess-" + rid(), agent:"researcher-v3"}, null);
+    t = 30;
+    var plan = span("llm.plan", "llm", t, R(220, 480), {model:pick(MODELS), "tokens.in":Math.round(R(900, 2200)), "tokens.out":Math.round(R(120, 400)), temperature:0.3}, root);
+    t += plan.dur + R(10, 60);
+    var rounds = 1 + Math.floor(Math.random() * 3);
+    for (var r = 0; r < rounds; r++){
+      var q = pick(SEARCH_Q);
+      var s1 = span("tool.web_search", "tool", t, R(180, 520), {engine:"multi", query:q, hits:Math.round(R(4, 18))}, root);
+      t += s1.dur + R(5, 40);
+      var fetches = 1 + Math.floor(Math.random() * 2);
+      var fEnd = t;
+      for (var f = 0; f < fetches; f++){
+        var willErr = Math.random() < 0.22;
+        var fd = span("tool.fetch_url", "tool", t + R(0, 30), R(140, 600),
+          willErr ? {url:pick(URLS), "http.status":pick([403, 502, 524]), error:"upstream timeout after 30s", retries:2}
+                  : {url:pick(URLS), "http.status":200, "bytes.in":Math.round(R(8000, 90000)).toLocaleString("en-US")}, root);
+        fEnd = Math.max(fEnd, fd.start + fd.dur);
+      }
+      t = fEnd + R(10, 50);
+      var wr = span("llm.summarize", "llm", t, R(300, 700), {model:pick(MODELS), "tokens.in":Math.round(R(3000, 9000)), "tokens.out":Math.round(R(300, 900))}, root);
+      t += wr.dur + R(10, 60);
+    }
+    if (Math.random() < 0.65){
+      var cx = span("tool.code_exec", "tool", t, R(200, 480), {runtime:"python-3.12-sandbox", "exit.code":0}, root);
+      t += cx.dur + R(10, 50);
+    }
+    var fin = span("llm.final_answer", "llm", t, R(380, 800), {model:pick(MODELS), "tokens.in":Math.round(R(4000, 11000)), "tokens.out":Math.round(R(600, 1500)), stream:true}, root);
+    t += fin.dur + R(20, 80);
+    root.dur = Math.round(t);
+    return {root:root, spans:spans, total:Math.round(t)};
+  }
+
+  /* ---------- view state ---------- */
+  var trace = genTrace();
+  var view = {start:0, end:trace.total};
+  var collapsed = {}, selected = null, onlyErr = false;
+  var rowRefs = [];
+
+  function nameColW(){
+    return parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--namecol")) || 268;
+  }
+  function plotW(){
+    return scroll.clientWidth - nameColW();
+  }
+  function ms2px(ms){
+    return (ms - view.start) / (view.end - view.start) * plotW();
+  }
+  function px2ms(px){
+    return view.start + px / plotW() * (view.end - view.start);
+  }
+
+  function kindColor(k, status){
+    if (status === "ERROR") return "#FF6B5E";
+    if (k === "root") return "#FFC53D";
+    if (k === "llm") return "#6FC3E8";
+    return "#E8F1F8";
+  }
+
+  function visibleList(){
+    var out = [];
+    (function walk(s, depth, hiddenByCollapse){
+      var hide = hiddenByCollapse;
+      out.push({s:s, depth:depth, hidden:hide});
+      var cl = collapsed[s.id];
+      s.children.forEach(function(c){ walk(c, depth + 1, hide || cl); });
+    })(trace.root, 0, false);
+    return out;
+  }
+
+  function hasErrDescendant(s){
+    if (s.status === "ERROR") return true;
+    return s.children.some(hasErrDescendant);
+  }
+
+  /* ---------- render ---------- */
+  function render(){
+    var list = visibleList();
+    if (onlyErr) list = list.filter(function(it){ return it.s.status === "ERROR" || hasErrDescendant(it.s); });
+    rowsEl.innerHTML = "";
+    rowRefs = [];
+    var pw = plotW();
+
+    list.forEach(function(it, idx){
+      var s = it.s;
+      var row = document.createElement("div");
+      row.className = "wrow" + (selected === s.id ? " sel" : "");
+      row.style.animationDelay = Math.min(idx * 22, 400) + "ms";
+      if (it.hidden) row.style.display = "none";
+
+      var color = kindColor(s.kind, s.status);
+      var nm = document.createElement("div");
+      nm.className = "nm";
+      nm.style.paddingLeft = (14 + it.depth * 16) + "px";
+      var caret = s.children.length
+        ? '<span class="caret' + (collapsed[s.id] ? " cl" : "") + '">▼</span>'
+        : '<span class="caret leaf">·</span>';
+      nm.innerHTML = caret +
+        '<span class="tag" style="color:' + color + ';border-color:' + color + '">' +
+          (s.kind === "root" ? "RUN" : s.kind.toUpperCase()) + '</span>' +
+        '<span class="sname">' + s.name + '</span>' +
+        '<span class="dur">' + s.dur.toLocaleString("en-US") + 'ms</span>';
+
+      var bz = document.createElement("div");
+      bz.className = "barzone";
+      var x = ms2px(s.start), w = Math.max(2, s.dur / (view.end - view.start) * pw);
+      if (x + w >= 0 && x <= pw){
+        var bar = document.createElement("div");
+        bar.className = "bar" + (s.status === "ERROR" ? " err" : "");
+        bar.style.left = x + "px";
+        bar.style.width = w + "px";
+        bar.style.borderColor = color;
+        bar.style.background = color === "#E8F1F8" ? "rgba(232,241,248,.14)" :
+          color === "#6FC3E8" ? "rgba(111,195,232,.18)" :
+          color === "#FFC53D" ? "rgba(255,197,61,.16)" : "rgba(255,107,94,.22)";
+        /* self-time solid segment */
+        var childSum = s.children.reduce(function(a, c){ return a + c.dur; }, 0);
+        var selfRatio = s.dur > 0 ? Math.max(0, Math.min(1, 1 - childSum / s.dur)) : 1;
+        var self = document.createElement("span");
+        self.className = "self";
+        self.style.width = (selfRatio * 100) + "%";
+        self.style.background = color === "#E8F1F8" ? "rgba(232,241,248,.5)" :
+          color === "#6FC3E8" ? "rgba(111,195,232,.55)" :
+          color === "#FFC53D" ? "rgba(255,197,61,.55)" : "rgba(255,107,94,.6)";
+        bar.appendChild(self);
+        if (w > 64){
+          var lb = document.createElement("span");
+          lb.className = "lbl";
+          lb.style.color = color;
+          lb.textContent = s.dur.toLocaleString("en-US") + " ms";
+          bar.appendChild(lb);
+        }
+        bz.appendChild(bar);
+      }
+      if (collapsed[s.id]){
+        var cn = document.createElement("span");
+        cn.className = "collapsed-note";
+        cn.style.left = (x + w + 8) + "px";
+        cn.textContent = "▸ " + countDesc(s) + " spans 已折叠";
+        bz.appendChild(cn);
+      }
+
+      row.appendChild(nm);
+      row.appendChild(bz);
+      rowsEl.appendChild(row);
+
+      /* detail panel */
+      var det = document.createElement("div");
+      det.className = "detail" + (selected === s.id ? " show" : "");
+      if (it.hidden) det.style.display = "none";
+      var kv = '<div class="kv"><div class="k">SPAN ID</div><div class="v amber">' + s.id + '</div></div>' +
+        '<div class="kv"><div class="k">STATUS</div><div class="v' + (s.status === "ERROR" ? " errv" : "") + '">' + s.status + '</div></div>' +
+        '<div class="kv"><div class="k">START / DURATION</div><div class="v">' + Math.round(s.start) + "ms — " + s.dur + 'ms</div></div>';
+      Object.keys(s.attrs).forEach(function(k){
+        kv += '<div class="kv"><div class="k">' + k.toUpperCase() + '</div><div class="v' +
+          (k === "error" ? " errv" : "") + '">' + s.attrs[k] + '</div></div>';
+      });
+      det.innerHTML = '<div class="grid">' + kv + '</div>';
+      rowsEl.appendChild(det);
+
+      row.addEventListener("click", function(e){
+        if (e.target.classList.contains("caret") && s.children.length){
+          collapsed[s.id] = !collapsed[s.id];
+          render();
+          return;
+        }
+        selected = selected === s.id ? null : s.id;
+        render();
+      });
+      rowRefs.push({row:row, det:det});
+    });
+
+    renderRuler();
+    var errs = trace.spans.filter(function(s){ return s.status === "ERROR"; }).length;
+    metaLine.textContent = "TRACE " + trace.root.id + " · " + trace.spans.length + " SPANS · " +
+      trace.total.toLocaleString("en-US") + "ms" + (errs ? " · " + errs + " ERR" : " · ALL OK");
+    zoomv.textContent = Math.round(trace.total / (view.end - view.start) * 100) + "%";
+  }
+
+  function countDesc(s){
+    return s.children.reduce(function(a, c){ return a + 1 + countDesc(c); }, 0);
+  }
+
+  /* ---------- ruler ---------- */
+  function renderRuler(){
+    ruler.innerHTML = "";
+    var pw = ruler.clientWidth;
+    if (!pw) return;
+    var span = view.end - view.start;
+    var steps = [25, 50, 100, 250, 500, 1000, 2500, 5000];
+    var step = steps[0];
+    for (var i = 0; i < steps.length; i++){
+      if (span / steps[i] <= 9){ step = steps[i]; break; }
+      step = steps[i];
+    }
+    var t0 = Math.ceil(view.start / step) * step;
+    for (var t = t0; t <= view.end; t += step){
+      var d = document.createElement("div");
+      var major = t % (step * 2) === 0 || step >= 1000;
+      d.className = "rt" + (major ? " major" : "");
+      d.style.left = ms2px(t) + "px";
+      d.innerHTML = "<span>" + (t >= 1000 ? (t / 1000).toFixed(t % 1000 ? 1 : 0) + "s" : t + "ms") + "</span>";
+      ruler.appendChild(d);
+    }
+  }
+
+  /* ---------- crosshair ---------- */
+  function hair(e){
+    var rect = ruler.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    if (x < 0 || x > rect.width){ xhair.style.display = "none"; return; }
+    var rowsRect = rowsEl.getBoundingClientRect();
+    xhair.style.display = "block";
+    xhair.style.left = (nameColW() + x) + "px";
+    xhair.style.top = (rowsEl.offsetTop) + "px";
+    xhair.style.height = rowsEl.offsetHeight + "px";
+    var ms = px2ms(x);
+    xhairTxt.textContent = (ms >= 1000 ? (ms / 1000).toFixed(2) + " s" : Math.round(ms) + " ms");
+  }
+  scroll.addEventListener("mousemove", function(e){
+    var rrect = ruler.getBoundingClientRect();
+    if (e.clientX - rrect.left >= 0) hair(e);
+  });
+  scroll.addEventListener("mouseleave", function(){ xhair.style.display = "none"; });
+
+  /* ---------- zoom & pan ---------- */
+  function zoomAt(factor, centerPx){
+    var pw = plotW();
+    var c = centerPx == null ? pw / 2 : centerPx;
+    var cms = px2ms(c);
+    var ns = (view.end - view.start) / factor;
+    ns = Math.max(120, Math.min(trace.total * 1.4, ns));
+    var ratioL = (cms - view.start) / (view.end - view.start);
+    view.start = cms - ns * ratioL;
+    view.end = view.start + ns;
+    clampView();
+    render();
+  }
+  function clampView(){
+    var tol = trace.total * 0.4;
+    if (view.start < -tol) view.start = -tol;
+    if (view.end > trace.total + tol) view.end = trace.total + tol;
+    if (view.end - view.start < 60) view.end = view.start + 60;
+  }
+  document.getElementById("z-in").addEventListener("click", function(){ zoomAt(1.5); });
+  document.getElementById("z-out").addEventListener("click", function(){ zoomAt(1 / 1.5); });
+  document.getElementById("z-fit").addEventListener("click", function(){
+    view.start = 0; view.end = trace.total; render();
+  });
+  scroll.addEventListener("wheel", function(e){
+    var rrect = ruler.getBoundingClientRect();
+    if (e.clientX - rrect.left < 0) return;
+    e.preventDefault();
+    zoomAt(e.deltaY < 0 ? 1.18 : 1 / 1.18, e.clientX - rrect.left);
+  }, {passive:false});
+
+  var drag = null;
+  scroll.addEventListener("pointerdown", function(e){
+    var rrect = ruler.getBoundingClientRect();
+    if (e.clientX - rrect.left < 0) return;
+    drag = {x:e.clientX, start:view.start, end:view.end, moved:false};
+    scroll.setPointerCapture(e.pointerId);
+  });
+  scroll.addEventListener("pointermove", function(e){
+    if (!drag) return;
+    var dx = e.clientX - drag.x;
+    if (Math.abs(dx) > 3) drag.moved = true;
+    var dms = dx / plotW() * (drag.end - drag.start);
+    view.start = drag.start - dms;
+    view.end = drag.end - dms;
+    clampView();
+    render();
+  });
+  scroll.addEventListener("pointerup", function(){ drag = null; });
+  scroll.addEventListener("click", function(e){
+    if (drag && drag.moved){ e.stopPropagation(); }
+  }, true);
+
+  /* ---------- controls ---------- */
+  document.getElementById("f-err").addEventListener("click", function(){
+    onlyErr = !onlyErr;
+    this.classList.toggle("on", onlyErr);
+    render();
+  });
+  document.getElementById("regen").addEventListener("click", function(){
+    trace = genTrace();
+    view.start = 0; view.end = trace.total;
+    collapsed = {}; selected = null;
+    render();
+  });
+
+  /* ---------- SVG export ---------- */
+  document.getElementById("dl").addEventListener("click", function(){
+    var pw = Math.max(560, plotW());
+    var rowH = 34, padT = 46, padL = 250;
+    var list = visibleList().filter(function(it){ return !it.hidden; });
+    var W = padL + pw + 20, H = padT + list.length * rowH + 30;
+    function X(ms){ return padL + (ms - view.start) / (view.end - view.start) * pw; }
+    var s = '';
+    s += '<rect width="' + W + '" height="' + H + '" fill="#0E2A47"/>';
+    for (var gy = 0; gy < H; gy += 20){
+      s += '<line x1="0" y1="' + gy + '" x2="' + W + '" y2="' + gy + '" stroke="rgba(111,195,232,.07)"/>';
+    }
+    for (var gx = 0; gx < W; gx += 20){
+      s += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + H + '" stroke="rgba(111,195,232,.07)"/>';
+    }
+    s += '<text x="14" y="22" fill="#FFC53D" font-family="monospace" font-size="11" letter-spacing="2">TRACE INSPECTOR — ' + trace.root.id + '</text>';
+    s += '<text x="' + (W - 14) + '" y="22" fill="#7FA3C0" font-family="monospace" font-size="10" text-anchor="end">' + trace.total + 'ms TOTAL</text>';
+    var span2 = view.end - view.start;
+    var steps = [25, 50, 100, 250, 500, 1000, 2500, 5000], step = steps[steps.length - 1];
+    for (var i = 0; i < steps.length; i++){ if (span2 / steps[i] <= 9){ step = steps[i]; break; } }
+    for (var t = Math.ceil(view.start / step) * step; t <= view.end; t += step){
+      s += '<line x1="' + X(t) + '" y1="30" x2="' + X(t) + '" y2="' + (H - 20) + '" stroke="rgba(232,241,248,.18)" stroke-dasharray="2 4"/>';
+      s += '<text x="' + (X(t) + 3) + '" y="40" fill="#7FA3C0" font-family="monospace" font-size="9">' + t + 'ms</text>';
+    }
+    list.forEach(function(it, i){
+      var y = padT + i * rowH;
+      var c = kindColor(it.s.kind, it.s.status);
+      s += '<text x="' + (14 + it.depth * 14) + '" y="' + (y + 16) + '" fill="' + c + '" font-family="monospace" font-size="10">' + it.s.name + '</text>';
+      var bx = X(it.s.start), bw = Math.max(2, it.s.dur / span2 * pw);
+      s += '<rect x="' + bx + '" y="' + (y + 6) + '" width="' + bw + '" height="16" fill="rgba(111,195,232,.14)" stroke="' + c + '" stroke-width="1.2"/>';
+    });
+    var svg = '<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">' + s + '</svg>';
+    var blob = new Blob([svg], {type:"image/svg+xml"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "trace-" + trace.root.id + ".svg";
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  window.addEventListener("resize", render);
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>結庵 YUI-AN — 京都茶室</title>
+<style>
+  :root{
+    --washi:#F3EEE3;
+    --sumi:#2B2A26;
+    --ake:#A53F2B;
+    --grey:#9a948a;
+    --ease:cubic-bezier(.25,.46,.45,.94);
+    --serif:"Hiragino Mincho ProN","Yu Mincho","Songti SC","Noto Serif CJK SC",serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--washi);
+    color:var(--sumi);
+    font-family:var(--serif);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--ake);color:var(--washi)}
+
+  /* ink canvas behind hero */
+  #ink{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;pointer-events:none}
+  main{position:relative;z-index:1}
+
+  /* side mark */
+  .side{
+    position:fixed;left:22px;top:50%;transform:translateY(-50%);z-index:5;
+    writing-mode:vertical-rl;font-size:11px;letter-spacing:.5em;color:var(--grey);
+    pointer-events:none;
+  }
+  .no{
+    position:fixed;right:22px;top:24px;z-index:5;font-size:11px;letter-spacing:.3em;
+    color:var(--grey);writing-mode:vertical-rl;pointer-events:none;
+  }
+  .no b{color:var(--ake);font-weight:400}
+
+  /* ============ hero ============ */
+  .hero{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    position:relative;gap:clamp(30px,8vw,120px);padding:40px 8vw;
+  }
+  .enso{width:min(52vw,460px);flex-shrink:0}
+  .enso path{
+    fill:none;stroke:var(--sumi);stroke-width:7;stroke-linecap:round;
+  }
+  /* vertical columns laid out by block flow (right -> left), no flex shrink */
+  .hero-text{writing-mode:vertical-rl}
+  .hero-text>*{margin-left:clamp(18px,3vw,42px)}
+  .hero-text h1{
+    font-size:clamp(64px,10vw,130px);font-weight:400;letter-spacing:.18em;line-height:1;
+  }
+  .hero-text .jp{
+    font-size:clamp(15px,1.6vw,20px);letter-spacing:.42em;color:var(--sumi);
+    border-left:1px solid var(--sumi);padding-left:14px;padding-top:8px;
+  }
+  .hero-text .en{
+    font-size:11px;letter-spacing:.34em;color:var(--grey);text-transform:uppercase;
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;padding-top:20px;
+  }
+  .seal{
+    width:44px;height:44px;background:var(--ake);color:var(--washi);
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;margin-top:26px;flex-shrink:0;
+  }
+  .hint{
+    position:absolute;bottom:34px;left:50%;transform:translateX(-50%);
+    font-size:11px;letter-spacing:.4em;color:var(--grey);
+    animation:breath 3.4s ease-in-out infinite;
+  }
+  @keyframes breath{0%,100%{opacity:.35}50%{opacity:.9}}
+
+  /* ============ sections ============ */
+  section{max-width:1060px;margin:0 auto;padding:16vh 7vw 0}
+  .v-head{
+    display:flex;justify-content:center;gap:26px;align-items:center;
+    margin-bottom:9vh;
+  }
+  .v-head .line{width:1px;height:60px;background:var(--sumi)}
+  .v-head h2{
+    writing-mode:vertical-rl;font-size:clamp(26px,3.4vw,40px);font-weight:400;letter-spacing:.34em;
+  }
+  .v-head .en{
+    writing-mode:vertical-rl;font-size:10px;letter-spacing:.34em;color:var(--grey);
+    text-transform:uppercase;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+  }
+
+  /* 序 — vertical prose */
+  .prose{
+    writing-mode:vertical-rl;height:52vh;min-height:380px;margin:0 auto;
+    font-size:clamp(15px,1.5vw,18px);line-height:3.1;letter-spacing:.24em;
+    color:#4a463e;text-align:start;
+  }
+  .prose em{font-style:normal;color:var(--ake)}
+
+  /* 茶 — tea + cup */
+  .tea{display:grid;grid-template-columns:1fr 1fr;gap:8vw;align-items:center}
+  .cup-stage{position:relative;text-align:center}
+  #cup{width:min(60vw,340px);height:auto;display:inline-block;cursor:pointer}
+  .brew-note{
+    margin-top:26px;font-size:12px;letter-spacing:.34em;color:var(--grey);
+    transition:color 1.2s var(--ease);
+  }
+  .brew-note.on{color:var(--ake)}
+  .tea-list{display:flex;flex-direction:column;gap:0}
+  .tea-item{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:24px 0;border-bottom:1px solid #d9d2c2;
+    transition:padding-left .8s var(--ease);
+  }
+  .tea-item:hover{padding-left:16px}
+  .tea-item:first-child{border-top:1px solid #d9d2c2}
+  .tea-item .name{font-size:clamp(19px,2vw,24px);letter-spacing:.22em}
+  .tea-item .season{font-size:12px;color:var(--grey);letter-spacing:.3em}
+  .tea-item .price{font-size:13px;color:var(--grey);letter-spacing:.1em}
+
+  /* 訪 — visit */
+  .visit{max-width:520px;margin:0 auto}
+  .vrow{
+    display:flex;justify-content:space-between;padding:20px 0;
+    border-bottom:1px solid #d9d2c2;font-size:14px;letter-spacing:.22em;
+  }
+  .vrow:first-child{border-top:1px solid #d9d2c2}
+  .vrow span:last-child{color:#5c574d}
+  .visit-note{
+    margin-top:44px;text-align:center;font-size:13px;line-height:2.6;
+    letter-spacing:.28em;color:#5c574d;
+  }
+
+  footer{
+    margin-top:16vh;padding:70px 20px 54px;text-align:center;
+    border-top:1px solid #d9d2c2;
+  }
+  footer .fseal{
+    width:38px;height:38px;background:var(--ake);color:var(--washi);
+    display:inline-flex;align-items:center;justify-content:center;font-size:19px;
+    margin-bottom:22px;
+  }
+  footer p{font-size:11px;letter-spacing:.4em;color:var(--grey);line-height:2.6}
+
+  /* reveal — slow, zen */
+  .rv{opacity:0;transform:translateY(26px);transition:opacity 1.6s var(--ease),transform 1.6s var(--ease)}
+  .rv.in{opacity:1;transform:none}
+
+  @media(max-width:820px){
+    .hero{flex-direction:column;gap:50px;padding-top:90px}
+    .hero-text h1{font-size:clamp(56px,15vw,90px)}
+    .side{display:none}
+    .tea{grid-template-columns:1fr;gap:70px}
+    .prose{height:60vh;min-height:340px;line-height:2.6}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="ink"></canvas>
+<div class="side">京都 · 左京区 · 鹿ヶ谷</div>
+<div class="no"><b>第三席</b> — 茶室 結庵</div>
+
+<main>
+  <!-- hero -->
+  <div class="hero">
+    <svg class="enso" viewBox="0 0 300 300" aria-hidden="true">
+      <path d="M 238 84 C 262 130, 250 200, 196 236 C 142 272, 66 254, 46 186 C 28 122, 66 54, 136 40 C 178 32, 214 48, 232 74"/>
+    </svg>
+    <div class="hero-text">
+      <h1>結庵</h1>
+      <p class="jp">一期一会の茶の湯</p>
+      <p class="en">Yui-An Tea House — Kyoto</p>
+      <div class="seal">結</div>
+    </div>
+    <p class="hint">移 动 鼠 标 · 留 下 墨 迹</p>
+  </div>
+
+  <!-- 序 -->
+  <section>
+    <div class="v-head rv">
+      <h2>序</h2>
+      <span class="line"></span>
+      <span class="en">Prologue</span>
+    </div>
+    <div class="prose rv">
+      庵在山的褶皱里，离最近的公交车站，还有四十分钟的石阶。<br>
+      没有招牌。木门上只有一道被手磨亮的铜环。<br>
+      进门请先俯身——躙口很低，<em>低到一定程度，人人都是平等的</em>。<br>
+      炉里的炭，清晨五点点上；水沸的声音，我们称之为「松风」。<br>
+      一天只开四席。一席，只待四位客人。<br>
+      茶是苦的，时间是慢的。慢到你可以听见自己。
+    </div>
+  </section>
+
+  <!-- 茶 -->
+  <section>
+    <div class="v-head rv">
+      <h2>茶</h2>
+      <span class="line"></span>
+      <span class="en">The Tea</span>
+    </div>
+    <div class="tea">
+      <div class="cup-stage rv">
+        <canvas id="cup" width="680" height="560"></canvas>
+        <p class="brew-note" id="brewNote">轻 触 茶 碗 · 点 一 碗 茶</p>
+      </div>
+      <div class="tea-list rv">
+        <div class="tea-item"><span class="name">薄茶 · 又玄</span><span class="season">春</span><span class="price">—</span></div>
+        <div class="tea-item"><span class="name">冷抹茶 · 青嵐</span><span class="season">夏</span><span class="price">—</span></div>
+        <div class="tea-item"><span class="name">濃茶 · 昔</span><span class="season">秋</span><span class="price">—</span></div>
+        <div class="tea-item"><span class="name">焙茶 · 炭火</span><span class="season">冬</span><span class="price">—</span></div>
+        <div class="tea-item"><span class="name">干菓子 · 懐紙</span><span class="season">四季</span><span class="price">—</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 訪 -->
+  <section>
+    <div class="v-head rv">
+      <h2>訪</h2>
+      <span class="line"></span>
+      <span class="en">Visit</span>
+    </div>
+    <div class="visit rv">
+      <div class="vrow"><span>住所</span><span>京都市左京区鹿ヶ谷 · 地图不载</span></div>
+      <div class="vrow"><span>开庵</span><span>辰时 — 酉时 / 周三休</span></div>
+      <div class="vrow"><span>席数</span><span>一日四席 · 一席四位</span></div>
+      <div class="vrow"><span>预约</span><span>仅接受书信 · 来回一月</span></div>
+    </div>
+    <p class="visit-note rv">
+      手机请留在门外。<br>
+      庵内不谈天气之外的事。<br>
+      若逢落雪，即是好日。
+    </p>
+  </section>
+</main>
+
+<footer>
+  <div class="fseal">結</div>
+  <p>結庵 YUI-AN — 作品第三席<br>墨随手动 · 茶随点生</p>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var WASHI='#F3EEE3', SUMI='#2B2A26', AKE='#A53F2B';
+var DPR=Math.min(devicePixelRatio||1,2);
+
+/* enso: rAF-driven stroke draw-in (reliable in any renderer) */
+var ep=document.querySelector('.enso path');
+var eLen=ep.getTotalLength();
+ep.style.strokeDasharray=eLen;
+ep.style.strokeDashoffset=eLen;
+var drawStart=null;
+(function drawEnso(t){
+  if(drawStart===null)drawStart=t+500;
+  var p=Math.max(0,Math.min(1,(t-drawStart)/3000));
+  var e=1-Math.pow(1-p,3);
+  ep.style.strokeDashoffset=eLen*(1-e);
+  if(p<1)requestAnimationFrame(drawEnso);
+})(performance.now());
+
+/* ============ ink brush (full screen, fades away) ============ */
+var ink=document.getElementById('ink'), ictx=ink.getContext('2d');
+var iw,ih;
+function sizeInk(){
+  iw=innerWidth; ih=innerHeight;
+  ink.width=iw*DPR; ink.height=ih*DPR;
+  ictx.setTransform(DPR,0,0,DPR,0,0);
+  ictx.fillStyle=WASHI; ictx.fillRect(0,0,iw,ih);
+  ictx.lineCap='round'; ictx.lineJoin='round';
+}
+sizeInk(); addEventListener('resize',sizeInk);
+
+var lx=null, ly=null, lvx=0;
+addEventListener('mousemove',function(e){
+  var x=e.clientX, y=e.clientY;
+  if(lx!==null){
+    var dx=x-lx, dy=y-ly;
+    var sp=Math.min(Math.sqrt(dx*dx+dy*dy),60);
+    lvx+=(sp-lvx)*.3;
+    ictx.strokeStyle='rgba(43,42,38,'+(0.10+Math.min(lvx/60,1)*0.20)+')';
+    ictx.lineWidth=1+Math.max(0,22-lvx*.45)*Math.random()*.6+Math.max(0,22-lvx*.45)*.4;
+    ictx.beginPath();
+    ictx.moveTo(lx,ly);
+    ictx.quadraticCurveTo((lx+x)/2+ (Math.random()*8-4),(ly+y)/2+(Math.random()*8-4),x,y);
+    ictx.stroke();
+    /* dry-brush specks when fast */
+    if(lvx>26){
+      for(var i=0;i<3;i++){
+        ictx.fillStyle='rgba(43,42,38,'+(Math.random()*.18)+')';
+        ictx.beginPath();
+        ictx.arc(x+(Math.random()*30-15),y+(Math.random()*30-15),Math.random()*1.6,0,7);
+        ictx.fill();
+      }
+    }
+  }
+  lx=x; ly=y;
+});
+/* slow fade — ink dissolves back into washi */
+setInterval(function(){
+  ictx.fillStyle='rgba(243,238,227,0.05)';
+  ictx.fillRect(0,0,iw,ih);
+},80);
+
+/* ============ tea cup + steam ============ */
+var cup=document.getElementById('cup'), cctx=cup.getContext('2d');
+/* backing store 680x560 displayed at max 340x280 -> scale 2 keeps it crisp */
+var LW=340, LH=280;
+cctx.setTransform(2,0,0,2,0,0);
+var brewed=false, steamRate=0, targetRate=0.5, brewT=0;
+var parts=[];
+
+function spawnPart(){
+  parts.push({
+    x:LW/2+(Math.random()*70-35),
+    y:150,
+    r:2+Math.random()*4,
+    vy:.35+Math.random()*.5,
+    ph:Math.random()*Math.PI*2,
+    life:0, max:240+Math.random()*160
+  });
+}
+
+function drawCup(t){
+  cctx.clearRect(0,0,LW,LH);
+  /* shadow */
+  cctx.fillStyle='rgba(43,42,38,.10)';
+  cctx.beginPath(); cctx.ellipse(LW/2,236,96,13,0,0,7); cctx.fill();
+  /* bowl */
+  var g=cctx.createLinearGradient(0,120,0,240);
+  g.addColorStop(0,'#3a3833'); g.addColorStop(1,'#1f1e1b');
+  cctx.fillStyle=g;
+  cctx.beginPath();
+  cctx.moveTo(LW/2-92,150);
+  cctx.bezierCurveTo(LW/2-92,225,LW/2-45,240,LW/2,240);
+  cctx.bezierCurveTo(LW/2+45,240,LW/2+92,225,LW/2+92,150);
+  cctx.closePath(); cctx.fill();
+  /* tea surface */
+  var teaG=cctx.createRadialGradient(LW/2,150,4,LW/2,150,88);
+  if(brewed){
+    teaG.addColorStop(0,'rgba(122,146,84,'+(0.35+brewT*0.65)+')');
+    teaG.addColorStop(1,'rgba(72,94,52,'+(0.35+brewT*0.65)+')');
+  }else{
+    teaG.addColorStop(0,'rgba(60,58,52,.28)');
+    teaG.addColorStop(1,'rgba(40,39,35,.28)');
+  }
+  cctx.fillStyle=teaG;
+  cctx.beginPath(); cctx.ellipse(LW/2,150,88,20,0,0,7); cctx.fill();
+  /* rim */
+  cctx.strokeStyle='rgba(43,42,38,.55)'; cctx.lineWidth=2;
+  cctx.beginPath(); cctx.ellipse(LW/2,150,92,22,0,0,7); cctx.stroke();
+  /* foam swirl when brewed */
+  if(brewT>0.05){
+    cctx.strokeStyle='rgba(214,226,190,'+(brewT*.7)+')';
+    cctx.lineWidth=1.4;
+    for(var i=0;i<3;i++){
+      cctx.beginPath();
+      var rr=16+i*20+Math.sin(t/900+i)*2;
+      cctx.ellipse(LW/2,150,rr,rr*0.23,0,Math.sin(t/1400+i)*.8,Math.PI*(1.1+Math.sin(t/1600+i)*.5));
+      cctx.stroke();
+    }
+  }
+  /* steam */
+  for(var j=parts.length-1;j>=0;j--){
+    var p=parts[j];
+    p.life++; p.y-=p.vy; p.x+=Math.sin(p.life/28+p.ph)*.5;
+    var a=Math.sin(Math.PI*Math.min(p.life/p.max,1))*.16;
+    cctx.fillStyle='rgba(255,255,255,'+a+')';
+    cctx.beginPath(); cctx.arc(p.x,p.y,p.r+p.life/40,0,7); cctx.fill();
+    if(p.life>=p.max)parts.splice(j,1);
+  }
+  /* hatch on bowl (簡単な飾り) */
+  cctx.strokeStyle='rgba(243,238,227,.14)'; cctx.lineWidth=1;
+  for(var k=0;k<5;k++){
+    cctx.beginPath();
+    cctx.moveTo(LW/2-70+k*10,196+k*3);
+    cctx.lineTo(LW/2-58+k*10,204+k*3);
+    cctx.stroke();
+  }
+}
+function loop(t){
+  steamRate+=(targetRate-steamRate)*.04;
+  if(Math.random()<steamRate)spawnPart();
+  if(brewed&&brewT<1)brewT=Math.min(1,brewT+.006);
+  drawCup(t||0);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+cup.addEventListener('click',function(){
+  brewed=!brewed;
+  targetRate=brewed?2.4:0.5;
+  if(!brewed)brewT=0;
+  var note=document.getElementById('brewNote');
+  note.classList.toggle('on',brewed);
+  note.textContent=brewed?'茶 已 点 好 · 请 慢 用':'轻 触 茶 碗 · 点 一 碗 茶';
+});
+
+/* ============ reveal ============ */
+var io=new IntersectionObserver(function(es){
+  es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});
+},{threshold:.15});
+document.querySelectorAll('.rv').forEach(function(el){io.observe(el);});
+})();
+</script>
+</body>
+</html>

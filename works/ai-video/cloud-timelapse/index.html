@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>云的延时 / Cloud Timelapse — 01</title>
+<style>
+:root{
+  --paper:#f3efe6; --ink:#1a1813; --steel:#8798a8; --amber:#cf9455;
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow:hidden}
+.stage{position:fixed;inset:0}
+canvas#sky{position:absolute;inset:0;width:100%;height:100%;display:block}
+.frame{position:absolute;inset:14px;border:1px solid rgba(243,239,230,.55);pointer-events:none;mix-blend-mode:screen}
+.nameplate{position:absolute;top:30px;left:32px;color:var(--paper);pointer-events:none;text-shadow:0 1px 12px rgba(20,24,30,.35)}
+.nameplate .no{font-family:var(--mono);font-size:10px;letter-spacing:.22em;opacity:.85}
+.nameplate h1{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,34px);letter-spacing:.02em;margin-top:6px}
+.nameplate .en{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;opacity:.8;margin-top:4px}
+.clock{position:absolute;top:30px;right:32px;text-align:right;color:var(--paper);pointer-events:none;text-shadow:0 1px 12px rgba(20,24,30,.35)}
+.clock b{font-family:var(--serif);font-weight:400;font-size:clamp(20px,2.6vw,30px);display:block}
+.clock span{font-family:var(--mono);font-size:9px;letter-spacing:.2em;text-transform:uppercase;opacity:.8}
+.panel{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);display:flex;align-items:center;gap:26px;flex-wrap:wrap;justify-content:center;
+  background:rgba(243,239,230,.86);backdrop-filter:blur(10px);border:1px solid rgba(26,24,19,.16);padding:14px 22px;max-width:calc(100vw - 32px)}
+.ctl{display:flex;flex-direction:column;gap:6px;min-width:120px}
+.ctl label{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#5c574d;display:flex;justify-content:space-between;gap:12px}
+.ctl label output{color:var(--ink)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:130px;height:18px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:rgba(26,24,19,.5)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;margin-top:-5px;background:var(--paper);border:1px solid var(--ink);border-radius:0;transition:background .2s}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--amber)}
+input[type=range]::-moz-range-track{height:1px;background:rgba(26,24,19,.5)}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--paper);border:1px solid var(--ink);border-radius:0}
+.btns{display:flex;gap:8px}
+button{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;padding:9px 14px;background:transparent;color:var(--ink);border:1px solid var(--ink);cursor:pointer;transition:all .25s}
+button:hover{background:var(--ink);color:var(--paper)}
+button.primary{background:var(--ink);color:var(--paper)}
+button.primary:hover{background:var(--amber);border-color:var(--amber);color:var(--ink)}
+.hint{position:absolute;bottom:30px;left:32px;font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:rgba(243,239,230,.85);pointer-events:none;text-shadow:0 1px 10px rgba(20,24,30,.4)}
+@media(max-width:760px){
+  .hint{display:none}
+  .panel{gap:14px;padding:12px 14px;bottom:18px}
+  input[type=range]{width:96px}
+  .ctl{min-width:96px}
+  .nameplate{top:22px;left:22px}
+  .clock{top:22px;right:22px}
+}
+</style>
+</head>
+<body>
+<div class="stage">
+  <canvas id="sky"></canvas>
+  <div class="frame"></div>
+  <div class="nameplate">
+    <div class="no">01 / AI·VIDEO</div>
+    <h1>云的延时</h1>
+    <div class="en">Cloud Timelapse — domain-warped sky</div>
+  </div>
+  <div class="clock"><b id="clockTime">09:24</b><span>timelapse · local light</span></div>
+  <div class="hint">Drag-free sky · adjust the weather below</div>
+  <div class="panel">
+    <div class="ctl"><label>风速 Wind <output id="oWind">1.0×</output></label><input id="wind" type="range" min="0" max="3" step="0.05" value="1"></div>
+    <div class="ctl"><label>云量 Cover <output id="oCover">55%</output></label><input id="cover" type="range" min="0.05" max="1" step="0.01" value="0.55"></div>
+    <div class="ctl"><label>时刻 Light <output id="oDay">09:24</output></label><input id="day" type="range" min="0" max="1" step="0.005" value="0.28"></div>
+    <div class="btns">
+      <button id="reseed" class="primary">随机天色</button>
+      <button id="save">保存画面</button>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+"use strict";
+var canvas=document.getElementById('sky');
+var gl=canvas.getContext('webgl',{antialias:false,preserveDrawingBuffer:false});
+if(!gl){document.body.innerHTML='<p style="padding:40px;font-family:monospace">WebGL unavailable.</p>';return;}
+
+var VERT='attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}';
+var FRAG=[
+'precision highp float;',
+'uniform vec2 u_res;uniform float u_time,u_wind,u_cover,u_day,u_seed;',
+'float hash(vec2 p){p=fract(p*vec2(123.34,456.21)+u_seed*17.7);p+=dot(p,p+45.32);return fract(p.x*p.y);}',
+'float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);',
+' float a=hash(i),b=hash(i+vec2(1.,0.)),c=hash(i+vec2(0.,1.)),d=hash(i+vec2(1.,1.));',
+' return mix(mix(a,b,f.x),mix(c,d,f.x),f.y);}',
+'float fbm(vec2 p){float v=0.,a=.5;mat2 r=mat2(1.6,1.2,-1.2,1.6);',
+' for(int i=0;i<5;i++){v+=a*noise(p);p=r*p;a*=.5;}return v;}',
+// palette keyframes: dawn -> noon -> dusk
+'vec3 skyZen(float d){',
+' vec3 dawn=vec3(.42,.48,.66),noon=vec3(.42,.60,.76),dusk=vec3(.34,.32,.52);',
+' return d<.5?mix(dawn,noon,d*2.):mix(noon,dusk,(d-.5)*2.);}',
+'vec3 skyHor(float d){',
+' vec3 dawn=vec3(.95,.68,.42),noon=vec3(.82,.89,.93),dusk=vec3(.90,.48,.32);',
+' return d<.5?mix(dawn,noon,d*2.):mix(noon,dusk,(d-.5)*2.);}',
+'void main(){',
+' vec2 uv=gl_FragCoord.xy/u_res;',
+' float asp=u_res.x/u_res.y;',
+' vec2 p=vec2(uv.x*asp,uv.y);',
+' float t=u_time*(.12+.55*u_wind);',
+// domain warping: q then r then f
+' vec2 q=vec2(fbm(p*1.35+vec2(0.,t*.35)),fbm(p*1.35+vec2(5.2,t*.28)));',
+' vec2 r=vec2(fbm(p*1.35+2.1*q+vec2(1.7+t*.9,9.2)),fbm(p*1.35+2.1*q+vec2(8.3,2.8-t*.7)));',
+' float f=fbm(p*1.35+2.3*r);',
+// sky base
+' float d=u_day;',
+' float sunH=sin(3.14159*clamp(d,.02,.98));',
+' vec3 sky=mix(skyHor(d),skyZen(d),pow(clamp(uv.y,0.,1.),.75));',
+' sky+=(q.x-.5)*.06;',
+// sun
+' vec2 sun=vec2((.12+.76*d)*asp,.16+.62*sunH);',
+' float sd=distance(vec2(uv.x*asp,uv.y),sun);',
+' vec3 sunCol=mix(vec3(1.,.62,.30),vec3(1.,.95,.85),clamp(sunH*1.4,0.,1.));',
+' sky+=sunCol*pow(max(0.,1.-sd),5.)*.85;',
+' sky+=sunCol*pow(max(0.,1.-sd),26.)*1.6;',
+// clouds
+' float th=1.05-u_cover*.95;',
+' float cl=smoothstep(th,th+.5,f);',
+' float f2=fbm(p*1.35+2.3*r+normalize(sun-vec2(uv.x*asp,uv.y)+.001)*.14);',
+' float lit=clamp((f-f2)*7.+.42,0.,1.);',
+' vec3 cloudShadow=mix(skyZen(d)*.62,vec3(.42,.44,.52),.35);',
+' vec3 cloudLit=mix(vec3(1.,.97,.92),sunCol,.28)* (0.72+.38*sunH);',
+' vec3 cloud=mix(cloudShadow,cloudLit,lit);',
+' vec3 col=mix(sky,cloud,cl*.94);',
+// horizon haze + vignette + grain
+' col=mix(col,skyHor(d),pow(1.-uv.y,6.)*.5);',
+' float vig=1.-.28*pow(distance(uv,vec2(.5)),2.2);',
+' col*=vig;',
+' col+=(hash(gl_FragCoord.xy+u_time)-.5)*.028;',
+' gl_FragColor=vec4(col,1.);}'
+].join('\n');
+
+function sh(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);
+ if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){throw new Error(gl.getShaderInfoLog(s));}return s;}
+var prog=gl.createProgram();
+gl.attachShader(prog,sh(gl.VERTEX_SHADER,VERT));
+gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FRAG));
+gl.linkProgram(prog);gl.useProgram(prog);
+var buf=gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+var loc=gl.getAttribLocation(prog,'p');
+gl.enableVertexAttribArray(loc);
+gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+var U={};['u_res','u_time','u_wind','u_cover','u_day','u_seed'].forEach(function(n){U[n]=gl.getUniformLocation(prog,n);});
+
+var state={wind:1,cover:.55,day:.28,seed:Math.random()*100};
+var dpr=1;
+function resize(){
+ dpr=Math.min(window.devicePixelRatio||1,2);
+ canvas.width=Math.round(canvas.clientWidth*dpr);
+ canvas.height=Math.round(canvas.clientHeight*dpr);
+ gl.viewport(0,0,canvas.width,canvas.height);
+}
+window.addEventListener('resize',resize);resize();
+
+var start=performance.now();
+function frame(now){
+ var t=(now-start)/1000;
+ gl.uniform2f(U.u_res,canvas.width,canvas.height);
+ gl.uniform1f(U.u_time,t);
+ gl.uniform1f(U.u_wind,state.wind);
+ gl.uniform1f(U.u_cover,state.cover);
+ gl.uniform1f(U.u_day,state.day);
+ gl.uniform1f(U.u_seed,state.seed);
+ gl.drawArrays(gl.TRIANGLES,0,3);
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---- controls ----
+function fmtTime(d){var mins=Math.round(360+d*720);var h=Math.floor(mins/60),m=mins%60;
+ return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;}
+var clockTime=document.getElementById('clockTime');
+function bind(id,key,out,fmt){
+ var el=document.getElementById(id),o=document.getElementById(out);
+ el.addEventListener('input',function(){
+   state[key]=parseFloat(el.value);
+   o.textContent=fmt(state[key]);
+   if(key==='day')clockTime.textContent=fmtTime(state.day);
+ });
+}
+bind('wind','wind','oWind',function(v){return v.toFixed(1)+'×';});
+bind('cover','cover','oCover',function(v){return Math.round(v*100)+'%';});
+bind('day','day','oDay',fmtTime);
+
+document.getElementById('reseed').addEventListener('click',function(){
+ state.seed=Math.random()*100;
+});
+document.getElementById('save').addEventListener('click',function(){
+ // render once more so the drawing buffer is fresh, then capture
+ gl.drawArrays(gl.TRIANGLES,0,3);
+ var a=document.createElement('a');
+ a.download='cloud-timelapse.png';
+ a.href=canvas.toDataURL('image/png');
+ a.click();
+});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Origami Flight — 纸鸟群 · AI Video 04</title>
+<style>
+:root{
+  --paper:#ece5d8; --ink:#2a2a26; --aka:#c13f2e; --ai:#31556e;
+  --hair:rgba(42,42,38,.25);
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --mono:"SF Mono",Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans)}
+::selection{background:var(--aka);color:var(--paper)}
+a{color:inherit;text-decoration:none}
+header{
+  height:58px;border-bottom:1px solid var(--hair);display:flex;align-items:center;
+  justify-content:space-between;padding:0 30px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+}
+header .lft{display:flex;gap:14px;align-items:baseline}
+header .no{font-family:var(--serif);font-size:16px}
+.hero{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;padding:40px 30px 26px;align-items:start}
+.vert{
+  writing-mode:vertical-rl;font-family:var(--serif);font-size:clamp(38px,5.4vw,72px);
+  letter-spacing:.18em;line-height:1;color:var(--ink);height:min(30vw,300px);
+}
+.vert em{font-style:normal;color:var(--aka)}
+h1{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(40px,6vw,88px);line-height:.95;letter-spacing:-.01em}
+h1 em{font-style:italic;color:var(--ai)}
+.lede{max-width:480px;font-size:14px;line-height:1.8;color:rgba(42,42,38,.75);margin:18px 0 0}
+.meta{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(42,42,38,.5);line-height:2.1;margin-top:20px}
+.meta b{color:var(--ink);font-weight:400}
+.stage-wrap{padding:6px 30px 0}
+.stage{
+  position:relative;height:min(62vw,620px);min-height:400px;overflow:hidden;
+  border:1px solid var(--hair);background:#e7dfd0;cursor:pointer;touch-action:none;
+}
+.stage canvas{width:100%;height:100%;display:block}
+.stamp{
+  position:absolute;top:16px;right:16px;width:44px;height:44px;pointer-events:none;
+  background:var(--aka);color:var(--paper);display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-size:15px;letter-spacing:.05em;writing-mode:vertical-rl;
+}
+.billboard{position:absolute;bottom:14px;left:16px;pointer-events:none;font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(42,42,38,.5);display:flex;gap:20px}
+.billboard b{color:var(--aka);font-weight:400}
+.controls{
+  display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1fr) auto auto;gap:26px;align-items:end;
+  padding:24px 30px;border-bottom:1px solid var(--hair);
+}
+.cgroup label{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(42,42,38,.5);margin-bottom:10px}
+.forms{display:flex;gap:8px;flex-wrap:wrap}
+.form{
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;background:transparent;
+  border:1px solid var(--hair);color:rgba(42,42,38,.75);padding:8px 13px;cursor:pointer;
+  transition:all .18s cubic-bezier(.2,.7,.2,1);
+}
+.form:hover{border-color:var(--ink);color:var(--ink)}
+.form.on{border-color:var(--aka);color:var(--aka)}
+.ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(42,42,38,.5);margin-bottom:10px}
+.ctl output{color:var(--aka)}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--hair)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-6px;background:var(--paper);border:1.5px solid var(--ink);border-radius:50%}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--aka);border-color:var(--aka)}
+input[type=range]::-moz-range-track{height:1px;background:var(--hair)}
+input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--paper);border:1.5px solid var(--ink);border-radius:50%}
+button.act{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  background:transparent;border:1px solid var(--ink);color:var(--ink);
+  padding:11px 18px;cursor:pointer;transition:all .18s cubic-bezier(.2,.7,.2,1);
+}
+button.act:hover{background:var(--ink);color:var(--paper)}
+button.act.acc{border-color:var(--aka);color:var(--aka)}
+button.act.acc:hover{background:var(--aka);color:var(--paper)}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:44px;padding:52px 30px 64px}
+.notes h2{margin:0;font-family:var(--serif);font-weight:400;font-size:clamp(30px,4vw,50px);line-height:1.08}
+.notes h2 em{font-style:italic;color:var(--aka)}
+.notes p{font-size:14px;line-height:1.85;color:rgba(42,42,38,.72);max-width:480px;margin:0}
+.notes .sig{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(42,42,38,.45);margin-top:18px}
+footer{border-top:1px solid var(--hair);padding:12px 30px;font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:rgba(42,42,38,.5);display:flex;justify-content:space-between}
+@media(max-width:880px){
+  .hero{grid-template-columns:1fr}
+  .vert{writing-mode:horizontal-tb;height:auto}
+  .controls{grid-template-columns:1fr 1fr}
+  .controls button{width:100%}
+  .notes{grid-template-columns:1fr;gap:22px}
+  .stage{min-height:320px}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="lft"><span class="no">AV·04</span><a href="../../../index.html#work">← Archive</a></div>
+  <span>Origami Flight / 纸鸟群</span>
+  <span>AI Video Series</span>
+</header>
+
+<section class="hero">
+  <div class="vert">折り紙<em>の</em>群れ</div>
+  <div>
+    <h1>Origami <em>Flight</em></h1>
+    <p class="lede">一群 low-poly 折纸鸟在宣纸天空里练习编队：人字、圆环、缎带、散阵。点击舞台切换队形，移动指针便是一阵风。每只鸟只有两个三角形的翅膀，但扑翼时自有重量。</p>
+    <div class="meta">Canvas 2D · Boids-lite · <b>LIVE</b> — Formation <b id="mForm">人字 V</b> · Birds <b id="mBirds">26</b></div>
+  </div>
+</section>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="stamp">飛</div>
+    <div class="billboard"><span>CLICK STAGE — <b>NEXT FORMATION</b></span><span>POINTER = WIND GUST</span></div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="cgroup"><label>Formation 编队</label>
+    <div class="forms" id="forms">
+      <button class="form on" data-f="vee">人字</button>
+      <button class="form" data-f="ring">圆环</button>
+      <button class="form" data-f="ribbon">缎带</button>
+      <button class="form" data-f="scat">散阵</button>
+    </div>
+  </div>
+  <div class="ctl"><label>Flock size 鸟群数量 <output id="oBirds">26</output></label>
+    <input type="range" id="sBirds" min="8" max="60" value="26"></div>
+  <div class="ctl"><label>Flap tempo 扑翼节奏 <output id="oFlap">1.0</output></label>
+    <input type="range" id="sFlap" min="30" max="250" value="100"></div>
+  <button id="bRegen" class="act acc">随机再生 ↻</button>
+  <button id="bDown" class="act">下载 PNG</button>
+</div>
+
+<section class="notes">
+  <h2>纸的重量，<br><em>由风来证明。</em></h2>
+  <div>
+    <p>每只鸟只有六片三角形：身体、双翼、头与尾。扑翼不是贴图动画，而是翼尖绕体轴的投影缩放——朝上的面亮、朝下的面暗，折痕便有了光。队形由质心的利萨茹慢漂加槽位追踪驱动，散阵时每只鸟只记得自己的一条旧航线。</p>
+    <div class="sig">Interaction — click formation / pointer gust / 2 parameters / reseed / export PNG</div>
+  </div>
+</section>
+
+<footer><span>AV·04 — ORIGAMI FLIGHT</span><span>AI PORTFOLIO · VIDEO REEL</span></footer>
+
+<script>
+(function(){
+"use strict";
+var cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var stage=document.getElementById('stage');
+var W=0,H=0,dpr=1,t=0;
+var seed=Math.random()*999;
+function rnd(){seed=(seed*9301+49297)%233280;return seed/233280;}
+
+var birds=[],formation='vee',flapTempo=1.0;
+var gust={x:-999,y:-999};
+var inks=['#f7f3ea','#efe8da','#c13f2e','#31556e','#2a2a26'];
+
+/* ---------- birds ---------- */
+function makeBird(i,n){
+  return {
+    x:Math.random()*W,y:Math.random()*H,
+    vx:(Math.random()-0.5)*1.4,vy:(Math.random()-0.5)*1.4,
+    s:0.7+Math.random()*0.65,
+    ph:Math.random()*7,
+    c:Math.random()<0.72?inks[Math.floor(Math.random()*2)]:inks[2+Math.floor(Math.random()*3)],
+    slot:i, scatA:Math.random()*7, scatR:60+Math.random()*160
+  };
+}
+function buildFlock(n){
+  birds=[];
+  for(var i=0;i<n;i++)birds.push(makeBird(i,n));
+  document.getElementById('mBirds').textContent=n;
+}
+
+/* ---------- formation slots (relative to centroid) ---------- */
+function slot(b,i,n,tt){
+  var s=Math.min(W,H);
+  if(formation==='vee'){
+    var side=i%2===0?1:-1,row=Math.ceil(i/2);
+    return {x:-row*s*0.052,y:side*row*s*0.042+Math.sin(tt+i)*4};
+  }
+  if(formation==='ring'){
+    var a=i/n*Math.PI*2+tt*0.35;
+    var r=s*0.21+Math.sin(tt*0.8+i*2)*s*0.012;
+    return {x:Math.cos(a)*r,y:Math.sin(a)*r*0.72};
+  }
+  if(formation==='ribbon'){
+    return {x:(i/n-0.5)*s*0.85,y:Math.sin(i*0.55+tt*1.6)*s*0.09};
+  }
+  // scatter: personal slow orbit
+  return {x:Math.cos(tt*0.25+b.scatA)*b.scatR*2,y:Math.sin(tt*0.3+b.scatA*1.7)*b.scatR};
+}
+
+/* ---------- draw one origami bird ---------- */
+function drawBird(b){
+  var ang=Math.atan2(b.vy,b.vx);
+  var sc=b.s*Math.min(W,H)*0.016;
+  var flap=Math.sin(b.ph);            // -1..1 wing position
+  var wy=flap*sc*14;                  // wing tip offset (fake 3D projection)
+  var shade=flap>0?'rgba(255,255,255,0.28)':'rgba(0,0,0,0.18)';
+  ctx.save();ctx.translate(b.x,b.y);ctx.rotate(ang);ctx.scale(sc,sc);
+  ctx.fillStyle=b.c;
+  // far wing (behind body)
+  ctx.globalAlpha=0.85;
+  ctx.beginPath();ctx.moveTo(2,0);ctx.lineTo(-8,3);ctx.lineTo(-2,10-flap*6);ctx.closePath();ctx.fill();
+  ctx.globalAlpha=1;
+  // body (long dart)
+  ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(-9,3.4);ctx.lineTo(-9,-3.4);ctx.closePath();ctx.fill();
+  // head + beak fold
+  ctx.beginPath();ctx.moveTo(14,0);ctx.lineTo(9,2.6);ctx.lineTo(9,-2.6);ctx.closePath();
+  ctx.fillStyle='rgba(0,0,0,0.22)';ctx.fill();
+  // tail fold
+  ctx.beginPath();ctx.moveTo(-9,3.4);ctx.lineTo(-16,0);ctx.lineTo(-9,-3.4);ctx.closePath();
+  ctx.fillStyle=b.c;ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.12)';
+  ctx.beginPath();ctx.moveTo(-12,1.7);ctx.lineTo(-16,0);ctx.lineTo(-12,-1.7);ctx.closePath();ctx.fill();
+  // near wing — the big visible fold
+  ctx.fillStyle=b.c;
+  ctx.beginPath();ctx.moveTo(3,0);ctx.lineTo(-7,-2);ctx.lineTo(-3,-16+wy/sc*1.0);ctx.closePath();ctx.fill();
+  ctx.fillStyle=shade;
+  ctx.beginPath();ctx.moveTo(3,0);ctx.lineTo(-7,-2);ctx.lineTo(-3,-16+wy/sc*1.0);ctx.closePath();ctx.fill();
+  // crease line
+  ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=0.5;
+  ctx.beginPath();ctx.moveTo(3,0);ctx.lineTo(-3,-16+wy/sc);ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- sky ---------- */
+function drawSky(){
+  var g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#e9e1d2');g.addColorStop(0.6,'#ece5d8');g.addColorStop(1,'#e2d9c8');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  // sun / enso disc
+  var sx=W*0.72,sy=H*0.3,sr=Math.min(W,H)*0.13;
+  ctx.fillStyle='rgba(193,63,46,0.85)';
+  ctx.beginPath();ctx.arc(sx,sy,sr,0,7);ctx.fill();
+  ctx.fillStyle='rgba(236,229,216,0.9)';
+  ctx.beginPath();ctx.arc(sx,sy,sr*0.72,0,7);ctx.fill();
+  ctx.fillStyle='rgba(193,63,46,0.85)';
+  ctx.beginPath();ctx.arc(sx,sy,sr*0.5,0,7);ctx.fill();
+  // drifting clouds (flat paper bands)
+  ctx.fillStyle='rgba(247,243,234,0.5)';
+  for(var i=0;i<5;i++){
+    var cx=((i*0.23+t*0.006*(1+i*0.2))%1.3-0.15)*W;
+    var cy=H*(0.15+i*0.16);
+    ctx.beginPath();ctx.ellipse(cx,cy,W*0.12,H*0.016,0,0,7);ctx.fill();
+    ctx.beginPath();ctx.ellipse(cx+W*0.07,cy+6,W*0.07,H*0.011,0,0,7);ctx.fill();
+  }
+  // faint paper fibres
+  ctx.strokeStyle='rgba(42,42,38,0.03)';ctx.lineWidth=1;
+  for(var f=0;f<26;f++){
+    var fx=(f*97%W),fy=(f*57%H);
+    ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx+30,fy+8);ctx.stroke();
+  }
+}
+
+/* ---------- main loop ---------- */
+function frame(){
+  t+=0.016;
+  drawSky();
+  // centroid drifts on a slow lissajous path
+  var cx=W*(0.5+0.28*Math.sin(t*0.21));
+  var cy=H*(0.42+0.2*Math.sin(t*0.34+1.3));
+  var n=birds.length;
+  for(var i=0;i<n;i++){
+    var b=birds[i];
+    var sl=slot(b,i,n,t);
+    var tx=cx+sl.x,ty=cy+sl.y;
+    // steer toward slot
+    b.vx+=(tx-b.x)*0.0016;b.vy+=(ty-b.y)*0.0016;
+    // separation
+    for(var j=0;j<n;j++){
+      if(j===i)continue;
+      var o=birds[j],dx=b.x-o.x,dy=b.y-o.y,d2=dx*dx+dy*dy;
+      if(d2<900&&d2>0.01){var f=0.06/Math.sqrt(d2);b.vx+=dx*f;b.vy+=dy*f;}
+    }
+    // pointer gust pushes birds away
+    var gdx=b.x-gust.x,gdy=b.y-gust.y,gd=Math.sqrt(gdx*gdx+gdy*gdy);
+    if(gd<130&&gd>1){b.vx+=gdx/gd*0.9*(1-gd/130);b.vy+=gdy/gd*0.9*(1-gd/130);}
+    // clamp speed
+    var sp=Math.sqrt(b.vx*b.vx+b.vy*b.vy),max=2.6,min=0.7;
+    if(sp>max){b.vx*=max/sp;b.vy*=max/sp;}
+    if(sp<min&&sp>0.01){b.vx*=min/sp*1.02;b.vy*=min/sp*1.02;}
+    b.x+=b.vx;b.y+=b.vy;
+    b.ph+=0.22*flapTempo*(0.6+sp*0.25);
+    if(b.x<-30)b.x=W+20;if(b.x>W+30)b.x=-20;
+    if(b.y<-30)b.y=H+20;if(b.y>H+30)b.y=-20;
+  }
+  // draw far→near (sort by size)
+  var order=birds.slice().sort(function(a,b2){return a.s-b2.s;});
+  for(var k=0;k<order.length;k++)drawBird(order[k]);
+  // gust ring
+  if(gust.x>-100){
+    ctx.strokeStyle='rgba(193,63,46,0.35)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(gust.x,gust.y,60+Math.sin(t*6)*8,0,7);ctx.stroke();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- input ---------- */
+stage.addEventListener('pointermove',function(e){
+  var r=stage.getBoundingClientRect();
+  gust.x=e.clientX-r.left;gust.y=e.clientY-r.top;
+});
+stage.addEventListener('pointerleave',function(){gust.x=-999;gust.y=-999;});
+var forms=document.getElementById('forms');
+var order=['vee','ring','ribbon','scat'];
+var names={vee:'人字 V',ring:'圆环 RING',ribbon:'缎带 RIBBON',scat:'散阵 DRIFT'};
+function setFormation(f){
+  formation=f;
+  forms.querySelectorAll('.form').forEach(function(x){x.classList.toggle('on',x.dataset.f===f);});
+  document.getElementById('mForm').textContent=names[f];
+}
+forms.addEventListener('click',function(e){
+  var b=e.target.closest('.form');if(b)setFormation(b.dataset.f);
+});
+stage.addEventListener('click',function(){
+  setFormation(order[(order.indexOf(formation)+1)%order.length]);
+});
+document.getElementById('sBirds').addEventListener('input',function(){
+  document.getElementById('oBirds').textContent=this.value;
+  buildFlock(+this.value);
+});
+document.getElementById('sFlap').addEventListener('input',function(){
+  flapTempo=+this.value/100;
+  document.getElementById('oFlap').textContent=flapTempo.toFixed(2);
+});
+document.getElementById('bRegen').addEventListener('click',function(){
+  seed=Math.random()*999;buildFlock(birds.length);
+});
+document.getElementById('bDown').addEventListener('click',function(){
+  var a=document.createElement('a');
+  a.download='origami-flight-av04.png';a.href=cv.toDataURL('image/png');a.click();
+});
+
+/* ---------- sizing ---------- */
+function size(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  W=stage.clientWidth;H=stage.clientHeight;
+  cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+window.addEventListener('resize',size);
+
+size();buildFlock(26);
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

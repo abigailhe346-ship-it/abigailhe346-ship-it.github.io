@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>极繁拼贴工坊 COLLAGE-9000</title>
+<style>
+:root{
+  --paper:#F1E7D3; --ink:#221C15; --verm:#E4572E; --teal:#2E7D74; --must:#E9B44C;
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+  --ease:cubic-bezier(.22,.9,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow:hidden;
+  -webkit-font-smoothing:antialiased}
+#stage{position:fixed;inset:0;display:block;cursor:grab}
+#stage.grabbing{cursor:grabbing}
+
+/* overlay UI */
+.ui{position:fixed;inset:0;pointer-events:none;z-index:10}
+.top{position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;justify-content:space-between;
+  padding:22px 28px;mix-blend-mode:multiply}
+.top .sig b{display:block;font:700 11px var(--mono);letter-spacing:.22em}
+.top .sig span{font:italic 13px var(--serif);color:rgba(34,28,21,.6)}
+.top a{pointer-events:auto;font:10px var(--mono);letter-spacing:.16em;color:inherit;text-decoration:none;
+  border-bottom:1px dashed var(--ink);padding-bottom:2px;transition:opacity .2s}
+.top a:hover{opacity:.5}
+
+.title{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;
+  transition:opacity .6s var(--ease)}
+.title h1{font:900 clamp(44px,9vw,120px)/.9 var(--sans);letter-spacing:-.04em;color:var(--ink);
+  text-shadow:4px 4px 0 var(--verm)}
+.title h1 em{font:italic 400 .62em var(--serif);color:var(--teal);text-shadow:none;letter-spacing:0}
+.title p{margin-top:14px;font:10px var(--mono);letter-spacing:.3em;color:rgba(34,28,21,.65)}
+.title.hide{opacity:0}
+
+.panel{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);display:flex;gap:12px;pointer-events:auto}
+.btn{padding:13px 22px;border:2px solid var(--ink);background:var(--paper);font:700 11px var(--mono);
+  letter-spacing:.14em;cursor:pointer;box-shadow:4px 4px 0 var(--ink);
+  transition:transform .15s var(--ease),box-shadow .15s var(--ease),background .15s}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 var(--ink);background:var(--must)}
+.btn:active{transform:translate(2px,2px);box-shadow:0 0 0 var(--ink)}
+.btn.primary{background:var(--verm);color:#fff}
+.btn.primary:hover{background:var(--ink)}
+.hint{position:absolute;bottom:28px;right:28px;font:9px/1.9 var(--mono);letter-spacing:.14em;
+  color:rgba(34,28,21,.55);text-align:right}
+@media(max-width:640px){.hint{display:none}.top{padding:16px}.panel{bottom:16px;width:92vw;justify-content:center}
+  .btn{padding:11px 14px;font-size:10px}}
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<div class="ui">
+  <header class="top">
+    <div class="sig"><b>№ 34 · COLLAGE-9000</b><span>极繁拼贴工坊 — paste-up atelier</span></div>
+    <a href="../../../index.html#work">← 返回总目</a>
+  </header>
+
+  <div class="title" id="title">
+    <h1>剪贴<em>即</em>自由</h1>
+    <p>MAXIMALIST PASTE-UP · DRAG THE SCRAPS</p>
+  </div>
+
+  <div class="panel">
+    <button class="btn primary" id="scatter">打散重排 RE-SCATTER</button>
+    <button class="btn" id="save">下载 PNG ↓</button>
+  </div>
+  <div class="hint">拖动任何碎片 · 点击置顶<br>滚轮旋转选中的碎片</div>
+</div>
+
+<script>
+const cv=document.getElementById('stage'),ctx=cv.getContext('2d');
+const titleEl=document.getElementById('title');
+let W,H,DPR;
+function fit(){DPR=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+fit();addEventListener('resize',()=>{fit();layout(false)});
+
+const PAL={paper:'#F1E7D3',ink:'#221C15',verm:'#E4572E',teal:'#2E7D74',must:'#E9B44C',cream:'#FBF4E4'};
+let seed=7;
+function rnd(){seed=(seed*16807)%2147483647;return (seed-1)/2147483646}
+const pick=a=>a[rnd()*a.length|0];
+
+/* ============ sprite makers (offscreen) ============ */
+function sprite(w,h,fn){
+  const c=document.createElement('canvas');c.width=w*2;c.height=h*2;
+  const g=c.getContext('2d');g.scale(2,2);fn(g,w,h);
+  return {c,w,h};
+}
+function tornPath(g,w,h,jag){
+  g.beginPath();
+  const pts=[];const n=9;
+  for(let i=0;i<=n;i++)pts.push([i/n*w, rnd()*jag]);
+  for(let i=1;i<=n;i++)pts.push([w-rnd()*jag, i/n*h]);
+  for(let i=n-1;i>=0;i--)pts.push([i/n*w, h-rnd()*jag]);
+  for(let i=n-1;i>=1;i--)pts.push([rnd()*jag, i/n*h]);
+  g.moveTo(pts[0][0],pts[0][1]);
+  pts.forEach(p=>g.lineTo(p[0],p[1]));
+  g.closePath();
+}
+const WORDS_CN=["剪下今天","别把昨天贴歪","多余的也要","留白是奢侈","贴满为止","锋利与温柔"];
+const WORDS_EN=["PASTE-UP Nº7","CUT!","EPHEMERA","TOO MUCH IS ENOUGH","FOUND PAPER","GLUE & GLORY"];
+
+const MAKERS={
+  scrap(){ // newspaper scrap with text bars
+    const w=150+rnd()*120,h=110+rnd()*90;
+    return sprite(w,h,(g)=>{
+      g.fillStyle=pick([PAL.cream,'#EFE3C8','#F6EBD2']);
+      tornPath(g,w,h,10);g.fill();
+      g.save();tornPath(g,w,h,10);g.clip();
+      g.fillStyle=PAL.ink;
+      g.font=`900 ${14+rnd()*10}px "Songti SC",Georgia,serif`;
+      g.fillText(pick(WORDS_CN),12,26);
+      g.font=`italic 10px Georgia,serif`;g.fillStyle=PAL.verm;
+      g.fillText(pick(WORDS_EN),12,42);
+      g.fillStyle='rgba(34,28,21,.55)';
+      for(let y=54;y<h-8;y+=9){ // fake text bars
+        let x=10;
+        while(x<w-14){const bw=12+rnd()*40;g.fillRect(x,y,Math.min(bw,w-12-x),3.4);x+=bw+7}
+      }
+      g.restore();
+      g.strokeStyle='rgba(34,28,21,.35)';g.lineWidth=1;tornPath(g,w,h,10);g.stroke();
+    });
+  },
+  letter(){ // giant glyph
+    const ch=pick(['拼','貼','妙','乱','C','K','&','7']);
+    const s=110+rnd()*80;
+    return sprite(s*1.1,s*1.25,(g)=>{
+      g.translate(s*.55,s*.62);
+      g.rotate((rnd()-.5)*.2);
+      g.font=`900 ${s}px Didot,"Songti SC",Georgia,serif`;
+      g.textAlign='center';g.textBaseline='middle';
+      g.fillStyle=pick([PAL.verm,PAL.teal,PAL.ink]);
+      g.fillText(ch,4,6);
+      g.fillStyle=PAL.must;g.fillText(ch,0,0);
+    });
+  },
+  halftone(){ // halftone dot circle
+    const r=60+rnd()*50;
+    return sprite(r*2,r*2,(g)=>{
+      const col=pick([PAL.verm,PAL.teal,PAL.ink]);
+      for(let y=6;y<r*2;y+=11)for(let x=6+(y/11%2)*5;x<r*2;x+=11){
+        const d=Math.hypot(x-r,y-r);
+        if(d<r-4){const rr=Math.max(.6,3.6*(1-d/r));g.fillStyle=col;
+          g.beginPath();g.arc(x,y,rr,0,7);g.fill()}
+      }
+    });
+  },
+  star(){
+    const r=55+rnd()*40,pts=8+(rnd()*6|0);
+    return sprite(r*2,r*2,(g)=>{
+      g.translate(r,r);g.rotate(rnd()*3);
+      g.beginPath();
+      for(let i=0;i<pts*2;i++){
+        const rr=i%2?r*.32:r,a=i/(pts*2)*Math.PI*2;
+        g[i?'lineTo':'moveTo'](Math.cos(a)*rr,Math.sin(a)*rr);
+      }
+      g.closePath();
+      g.fillStyle=pick([PAL.must,PAL.verm]);g.fill();
+      g.strokeStyle=PAL.ink;g.lineWidth=2.5;g.stroke();
+    });
+  },
+  stamp(){
+    const r=46+rnd()*22;
+    return sprite(r*2.4,r*2.4,(g)=>{
+      g.translate(r*1.2,r*1.2);g.rotate((rnd()-.5)*.6);
+      g.strokeStyle=PAL.verm;g.lineWidth=3;
+      g.beginPath();g.arc(0,0,r,0,7);g.stroke();
+      g.lineWidth=1.2;g.beginPath();g.arc(0,0,r-8,0,7);g.stroke();
+      g.font='700 10px "SF Mono",Menlo,monospace';g.fillStyle=PAL.verm;g.textAlign='center';
+      const word='APPROVED·已查验·';
+      for(let i=0;i<word.length;i++){
+        g.save();g.rotate(i/word.length*Math.PI*2);
+        g.fillText(word[i],0,-r+15);g.restore();
+      }
+      g.font=`900 ${r*.7}px Georgia,serif`;g.textBaseline='middle';
+      g.fillText(pick(['妙','好','√']),0,2);
+    });
+  },
+  tape(){
+    const w=110+rnd()*60,h=30;
+    return sprite(w,h,(g)=>{
+      g.fillStyle=pick(['rgba(46,125,116,.5)','rgba(228,87,46,.45)','rgba(233,180,76,.55)']);
+      g.beginPath();g.moveTo(4,0);g.lineTo(w-4,2);g.lineTo(w,h-3);g.lineTo(2,h-1);g.closePath();g.fill();
+      g.fillStyle='rgba(255,255,255,.25)';
+      for(let x=0;x<w;x+=14)g.fillRect(x,0,2,h);
+    });
+  },
+  photo(){ // hand-drawn "photo": sun + mountains
+    const w=170+rnd()*60,h=130+rnd()*50;
+    return sprite(w,h,(g)=>{
+      g.fillStyle='#fff';g.fillRect(0,0,w,h);
+      const m=12,iw=w-m*2,ih=h-m*2-14;
+      const gr=g.createLinearGradient(0,m,0,m+ih);
+      gr.addColorStop(0,pick(['#E9B44C','#7FB5A8']));gr.addColorStop(1,pick(['#E4572E','#2E7D74']));
+      g.fillStyle=gr;g.fillRect(m,m,iw,ih);
+      g.fillStyle='rgba(251,244,228,.9)';g.beginPath();g.arc(m+iw*.72,m+ih*.3,ih*.16,0,7);g.fill();
+      g.fillStyle=PAL.ink;
+      g.beginPath();g.moveTo(m,m+ih);
+      for(let i=0;i<=6;i++)g.lineTo(m+iw*i/6,m+ih-ih*(.25+((i*37)%41)/60));
+      g.lineTo(m+iw,m+ih);g.closePath();g.fill();
+      g.fillStyle=PAL.ink;g.font='italic 11px Georgia,serif';g.textAlign='center';
+      g.fillText(pick(['somewhere, 1989','未命名风景','the good light']),w/2,h-8);
+      g.strokeStyle=PAL.ink;g.lineWidth=1.5;g.strokeRect(0,0,w,h);
+    });
+  },
+  ticket(){
+    const w=150+rnd()*40,h=64;
+    return sprite(w,h,(g)=>{
+      g.fillStyle=pick([PAL.verm,PAL.teal]);
+      g.fillRect(0,0,w,h);
+      g.fillStyle=PAL.cream;
+      g.font='900 15px "SF Mono",Menlo,monospace';
+      g.fillText('ADMIT ONE',14,24);
+      g.font='10px "SF Mono",Menlo,monospace';
+      g.fillText('拼贴之夜 · 凭快乐入场',14,42);
+      g.strokeStyle=PAL.cream;g.setLineDash([4,4]);g.beginPath();
+      g.moveTo(w-34,4);g.lineTo(w-34,h-4);g.stroke();g.setLineDash([]);
+      g.save();g.translate(w-17,h/2);g.rotate(Math.PI/2);
+      g.textAlign='center';g.fillText('№ '+String(100+rnd()*899|0),0,3);g.restore();
+    });
+  },
+  barcode(){
+    const w=120,h=64;
+    return sprite(w,h,(g)=>{
+      g.fillStyle=PAL.cream;g.fillRect(0,0,w,h);
+      g.fillStyle=PAL.ink;let x=10;
+      while(x<w-10){const bw=1+rnd()*4;if(rnd()>.4)g.fillRect(x,8,bw,h-22);x+=bw+1.5+rnd()*3}
+      g.font='9px "SF Mono",Menlo,monospace';g.textAlign='center';
+      g.fillText('7 654321 000034',w/2,h-6);
+    });
+  }
+};
+const TYPES=Object.keys(MAKERS);
+
+/* ============ pieces ============ */
+let pieces=[];
+function buildPieces(){
+  pieces=[];
+  const n=16;
+  for(let i=0;i<n;i++){
+    const type=TYPES[(rnd()*TYPES.length)|0];
+    const sp=MAKERS[type]();
+    pieces.push({sp,x:0,y:0,rot:(rnd()-.5)*.9,depth:.45+rnd()*.55,
+      px:0,py:0,tx:0,ty:0,anim:1,sx:0,sy:0});
+  }
+  layout(true);
+}
+function layout(randomizeAll){
+  const cx0=W/2,cy0=H/2,spreadX=Math.min(W*.44,640),spreadY=Math.min(H*.42,380);
+  pieces.forEach((p,i)=>{
+    const a=(i/pieces.length)*Math.PI*2+rnd()*.8;
+    const nx=cx0+Math.cos(a)*spreadX*(0.35+rnd()*.75);
+    const ny=cy0+Math.sin(a)*spreadY*(0.35+rnd()*.75);
+    if(randomizeAll||!p.x){p.x=p.tx=Math.max(60,Math.min(W-60,nx));p.y=p.ty=Math.max(60,Math.min(H-60,ny))}
+    else{p.sx=p.x;p.sy=p.y;p.tx=Math.max(60,Math.min(W-60,nx));p.ty=Math.max(60,Math.min(H-60,ny));
+      p.anim=0;p.rotT=(rnd()-.5)*.9;p.rotS=p.rot}
+  });
+}
+
+/* ============ interaction ============ */
+let drag=null,mx=W/2,my=H/2;
+cv.addEventListener('pointerdown',e=>{
+  titleEl.classList.add('hide');
+  for(let i=pieces.length-1;i>=0;i--){
+    const p=pieces[i];
+    const dx=e.clientX-p.x-p.px,dy=e.clientY-p.y-p.py;
+    const c=Math.cos(-p.rot),s=Math.sin(-p.rot);
+    const lx=dx*c-dy*s,ly=dx*s+dy*c;
+    if(Math.abs(lx)<p.sp.w/2&&Math.abs(ly)<p.sp.h/2){
+      pieces.push(pieces.splice(i,1)[0]); // to top
+      drag={p,ox:lx,oy:ly};
+      cv.classList.add('grabbing');
+      cv.setPointerCapture(e.pointerId);
+      return;
+    }
+  }
+});
+cv.addEventListener('pointermove',e=>{
+  mx=e.clientX;my=e.clientY;
+  if(drag){
+    const p=drag.p;
+    const c=Math.cos(p.rot),s=Math.sin(p.rot);
+    const rx=drag.ox*c-drag.oy*s,ry=drag.ox*s+drag.oy*c;
+    p.tx=p.x=e.clientX-rx-p.px;
+    p.ty=p.y=e.clientY-ry-p.py;
+  }
+});
+addEventListener('pointerup',()=>{drag=null;cv.classList.remove('grabbing')});
+cv.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const top=pieces[pieces.length-1];
+  if(top)top.rot+=e.deltaY*.0009;
+},{passive:false});
+
+document.getElementById('scatter').addEventListener('click',()=>{
+  seed=(Math.random()*1e9)|0;
+  buildPieces(); // new sprites + animated re-layout
+  titleEl.classList.add('hide');
+});
+document.getElementById('save').addEventListener('click',()=>{
+  const c=document.createElement('canvas');c.width=1800;c.height=1200;
+  const g=c.getContext('2d');
+  paint(g,1800,1200,false);
+  const a=document.createElement('a');
+  a.download='collage-9000.png';a.href=c.toDataURL('image/png');a.click();
+});
+
+/* ============ paint ============ */
+function paint(g,w,h,parallax){
+  // paper bg + fibers
+  g.fillStyle=PAL.paper;g.fillRect(0,0,w,h);
+  const sx=w/W||1,sy=h/H||1;
+  const sc=parallax?1:Math.min(w/W,h/H);
+  const offx=parallax?0:(w-W*sc)/2,offy=parallax?0:(h-H*sc)/2;
+  g.save();g.translate(offx,offy);g.scale(sc,sc);
+  for(const p of pieces){
+    g.save();
+    g.translate(p.x+p.px,p.y+p.py);
+    g.rotate(p.rot);
+    g.shadowColor='rgba(34,28,21,.28)';g.shadowBlur=14;g.shadowOffsetY=7;
+    g.drawImage(p.sp.c,-p.sp.w/2,-p.sp.h/2,p.sp.w,p.sp.h);
+    g.restore();
+  }
+  g.restore();
+}
+let shown=false;
+function loop(){
+  // parallax offsets (skipped while dragging that piece)
+  const dx=(mx-W/2),dy=(my-H/2);
+  for(const p of pieces){
+    const k=(1-p.depth)*.045;
+    p.px+=((-dx*k)-p.px)*.06;
+    p.py+=((-dy*k)-p.py)*.06;
+    if(p.anim<1){
+      p.anim=Math.min(1,p.anim+.03);
+      const e=1-Math.pow(1-p.anim,3);
+      p.x=p.sx+(p.tx-p.sx)*e;
+      p.y=p.sy+(p.ty-p.sy)*e;
+      p.rot=p.rotS+(p.rotT-p.rotS)*e;
+    }else if(!drag||drag.p!==p){p.x=p.tx;p.y=p.ty}
+  }
+  paint(ctx,W,H,true);
+  requestAnimationFrame(loop);
+}
+buildPieces();
+setTimeout(()=>titleEl.classList.add('hide'),4200);
+loop();
+</script>
+</body>
+</html>

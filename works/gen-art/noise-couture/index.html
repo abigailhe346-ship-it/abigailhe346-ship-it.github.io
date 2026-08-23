@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOISE COUTURE — 印花制衣间</title>
+<style>
+  :root{
+    --paper:#faf8f5; --panel:#f1ede6; --line:#ddd5c6;
+    --ink:#141414; --dim:#8a8378;
+    --acc:#1f6f6b;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--acc);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    padding:26px 30px 0;gap:20px;flex-wrap:wrap;
+  }
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.16em;display:block;margin-bottom:8px}
+  .sig .no b{color:var(--acc);font-weight:400}
+  .sig h1{
+    font-family:var(--serif);font-size:clamp(34px,4.6vw,58px);font-weight:700;
+    letter-spacing:.02em;line-height:.98;
+  }
+  .sig h1 em{font-style:italic;color:var(--acc)}
+  header p.tag{
+    font-size:12px;color:var(--dim);letter-spacing:.05em;line-height:1.8;
+    max-width:300px;text-align:right;padding-bottom:6px;
+  }
+  .rule{margin:18px 30px 0;border-top:1px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{
+    display:grid;grid-template-columns:minmax(0,1fr) 296px;gap:26px;
+    padding:26px 30px 42px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .stage-col{display:flex;flex-direction:column;gap:12px}
+  .stage{
+    position:relative;border:1px solid var(--ink);background:#fff;
+    box-shadow:10px 10px 0 rgba(20,20,20,.08);overflow:hidden;
+  }
+  .stage canvas{display:block;width:100%;height:auto;transition:transform .35s var(--ease)}
+  .sheen{
+    position:absolute;inset:-40%;pointer-events:none;
+    background:linear-gradient(105deg, transparent 42%, rgba(255,255,255,.16) 50%, transparent 58%);
+    animation:sheen 9s var(--ease) infinite;
+  }
+  @keyframes sheen{0%{transform:translateX(-30%)}55%,100%{transform:translateX(30%)}}
+  @media (prefers-reduced-motion:reduce){.sheen{animation:none}}
+  .stamp{
+    position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.16em;color:var(--ink);border:1px solid var(--ink);
+    padding:4px 8px;background:rgba(250,248,245,.88);pointer-events:none;text-transform:uppercase;
+  }
+  .hint{
+    position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;color:rgba(20,20,20,.5);pointer-events:none;text-transform:uppercase;
+  }
+  .swatches{
+    display:flex;border:1px solid var(--ink);background:#fff;
+  }
+  .swatches .sw{flex:1;height:44px;position:relative}
+  .swatches .sw span{
+    position:absolute;left:8px;bottom:5px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.1em;mix-blend-mode:difference;color:#fff;
+  }
+
+  .dock{
+    background:var(--panel);border:1px solid var(--ink);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+    display:flex;justify-content:space-between;
+  }
+  .dock h2 span{color:var(--acc)}
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;letter-spacing:.04em;
+  }
+  .ctl label output{font-family:var(--mono);font-size:11px;color:var(--acc)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-6px;
+    background:var(--paper);border:1px solid var(--ink);border-radius:50%;
+    box-shadow:2px 2px 0 var(--acc);transition:transform .15s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;background:var(--paper);border:1px solid var(--ink);
+    border-radius:50%;box-shadow:2px 2px 0 var(--acc);
+  }
+
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--ink)}
+  .seg button{
+    appearance:none;border:0;border-right:1px solid var(--ink);background:transparent;
+    padding:9px 2px;font-size:11.5px;letter-spacing:.1em;color:var(--ink);cursor:pointer;
+    transition:background .15s var(--ease),color .15s var(--ease);
+  }
+  .seg button:last-child{border-right:0}
+  .seg button:hover{background:rgba(31,111,107,.10)}
+  .seg button.on{background:var(--ink);color:var(--paper)}
+
+  .schemes{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .schemes button{
+    appearance:none;border:1px solid var(--ink);background:#fff;cursor:pointer;
+    padding:7px;display:flex;align-items:center;gap:7px;text-align:left;
+    transition:background .15s var(--ease);
+  }
+  .schemes button:hover{background:rgba(31,111,107,.08)}
+  .schemes button.on{background:var(--ink);color:var(--paper)}
+  .schemes button.on span{color:var(--paper)}
+  .schemes .chip{display:flex;flex:none}
+  .schemes .chip i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(20,20,20,.4);margin-left:-4px}
+  .schemes .chip i:first-child{margin-left:0}
+  .schemes span{font-size:10.5px;letter-spacing:.08em}
+
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:16px;border-top:1px solid var(--line)}
+  .btn{
+    appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    padding:11px 8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    cursor:pointer;text-transform:uppercase;position:relative;overflow:hidden;
+    transition:color .18s var(--ease);
+  }
+  .btn::before{
+    content:"";position:absolute;inset:0;background:var(--ink);
+    transform:translateY(101%);transition:transform .22s var(--ease);z-index:0;
+  }
+  .btn:hover::before{transform:translateY(0)}
+  .btn:hover{color:var(--paper)}
+  .btn span{position:relative;z-index:1}
+  .btn.prime{background:var(--acc);border-color:var(--acc);color:#fff}
+  .btn.prime::before{background:var(--ink)}
+
+  footer{
+    padding:0 30px 26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+  }
+  @media (max-width:640px){
+    header{padding:18px 18px 0}
+    header p.tag{text-align:left;max-width:100%}
+    .rule{margin:12px 18px 0}
+    main{padding:18px 18px 32px}
+    footer{padding:0 18px 22px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <span class="no">N°<b>10</b> — GEN-ART / 印花制衣间</span>
+    <h1>Noise <em>Couture</em></h1>
+  </div>
+  <p class="tag">四方连续,周而复始。一块布的花色,由一枚种子、三套颜色与两种图法决定。</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <div class="stage-col">
+    <div class="stage" id="stage">
+      <canvas id="cv" width="1000" height="1000"></canvas>
+      <div class="sheen"></div>
+      <div class="stamp" id="stamp">PAISLEY — RIVIERA</div>
+      <div class="hint">移动光标 · 布面视差 — Drape Parallax</div>
+    </div>
+    <div class="swatches" id="swatches"></div>
+  </div>
+
+  <aside class="dock">
+    <h2>印花房 — Print Room <span>SS26</span></h2>
+
+    <div class="ctl">
+      <label>图法 · Motif</label>
+      <div class="seg" id="segMode">
+        <button data-mode="paisley" class="on">腰果花</button>
+        <button data-mode="deco">几何连续</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label>配色方案 · Colorway</label>
+      <div class="schemes" id="schemes"></div>
+    </div>
+
+    <div class="ctl">
+      <label>单元大小 · Repeat<output id="oCell">150 px</output></label>
+      <input type="range" id="rCell" min="90" max="240" step="2" value="150">
+    </div>
+    <div class="ctl">
+      <label>细节层数 · Detail<output id="oDet">2</output></label>
+      <input type="range" id="rDet" min="1" max="3" step="1" value="2">
+    </div>
+    <div class="ctl">
+      <label>旋转噪声 · Twist<output id="oTwist">0.50</output></label>
+      <input type="range" id="rTwist" min="0" max="100" step="1" value="50">
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="btnRandom"><span>随机再生</span></button>
+      <button class="btn prime" id="btnSave"><span>下载 PNG</span></button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>Noise Couture — 印花制衣间</span>
+  <span>Half-Drop Repeat · MMXXVI</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var W = 1000;
+  var cv = document.getElementById("cv");
+  var ctx = cv.getContext("2d");
+  var stamp = document.getElementById("stamp");
+
+  var SCHEMES = {
+    riviera: { cn:"里维埃拉", bg:"#f2efe6", colors:["#e0654f","#1f6f6b","#2a4d8f"] },
+    celadon: { cn:"青瓷",     bg:"#e9efe7", colors:["#1f4e5f","#7fb069","#d4a017"] },
+    amber:   { cn:"琥珀夜",   bg:"#191512", colors:["#e8a33d","#a3522f","#f2ead8"] },
+    tundra:  { cn:"苔原",     bg:"#eef0e6", colors:["#5c6b3c","#b0562a","#2e2a24"] }
+  };
+  var MODE_CN = { paisley:"PAISLEY 腰果花", deco:"DECO 几何" };
+
+  var state = {
+    mode: "paisley",
+    scheme: "riviera",
+    cell: 150,
+    detail: 2,
+    twist: 0.5,
+    seed: 11
+  };
+
+  function hash3(a,b,c){
+    var n = Math.sin(a*157.31 + b*311.7 + c*74.7) * 43758.5453;
+    return n - Math.floor(n);
+  }
+
+  /* ---------- paisley motif ---------- */
+  function paisleyPath(g, s){
+    /* unit teardrop with a curled head, scaled by s */
+    g.beginPath();
+    g.moveTo(0, 0.46*s);
+    g.bezierCurveTo(-0.40*s, 0.26*s, -0.42*s, -0.08*s, -0.14*s, -0.28*s);
+    g.bezierCurveTo( 0.04*s,-0.42*s,  0.28*s, -0.40*s,  0.32*s, -0.20*s);
+    g.bezierCurveTo( 0.345*s,-0.06*s, 0.24*s,  0.03*s,  0.14*s, -0.005*s);
+    g.bezierCurveTo( 0.05*s,-0.035*s, 0.075*s,-0.15*s,  0.155*s,-0.155*s);
+    g.bezierCurveTo( 0.20*s,-0.158*s, 0.22*s, -0.10*s,  0.175*s,-0.085*s);
+    g.bezierCurveTo( 0.14*s, 0.10*s,  0.10*s,  0.30*s,  0*s, 0.46*s);
+    g.closePath();
+  }
+
+  function drawPaisley(g, x, y, s, rot, scheme, detail, hh){
+    var C = scheme.colors;
+    var body = C[Math.floor(hh*10)%C.length];
+    var deco = C[(Math.floor(hh*10)+1)%C.length];
+    var deco2 = C[(Math.floor(hh*10)+2)%C.length];
+    g.save();
+    g.translate(x,y);
+    g.rotate(rot);
+    /* body */
+    paisleyPath(g, s);
+    g.fillStyle = body;
+    g.fill();
+    if (detail >= 1){
+      /* inner outline */
+      g.save(); g.scale(0.66,0.66);
+      paisleyPath(g, s);
+      g.strokeStyle = deco2; g.lineWidth = s*0.035; g.stroke();
+      g.restore();
+    }
+    if (detail >= 2){
+      /* dot garland */
+      g.fillStyle = deco2;
+      for (var i=0;i<7;i++){
+        var a = (200 + i*22) * Math.PI/180;
+        g.beginPath();
+        g.arc(Math.cos(a)*s*0.185, -s*0.10 + Math.sin(a)*s*0.185, s*0.028, 0, 6.2832);
+        g.fill();
+      }
+      /* heart floret */
+      g.fillStyle = deco;
+      for (var p=0;p<6;p++){
+        var pa = p*60*Math.PI/180;
+        g.beginPath();
+        g.arc(Math.cos(pa)*s*0.055, -s*0.10 + Math.sin(pa)*s*0.055, s*0.042, 0, 6.2832);
+        g.fill();
+      }
+      g.fillStyle = deco2;
+      g.beginPath(); g.arc(0, -s*0.10, s*0.035, 0, 6.2832); g.fill();
+    }
+    if (detail >= 3){
+      /* tail beads */
+      g.fillStyle = deco2;
+      for (var t=1;t<=3;t++){
+        g.beginPath();
+        g.arc(-s*0.045*t, s*(0.10+0.10*t), s*0.024, 0, 6.2832);
+        g.fill();
+      }
+    }
+    g.restore();
+  }
+
+  /* filler floret between paisleys (bandana style) */
+  function drawFloret(g, x, y, s, scheme, hh){
+    var C = scheme.colors;
+    var c1 = C[(Math.floor(hh*7)+2)%C.length];
+    g.save(); g.translate(x,y);
+    g.fillStyle = c1;
+    for (var i=0;i<4;i++){
+      var a = (45+i*90)*Math.PI/180;
+      g.beginPath();
+      g.arc(Math.cos(a)*s*0.09, Math.sin(a)*s*0.09, s*0.038, 0, 6.2832);
+      g.fill();
+    }
+    g.beginPath(); g.arc(0,0,s*0.03,0,6.2832); g.fill();
+    g.restore();
+  }
+
+  /* ---------- geometric truchet cells ---------- */
+  function drawDecoCell(g, x, y, s, variant, rot, scheme, detail, hh){
+    var C = scheme.colors;
+    var c1 = C[Math.floor(hh*9)%C.length];
+    var c2 = C[(Math.floor(hh*9)+1)%C.length];
+    var lw = s*0.055;
+    g.save();
+    g.translate(x+s/2, y+s/2);
+    g.rotate(rot);
+    g.translate(-s/2, -s/2);
+    if (variant===0){
+      /* concentric quarter arcs from two opposite corners */
+      g.strokeStyle = c1; g.lineWidth = lw; g.lineCap = "round";
+      var rings = detail+1;
+      for (var i=1;i<=rings;i++){
+        var r = s*0.5*i/rings;
+        g.beginPath(); g.arc(0,0,r,0,Math.PI/2); g.stroke();
+        g.beginPath(); g.arc(s,s,r,Math.PI,Math.PI*1.5); g.stroke();
+      }
+    } else if (variant===1){
+      /* filled quarter fan */
+      var rr = s*0.92;
+      g.fillStyle = c1;
+      g.beginPath(); g.moveTo(0,0); g.arc(0,0,rr,0,Math.PI/2); g.closePath(); g.fill();
+      g.fillStyle = c2;
+      g.beginPath(); g.moveTo(0,0); g.arc(0,0,rr*0.62,0,Math.PI/2); g.closePath(); g.fill();
+      g.fillStyle = scheme.bg;
+      g.beginPath(); g.moveTo(0,0); g.arc(0,0,rr*0.34,0,Math.PI/2); g.closePath(); g.fill();
+      if (detail>=2){
+        g.fillStyle = c2;
+        g.beginPath(); g.arc(s*0.66,s*0.66,s*0.06,0,6.2832); g.fill();
+      }
+    } else if (variant===2){
+      /* split diamond */
+      g.fillStyle = c1;
+      g.beginPath();
+      g.moveTo(s*0.5,s*0.06); g.lineTo(s*0.94,s*0.5); g.lineTo(s*0.5,s*0.94); g.lineTo(s*0.06,s*0.5);
+      g.closePath(); g.fill();
+      g.fillStyle = c2;
+      g.beginPath();
+      g.moveTo(s*0.5,s*0.28); g.lineTo(s*0.72,s*0.5); g.lineTo(s*0.5,s*0.72); g.lineTo(s*0.28,s*0.5);
+      g.closePath(); g.fill();
+      if (detail>=2){
+        g.fillStyle = scheme.bg;
+        g.beginPath(); g.arc(s*0.5,s*0.5,s*0.07,0,6.2832); g.fill();
+      }
+    } else if (variant===3){
+      /* diagonal stripe band — same orientation everywhere, stays continuous */
+      g.save();
+      g.beginPath(); g.rect(0,0,s,s); g.clip();
+      g.strokeStyle = c1; g.lineWidth = s*0.09;
+      for (var k=-2;k<=2;k++){
+        g.beginPath();
+        g.moveTo(-s*0.2, k*s*0.3 + s*0.15);
+        g.lineTo(s*1.2, k*s*0.3 - s*1.25);
+        g.stroke();
+      }
+      if (detail>=2){
+        g.strokeStyle = c2; g.lineWidth = s*0.03;
+        for (var k2=-2;k2<=2;k2++){
+          g.beginPath();
+          g.moveTo(-s*0.2, k2*s*0.3 + s*0.28);
+          g.lineTo(s*1.2, k2*s*0.3 - s*1.12);
+          g.stroke();
+        }
+      }
+      g.restore();
+    } else {
+      /* dot grid medallion */
+      g.fillStyle = c1;
+      var step = s/4;
+      for (var ix=1;ix<=3;ix++){
+        for (var iy=1;iy<=3;iy++){
+          g.beginPath();
+          g.arc(ix*step, iy*step, (ix===2&&iy===2? s*0.085 : s*0.045), 0, 6.2832);
+          g.fill();
+        }
+      }
+      if (detail>=2){
+        g.strokeStyle = c2; g.lineWidth = s*0.03;
+        g.beginPath(); g.arc(s*0.5,s*0.5,s*0.22,0,6.2832); g.stroke();
+      }
+    }
+    g.restore();
+  }
+
+  /* ---------- full pattern render ---------- */
+  function drawPattern(g, S, opt){
+    var scheme = SCHEMES[state.scheme];
+    var cell = state.cell;
+    g.fillStyle = scheme.bg;
+    g.fillRect(0,0,S,S);
+
+    if (state.mode === "paisley"){
+      var cols = Math.ceil(S/cell)+2;
+      var rows = Math.ceil(S/cell)+2;
+      for (var j=-1;j<rows;j++){
+        var off = (j%2!==0) ? cell*0.5 : 0;
+        for (var i=-1;i<cols;i++){
+          var hh = hash3(i,j,state.seed);
+          var hh2 = hash3(i*3,j*7,state.seed+5);
+          var px = i*cell + off + cell*0.5;
+          var py = j*cell + cell*0.5;
+          var rot = (hh-0.5) * 1.1 * state.twist + (j%2!==0 ? Math.PI : 0) * 0 +
+                    (i%2===0 ? 0.12 : -0.12) * state.twist;
+          var s = cell*0.92*(0.9+hh2*0.2);
+          drawPaisley(g, px, py, s, rot, scheme, state.detail, hh);
+          if (state.detail>=2){
+            var fx = i*cell + off;
+            var fy = j*cell;
+            drawFloret(g, fx, fy, cell, scheme, hash3(i*5,j*3,state.seed+9));
+          }
+        }
+      }
+    } else {
+      var cols2 = Math.ceil(S/cell)+2;
+      var rows2 = Math.ceil(S/cell)+2;
+      var VARIANTS = 5;
+      for (var jj=-1;jj<rows2;jj++){
+        for (var ii=-1;ii<cols2;ii++){
+          var h1 = hash3(ii,jj,state.seed);
+          var h2 = hash3(ii*7,jj*3,state.seed+3);
+          var variant = Math.floor(h1*VARIANTS);
+          var rot = variant===3 ? 0 : Math.floor(h2*4)*Math.PI/2;
+          drawDecoCell(g, ii*cell, jj*cell, cell, variant, rot, scheme, state.detail, h2);
+        }
+      }
+      /* deco studs at grid intersections */
+      if (state.detail>=2){
+        g.fillStyle = scheme.colors[2];
+        for (var y2=0;y2<=S/cell+1;y2++){
+          for (var x2=0;x2<=S/cell+1;x2++){
+            var px2 = x2*cell, py2 = y2*cell;
+            g.save(); g.translate(px2,py2); g.rotate(Math.PI/4);
+            g.fillRect(-cell*0.035,-cell*0.035,cell*0.07,cell*0.07);
+            g.restore();
+          }
+        }
+      }
+    }
+  }
+
+  function render(){
+    var DPR = Math.min(2, window.devicePixelRatio||1);
+    if (cv.width !== W*DPR){ cv.width = W*DPR; cv.height = W*DPR; }
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    drawPattern(ctx, W, {});
+    stamp.textContent = MODE_CN[state.mode]+" — "+SCHEMES[state.scheme].cn;
+    renderSwatches();
+  }
+
+  function renderSwatches(){
+    var box = document.getElementById("swatches");
+    var sc = SCHEMES[state.scheme];
+    var cols = [sc.bg].concat(sc.colors);
+    box.innerHTML = cols.map(function(c){
+      return '<div class="sw" style="background:'+c+'"><span>'+c.toUpperCase()+'</span></div>';
+    }).join("");
+  }
+
+  /* ---------- controls ---------- */
+  document.getElementById("segMode").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll("#segMode button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    state.mode = b.dataset.mode;
+    render();
+  });
+
+  /* scheme buttons */
+  var schBox = document.getElementById("schemes");
+  Object.keys(SCHEMES).forEach(function(key){
+    var sc = SCHEMES[key];
+    var b = document.createElement("button");
+    b.dataset.scheme = key;
+    if (key===state.scheme) b.classList.add("on");
+    b.innerHTML = '<span class="chip">'+
+      '<i style="background:'+sc.colors[0]+'"></i>'+
+      '<i style="background:'+sc.colors[1]+'"></i>'+
+      '<i style="background:'+sc.colors[2]+'"></i></span>'+
+      '<span>'+sc.cn+'</span>';
+    schBox.appendChild(b);
+  });
+  schBox.addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll("#schemes button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    state.scheme = b.dataset.scheme;
+    render();
+  });
+
+  document.getElementById("rCell").addEventListener("input", function(){
+    state.cell = parseFloat(this.value);
+    document.getElementById("oCell").textContent = state.cell+" px";
+    render();
+  });
+  document.getElementById("rDet").addEventListener("input", function(){
+    state.detail = parseInt(this.value,10);
+    document.getElementById("oDet").textContent = state.detail;
+    render();
+  });
+  document.getElementById("rTwist").addEventListener("input", function(){
+    state.twist = parseFloat(this.value)/100;
+    document.getElementById("oTwist").textContent = state.twist.toFixed(2);
+    render();
+  });
+
+  document.getElementById("btnRandom").addEventListener("click", function(){
+    state.seed = Math.floor(Math.random()*9999);
+    state.mode = Math.random()<0.5 ? "paisley" : "deco";
+    var keys = Object.keys(SCHEMES);
+    state.scheme = keys[Math.floor(Math.random()*keys.length)];
+    state.cell = 100 + Math.floor(Math.random()*12)*10;
+    state.detail = 1 + Math.floor(Math.random()*3);
+    state.twist = Math.random();
+    /* sync UI */
+    document.getElementById("rCell").value = state.cell;
+    document.getElementById("oCell").textContent = state.cell+" px";
+    document.getElementById("rDet").value = state.detail;
+    document.getElementById("oDet").textContent = state.detail;
+    document.getElementById("rTwist").value = Math.round(state.twist*100);
+    document.getElementById("oTwist").textContent = state.twist.toFixed(2);
+    document.querySelectorAll("#segMode button").forEach(function(x){
+      x.classList.toggle("on", x.dataset.mode===state.mode);
+    });
+    document.querySelectorAll("#schemes button").forEach(function(x){
+      x.classList.toggle("on", x.dataset.scheme===state.scheme);
+    });
+    render();
+  });
+
+  document.getElementById("btnSave").addEventListener("click", function(){
+    /* export a perfectly tiling swatch: even cols x even rows */
+    var cell = state.cell;
+    var cols = Math.max(4, Math.round(1500/cell));
+    if (cols%2) cols++;
+    var rows = cols;
+    var S = cell*cols;
+    var off = document.createElement("canvas");
+    off.width = S*2; off.height = S*2;
+    var octx = off.getContext("2d");
+    octx.scale(2,2);
+    drawPattern(octx, S, {});
+    var a = document.createElement("a");
+    a.download = "noise-couture-"+state.mode+"-"+state.scheme+".png";
+    a.href = off.toDataURL("image/png");
+    a.click();
+  });
+
+  /* ---------- drape parallax ---------- */
+  var stage = document.getElementById("stage");
+  stage.addEventListener("mousemove", function(e){
+    var r = stage.getBoundingClientRect();
+    var nx = (e.clientX-r.left)/r.width - 0.5;
+    var ny = (e.clientY-r.top)/r.height - 0.5;
+    cv.style.transform = "translate("+(-nx*10)+"px,"+(-ny*10)+"px) scale(1.02)";
+  });
+  stage.addEventListener("mouseleave", function(){
+    cv.style.transform = "";
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

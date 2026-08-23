@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIGNAL BLOOM — 波形花生成器</title>
+<style>
+  :root{
+    --ink-bg:#0f1417; --panel:#131a1e; --line:#2c383e; --hair:#3a4a52;
+    --gold:#d3a94f; --gold-dim:#8a7440;
+    --ivory:#f0e7d3; --dim:#7d7462;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--ink-bg);color:var(--ivory);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--gold);color:#0f1417}
+
+  header{
+    text-align:center;padding:38px 24px 0;
+  }
+  .mast{
+    display:flex;align-items:center;justify-content:center;gap:18px;
+  }
+  .mast .rl{flex:0 1 120px;border-top:1px solid var(--gold-dim);position:relative;height:0}
+  .mast .rl::after{content:"";position:absolute;top:2px;left:0;width:100%;border-top:1px solid var(--line)}
+  .mast h1{
+    font-family:var(--serif);font-weight:700;
+    font-size:clamp(24px,4vw,40px);letter-spacing:.28em;text-indent:.28em;
+    color:var(--gold);white-space:nowrap;
+  }
+  .mast h1 em{font-style:italic;color:var(--ivory)}
+  .sub{
+    margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--dim);
+    letter-spacing:.3em;text-transform:uppercase;
+  }
+  .sub b{color:var(--gold);font-weight:400}
+  .diamond{
+    width:7px;height:7px;background:var(--gold);transform:rotate(45deg);
+    margin:16px auto 0;
+  }
+
+  main{
+    display:flex;flex-direction:column;align-items:center;
+    padding:26px 24px 44px;
+  }
+
+  .frame{
+    position:relative;width:min(640px,100%);
+    border:1px solid var(--gold-dim);padding:10px;background:#0b1013;
+  }
+  .frame::before{
+    content:"";position:absolute;inset:4px;border:1px solid var(--line);pointer-events:none;
+  }
+  .corner{position:absolute;width:22px;height:22px;pointer-events:none}
+  .corner::before,.corner::after{content:"";position:absolute;background:var(--gold)}
+  .corner::before{width:100%;height:1px}
+  .corner::after{width:1px;height:100%}
+  .corner.tl{left:-5px;top:-5px}.corner.tr{right:-5px;top:-5px;transform:scaleX(-1)}
+  .corner.bl{left:-5px;bottom:-5px;transform:scaleY(-1)}.corner.br{right:-5px;bottom:-5px;transform:scale(-1)}
+  .frame canvas{display:block;width:100%;height:auto;cursor:crosshair}
+  .frame .cap{
+    position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);
+    background:var(--ink-bg);padding:2px 14px;
+    font-family:var(--mono);font-size:9px;letter-spacing:.3em;color:var(--gold);
+    text-transform:uppercase;white-space:nowrap;
+  }
+
+  .panel{
+    width:min(760px,100%);margin-top:38px;
+    border-top:1px solid var(--gold-dim);border-bottom:1px solid var(--gold-dim);
+    position:relative;padding:22px 10px;
+  }
+  .panel::before,.panel::after{
+    content:"";position:absolute;left:0;width:100%;height:0;
+  }
+  .panel::before{top:3px;border-top:1px solid var(--line)}
+  .panel::after{bottom:3px;border-top:1px solid var(--line)}
+  .panel .grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:26px 40px;align-items:start;
+  }
+  @media (max-width:680px){.panel .grid{grid-template-columns:1fr}}
+
+  .grp{display:flex;flex-direction:column;gap:10px}
+  .grp .t{
+    font-family:var(--mono);font-size:9px;color:var(--dim);
+    letter-spacing:.3em;text-transform:uppercase;text-align:center;
+  }
+  .waves{display:flex;border:1px solid var(--hair)}
+  .waves button{
+    flex:1;background:transparent;border:0;padding:10px 2px 8px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:5px;
+    color:var(--dim);transition:all .2s var(--ease);
+  }
+  .waves button + button{border-left:1px solid var(--hair)}
+  .waves svg{width:34px;height:16px;stroke:currentColor;fill:none;stroke-width:1.4}
+  .waves span{font-family:var(--mono);font-size:8px;letter-spacing:.14em}
+  .waves button.on{background:var(--gold);color:#0f1417}
+  .waves button:not(.on):hover{color:var(--ivory);background:rgba(211,169,79,.08)}
+
+  .sliders{display:flex;flex-direction:column;gap:14px}
+  .ctl{display:flex;flex-direction:column;gap:6px}
+  .ctl .lab{
+    display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ivory);
+  }
+  .ctl .lab output{color:var(--gold)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--hair)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-6px;
+    background:var(--gold);border:1px solid #0f1417;border-radius:0;
+    transform:rotate(45deg);transition:box-shadow .2s var(--ease);
+  }
+  input[type=range]:hover::-webkit-slider-thumb{box-shadow:0 0 10px rgba(211,169,79,.7)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--hair)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--gold);border:1px solid #0f1417;border-radius:0}
+
+  .btns{display:flex;gap:12px;grid-column:1/-1;justify-content:center}
+  .btn{
+    font-family:var(--mono);font-size:10px;letter-spacing:.24em;text-transform:uppercase;
+    padding:13px 30px;cursor:pointer;background:transparent;color:var(--ivory);
+    border:1px solid var(--gold-dim);border-radius:0;transition:all .25s var(--ease);
+  }
+  .btn:hover{border-color:var(--gold);color:var(--gold);box-shadow:0 0 14px rgba(211,169,79,.25)}
+  .btn:active{transform:translateY(2px)}
+  .btn.pri{background:var(--gold);border-color:var(--gold);color:#0f1417;font-weight:700}
+  .btn.pri:hover{color:#0f1417;box-shadow:0 0 20px rgba(211,169,79,.5)}
+
+  footer{
+    padding:0 24px 30px;text-align:center;
+    font-family:var(--mono);font-size:9px;color:var(--dim);
+    letter-spacing:.3em;text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="mast">
+    <span class="rl"></span>
+    <h1>SIGNAL <em>BLOOM</em></h1>
+    <span class="rl"></span>
+  </div>
+  <div class="sub">N°<b>14</b> — GEN-ART / 波形花生成器 · WAVEFORM FLORA</div>
+  <div class="diamond"></div>
+</header>
+
+<main>
+  <section class="frame">
+    <span class="corner tl"></span><span class="corner tr"></span>
+    <span class="corner bl"></span><span class="corner br"></span>
+    <canvas id="cv"></canvas>
+    <span class="cap" id="cap">SINE · 8 FOLDS</span>
+  </section>
+
+  <section class="panel">
+    <div class="grid">
+      <div class="grp">
+        <div class="t">波形源 WAVE SOURCE</div>
+        <div class="waves" id="segWave">
+          <button data-w="sine" class="on">
+            <svg viewBox="0 0 34 16"><path d="M1 8 Q5.5 1 9 8 T17 8 T25 8 T33 8"/></svg>
+            <span>SINE</span>
+          </button>
+          <button data-w="square">
+            <svg viewBox="0 0 34 16"><path d="M1 12 V4 H9 V12 H17 V4 H25 V12 H33"/></svg>
+            <span>SQUARE</span>
+          </button>
+          <button data-w="saw">
+            <svg viewBox="0 0 34 16"><path d="M1 12 L9 4 V12 L17 4 V12 L25 4 V12 L33 4"/></svg>
+            <span>SAW</span>
+          </button>
+          <button data-w="tri">
+            <svg viewBox="0 0 34 16"><path d="M1 12 L5 4 L9 12 L13 4 L17 12 L21 4 L25 12 L29 4 L33 12"/></svg>
+            <span>TRI</span>
+          </button>
+          <button data-w="noise">
+            <svg viewBox="0 0 34 16"><path d="M1 9 L5 5 L8 11 L12 3 L15 10 L19 6 L22 12 L26 4 L30 9 L33 7"/></svg>
+            <span>NOISE</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="grp sliders">
+        <div class="ctl">
+          <div class="lab"><span>瓣数 PETALS</span><output id="oPet">8</output></div>
+          <input type="range" id="rPet" min="3" max="24" value="8" step="1">
+        </div>
+        <div class="ctl">
+          <div class="lab"><span>振幅 AMPLITUDE</span><output id="oAmp">0.55</output></div>
+          <input type="range" id="rAmp" min="10" max="100" value="55" step="1">
+        </div>
+        <div class="ctl">
+          <div class="lab"><span>层数 LAYERS</span><output id="oLay">22</output></div>
+          <input type="range" id="rLay" min="6" max="40" value="22" step="1">
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="btn pri" id="bRegen">随机再生 ↻</button>
+        <button class="btn" id="bSave">下载 PNG</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  SIGNAL BLOOM — A WAVEFORM, FOLDED INTO A FLOWER · 移动光标拨动相位
+</footer>
+
+<script>
+"use strict";
+/* ============ SIGNAL BLOOM — waveform folded into a flower ============ */
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+
+const GOLD = "#d3a94f", IVORY = "#f0e7d3";
+
+const state = {
+  wave: "sine",
+  petals: 8,
+  amp: 0.55,
+  layers: 22,
+  phase: 0,
+  phaseBias: 0,          // cursor-driven extra phase
+  twist: 0.35,
+  seed: Math.floor(Math.random() * 1e6),
+  noiseTable: []
+};
+
+function mulberry32(a){
+  return function(){
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function buildNoise(){
+  const rng = mulberry32(state.seed);
+  state.noiseTable = [];
+  for (let i = 0; i < 64; i++) state.noiseTable.push(rng() * 2 - 1);
+}
+function waveFn(x){
+  const T = Math.PI * 2;
+  switch (state.wave){
+    case "sine": return Math.sin(x);
+    case "square": return Math.tanh(Math.sin(x) * 3.2);
+    case "saw": {
+      const t = ((x / T) % 1 + 1) % 1;
+      return t * 2 - 1;
+    }
+    case "tri": return (2 / Math.PI) * Math.asin(Math.sin(x));
+    case "noise": {
+      const t = ((x / T) % 1 + 1) % 1 * 64;
+      const i = Math.floor(t) % 64, f = t - Math.floor(t);
+      const a = state.noiseTable[i], b = state.noiseTable[(i + 1) % 64];
+      return a + (b - a) * f;
+    }
+  }
+  return 0;
+}
+
+/* ---------- sizing ---------- */
+let dpr = 1, size = 0;
+function resize(){
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  size = cv.parentElement.clientWidth - 20;
+  cv.width = Math.round(size * dpr);
+  cv.height = Math.round(size * dpr);
+}
+
+/* ---------- color lerp ---------- */
+function lerpC(c0, c1, t){
+  const a = parseInt(c0.slice(1), 16), b = parseInt(c1.slice(1), 16);
+  const r = Math.round(((a >> 16) & 255) + (((b >> 16) & 255) - ((a >> 16) & 255)) * t);
+  const g = Math.round(((a >> 8) & 255) + (((b >> 8) & 255) - ((a >> 8) & 255)) * t);
+  const bl = Math.round((a & 255) + ((b & 255) - (a & 255)) * t);
+  return "rgb(" + r + "," + g + "," + bl + ")";
+}
+
+/* ---------- render ---------- */
+let burstRot = 0;
+function render(){
+  const s = size, c = s / 2;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = "#0b1013";
+  ctx.fillRect(0, 0, s, s);
+
+  ctx.save();
+  ctx.translate(c, c);
+  const R = s * 0.42;
+
+  /* sunburst backdrop, slow rotation */
+  ctx.save();
+  ctx.rotate(burstRot);
+  ctx.strokeStyle = "rgba(211,169,79,.05)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = 0; i < 72; i++){
+    const a = (i / 72) * Math.PI * 2;
+    ctx.moveTo(Math.cos(a) * R * 0.2, Math.sin(a) * R * 0.2);
+    ctx.lineTo(Math.cos(a) * R * 1.16, Math.sin(a) * R * 1.16);
+  }
+  ctx.stroke();
+  ctx.restore();
+
+  /* deco guide rings */
+  ctx.strokeStyle = "rgba(211,169,79,.22)";
+  ctx.lineWidth = 0.8;
+  ctx.beginPath(); ctx.arc(0, 0, R * 1.08, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = "rgba(211,169,79,.12)";
+  ctx.beginPath(); ctx.arc(0, 0, R * 1.12, 0, Math.PI * 2); ctx.stroke();
+
+  /* folded waveform layers */
+  const STEPS = 720;
+  const ph = state.phase + state.phaseBias;
+  for (let li = 0; li < state.layers; li++){
+    const t = (li + 1) / state.layers;          // 0..1 inner→outer
+    const base = R * t;
+    const lw = 0.5 + t * 0.9;
+    ctx.strokeStyle = lerpC(IVORY, GOLD, t);
+    ctx.globalAlpha = 0.18 + t * 0.72;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    for (let k = 0; k <= STEPS; k++){
+      const th = (k / STEPS) * Math.PI * 2;
+      const w = waveFn(th * state.petals + ph + t * state.twist * Math.PI * 2);
+      const r = base * (0.68 + 0.32 * state.amp * w) + base * 0.30;
+      const x = Math.cos(th) * r, y = Math.sin(th) * r;
+      if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  /* pistil */
+  ctx.fillStyle = GOLD;
+  ctx.beginPath(); ctx.arc(0, 0, 3.2, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "rgba(211,169,79,.6)";
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.stroke();
+
+  ctx.restore();
+}
+
+/* ---------- animation loop ---------- */
+function loop(){
+  state.phase += 0.006;
+  burstRot += 0.0009;
+  render();
+  requestAnimationFrame(loop);
+}
+
+/* ---------- caption ---------- */
+function updateCap(){
+  document.getElementById("cap").textContent =
+    state.wave.toUpperCase() + " · " + state.petals + " FOLDS · №" +
+    (state.seed % 4096).toString(16).toUpperCase().padStart(3, "0");
+}
+
+/* ---------- interactions ---------- */
+const seg = document.getElementById("segWave");
+seg.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  seg.querySelectorAll("button").forEach((x) => x.classList.remove("on"));
+  b.classList.add("on");
+  state.wave = b.dataset.w;
+  updateCap();
+});
+
+const rPet = document.getElementById("rPet");
+const rAmp = document.getElementById("rAmp");
+const rLay = document.getElementById("rLay");
+rPet.addEventListener("input", () => {
+  state.petals = +rPet.value;
+  document.getElementById("oPet").textContent = state.petals;
+  updateCap();
+});
+rAmp.addEventListener("input", () => {
+  state.amp = +rAmp.value / 100;
+  document.getElementById("oAmp").textContent = state.amp.toFixed(2);
+});
+rLay.addEventListener("input", () => {
+  state.layers = +rLay.value;
+  document.getElementById("oLay").textContent = state.layers;
+});
+
+/* cursor bends the phase */
+let targetBias = 0;
+cv.addEventListener("mousemove", (e) => {
+  const r = cv.getBoundingClientRect();
+  targetBias = ((e.clientX - r.left) / r.width - 0.5) * Math.PI;
+});
+cv.addEventListener("mouseleave", () => { targetBias = 0; });
+(function biasLoop(){
+  state.phaseBias += (targetBias - state.phaseBias) * 0.06;
+  requestAnimationFrame(biasLoop);
+})();
+
+document.getElementById("bRegen").addEventListener("click", () => {
+  const waves = ["sine", "square", "saw", "tri", "noise"];
+  state.seed = Math.floor(Math.random() * 1e6);
+  buildNoise();
+  state.wave = waves[Math.floor(Math.random() * waves.length)];
+  state.petals = 3 + Math.floor(Math.random() * 18);
+  state.amp = 0.25 + Math.random() * 0.7;
+  state.layers = 10 + Math.floor(Math.random() * 26);
+  state.twist = Math.random() * 0.9;
+  rPet.value = state.petals;
+  rAmp.value = Math.round(state.amp * 100);
+  rLay.value = state.layers;
+  document.getElementById("oPet").textContent = state.petals;
+  document.getElementById("oAmp").textContent = state.amp.toFixed(2);
+  document.getElementById("oLay").textContent = state.layers;
+  seg.querySelectorAll("button").forEach((x) =>
+    x.classList.toggle("on", x.dataset.w === state.wave));
+  updateCap();
+});
+document.getElementById("bSave").addEventListener("click", () => {
+  const a = document.createElement("a");
+  a.download = "signal-bloom-" + state.seed + ".png";
+  a.href = cv.toDataURL("image/png");
+  a.click();
+});
+
+window.addEventListener("resize", resize);
+buildNoise();
+resize();
+updateCap();
+loop();
+</script>
+</body>
+</html>

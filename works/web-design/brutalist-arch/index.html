@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BRUT 野筑建筑事务所 — Béton Brut Architects</title>
+<style>
+  :root{
+    --paper:#E7E4DB;
+    --paper2:#DEDBD1;
+    --ink:#141412;
+    --ink60:rgba(20,20,18,.6);
+    --ink20:rgba(20,20,18,.18);
+    --orange:#FF4B00;
+    --sans:"Helvetica Neue",-apple-system,Helvetica,"PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;}
+  ::selection{background:var(--orange);color:var(--paper);}
+
+  /* ---- exposed construction grid ---- */
+  #grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background-image:
+      linear-gradient(var(--ink20) 1px,transparent 1px),
+      linear-gradient(90deg,var(--ink20) 1px,transparent 1px);
+    background-size:8.3333vw 8.3333vw;opacity:.35;}
+  #grid-bg::after{content:"";position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(20,20,18,.05) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(20,20,18,.05) 1px,transparent 1px);
+    background-size:calc(8.3333vw/6) calc(8.3333vw/6);}
+
+  /* ---- header ---- */
+  header{position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:16px 3vw;pointer-events:none;mix-blend-mode:multiply;}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.12em;line-height:1.75;}
+  .sig .no{color:var(--orange);font-weight:700;}
+  .sig b{font-family:var(--sans);font-weight:800;letter-spacing:.02em;}
+  .hright{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-align:right;line-height:1.9;color:var(--ink60);}
+
+  /* ---- crosshair ---- */
+  .xline,.yline{position:fixed;background:var(--ink);opacity:.28;pointer-events:none;z-index:5;}
+  .xline{left:0;right:0;height:1px;top:0;}
+  .yline{top:0;bottom:0;width:1px;left:0;}
+  #coord{position:fixed;z-index:55;pointer-events:none;font-family:var(--mono);font-size:9px;
+    letter-spacing:.14em;color:var(--ink);background:var(--paper);border:1px solid var(--ink);
+    padding:3px 7px;transform:translate(14px,14px);white-space:nowrap;}
+  @media(hover:none){.xline,.yline,#coord{display:none;}}
+
+  /* ---- hero ---- */
+  .hero{position:relative;z-index:2;min-height:100vh;display:flex;flex-direction:column;
+    justify-content:flex-end;padding:0 3vw 6vh;}
+  .hero .spec{font-family:var(--mono);font-size:11px;letter-spacing:.34em;color:var(--ink60);
+    margin-bottom:2.5vh;display:flex;gap:3em;flex-wrap:wrap;}
+  .hero .spec em{font-style:normal;color:var(--orange);}
+  h1{font-size:clamp(96px,24vw,420px);line-height:.82;font-weight:900;letter-spacing:-.035em;
+    text-transform:uppercase;position:relative;margin-left:-.045em;}
+  h1 .cn{display:block;font-size:clamp(18px,3.2vw,54px);letter-spacing:.6em;font-weight:800;
+    margin-top:2vh;margin-left:.06em;}
+  .hero .under{display:flex;justify-content:space-between;align-items:flex-end;margin-top:3.5vh;
+    border-top:3px solid var(--ink);padding-top:14px;flex-wrap:wrap;gap:12px;}
+  .hero .under p{font-family:var(--mono);font-size:11px;letter-spacing:.2em;line-height:2;color:var(--ink60);max-width:52ch;}
+  .scrollcue{font-family:var(--mono);font-size:10px;letter-spacing:.3em;writing-mode:vertical-rl;color:var(--ink60);}
+  /* corner ticks */
+  .tick{position:absolute;width:26px;height:26px;border:2px solid var(--ink);z-index:2;}
+  .tick.tl{top:14vh;left:3vw;border-right:none;border-bottom:none;}
+  .tick.tr{top:14vh;right:3vw;border-left:none;border-bottom:none;}
+
+  /* ---- section head ---- */
+  .sec-head{position:relative;z-index:2;display:flex;align-items:baseline;justify-content:space-between;
+    padding:0 3vw;margin:10vh 0 0;border-top:3px solid var(--ink);}
+  .sec-head h2{font-size:clamp(40px,7vw,120px);font-weight:900;letter-spacing:-.02em;line-height:1;padding-top:2vh;}
+  .sec-head .idx{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--ink60);}
+
+  /* ---- works index ---- */
+  .works{position:relative;z-index:2;display:grid;grid-template-columns:1fr 34vw;gap:0;padding:0 3vw 8vh;}
+  .plist{border-right:2px solid var(--ink);}
+  .prow{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:2vw;
+    padding:3.2vh 1.5vw 3.2vh .5vw;border-bottom:2px solid var(--ink);cursor:pointer;position:relative;
+    transition:background .35s var(--ease),color .35s var(--ease);}
+  .prow .no{font-family:var(--mono);font-size:12px;letter-spacing:.2em;}
+  .prow .name{font-size:clamp(30px,4.6vw,76px);font-weight:900;letter-spacing:-.02em;line-height:1;
+    text-transform:uppercase;transition:transform .45s var(--ease);}
+  .prow .name small{display:block;font-size:clamp(11px,.95vw,15px);letter-spacing:.42em;font-weight:600;
+    margin-top:.8vh;color:var(--ink60);transition:color .35s var(--ease);}
+  .prow .meta{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-align:right;line-height:2;color:var(--ink60);
+    transition:color .35s var(--ease);}
+  .prow::after{content:"";position:absolute;left:0;top:0;bottom:0;width:0;background:var(--orange);
+    transition:width .4s var(--ease);z-index:-1;}
+  .prow:hover .name,.prow.active .name{transform:translateX(1.2vw);}
+  .prow:hover,.prow.active{background:var(--ink);color:var(--paper);}
+  .prow:hover .name small,.prow:hover .meta,.prow.active .name small,.prow.active .meta{color:rgba(231,228,219,.65);}
+  .prow.active::after{width:8px;}
+
+  .preview{position:sticky;top:12vh;height:76vh;padding:0 0 0 2vw;}
+  .pframe{position:relative;width:100%;height:100%;border:2px solid var(--ink);background:var(--paper2);overflow:hidden;}
+  #elev{display:block;width:100%;height:100%;}
+  .ptag{position:absolute;left:0;bottom:0;right:0;display:flex;justify-content:space-between;
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;background:var(--ink);color:var(--paper);
+    padding:10px 14px;}
+  .ptag em{font-style:normal;color:var(--orange);}
+  .stamp{position:absolute;top:14px;right:14px;width:74px;height:74px;border:2px solid var(--orange);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;text-align:center;font-family:var(--mono);
+    font-size:8px;letter-spacing:.12em;color:var(--orange);transform:rotate(12deg);line-height:1.6;background:rgba(231,228,219,.7);}
+
+  /* ---- detail overlay ---- */
+  #drawer{position:fixed;inset:0;z-index:80;display:none;}
+  #drawer.open{display:block;}
+  #drawer .veil{position:absolute;inset:0;background:rgba(20,20,18,.55);}
+  #drawer .panel{position:absolute;top:0;right:0;bottom:0;width:min(720px,94vw);background:var(--paper);
+    border-left:3px solid var(--ink);transform:translateX(102%);transition:transform .55s var(--ease);
+    display:flex;flex-direction:column;overflow-y:auto;}
+  #drawer.open .panel{transform:translateX(0);}
+  .dp-head{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:2px solid var(--ink);
+    position:sticky;top:0;background:var(--paper);z-index:2;}
+  .dp-head .t{font-family:var(--mono);font-size:11px;letter-spacing:.26em;}
+  #closeDrawer{font-family:var(--mono);font-size:11px;letter-spacing:.2em;background:var(--ink);color:var(--paper);
+    border:none;padding:10px 18px;cursor:pointer;transition:background .25s;}
+  #closeDrawer:hover{background:var(--orange);}
+  .dp-canvas{border-bottom:2px solid var(--ink);background:var(--paper2);}
+  #elevBig{display:block;width:100%;aspect-ratio:4/3;}
+  .dp-body{padding:24px;}
+  .dp-body h3{font-size:clamp(34px,5vw,60px);font-weight:900;letter-spacing:-.02em;line-height:1;text-transform:uppercase;}
+  .dp-body h3 small{display:block;font-size:12px;letter-spacing:.4em;font-weight:600;color:var(--ink60);margin-top:10px;}
+  .dp-desc{margin:18px 0 22px;font-size:15px;line-height:2;max-width:56ch;}
+  .dp-stats{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--ink);margin-bottom:22px;}
+  .dp-stats div{padding:14px;border-right:1px solid var(--ink20);}
+  .dp-stats div:last-child{border-right:none;}
+  .dp-stats .k{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--ink60);}
+  .dp-stats .v{font-size:clamp(18px,2.2vw,28px);font-weight:800;margin-top:6px;}
+  .dp-stats .v span{font-size:11px;font-family:var(--mono);font-weight:400;color:var(--ink60);margin-left:4px;}
+  #regen{font-family:var(--mono);font-size:12px;letter-spacing:.22em;background:var(--orange);color:var(--paper);
+    border:none;padding:16px 26px;cursor:pointer;font-weight:700;transition:transform .25s var(--ease),background .25s;}
+  #regen:hover{background:var(--ink);transform:translateY(-2px);}
+  .dp-note{font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:var(--ink60);margin-top:14px;line-height:1.9;}
+
+  /* ---- manifesto ---- */
+  .manifesto{position:relative;z-index:2;background:var(--ink);color:var(--paper);padding:12vh 3vw 14vh;}
+  .manifesto .k{font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:var(--orange);margin-bottom:4vh;}
+  .manifesto p{font-size:clamp(26px,3.6vw,54px);font-weight:800;line-height:1.5;letter-spacing:-.01em;max-width:22em;}
+  .manifesto p em{font-style:normal;color:var(--orange);}
+  footer{position:relative;z-index:2;background:var(--ink);color:rgba(231,228,219,.55);border-top:1px solid rgba(231,228,219,.2);
+    display:flex;justify-content:space-between;padding:20px 3vw;font-family:var(--mono);font-size:10px;letter-spacing:.2em;flex-wrap:wrap;gap:8px;}
+
+  @media(max-width:900px){
+    .works{grid-template-columns:1fr;}
+    .plist{border-right:none;}
+    .preview{position:relative;top:0;height:52vh;padding:3vh 0 0;}
+    .hright{display:none;}
+    .sec-head h2{font-size:clamp(34px,11vw,60px);}
+    #grid-bg{background-size:16.666vw 16.666vw;}
+  }
+</style>
+</head>
+<body>
+<div id="grid-bg"></div>
+<div class="xline"></div><div class="yline"></div><div id="coord">X 0000 · Y 0000</div>
+
+<header>
+  <div class="sig"><span class="no">№ 06</span> · <b>BRUT 野筑建筑事务所</b><br>WEB DESIGN / ARCHITECTURE BUREAU</div>
+  <div class="hright">BÉTON BRUT — EST. 1968<br>东京 · 重庆 · 鹿特丹<br>仅使用 C40 以上清水混凝土</div>
+</header>
+
+<div class="tick tl"></div><div class="tick tr"></div>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="spec">
+    <span>SITE PLAN — <em>NO.068</em></span>
+    <span>SCALE 1:500</span>
+    <span>CONCRETE / STEEL / GLASS</span>
+  </div>
+  <h1>BRUT<span class="cn">野 筑 建 筑 事 务 所</span></h1>
+  <div class="under">
+    <p>我们不装饰建筑。我们暴露它——暴露结构、暴露材料、暴露重量。
+      五十年，只做清水混凝土；每一栋都以体量回应地心引力。</p>
+    <span class="scrollcue">SCROLL ↓ 项目索引 1968—2026</span>
+  </div>
+</section>
+
+<!-- ============ WORKS ============ -->
+<div class="sec-head">
+  <h2>WORKS</h2>
+  <span class="idx">INDEX — 06 BUILDINGS / HOVER TO PREVIEW · CLICK TO INSPECT</span>
+</div>
+
+<section class="works">
+  <div class="plist" id="plist"></div>
+  <div class="preview">
+    <div class="pframe">
+      <canvas id="elev"></canvas>
+      <div class="stamp">BRUT<br>APPROVED<br>NO.068</div>
+      <div class="ptag"><span id="ptName">—</span><span>ELEVATION <em id="ptSeed">—</em></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DETAIL DRAWER ============ -->
+<div id="drawer" aria-hidden="true">
+  <div class="veil" id="veil"></div>
+  <div class="panel">
+    <div class="dp-head">
+      <span class="t" id="dpCode">—</span>
+      <button id="closeDrawer">关闭 CLOSE ✕</button>
+    </div>
+    <div class="dp-canvas"><canvas id="elevBig"></canvas></div>
+    <div class="dp-body">
+      <h3 id="dpName">—</h3>
+      <p class="dp-desc" id="dpDesc">—</p>
+      <div class="dp-stats">
+        <div><div class="k">高度 HEIGHT</div><div class="v" id="dpH">—</div></div>
+        <div><div class="k">层数 FLOORS</div><div class="v" id="dpF">—</div></div>
+        <div><div class="k">混凝土 CONCRETE</div><div class="v" id="dpC">—</div></div>
+      </div>
+      <button id="regen">重构楼型 RE-MASS →</button>
+      <p class="dp-note">以同一结构逻辑重新推演体量组合。每一次重构，仍然遵守模度、柱网与重力。</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MANIFESTO ============ -->
+<section class="manifesto">
+  <div class="k">MANIFESTO — 1968</div>
+  <p>形式追随重量。窗户是墙上<em>诚实的洞</em>。装饰是对结构的不信任。
+    我们把梁留在看得见的地方，把模板木纹留在混凝土的皮肤上——建筑因此而<em>永不撒谎</em>。</p>
+</section>
+
+<footer>
+  <span>BRUT 野筑建筑事务所 — 1968–2026</span>
+  <span>DRAWING SET REV.068 / PRINTED ON SCREEN</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+/* ============ utils ============ */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+var PAPER="#E7E4DB",PAPER2="#DEDBD1",INK="#141412",ORANGE="#FF4B00";
+
+/* ============ data ============ */
+var PROJECTS=[
+ {no:"01",en:"TIDAL OBSERVATORY",cn:"海雾观测所",year:1972,loc:"稚内 WAKKANAI",grade:"C60",
+  h:64,f:14,c:9200,seed:1101,
+  desc:"立在鄂霍次克海雾里的观测塔。十四层薄板从三层高的架空柱上升起，顶层悬挑八米，像一截被海风磨钝的混凝土刀刃。"},
+ {no:"02",en:"STACKED ACADEMY",cn:"垂直书院",year:1978,loc:"重庆 CHONGQING",grade:"C45",
+  h:88,f:22,c:21400,seed:2202,
+  desc:"山城陡坡上的书院：五个错动的体量沿等高线叠落，每一退台都是一处读书的平台。楼梯全部外露，攀爬本身就是课程。"},
+ {no:"03",en:"STEPPE RADIO",cn:"荒原电台",year:1968,loc:"乌兰巴托 ULAANBAATAR",grade:"C50",
+  h:42,f:6,c:6800,seed:3303,
+  desc:"为草原短波电台做的信号堡垒。六层低伏体量顶着一根四十二米的天线桅杆，冬季积雪覆盖时，只剩桅杆与风声。"},
+ {no:"04",en:"SILO GALLERY",cn:"谷仓美术馆",year:1981,loc:"直岛 NAOSHIMA",grade:"C40",
+  h:36,f:5,c:5400,seed:4404,
+  desc:"四个筒仓与一条水平展廊的并置。筒内是旋转而上的暗展厅，筒间切出一道细长的光缝，只照进正午十分钟的太阳。"},
+ {no:"05",en:"HILLSIDE DORMITORY",cn:"半山宿舍",year:1975,loc:"香港 HONG KONG",grade:"C55",
+  h:72,f:18,c:15600,seed:5505,
+  desc:"十八层宿舍贴着半山生长，所有走廊开敞朝北，避开烈日。底层的架空层穿过整个山体，台风天这里是整座山的通风井。"},
+ {no:"06",en:"GREY PORT CUSTOMS",cn:"灰港海关",year:1970,loc:"鹿特丹 ROTTERDAM",grade:"C60",
+  h:54,f:12,c:12800,seed:6606,
+  desc:"港区尽头的海关大楼，一道二百米长的水平板压在两座塔楼之间。报关大厅没有一根内柱——关税之外，什么也不拦截。"}
+];
+
+/* ============ elevation generator ============ */
+function drawElevation(cv,seed,animate){
+  var dpr=Math.min(window.devicePixelRatio||1,2);
+  var w=cv.clientWidth,h=cv.clientHeight;
+  cv.width=w*dpr;cv.height=h*dpr;
+  var ctx=cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  var R=mulberry32(seed);
+
+  function paintBackground(){
+    ctx.fillStyle=PAPER2;ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle="rgba(20,20,18,.07)";ctx.lineWidth=1;
+    var gs=Math.max(18,w/26),gx,gy;
+    ctx.beginPath();
+    for(gx=0;gx<=w;gx+=gs){ctx.moveTo(gx,0);ctx.lineTo(gx,h);}
+    for(gy=0;gy<=h;gy+=gs){ctx.moveTo(0,gy);ctx.lineTo(w,gy);}
+    ctx.stroke();
+  }
+
+  var ground=h*0.86;
+  var margin=w*0.12;
+
+  // ---- compose masses ----
+  var masses=[]; // {x,y,w,h,win:{cols,rows},accent}
+  var nMass=2+Math.floor(R()*2); // 2-3 main masses
+  var totalW=w-2*margin;
+  var x=margin+R()*totalW*0.08;
+  var i;
+  for(i=0;i<nMass;i++){
+    var mw=totalW*(0.24+R()*0.26);
+    if(x+mw>w-margin) mw=w-margin-x;
+    var mh=h*(0.28+R()*0.42);
+    var cols=3+Math.floor(R()*6),rows=3+Math.floor(R()*10);
+    var dark={};
+    for(var rr=0;rr<rows;rr++)for(var cc=0;cc<cols;cc++){if(R()<0.12)dark[rr*cols+cc]=1;}
+    masses.push({x:x,y:ground-mh,w:mw,h:mh,
+      cols:cols,rows:rows,dark:dark,
+      accent:R()<0.3});
+    x+=mw+R()*totalW*0.05;
+  }
+  // cantilever slab
+  var slab=null;
+  if(R()<0.8){
+    var sM=masses[Math.floor(R()*masses.length)];
+    slab={x:sM.x-sM.w*0.3-R()*w*0.05,y:sM.y+R()*sM.h*0.25,w:sM.w*1.6+R()*w*0.08,h:h*(0.025+R()*0.02)};
+    if(slab.x<margin*0.5) slab.x=margin*0.5;
+  }
+  // pilotis (raise lowest mass)
+  var pilotis=null;
+  if(R()<0.6){
+    var ph=h*(0.08+R()*0.06);
+    pilotis={h:ph,n:3+Math.floor(R()*4)};
+    for(i=0;i<masses.length;i++) masses[i].y-=ph;
+    if(slab) slab.y-=ph;
+  }
+  // antenna
+  var ant=null;
+  if(R()<0.5){
+    var aM=masses.reduce(function(a,b){return a.y<b.y?a:b;});
+    ant={x:aM.x+aM.w*(0.2+R()*0.6),y0:aM.y,len:h*(0.1+R()*0.12)};
+  }
+
+  function render(t){ // t: 0..1 reveal sweep
+    paintBackground();
+    ctx.save();
+    ctx.beginPath();ctx.rect(0,0,w*t,h);ctx.clip();
+
+    ctx.fillStyle=INK;
+    var j,m;
+    for(j=0;j<masses.length;j++){
+      m=masses[j];
+      ctx.fillRect(m.x,m.y,m.w,m.h);
+      // windows: paper rects in grid
+      var gx0=m.x+m.w*0.12,gy0=m.y+m.h*0.08;
+      var cw=(m.w*0.76)/m.cols,ch=(m.h*0.84)/m.rows;
+      var r,c;
+      ctx.fillStyle=PAPER2;
+      for(r=0;r<m.rows;r++)for(c=0;c<m.cols;c++){
+        if(m.dark[r*m.cols+c]) continue; // dark unit
+        ctx.fillRect(gx0+c*cw+cw*0.18,gy0+r*ch+ch*0.2,cw*0.64,ch*0.6);
+      }
+      ctx.fillStyle=INK;
+      if(m.accent){ctx.fillStyle=ORANGE;ctx.fillRect(m.x,m.y+m.h*0.06,m.w,4);ctx.fillStyle=INK;}
+    }
+    if(slab){ctx.fillStyle=INK;ctx.fillRect(slab.x,slab.y,slab.w,slab.h);
+      // slab edge accent
+      ctx.fillStyle=ORANGE;ctx.fillRect(slab.x,slab.y,slab.w,3);}
+    if(pilotis){
+      var baseY=ground-pilotis.h;
+      var span=w-2*margin;
+      ctx.fillStyle=INK;
+      for(j=0;j<pilotis.n;j++){
+        var px=margin+span*(j/(pilotis.n-1))-4;
+        ctx.fillRect(px,baseY,8,pilotis.h);
+      }
+    }
+    if(ant){
+      ctx.strokeStyle=INK;ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(ant.x,ant.y0);ctx.lineTo(ant.x,ant.y0-ant.len);ctx.stroke();
+      ctx.fillStyle=ORANGE;ctx.beginPath();ctx.arc(ant.x,ant.y0-ant.len,4,0,7);ctx.fill();
+    }
+    // ground
+    ctx.strokeStyle=INK;ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(0,ground);ctx.lineTo(w,ground);ctx.stroke();
+    // hatching below ground
+    ctx.lineWidth=1;ctx.strokeStyle="rgba(20,20,18,.5)";
+    ctx.beginPath();
+    for(var hx=-h;hx<w+h;hx+=10){ctx.moveTo(hx,ground+2);ctx.lineTo(hx-8,ground+12);}
+    ctx.stroke();
+    // dimension line
+    var dy=ground+h*0.08;
+    ctx.strokeStyle=INK;ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(margin,dy);ctx.lineTo(w-margin,dy);
+    ctx.moveTo(margin,dy-5);ctx.lineTo(margin,dy+5);ctx.moveTo(w-margin,dy-5);ctx.lineTo(w-margin,dy+5);ctx.stroke();
+    ctx.restore();
+
+    // sweep line
+    if(t<1){
+      ctx.strokeStyle=ORANGE;ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(w*t,0);ctx.lineTo(w*t,h);ctx.stroke();
+    }
+  }
+
+  if(!animate){render(1);return;}
+  var start=null;
+  function step(ts){
+    if(!start)start=ts;
+    var t=Math.min((ts-start)/650,1);
+    var e=1-Math.pow(1-t,3);
+    render(e);
+    if(t<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* ============ state + list ============ */
+var plist=document.getElementById("plist");
+var elev=document.getElementById("elev");
+var ptName=document.getElementById("ptName");
+var ptSeed=document.getElementById("ptSeed");
+var current=0,rows=[];
+
+function preview(i,animate){
+  var p=PROJECTS[i];current=i;
+  ptName.textContent="NO."+p.no+" — "+p.en;
+  ptSeed.textContent="SHEET "+p.seed;
+  drawElevation(elev,p.seed,animate);
+  rows.forEach(function(r,j){r.classList.toggle("active",j===i);});
+}
+
+PROJECTS.forEach(function(p,i){
+  var el=document.createElement("div");
+  el.className="prow";
+  el.innerHTML='<span class="no">'+p.no+'</span>'+
+    '<span class="name">'+p.en+'<small>'+p.cn+' · '+p.loc+'</small></span>'+
+    '<span class="meta">'+p.year+'<br>'+p.grade+' · '+p.h+'M</span>';
+  el.addEventListener("mouseenter",function(){preview(i,true);});
+  el.addEventListener("click",function(){openDrawer(i);});
+  plist.appendChild(el);
+  rows.push(el);
+});
+
+/* ============ drawer ============ */
+var drawer=document.getElementById("drawer");
+var elevBig=document.getElementById("elevBig");
+var dI=0;
+function openDrawer(i){
+  dI=i;
+  var p=PROJECTS[i];
+  document.getElementById("dpCode").textContent="FILE NO.068-"+p.no+" / "+p.year+" / "+p.grade;
+  document.getElementById("dpName").innerHTML=p.en+"<small>"+p.cn+" · "+p.loc+" · "+p.year+"</small>";
+  document.getElementById("dpDesc").textContent=p.desc;
+  document.getElementById("dpH").innerHTML=p.h+'<span>M</span>';
+  document.getElementById("dpF").innerHTML=p.f+'<span>F</span>';
+  document.getElementById("dpC").innerHTML=p.c.toLocaleString()+'<span>M³</span>';
+  drawer.classList.add("open");
+  drawer.setAttribute("aria-hidden","false");
+  requestAnimationFrame(function(){drawElevation(elevBig,p.seed,true);});
+}
+function closeDrawer(){drawer.classList.remove("open");drawer.setAttribute("aria-hidden","true");}
+document.getElementById("veil").addEventListener("click",closeDrawer);
+document.getElementById("closeDrawer").addEventListener("click",closeDrawer);
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeDrawer();});
+
+document.getElementById("regen").addEventListener("click",function(){
+  var p=PROJECTS[dI];
+  p.seed=Math.floor(Math.random()*8999)+1000;
+  document.getElementById("ptSeed").textContent="SHEET "+p.seed;
+  drawElevation(elevBig,p.seed,true);
+  preview(dI,false);drawElevation(elev,p.seed,false);
+});
+
+/* ============ crosshair ============ */
+var xl=document.querySelector(".xline"),yl=document.querySelector(".yline"),co=document.getElementById("coord");
+document.addEventListener("mousemove",function(e){
+  xl.style.top=e.clientY+"px";
+  yl.style.left=e.clientX+"px";
+  co.style.left=e.clientX+"px";
+  co.style.top=e.clientY+"px";
+  co.textContent="X "+String(e.clientX).padStart(4,"0")+" · Y "+String(e.clientY).padStart(4,"0");
+});
+
+/* ============ init + resize ============ */
+var rt;
+window.addEventListener("resize",function(){
+  clearTimeout(rt);
+  rt=setTimeout(function(){
+    preview(current,false);
+    if(drawer.classList.contains("open"))drawElevation(elevBig,PROJECTS[dI].seed,false);
+  },150);
+});
+window.addEventListener("load",function(){preview(0,true);});
+preview(0,true);
+})();
+</script>
+</body>
+</html>

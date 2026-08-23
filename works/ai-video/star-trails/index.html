@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>STAR TRAILS 星轨延时 — 长曝光同心弧光模拟</title>
+<style>
+  :root{
+    --paper:#f2efe8; --panel:#ebe7dc; --line:#d6d0c2;
+    --ink:#16150f; --dim:#8b8577;
+    --red:#e0452b; --night:#04060f;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--red);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;
+    padding:26px 32px 0;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .sig h1{
+    font-family:var(--serif);font-size:clamp(20px,2.6vw,28px);font-weight:700;letter-spacing:.02em;
+  }
+  .sig h1 em{font-style:italic;color:var(--red)}
+  .no{
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink);
+    border:1px solid var(--ink);padding:5px 9px;text-transform:uppercase;white-space:nowrap;
+  }
+  .no b{color:var(--red);font-weight:400}
+  .meta{
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);
+    text-transform:uppercase;display:flex;gap:18px;flex-wrap:wrap;
+  }
+  .meta b{color:var(--ink);font-weight:400}
+  .rule{margin:16px 32px 0;border-top:2px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;right:0;top:-2px;width:88px;height:2px;background:var(--red)}
+
+  main{
+    display:grid;grid-template-columns:1fr 292px;gap:22px;
+    padding:22px 32px 44px;max-width:1500px;margin:0 auto;
+  }
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+
+  /* ——— stage ——— */
+  .stage{
+    position:relative;background:var(--night);border:1px solid var(--ink);
+    box-shadow:8px 8px 0 rgba(22,21,15,.14);overflow:hidden;aspect-ratio:4/3.1;min-height:320px;
+  }
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+  .plate{
+    position:absolute;left:14px;top:12px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.18em;color:rgba(240,244,252,.65);pointer-events:none;text-transform:uppercase;line-height:2;
+  }
+  .plate b{color:var(--red);font-weight:400}
+  .plate2{
+    position:absolute;right:14px;bottom:12px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.18em;color:rgba(240,244,252,.5);pointer-events:none;text-transform:uppercase;text-align:right;line-height:2;
+  }
+  .hint{
+    position:absolute;left:14px;bottom:12px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.16em;color:rgba(240,244,252,.45);pointer-events:none;text-transform:uppercase;
+  }
+
+  /* ——— Swiss panel ——— */
+  .panel{
+    border:1px solid var(--ink);background:var(--panel);
+    padding:20px;display:flex;flex-direction:column;gap:0;
+  }
+  .p-title{
+    font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--ink);
+    text-transform:uppercase;padding-bottom:12px;border-bottom:2px solid var(--ink);margin-bottom:4px;
+    display:flex;justify-content:space-between;
+  }
+  .p-title i{font-style:normal;color:var(--red)}
+  .ctl{padding:13px 0;border-bottom:1px solid var(--line)}
+  .ctl label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:9px;
+  }
+  .ctl label .idx{color:var(--red);margin-right:8px}
+  .ctl label output{color:var(--dim)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{
+    height:2px;background:linear-gradient(90deg,var(--ink) var(--fill,50%),var(--line) var(--fill,50%));
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:12px;height:12px;margin-top:-5px;background:var(--red);border:0;
+    transition:transform .2s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-track{height:2px;background:var(--line)}
+  input[type=range]::-moz-range-progress{height:2px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:0;background:var(--red);border:0}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-top:16px}
+  .btn{
+    border:1px solid var(--ink);background:transparent;color:var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    padding:12px 6px;cursor:pointer;transition:all .22s var(--ease);
+  }
+  .btn:hover{background:var(--ink);color:var(--paper)}
+  .btn.primary{background:var(--red);border-color:var(--red);color:#fff}
+  .btn.primary:hover{background:#c93a23}
+  .btn.wide{grid-column:1/-1}
+  .expo-bar{padding-top:16px}
+  .expo-bar .lbl{
+    display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;
+    letter-spacing:.14em;color:var(--dim);text-transform:uppercase;margin-bottom:7px;
+  }
+  .expo-bar .lbl b{color:var(--ink);font-weight:400}
+  .track{height:4px;background:var(--line);position:relative;overflow:hidden}
+  .track i{
+    position:absolute;left:0;top:0;bottom:0;width:0%;background:var(--red);
+    transition:width .3s linear;
+  }
+  .track.done i{background:var(--ink)}
+  .note{
+    font-family:var(--mono);font-size:9px;line-height:2;letter-spacing:.08em;color:var(--dim);
+    text-transform:uppercase;border-top:1px dashed var(--line);margin-top:16px;padding-top:13px;
+  }
+  .note b{color:var(--red);font-weight:400}
+
+  footer{
+    padding:0 32px 34px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+  }
+  @media (max-width:640px){
+    header{padding:20px 18px 0}.rule{margin:14px 18px 0}
+    main{padding:16px 18px 30px;gap:16px}
+    .stage{aspect-ratio:3/3.6;min-height:360px}
+    footer{padding:0 18px 26px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <span class="no">N°<b>02</b> — AI-VIDEO</span>
+    <h1>STAR TRAILS <em>星轨延时</em></h1>
+  </div>
+  <div class="meta">
+    <span>MODE <b>SINGLE LONG EXPOSURE</b></span>
+    <span>ISO <b>800</b></span>
+    <span>APERTURE <b>f/2.8</b></span>
+  </div>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section class="stage" aria-label="星轨长曝光画面">
+    <canvas id="sky"></canvas>
+    <div class="plate">PLATE <b id="plateNo">ST-001</b><br><span id="expoRead">EXPOSING 000°00′</span></div>
+    <div class="plate2">CELESTIAL POLE · CLICK TO MOVE<br>SIDEREAL ROTATION SIM</div>
+    <div class="hint">点击移动天极 · 弧光随曝光生长</div>
+  </section>
+
+  <aside class="panel">
+    <div class="p-title">EXPOSURE DESK <i>曝光台</i></div>
+
+    <div class="ctl">
+      <label><span><span class="idx">01</span>曝光时长 EXPOSURE</span><output id="oExpo">120°</output></label>
+      <input type="range" id="rExpo" min="20" max="360" step="5" value="120">
+    </div>
+    <div class="ctl">
+      <label><span><span class="idx">02</span>星场密度 DENSITY</span><output id="oDens">420</output></label>
+      <input type="range" id="rDens" min="120" max="900" step="20" value="420">
+    </div>
+    <div class="ctl">
+      <label><span><span class="idx">03</span>焦距 FOCAL</span><output id="oFocal">35MM</output></label>
+      <input type="range" id="rFocal" min="14" max="85" step="1" value="35">
+    </div>
+
+    <div class="expo-bar">
+      <div class="lbl"><span>FILM GATE</span><b id="expoPct">0%</b></div>
+      <div class="track" id="track"><i id="trackFill"></i></div>
+    </div>
+
+    <div class="btns">
+      <button class="btn" id="bField">随机星野 ↻</button>
+      <button class="btn" id="bRetake">重曝 RETAKE</button>
+      <button class="btn primary wide" id="bSave">下载胶片 PNG ↓</button>
+    </div>
+
+    <div class="note">
+      地球自转被压缩进一张底片：恒星绕天极拖出<b>同心弧光</b>，曝光进度以红环标注。
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>STAR TRAILS — SIDEREAL STUDY</span>
+  <span>AI-VIDEO / SYNTHETIC TIMELAPSE · 2026</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var stage = document.getElementById('sky');
+  var ctx = stage.getContext('2d');
+  var acc = document.createElement('canvas');      // accumulated film
+  var actx = acc.getContext('2d');
+  var bgc = document.createElement('canvas');      // static sky + ridge
+  var bctx = bgc.getContext('2d');
+
+  var W=0, H=0, dpr=1;
+  var P = { exposure: 120, density: 420, focal: 35 };
+  var stars = [], pole = { x:.5, y:.42 };
+  var exposed = 0, complete = false, plateNo = 1;
+  var EXPOSURE_SECONDS = 26;
+
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+
+  /* star colour: -1 ice blue … 0 white … +1 ember */
+  function starColor(t, a){
+    var r,g,b;
+    if (t < 0){ r = 158 + (1+t)*90; g = 178 + (1+t)*66; b = 236 + (1+t)*16; }
+    else { r = 248; g = 244 - t*38; b = 232 - t*96; }
+    return 'rgba('+(r|0)+','+(g|0)+','+(b|0)+','+a.toFixed(3)+')';
+  }
+
+  function focalScale(){ return 42 / P.focal; }   // longer lens = larger arcs
+
+  function genField(){
+    stars.length = 0;
+    var maxR = Math.hypot(Math.max(pole.x,1-pole.x)*W, Math.max(pole.y,1-pole.y)*H) * 1.08 * focalScale();
+    for (var i=0;i<P.density;i++){
+      var rr = Math.pow(Math.random(), .62) * maxR;
+      if (rr < 8) rr = 8 + Math.random()*10;
+      stars.push({
+        ang: rnd(0, Math.PI*2),
+        rad: rr,
+        mag: Math.pow(Math.random(), 2.6),          // few bright, many faint
+        tmp: rnd(-1,1),
+        drift: rnd(.0002,.0011)
+      });
+    }
+  }
+
+  function paintSky(){
+    bctx.clearRect(0,0,W,H);
+    var g = bctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#02040b'); g.addColorStop(.55,'#060a18'); g.addColorStop(.82,'#0a1020'); g.addColorStop(1,'#0c1220');
+    bctx.fillStyle = g; bctx.fillRect(0,0,W,H);
+    // faint galactic band
+    bctx.save();
+    bctx.translate(W*.5,H*.5); bctx.rotate(-.5);
+    for (var i=0;i<90;i++){
+      var x = rnd(-W,W)*.7, y = rnd(-H,H)*.16;
+      bctx.fillStyle = 'rgba(150,170,215,'+rnd(.008,.035)+')';
+      bctx.beginPath(); bctx.arc(x,y,rnd(8,42),0,7); bctx.fill();
+    }
+    bctx.restore();
+    // distant fixed pin-stars (never trail — they are below sensor threshold)
+    for (i=0;i<260;i++){
+      bctx.fillStyle = 'rgba(210,220,240,'+rnd(.05,.2)+')';
+      bctx.fillRect(rnd(0,W), rnd(0,H*.92), 1, 1);
+    }
+    // horizon ridge
+    bctx.fillStyle = '#010203';
+    bctx.beginPath(); bctx.moveTo(0,H);
+    var y = H*.88;
+    for (var x=0;x<=W;x+=W/22){
+      y = H*(.84 + .06*Math.sin(x*.013+plateNo) + rnd(-.02,.02));
+      bctx.lineTo(x,y);
+    }
+    bctx.lineTo(W,H); bctx.closePath(); bctx.fill();
+    // two cabin windows far below
+    for (i=0;i<2;i++){
+      if (Math.random()<.75) bctx.fillStyle = 'rgba(240,180,90,.55)',
+        bctx.fillRect(rnd(W*.06,W*.9), H*rnd(.93,.965), 2.2, 1.6);
+    }
+  }
+
+  function retake(newPlate){
+    actx.setTransform(dpr,0,0,dpr,0,0);
+    actx.clearRect(0,0,W,H);
+    exposed = 0; complete = false;
+    document.getElementById('track').classList.remove('done');
+    if (newPlate){
+      plateNo++;
+      document.getElementById('plateNo').textContent = 'ST-' + String(plateNo).padStart(3,'0');
+    }
+    genField(); paintSky();
+  }
+
+  function resize(){
+    var r = stage.parentElement.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio||1, 2);
+    W = Math.max(320, r.width); H = Math.max(300, r.height);
+    [stage,acc,bgc].forEach(function(c){ c.width = W*dpr; c.height = H*dpr; });
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    bctx.setTransform(dpr,0,0,dpr,0,0);
+    retake(false);
+  }
+
+  /* one frame of film: extend every star's arc by dAng */
+  function exposeFrame(dAng){
+    var px = pole.x*W, py = pole.y*H;
+    actx.globalCompositeOperation = 'lighter';
+    actx.lineCap = 'round';
+    for (var i=0;i<stars.length;i++){
+      var s = stars[i];
+      var a0 = s.ang, a1 = s.ang + dAng;
+      s.ang = a1;
+      var lw = .45 + s.mag*2.1;
+      var alpha = .10 + s.mag*.75;
+      actx.strokeStyle = starColor(s.tmp, alpha);
+      actx.lineWidth = lw;
+      actx.beginPath();
+      actx.arc(px, py, s.rad, a0, a1);
+      actx.stroke();
+    }
+  }
+
+  var expoRead = document.getElementById('expoRead'),
+      expoPct = document.getElementById('expoPct'),
+      trackFill = document.getElementById('trackFill');
+
+  function fmtDeg(d){
+    var dd = Math.floor(d), mm = Math.floor((d-dd)*60);
+    return String(dd).padStart(3,'0') + '°' + String(mm).padStart(2,'0') + '′';
+  }
+
+  var last = 0;
+  function loop(ts){
+    var dt = Math.min(.05, (ts-last)/1000 || .016); last = ts;
+    if (!complete){
+      var dAng = (P.exposure * Math.PI/180) * (dt / EXPOSURE_SECONDS);
+      exposeFrame(dAng);
+      exposed += dAng * 180/Math.PI;
+      if (exposed >= P.exposure){
+        exposed = P.exposure; complete = true;
+        document.getElementById('track').classList.add('done');
+      }
+      var pct = Math.round(exposed/P.exposure*100);
+      expoPct.textContent = pct + '%';
+      trackFill.style.width = pct + '%';
+      expoRead.textContent = (complete ? 'COMPLETE ' : 'EXPOSING ') + fmtDeg(exposed);
+    }
+
+    // composite: sky + film + star heads + HUD ring
+    ctx.clearRect(0,0,W,H);
+    ctx.drawImage(bgc,0,0,W,H);
+    ctx.drawImage(acc,0,0,W,H);
+    var px = pole.x*W, py = pole.y*H;
+    ctx.globalCompositeOperation = 'lighter';
+    for (var i=0;i<stars.length;i++){
+      var s = stars[i];
+      if (s.mag < .18) continue;
+      var x = px + Math.cos(s.ang)*s.rad, y = py + Math.sin(s.ang)*s.rad;
+      ctx.fillStyle = starColor(s.tmp, .35 + s.mag*.6);
+      ctx.beginPath(); ctx.arc(x, y, .5 + s.mag*1.6, 0, 7); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    // pole crosshair
+    ctx.strokeStyle = 'rgba(224,69,43,.9)'; ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(px-7,py); ctx.lineTo(px+7,py);
+    ctx.moveTo(px,py-7); ctx.lineTo(px,py+7);
+    ctx.stroke();
+    // progress ring around pole
+    ctx.strokeStyle = 'rgba(224,69,43,.28)';
+    ctx.beginPath(); ctx.arc(px,py,16,0,7); ctx.stroke();
+    ctx.strokeStyle = 'rgba(224,69,43,.95)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.arc(px,py,16,-Math.PI/2,-Math.PI/2 + (exposed/P.exposure)*Math.PI*2); ctx.stroke();
+
+    requestAnimationFrame(loop);
+  }
+
+  /* click moves the celestial pole */
+  stage.addEventListener('pointerdown', function(e){
+    var r = stage.getBoundingClientRect();
+    pole.x = (e.clientX-r.left)/r.width;
+    pole.y = (e.clientY-r.top)/r.height;
+    retake(false);
+  });
+
+  function bindRange(id,out,fmt,fn){
+    var el = document.getElementById(id), o = document.getElementById(out);
+    function apply(){
+      var v = +el.value;
+      el.style.setProperty('--fill', ((v-el.min)/(el.max-el.min)*100)+'%');
+      o.textContent = fmt(v);
+      fn(v);
+    }
+    el.addEventListener('input', apply); apply();
+  }
+  bindRange('rExpo','oExpo',function(v){return v+'°';}, function(v){ P.exposure = v; });
+  bindRange('rDens','oDens',function(v){return v;}, function(v){ P.density = v; retake(false); });
+  bindRange('rFocal','oFocal',function(v){return v+'MM';}, function(v){ P.focal = v; retake(false); });
+
+  document.getElementById('bField').addEventListener('click', function(){
+    pole = { x: rnd(.3,.7), y: rnd(.25,.6) };
+    retake(true);
+  });
+  document.getElementById('bRetake').addEventListener('click', function(){ retake(true); });
+  document.getElementById('bSave').addEventListener('click', function(){
+    var out = document.createElement('canvas');
+    out.width = W*dpr; out.height = H*dpr;
+    var octx = out.getContext('2d');
+    octx.setTransform(dpr,0,0,dpr,0,0);
+    octx.drawImage(bgc,0,0,W,H);
+    octx.drawImage(acc,0,0,W,H);
+    octx.fillStyle = 'rgba(240,244,252,.7)';
+    octx.font = '10px Menlo, monospace';
+    octx.fillText('STAR TRAILS N°02 — PLATE ST-' + String(plateNo).padStart(3,'0') + ' / ' + fmtDeg(exposed), 14, H-14);
+    var a = document.createElement('a');
+    a.download = 'star-trails_ST-' + String(plateNo).padStart(3,'0') + '.png';
+    a.href = out.toDataURL('image/png');
+    a.click();
+  });
+
+  window.addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

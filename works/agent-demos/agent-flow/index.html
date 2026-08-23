@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AGENT FLOW — Agent 工作流可视化编排器</title>
+<style>
+  :root{
+    --bg:#131417; --bg2:#0E0F12; --panel:#1A1C20; --line:#2A2D33; --line2:#3A3E46;
+    --ink:#E9E7E0; --dim:#8A8F98; --faint:#565B64;
+    --volt:#C8F25B; --coral:#FF6B4A; --cyan:#5BD9F2; --amber:#F2C14E; --violet:#B79CF2;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+  ::selection{background:rgba(200,242,91,.28)}
+
+  header{flex:0 0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 16px;border-bottom:1px solid var(--line);background:var(--bg2)}
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap;margin-right:10px}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--volt);letter-spacing:.14em}
+  .brand .name{font-size:15px;font-weight:700;letter-spacing:.22em}
+  .brand .sub{font-size:11px;color:var(--dim)}
+  .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .grp .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--faint);margin-right:2px}
+  .chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:7px 11px;cursor:pointer;
+    background:transparent;color:var(--dim);border:1px solid var(--line2);
+    display:flex;align-items:center;gap:7px;transition:all .16s var(--ease)}
+  .chip i{width:8px;height:8px;flex:0 0 auto}
+  .chip:hover{color:var(--ink);border-color:var(--dim);background:rgba(255,255,255,.03);transform:translateY(-1px)}
+  .chip:active{transform:translateY(0)}
+  .btn{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;padding:7px 16px;cursor:pointer;
+    background:transparent;color:var(--volt);border:1px solid rgba(200,242,91,.5);transition:all .16s var(--ease)}
+  .btn:hover{background:rgba(200,242,91,.12);border-color:var(--volt)}
+  .btn.solid{background:var(--volt);color:#131417;font-weight:700}
+  .btn.solid:hover{background:#DBFF7E}
+  .btn.solid.running{background:var(--coral);border-color:var(--coral);color:#131417}
+  .btn.ghost{color:var(--dim);border-color:var(--line2)}
+  .btn.ghost:hover{color:var(--ink);border-color:var(--dim)}
+  header .spacer{flex:1}
+
+  main{flex:1;position:relative;min-height:0}
+  #cv{position:absolute;inset:0;display:block;touch-action:none}
+
+  #log{position:absolute;left:16px;bottom:14px;width:360px;max-width:calc(100vw - 32px);
+    background:rgba(14,15,18,.9);border:1px solid var(--line2);
+    font-family:var(--mono);font-size:10.5px;line-height:1.85;color:var(--dim);
+    padding:10px 12px;pointer-events:none;backdrop-filter:blur(4px)}
+  #log .lt{color:var(--faint);letter-spacing:.2em;font-size:9px;margin-bottom:4px;display:flex;justify-content:space-between}
+  #log .hl{color:var(--volt)} #log .ct{color:var(--coral)} #log .at{color:var(--amber)}
+  #log .row{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:lin .3s var(--ease)}
+  @keyframes lin{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+
+  #hint{position:absolute;right:16px;bottom:14px;text-align:right;
+    font-family:var(--mono);font-size:9.5px;line-height:1.9;color:var(--faint);letter-spacing:.08em;
+    background:rgba(14,15,18,.85);border:1px solid var(--line);padding:8px 12px;pointer-events:none}
+  #hint b{color:var(--dim);font-weight:600}
+
+  footer{flex:0 0 30px;display:flex;align-items:center;gap:22px;padding:0 16px;
+    border-top:1px solid var(--line);background:var(--bg2);
+    font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em}
+  footer b{color:var(--dim);font-weight:600}
+  footer .sig{margin-left:auto}
+  #stats{color:var(--volt)}
+
+  @media (max-width:880px){
+    header{padding:8px 10px;gap:6px}
+    .brand .sub{display:none}
+    .grp .lbl{display:none}
+    .chip,.btn{padding:6px 8px;font-size:9.5px}
+    #hint{display:none}
+    #log{width:280px;font-size:9.5px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="no">N°01</span><span class="name">AGENT FLOW</span><span class="sub">工作流可视化编排器</span>
+  </div>
+  <div class="grp"><span class="lbl">ADD</span>
+    <button class="chip" data-add="trigger"><i style="background:var(--volt)"></i>触发</button>
+    <button class="chip" data-add="llm"><i style="background:var(--cyan)"></i>模型</button>
+    <button class="chip" data-add="tool"><i style="background:var(--amber)"></i>工具</button>
+    <button class="chip" data-add="cond"><i style="background:var(--violet)"></i>判断</button>
+    <button class="chip" data-add="output"><i style="background:var(--coral)"></i>输出</button>
+  </div>
+  <div class="spacer"></div>
+  <button class="btn solid" id="btnRun">▶ 运行</button>
+  <button class="btn ghost" id="btnReset">重置</button>
+</header>
+<main>
+  <canvas id="cv"></canvas>
+  <div id="log"><div class="lt"><span>RUN LOG</span><span id="logState">IDLE</span></div><div id="logBody"></div></div>
+  <div id="hint"><b>拖动节点</b> 移动 · <b>拖动端口</b> 连线<br><b>点击空白</b> 平移 · <b>Delete</b> 删除选中</div>
+</main>
+<footer>
+  <span>NODES <b id="stNodes">0</b></span>
+  <span>EDGES <b id="stEdges">0</b></span>
+  <span>STATUS <b id="stats">READY</b></span>
+  <span class="sig">AGENT FLOW · WORK 01 / AGENT-DEMOS</span>
+</footer>
+
+<script>
+"use strict";
+/* ============ data model ============ */
+const TYPES = {
+  trigger:{name:"触发", color:"#C8F25B", ins:0, outs:1, desc:"接收外部事件，启动整条链路"},
+  llm:    {name:"模型", color:"#5BD9F2", ins:1, outs:1, desc:"调用大模型生成/推理"},
+  tool:   {name:"工具", color:"#F2C14E", ins:1, outs:1, desc:"执行外部工具调用"},
+  cond:   {name:"判断", color:"#B79CF2", ins:1, outs:2, desc:"按条件分流到不同分支"},
+  output: {name:"输出", color:"#FF6B4A", ins:1, outs:0, desc:"汇总结果并返回"},
+};
+let nodes=[], edges=[], uid=0;
+function addNode(type,x,y,label){
+  const t=TYPES[type];
+  const n={id:++uid,type,x,y,w:150,h:52+Math.max(t.ins,t.outs)*16,label:label||(t.name+" "+uid),state:0,glow:0};
+  nodes.push(n); return n;
+}
+function defaultGraph(w,h){
+  nodes=[];edges=[];uid=0;
+  const cx=w/2, cy=h/2;
+  const a=addNode("trigger",cx-420,cy-40,"Webhook 触发");
+  const b=addNode("llm",cx-190,cy-140,"意图识别");
+  const c=addNode("tool",cx-190,cy+70,"检索知识库");
+  const d=addNode("cond",cx+40,cy-30,"需要澄清?");
+  const e=addNode("llm",cx+270,cy-130,"生成回复");
+  const f=addNode("output",cx+480,cy-30,"返回用户");
+  link(a,0,b,0); link(a,0,c,0); link(b,0,d,0); link(c,0,d,0);
+  link(d,0,e,0); link(e,0,f,0);
+}
+function link(fn,fp,tn,tp){
+  if(fn.id===tn.id) return;
+  if(edges.some(e=>e.to.n===tn&&e.to.p===tp)) return;
+  edges.push({from:{n:fn,p:fp},to:{n:tn,p:tp},sel:false,flow:0});
+}
+
+/* ============ canvas setup ============ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+let W=0,H=0,DPR=1, pan={x:0,y:0};
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  const r=cv.parentElement.getBoundingClientRect();
+  W=r.width;H=r.height;
+  cv.width=W*DPR;cv.height=H*DPR;
+  cv.style.width=W+"px";cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener("resize",resize); resize();
+defaultGraph(1200,700);
+
+/* ============ geometry helpers ============ */
+function portPos(n,kind,i){
+  const t=TYPES[n.type];
+  const count=kind==="in"?t.ins:t.outs;
+  const y=n.y + n.h/2 + (i-(count-1)/2)*18;
+  return {x:kind==="in"?n.x:n.x+n.w, y};
+}
+function edgePath(a,b,c){
+  const dx=Math.max(46,Math.abs(b.x-a.x)*0.45);
+  ctx.beginPath();
+  ctx.moveTo(a.x,a.y);
+  ctx.bezierCurveTo(a.x+dx,a.y,b.x-dx,b.y,b.x,b.y);
+  if(c)ctx.stroke();
+}
+function ptOnEdge(a,b,t){
+  const dx=Math.max(46,Math.abs(b.x-a.x)*0.45);
+  const x0=a.x,y0=a.y,x3=b.x,y3=b.y,x1=a.x+dx,y1=a.y,x2=b.x-dx,y2=b.y;
+  const u=1-t;
+  return {
+    x:u*u*u*x0+3*u*u*t*x1+3*u*t*t*x2+t*t*t*x3,
+    y:u*u*u*y0+3*u*u*t*y1+3*u*t*t*y2+t*t*t*y3
+  };
+}
+function hitNode(x,y){ for(let i=nodes.length-1;i>=0;i--){const n=nodes[i];
+  if(x>=n.x&&x<=n.x+n.w&&y>=n.y&&y<=n.y+n.h)return n;} return null;}
+function hitPort(x,y){
+  for(const n of nodes){const t=TYPES[n.type];
+    for(let i=0;i<t.ins;i++){const p=portPos(n,"in",i);
+      if(Math.hypot(x-p.x,y-p.y)<9)return{kind:"in",n,p:i};}
+    for(let i=0;i<t.outs;i++){const p=portPos(n,"out",i);
+      if(Math.hypot(x-p.x,y-p.y)<9)return{kind:"out",n,p:i};}
+  } return null;
+}
+function hitEdge(x,y){
+  for(const e of edges){
+    const a=portPos(e.from.n,"out",e.from.p), b=portPos(e.to.n,"in",e.to.p);
+    for(let t=0;t<=1;t+=0.05){const p=ptOnEdge(a,b,t);
+      if(Math.hypot(x-p.x,y-p.y)<7)return e;}
+  } return null;
+}
+
+/* ============ interaction ============ */
+let drag=null, pending=null, hoverPort=null, selNode=null, selEdge=null, mouse={x:0,y:0};
+function toWorld(e){
+  const r=cv.getBoundingClientRect();
+  const cx=(e.touches?e.touches[0].clientX:e.clientX)-r.left;
+  const cy=(e.touches?e.touches[0].clientY:e.clientY)-r.top;
+  return {x:cx-pan.x,y:cy-pan.y,sx:cx,sy:cy};
+}
+function down(e){
+  const m=toWorld(e); mouse=m;
+  const p=hitPort(m.x,m.y);
+  if(p&&p.kind==="out"){ pending={from:p,to:{x:m.x,y:m.y}}; selNode=null;selEdge=null; return; }
+  if(p&&p.kind==="in"){
+    const ex=edges.find(ed=>ed.to.n===p.n&&ed.to.p===p.p);
+    if(ex){ edges.splice(edges.indexOf(ex),1);
+      pending={from:{kind:"out",n:ex.from.n,p:ex.from.p},to:{x:m.x,y:m.y}}; }
+    return;
+  }
+  const n=hitNode(m.x,m.y);
+  if(n){ selNode=n; selEdge=null; drag={type:"node",n,dx:m.x-n.x,dy:m.y-n.y};
+    nodes.push(nodes.splice(nodes.indexOf(n),1)[0]); return; }
+  const ed=hitEdge(m.x,m.y);
+  if(ed){ selEdge=ed; selNode=null; return; }
+  selNode=null;selEdge=null;
+  drag={type:"pan",sx:m.sx,sy:m.sy,px:pan.x,py:pan.y};
+}
+function move(e){
+  const m=toWorld(e); mouse=m;
+  if(pending){ pending.to={x:m.x,y:m.y}; hoverPort=hitPort(m.x,m.y); return; }
+  if(drag&&drag.type==="node"){ drag.n.x=m.x-drag.dx; drag.n.y=m.y-drag.dy; return; }
+  if(drag&&drag.type==="pan"){ pan.x=drag.px+(m.sx-drag.sx); pan.y=drag.py+(m.sy-drag.sy); return; }
+  hoverPort=hitPort(m.x,m.y);
+  const n=hoverPort?null:hitNode(m.x,m.y);
+  cv.style.cursor=hoverPort?"crosshair":n?"grab":"default";
+}
+function up(e){
+  if(pending){
+    const m=mouse, p=hitPort(m.x,m.y);
+    if(p&&p.kind==="in") link(pending.from.n,pending.from.p,p.n,p.p);
+    pending=null; hoverPort=null;
+  }
+  drag=null; updateStats();
+}
+cv.addEventListener("mousedown",down);
+window.addEventListener("mousemove",move);
+window.addEventListener("mouseup",up);
+cv.addEventListener("touchstart",e=>{e.preventDefault();down(e);},{passive:false});
+cv.addEventListener("touchmove",e=>{e.preventDefault();move(e);},{passive:false});
+cv.addEventListener("touchend",e=>{up(e);});
+window.addEventListener("keydown",e=>{
+  if(e.key==="Delete"||e.key==="Backspace"){
+    if(selNode){ edges=edges.filter(ed=>ed.from.n!==selNode&&ed.to.n!==selNode);
+      nodes.splice(nodes.indexOf(selNode),1); selNode=null; log("节点已删除","ct"); }
+    else if(selEdge){ edges.splice(edges.indexOf(selEdge),1); selEdge=null; log("连线已删除","ct"); }
+    updateStats();
+  }
+  if(e.key==="Escape"){ pending=null; selNode=null; selEdge=null; }
+});
+document.querySelectorAll("[data-add]").forEach(b=>b.addEventListener("click",()=>{
+  const r=cv.getBoundingClientRect();
+  const x=(r.width/2-pan.x)+(Math.random()-0.5)*220;
+  const y=(r.height/2-pan.y)+(Math.random()-0.5)*160;
+  const n=addNode(b.dataset.add,x,y); selNode=n; selEdge=null;
+  log("新增节点 <span class='hl'>"+n.label+"</span>");
+  updateStats();
+}));
+
+/* ============ run simulation ============ */
+let running=false, pulses=[], clock=0;
+const runBtn=document.getElementById("btnRun");
+function updateStats(){
+  document.getElementById("stNodes").textContent=nodes.length;
+  document.getElementById("stEdges").textContent=edges.length;
+}
+function log(msg,cls){
+  const body=document.getElementById("logBody");
+  const d=document.createElement("div");
+  d.className="row"+(cls?" ":"")+(cls||"");
+  d.innerHTML=msg;
+  body.appendChild(d);
+  while(body.children.length>7)body.removeChild(body.firstChild);
+}
+function topoOrder(){
+  const trig=nodes.filter(n=>n.type==="trigger");
+  const order=[], seen=new Set();
+  (function walk(n){
+    if(seen.has(n.id))return; seen.add(n.id);
+    order.push(n);
+    edges.filter(e=>e.from.n===n).forEach(e=>walk(e.to.n));
+  });
+  trig.forEach(walk);
+  nodes.forEach(n=>{ if(!seen.has(n.id)){seen.add(n.id);order.push(n);} });
+  return order;
+}
+function run(){
+  if(running)return;
+  running=true; pulses=[];
+  runBtn.textContent="■ 运行中"; runBtn.classList.add("running");
+  document.getElementById("logState").textContent="RUNNING";
+  document.getElementById("logBody").innerHTML="";
+  document.getElementById("stats").textContent="RUNNING";
+  nodes.forEach(n=>{n.state=0;n.glow=0;});
+  edges.forEach(e=>e.flow=0);
+  const order=topoOrder();
+  log("▶ 开始执行工作流","hl");
+  let t=400;
+  order.forEach((n,i)=>{
+    setTimeout(()=>{
+      n.state=1; n.glow=1;
+      const tt=TYPES[n.type];
+      log("["+String(i+1).padStart(2,"0")+"] <span class='hl'>"+n.label+"</span> · "+tt.desc);
+      edges.filter(e=>e.from.n===n).forEach((e,k)=>{
+        const dur=520;
+        setTimeout(()=>{ e.flow=1; pulses.push({e,t0:performance.now(),dur}); },k*140);
+      });
+      setTimeout(()=>{ n.state=2;
+        if(n.type==="cond")log("    → 条件判定:<span class='at'>走分支 A</span>");
+        if(n.type==="tool")log("    → 工具返回 <span class='at'>200 OK · 3 条结果</span>");
+      },380);
+    },t);
+    t+=620;
+  });
+  setTimeout(()=>{
+    running=false;
+    runBtn.textContent="▶ 运行"; runBtn.classList.remove("running");
+    document.getElementById("logState").textContent="DONE";
+    document.getElementById("stats").textContent="DONE · "+order.length+" STEPS";
+    log("■ 执行完成 · 共 "+order.length+" 个节点","hl");
+    setTimeout(()=>{ nodes.forEach(n=>n.state=0); edges.forEach(e=>e.flow=0);
+      document.getElementById("stats").textContent="READY"; },2600);
+  },t+500);
+}
+runBtn.addEventListener("click",run);
+document.getElementById("btnReset").addEventListener("click",()=>{
+  if(running)return;
+  defaultGraph(1200,700); pan={x:0,y:0}; selNode=null;selEdge=null;
+  log("已重置为示例工作流","at"); updateStats();
+});
+
+/* ============ render ============ */
+let last=performance.now();
+function frame(now){
+  const dt=Math.min(50,now-last); last=now; clock+=dt;
+  // decay glow
+  nodes.forEach(n=>{ if(n.glow>0)n.glow=Math.max(0,n.glow-dt/900); });
+  pulses=pulses.filter(p=>(now-p.t0)<p.dur);
+  draw(now);
+  requestAnimationFrame(frame);
+}
+function draw(now){
+  ctx.clearRect(0,0,W,H);
+  // grid
+  ctx.save();
+  ctx.translate(pan.x,pan.y);
+  const gs=28;
+  ctx.fillStyle="rgba(255,255,255,.05)";
+  const x0=Math.floor(-pan.x/gs)*gs, y0=Math.floor(-pan.y/gs)*gs;
+  for(let x=x0;x<x0+W+gs;x+=gs)for(let y=y0;y<y0+H+gs;y+=gs){
+    ctx.fillRect(x,y,1.5,1.5);
+  }
+  // edges
+  for(const e of edges){
+    const a=portPos(e.from.n,"out",e.from.p), b=portPos(e.to.n,"in",e.to.p);
+    const active=e.flow>0;
+    ctx.lineWidth=e.sel?2.5:1.6;
+    ctx.strokeStyle=e.sel?"#FF6B4A":active?"rgba(200,242,91,.85)":"rgba(138,143,152,.45)";
+    edgePath(a,b,true);
+    // pulse
+    const ps=pulses.filter(p=>p.e===e);
+    for(const p of ps){
+      const t=(now-p.t0)/p.dur;
+      const q=ptOnEdge(a,b,1-Math.pow(1-t,2));
+      ctx.beginPath();ctx.arc(q.x,q.y,4.5,0,7);
+      ctx.fillStyle="#C8F25B";ctx.shadowColor="#C8F25B";ctx.shadowBlur=12;ctx.fill();
+      ctx.shadowBlur=0;
+    }
+  }
+  // pending connection
+  if(pending){
+    const a=portPos(pending.from.n,"out",pending.from.p);
+    ctx.setLineDash([5,5]); ctx.lineWidth=1.6; ctx.strokeStyle="#C8F25B";
+    edgePath(a,pending.to,true); ctx.setLineDash([]);
+  }
+  // nodes
+  for(const n of nodes){
+    const t=TYPES[n.type];
+    const sel=n===selNode;
+    const glow=n.glow;
+    if(glow>0){
+      ctx.shadowColor=t.color; ctx.shadowBlur=26*glow;
+    }
+    ctx.fillStyle=n.state===2?"#20231B":"#1A1C20";
+    ctx.strokeStyle=sel?"#E9E7E0":n.state>0?t.color:"#3A3E46";
+    ctx.lineWidth=sel?2:1.4;
+    roundRect(n.x,n.y,n.w,n.h,6);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;
+    // header strip
+    ctx.fillStyle=t.color;
+    roundRect(n.x,n.y,4,n.h,2);ctx.fill();
+    // status dot
+    if(n.state>0){
+      ctx.beginPath();ctx.arc(n.x+n.w-14,n.y+15,3.5,0,7);
+      ctx.fillStyle=n.state===1?t.color:"#8A8F98";ctx.fill();
+      if(n.state===1){
+        ctx.beginPath();ctx.arc(n.x+n.w-14,n.y+15,3.5+3*Math.abs(Math.sin(clock/140)),0,7);
+        ctx.strokeStyle=t.color;ctx.lineWidth=1;ctx.stroke();
+      }
+    }
+    // label
+    ctx.fillStyle="#E9E7E0";
+    ctx.font="600 12.5px -apple-system,'Helvetica Neue','PingFang SC',sans-serif";
+    ctx.textBaseline="alphabetic";
+    ctx.fillText(n.label,n.x+16,n.y+22);
+    ctx.fillStyle="#8A8F98";
+    ctx.font="9.5px 'SF Mono',Menlo,monospace";
+    ctx.fillText(t.name.toUpperCase()+" · "+n.type,n.x+16,n.y+37);
+    // ports
+    for(let i=0;i<t.ins;i++)drawPort(portPos(n,"in",i),"#8A8F98",hoverPort&&hoverPort.kind==="in"&&hoverPort.n===n&&hoverPort.p===i);
+    for(let i=0;i<t.outs;i++)drawPort(portPos(n,"out",i),t.color,hoverPort&&hoverPort.kind==="out"&&hoverPort.n===n&&hoverPort.p===i);
+  }
+  ctx.restore();
+}
+function drawPort(p,color,hot){
+  ctx.beginPath();ctx.arc(p.x,p.y,hot?6:4.5,0,7);
+  ctx.fillStyle=hot?color:"#131417";
+  ctx.strokeStyle=color;ctx.lineWidth=1.6;ctx.fill();ctx.stroke();
+  if(hot){ctx.beginPath();ctx.arc(p.x,p.y,9,0,7);
+    ctx.strokeStyle=color;ctx.globalAlpha=.35;ctx.lineWidth=1;ctx.stroke();ctx.globalAlpha=1;}
+}
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+updateStats();
+log("示例工作流已加载 · 点击「运行」查看执行动画","hl");
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

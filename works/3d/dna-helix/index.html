@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DNA Helix — 双螺旋结构 · 04</title>
+<style>
+  :root{
+    --bg:#08070f; --panel:#100e1acc; --line:#241f38;
+    --ink:#ece9f6; --dim:#8b84a8; --mono:'SF Mono',Menlo,monospace;
+    --vio:#9d8cff; --A:#4ade80; --T:#fbbf24; --G:#38bdf8; --C:#fb7185;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);
+    font-family:-apple-system,'Helvetica Neue','PingFang SC',sans-serif;color:var(--ink)}
+  #stage{position:fixed;inset:0;cursor:grab}
+  #stage.grabbing{cursor:grabbing}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 45%,transparent 52%,rgba(4,3,10,.65) 100%)}
+  header{position:fixed;top:28px;left:32px;pointer-events:none;z-index:5}
+  .no{font-family:var(--mono);font-size:11px;letter-spacing:.35em;color:var(--vio);margin-bottom:8px}
+  h1{font-family:Didot,'Bodoni MT',Georgia,'Songti SC',serif;font-weight:400;
+     font-size:clamp(22px,3vw,34px);letter-spacing:.04em}
+  h1 em{font-style:italic;color:var(--vio)}
+  .sub{margin-top:8px;font-size:12px;color:var(--dim);letter-spacing:.12em}
+  #info{position:fixed;top:34px;right:32px;z-index:5;width:210px;
+    background:var(--panel);border:1px solid var(--line);border-radius:4px;
+    padding:14px 16px;backdrop-filter:blur(6px)}
+  #info .title{font-family:var(--mono);font-size:10px;letter-spacing:.3em;color:var(--vio);margin-bottom:10px}
+  .lg{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:10px;
+    color:var(--dim);letter-spacing:.1em;padding:3px 0}
+  .dot{width:8px;height:8px;border-radius:50%}
+  #readout{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);
+    font-family:var(--mono);font-size:11px;line-height:1.9;color:var(--ink)}
+  #readout .pair{font-size:18px;letter-spacing:.2em}
+  #panel{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:5;
+    display:flex;gap:16px;align-items:center;flex-wrap:wrap;justify-content:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:12px 20px;backdrop-filter:blur(8px);max-width:calc(100vw - 32px)}
+  .btn{appearance:none;border:1px solid var(--vio);background:transparent;color:var(--vio);
+    font-family:var(--mono);font-size:11px;letter-spacing:.2em;padding:9px 16px;border-radius:4px;
+    cursor:pointer;transition:all .25s cubic-bezier(.4,0,.2,1)}
+  .btn:hover,.btn.on{background:var(--vio);color:#0d0a1a;box-shadow:0 0 24px rgba(157,140,255,.3)}
+  .ctl{display:flex;align-items:center;gap:10px}
+  .ctl label{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100px;height:2px;
+    background:var(--line);border-radius:2px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+    width:12px;height:12px;border-radius:50%;background:var(--vio);
+    border:2px solid #08070f;box-shadow:0 0 0 1px var(--vio);transition:transform .2s}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;
+    background:var(--vio);border:2px solid #08070f;box-shadow:0 0 0 1px var(--vio)}
+  .hint{position:fixed;bottom:30px;left:32px;font-family:var(--mono);font-size:10px;
+    color:var(--dim);letter-spacing:.12em;line-height:1.9;pointer-events:none;z-index:4}
+  .hint b{color:var(--ink);font-weight:400}
+  @media (max-width:760px){
+    #info,.hint{display:none}
+    header{top:18px;left:20px}#panel{bottom:14px;padding:10px 12px;gap:10px}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="vignette"></div>
+<header>
+  <div class="no">N°04 — MOLECULAR STRUCTURE</div>
+  <h1>DNA Helix <em>生命之旋</em></h1>
+  <div class="sub">双螺旋 · 碱基互补配对 · 可交互分子模型</div>
+</header>
+<div id="info">
+  <div class="title">BASE LEGEND</div>
+  <div class="lg"><span class="dot" style="background:#4ade80"></span>A — ADENINE 腺嘌呤</div>
+  <div class="lg"><span class="dot" style="background:#fbbf24"></span>T — THYMINE 胸腺嘧啶</div>
+  <div class="lg"><span class="dot" style="background:#38bdf8"></span>G — GUANINE 鸟嘌呤</div>
+  <div class="lg"><span class="dot" style="background:#fb7185"></span>C — CYTOSINE 胞嘧啶</div>
+  <div id="readout"><span style="color:var(--dim)">悬停查看碱基对 →</span></div>
+</div>
+<div class="hint"><b>拖拽</b> — 旋转（带惯性）· <b>滚轮</b> — 缩放<br><b>悬停碱基对</b> — 高亮并显示配对信息</div>
+<div id="panel">
+  <button class="btn" id="spinBtn">暂停 PAUSE</button>
+  <div class="ctl"><label>转速 SPIN</label><input type="range" id="spin" min="0" max="100" value="35"></div>
+  <div class="ctl"><label>螺距 TWIST</label><input type="range" id="twist" min="6" max="18" value="10"></div>
+  <div class="ctl"><label>长度 LENGTH</label><input type="range" id="len" min="40" max="200" value="120"></div>
+  <button class="btn" id="seqBtn">↻ 新序列 RESEQUENCE</button>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+var stage=document.getElementById('stage');
+var renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.outputEncoding=THREE.sRGBEncoding;
+stage.appendChild(renderer.domElement);
+var scene=new THREE.Scene();
+scene.background=new THREE.Color(0x08070f);
+scene.fog=new THREE.FogExp2(0x08070f,.028);
+var camera=new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight,.1,300);
+
+/* lights */
+scene.add(new THREE.HemisphereLight(0x9d8cff,0x0a0812,.5));
+var key=new THREE.DirectionalLight(0xfff4e6,1.1);
+key.position.set(8,14,10);
+key.castShadow=true;
+key.shadow.mapSize.set(1024,1024);
+scene.add(key);
+var rimA=new THREE.PointLight(0x38bdf8,.8,60);rimA.position.set(-10,6,-8);scene.add(rimA);
+var rimB=new THREE.PointLight(0xfb7185,.5,60);rimB.position.set(10,-6,-10);scene.add(rimB);
+
+/* base palette */
+var BASES={
+  A:{c:new THREE.Color(0x4ade80),pair:'T',full:'ADENINE 腺嘌呤'},
+  T:{c:new THREE.Color(0xfbbf24),pair:'A',full:'THYMINE 胸腺嘧啶'},
+  G:{c:new THREE.Color(0x38bdf8),pair:'C',full:'GUANINE 鸟嘌呤'},
+  C:{c:new THREE.Color(0xfb7185),pair:'G',full:'CYTOSINE 胞嘧啶'}
+};
+var LETTERS=['A','T','G','C'];
+
+/* params */
+var N=120, BPT=10;          // pairs count, base pairs per turn
+var R=2.6, RISE=.36;
+var helix=null, hoverables=[], pairData=[];
+var seedRng=Math.random;
+
+function buildHelix(){
+  if(helix){
+    scene.remove(helix);
+    helix.traverse(function(o){if(o.geometry)o.geometry.dispose();});
+  }
+  hoverables=[];pairData=[];
+  helix=new THREE.Group();
+
+  var sphGeo=new THREE.SphereGeometry(1,20,14);
+  var backMat=new THREE.MeshStandardMaterial({color:0xd9d4f0,roughness:.28,metalness:.35,
+    emissive:0x2a2440,emissiveIntensity:.5});
+  var baseMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.3,metalness:.15,
+    emissive:0x222222,emissiveIntensity:.9});
+
+  var backMesh=new THREE.InstancedMesh(sphGeo,backMat,N*2);
+  var baseMesh=new THREE.InstancedMesh(sphGeo,baseMat,N*2);
+  backMesh.castShadow=baseMesh.castShadow=true;
+
+  var cylGeo=new THREE.CylinderGeometry(1,1,1,10,1,true);
+  cylGeo.translate(0,.5,0);
+  var rungMesh=new THREE.InstancedMesh(cylGeo,baseMat.clone(),N*2);
+  rungMesh.material.side=THREE.DoubleSide;
+
+  var m4=new THREE.Matrix4(), q=new THREE.Quaternion(), s=new THREE.Vector3();
+  var up=new THREE.Vector3(0,1,0), dir=new THREE.Vector3(), mid=new THREE.Vector3();
+
+  var pts1=[],pts2=[];
+  var i,a,y,p1,p2;
+  for(i=0;i<N;i++){
+    a=i/BPT*Math.PI*2;
+    y=(i-N/2)*RISE;
+    p1=new THREE.Vector3(Math.cos(a)*R,y,Math.sin(a)*R);
+    p2=new THREE.Vector3(Math.cos(a+Math.PI)*R,y,Math.sin(a+Math.PI)*R);
+    pts1.push(p1);pts2.push(p2);
+    // backbone spheres
+    s.set(.16,.16,.16);m4.compose(p1,q.identity(),s);backMesh.setMatrixAt(i*2,m4);
+    m4.compose(p2,q.identity(),s);backMesh.setMatrixAt(i*2+1,m4);
+    // base pair
+    var L=LETTERS[(seedRng()*4)|0];
+    var bA=BASES[L], bB=BASES[bA.pair];
+    mid.copy(p1).lerp(p2,.5);
+    // half rungs as stretched spheres (bases) + thin cylinders (bonds)
+    var h1=p1.clone().lerp(mid,.82), h2=p2.clone().lerp(mid,.82);
+    s.set(.17,.17,.17);
+    m4.compose(h1,q.identity(),s);baseMesh.setMatrixAt(i*2,m4);
+    m4.compose(h2,q.identity(),s);baseMesh.setMatrixAt(i*2+1,m4);
+    baseMesh.setColorAt(i*2,bA.c);
+    baseMesh.setColorAt(i*2+1,bB.c);
+    // cylinders p1→h1, p2→h2
+    function bond(from,to,idx){
+      dir.copy(to).sub(from);
+      var len=dir.length();
+      q.setFromUnitVectors(up,dir.clone().normalize());
+      s.set(.035,len,.035);
+      m4.compose(from,q,s);
+      rungMesh.setMatrixAt(idx,m4);
+      rungMesh.setColorAt(idx,idx%2? bB.c : bA.c);
+    }
+    bond(p1,h1,i*2);
+    bond(p2,h2,i*2+1);
+    pairData.push({a:L,b:bA.pair,idx:i});
+  }
+  baseMesh.instanceColor.needsUpdate=true;
+  rungMesh.instanceColor.needsUpdate=true;
+  helix.add(backMesh,baseMesh,rungMesh);
+  hoverables.push(baseMesh);
+
+  // backbone tubes
+  [pts1,pts2].forEach(function(pts){
+    var curve=new THREE.CatmullRomCurve3(pts);
+    var tube=new THREE.Mesh(new THREE.TubeGeometry(curve,N*2,.055,8,false),
+      new THREE.MeshStandardMaterial({color:0xbdb6e6,roughness:.35,metalness:.4,
+        emissive:0x1c1830,emissiveIntensity:.6}));
+    tube.castShadow=true;
+    helix.add(tube);
+  });
+  scene.add(helix);
+}
+
+/* ambient particles */
+(function(){
+  var g=new THREE.BufferGeometry(),n=500,arr=new Float32Array(n*3);
+  for(var i=0;i<n;i++){
+    var r=8+Math.random()*22,th=Math.random()*Math.PI*2,ph=Math.acos(2*Math.random()-1);
+    arr[i*3]=r*Math.sin(ph)*Math.cos(th);
+    arr[i*3+1]=(Math.random()-.5)*30;
+    arr[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+  }
+  g.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0x6f66a8,size:.05,transparent:true,opacity:.55,depthWrite:false})));
+})();
+
+/* camera / interaction */
+var cam={r:16,rT:16,y:0};
+var spinning=true, spinSpeed=.35, vel=0, dragging=false, lastX=0;
+stage.addEventListener('pointerdown',function(e){dragging=true;lastX=e.clientX;stage.classList.add('grabbing');stage.setPointerCapture(e.pointerId);});
+stage.addEventListener('pointermove',function(e){
+  if(dragging){
+    var dx=e.clientX-lastX;lastX=e.clientX;
+    vel=dx*.006;
+    if(helix)helix.rotation.y+=vel;
+  }
+});
+stage.addEventListener('pointerup',function(){dragging=false;stage.classList.remove('grabbing');});
+stage.addEventListener('wheel',function(e){e.preventDefault();
+  cam.rT=Math.max(7,Math.min(40,cam.rT+e.deltaY*.02));},{passive:false});
+
+/* hover raycast */
+var ray=new THREE.Raycaster(), ptr=new THREE.Vector2(9,9);
+var readout=document.getElementById('readout');
+var lastHover=-1;
+window.addEventListener('pointermove',function(e){
+  ptr.x=(e.clientX/window.innerWidth)*2-1;
+  ptr.y=-(e.clientY/window.innerHeight)*2+1;
+});
+function checkHover(){
+  if(!helix||dragging)return;
+  ray.setFromCamera(ptr,camera);
+  var hits=ray.intersectObjects(hoverables,false);
+  if(hits.length&&hits[0].instanceId!==undefined){
+    var pairIdx=Math.floor(hits[0].instanceId/2);
+    if(pairIdx!==lastHover){
+      lastHover=pairIdx;
+      var d=pairData[pairIdx];
+      readout.innerHTML='<span class="pair" style="color:#'+
+        BASES[d.a].c.getHexString()+'">'+d.a+'</span> ═ <span class="pair" style="color:#'+
+        BASES[d.b].c.getHexString()+'">'+d.b+'</span><br>'+
+        BASES[d.a].full+'<br>↔ '+BASES[d.b].full+'<br><span style="color:var(--dim)">PAIR #'+(d.idx+1)+' · '+(d.a==='A'||d.a==='T'?'2 氢键':'3 氢键')+'</span>';
+      stage.style.cursor='pointer';
+    }
+  }else if(lastHover!==-1){
+    lastHover=-1;
+    readout.innerHTML='<span style="color:var(--dim)">悬停查看碱基对 →</span>';
+    stage.style.cursor='';
+  }
+}
+
+/* UI */
+document.getElementById('spin').addEventListener('input',function(e){spinSpeed=+e.target.value/100;});
+document.getElementById('twist').addEventListener('input',function(e){BPT=+e.target.value;});
+document.getElementById('twist').addEventListener('change',buildHelix);
+document.getElementById('len').addEventListener('input',function(e){N=+e.target.value;});
+document.getElementById('len').addEventListener('change',buildHelix);
+document.getElementById('seqBtn').addEventListener('click',buildHelix);
+var spinBtn=document.getElementById('spinBtn');
+spinBtn.addEventListener('click',function(){
+  spinning=!spinning;
+  spinBtn.textContent=spinning?'暂停 PAUSE':'旋转 SPIN';
+  spinBtn.classList.toggle('on',!spinning);
+});
+
+/* loop */
+var clock=new THREE.Clock();
+function animate(){
+  requestAnimationFrame(animate);
+  var dt=Math.min(clock.getDelta(),.05);
+  var t=clock.elapsedTime;
+  if(helix){
+    if(spinning)helix.rotation.y+=spinSpeed*dt*1.6;
+    if(!dragging){helix.rotation.y+=vel;vel*=Math.pow(.06,dt);}
+    helix.position.y=Math.sin(t*.6)*.25;
+  }
+  cam.r+=(cam.rT-cam.r)*(1-Math.exp(-dt*6));
+  camera.position.set(0,Math.sin(t*.3)*1.2,cam.r);
+  camera.lookAt(0,0,0);
+  checkHover();
+  renderer.render(scene,camera);
+}
+window.addEventListener('resize',function(){
+  camera.aspect=window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth,window.innerHeight);
+});
+buildHelix();
+animate();
+})();
+</script>
+</body>
+</html>

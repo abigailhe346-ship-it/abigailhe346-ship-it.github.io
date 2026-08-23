@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Superformula — 超级公式形态探索器</title>
+<style>
+  :root{
+    --ink:#101013;
+    --paper:#f4f1ea;
+    --bone:#e8e2d4;
+    --copper:#d97a4e;
+    --sage:#8fa68e;
+    --line:rgba(244,241,234,.16);
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--sans)}
+  #stage{position:fixed;inset:0;display:block;cursor:crosshair}
+
+  /* ---------- header ---------- */
+  header{position:fixed;top:0;left:0;right:0;padding:28px 36px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none;z-index:5}
+  .mark{display:flex;flex-direction:column;gap:6px}
+  .mark .no{font-family:var(--mono);font-size:10px;letter-spacing:.35em;color:var(--copper)}
+  .mark h1{font-family:var(--serif);font-weight:400;font-size:clamp(22px,3vw,34px);letter-spacing:.02em;line-height:1}
+  .mark .sub{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:rgba(244,241,234,.5)}
+  .formula{font-family:var(--mono);font-size:10px;line-height:1.9;color:rgba(244,241,234,.42);text-align:right;white-space:pre}
+  .formula b{color:var(--copper);font-weight:400}
+
+  /* ---------- control panel ---------- */
+  .panel{position:fixed;left:36px;bottom:32px;z-index:6;width:280px;max-height:calc(100vh - 160px);overflow-y:auto;padding:22px 22px 18px;background:rgba(16,16,19,.62);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);transition:transform .6s var(--ease),opacity .6s var(--ease)}
+  .panel.hidden{transform:translateY(24px);opacity:0;pointer-events:none}
+  .panel h2{font-size:10px;letter-spacing:.3em;text-transform:uppercase;color:rgba(244,241,234,.55);margin-bottom:16px;display:flex;justify-content:space-between}
+  .panel h2 span:last-child{color:var(--copper)}
+  .ctl{margin-bottom:14px}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:rgba(244,241,234,.66);margin-bottom:7px}
+  .ctl label output{color:var(--bone)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:rgba(244,241,234,.25)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:9px;height:9px;margin-top:-4px;background:var(--ink);border:1px solid var(--copper);transform:rotate(45deg);transition:background .25s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--copper)}
+  input[type=range]::-moz-range-track{height:1px;background:rgba(244,241,234,.25)}
+  input[type=range]::-moz-range-thumb{width:9px;height:9px;border:none;background:var(--copper);border-radius:0;transform:rotate(45deg)}
+  .row{display:flex;gap:10px;margin-top:18px}
+  button{flex:1;font-family:var(--sans);font-size:10px;letter-spacing:.24em;text-transform:uppercase;padding:11px 0;background:transparent;color:var(--paper);border:1px solid rgba(244,241,234,.32);cursor:pointer;transition:all .35s var(--ease)}
+  button:hover{background:var(--paper);color:var(--ink);border-color:var(--paper)}
+  button.accent{border-color:var(--copper);color:var(--copper)}
+  button.accent:hover{background:var(--copper);color:var(--ink)}
+  .hint{position:fixed;right:36px;bottom:32px;z-index:5;font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:rgba(244,241,234,.34);text-align:right;line-height:2;pointer-events:none}
+  .hint em{font-style:normal;color:rgba(244,241,234,.62)}
+  #panelToggle{position:fixed;left:36px;bottom:32px;z-index:7;width:38px;height:38px;flex:none;padding:0;display:none;align-items:center;justify-content:center;border:1px solid rgba(244,241,234,.32)}
+  #panelToggle svg{width:14px;height:14px;stroke:var(--paper);stroke-width:1.5;fill:none}
+  .panel.hidden ~ #panelToggle{display:flex}
+  @media (max-width:640px){
+    header{padding:20px}
+    .formula{display:none}
+    .panel{left:16px;right:16px;bottom:16px;width:auto}
+    #panelToggle{left:16px;bottom:16px}
+    .hint{display:none}
+  }
+</style>
+</head>
+<body>
+<canvas id="stage"></canvas>
+
+<header>
+  <div class="mark">
+    <span class="no">GEN-ART · N°01</span>
+    <h1>Superformula</h1>
+    <span class="sub">超级公式形态探索器</span>
+  </div>
+  <div class="formula" id="formula"></div>
+</header>
+
+<div class="panel" id="panel">
+  <h2><span>Parameters</span><span>Gielis 1997</span></h2>
+  <div class="ctl"><label><span>m — 对称</span><output id="oM">6.00</output></label><input type="range" id="pM" min="0" max="16" step="0.05" value="6"></div>
+  <div class="ctl"><label><span>n₁ — 胀缩</span><output id="oN1">0.60</output></label><input type="range" id="pN1" min="0.1" max="6" step="0.02" value="0.6"></div>
+  <div class="ctl"><label><span>n₂ — 纵向</span><output id="oN2">1.40</output></label><input type="range" id="pN2" min="0.1" max="6" step="0.02" value="1.4"></div>
+  <div class="ctl"><label><span>n₃ — 横向</span><output id="oN3">1.40</output></label><input type="range" id="pN3" min="0.1" max="6" step="0.02" value="1.4"></div>
+  <div class="ctl"><label><span>层叠 rings</span><output id="oL">9</output></label><input type="range" id="pL" min="1" max="18" step="1" value="9"></div>
+  <div class="ctl"><label><span>旋转 speed</span><output id="oS">0.20</output></label><input type="range" id="pS" min="0" max="1" step="0.01" value="0.2"></div>
+  <div class="row">
+    <button class="accent" id="btnRandom">随机再生</button>
+    <button id="btnSave">下载 PNG</button>
+  </div>
+</div>
+<button id="panelToggle" aria-label="open panel"><svg viewBox="0 0 24 24"><path d="M4 8h16M4 16h10"/></svg></button>
+
+<div class="hint">移动鼠标 — <em>引力偏移</em><br>按 <em>R</em> 随机 · <em>S</em> 存图 · <em>H</em> 收起面板</div>
+
+<script>
+(function(){
+  "use strict";
+  var canvas=document.getElementById('stage'),ctx=canvas.getContext('2d');
+  var W=0,H=0,DPR=1,cx=0,cy=0;
+  function resize(){
+    DPR=Math.min(window.devicePixelRatio||1,2);
+    W=window.innerWidth;H=window.innerHeight;
+    canvas.width=W*DPR;canvas.height=H*DPR;
+    canvas.style.width=W+'px';canvas.style.height=H+'px';
+    ctx.setTransform(DPR,0,0,DPR,0,0);
+    cx=W/2;cy=H/2;
+    ctx.fillStyle='#101013';ctx.fillRect(0,0,W,H);
+  }
+  window.addEventListener('resize',resize);resize();
+
+  /* superformula params: current → target, eased morph */
+  var cur={m:6,n1:.6,n2:1.4,n3:1.4},tgt={m:6,n1:.6,n2:1.4,n3:1.4};
+  var layers=9,speed=.2,rot=0,morphT=1;
+  var mouse={x:0,y:0,tx:0,ty:0};
+
+  function sf(m,n1,n2,n3,phi){
+    var a=Math.cos(m*phi/4),b=Math.sin(m*phi/4);
+    var t1=Math.pow(Math.abs(a),n2),t2=Math.pow(Math.abs(b),n3);
+    var s=t1+t2;
+    if(s<1e-9)return 0;
+    return Math.pow(s,-1/n1);
+  }
+
+  var SAMPLES=720;
+  function drawFrame(dt){
+    /* ease morph */
+    if(morphT<1){
+      morphT=Math.min(1,morphT+dt/2.2);
+      var e=1-Math.pow(1-morphT,3),k=0.06+e*0.12;
+      cur.m+=(tgt.m-cur.m)*k;cur.n1+=(tgt.n1-cur.n1)*k;
+      cur.n2+=(tgt.n2-cur.n2)*k;cur.n3+=(tgt.n3-cur.n3)*k;
+    }
+    mouse.tx+=(mouse.x-mouse.tx)*0.05;
+    mouse.ty+=(mouse.y-mouse.ty)*0.05;
+    rot+=dt*speed*0.35;
+
+    /* trail fade */
+    ctx.fillStyle='rgba(16,16,19,0.24)';
+    ctx.fillRect(0,0,W,H);
+
+    var base=Math.min(W,H)*0.30;
+    var ox=(mouse.tx-0.5)*W*0.06,oy=(mouse.ty-0.5)*H*0.06;
+    var R=Math.max(1,Math.round(layers));
+    for(var i=0;i<R;i++){
+      var f=i/(R-1||1);
+      var scale=base*(1-f*0.82);
+      var twist=rot*(1+f*1.6)+f*0.7;
+      ctx.beginPath();
+      var first=true;
+      for(var j=0;j<=SAMPLES;j++){
+        var phi=j/SAMPLES*Math.PI*2;
+        var r=sf(cur.m,cur.n1,cur.n2,cur.n3,phi+twist*0.13);
+        if(r>4)r=4;
+        var px=cx+ox+Math.cos(phi+twist)*r*scale;
+        var py=cy+oy+Math.sin(phi+twist)*r*scale;
+        if(first){ctx.moveTo(px,py);first=false;}else ctx.lineTo(px,py);
+      }
+      ctx.closePath();
+      var alpha=0.06+0.5*(1-f);
+      if(i===0){
+        ctx.strokeStyle='rgba(217,122,78,'+Math.min(1,alpha+0.25)+')';
+        ctx.lineWidth=1.4;
+      }else{
+        ctx.strokeStyle='rgba(232,226,212,'+alpha+')';
+        ctx.lineWidth=0.7;
+      }
+      ctx.stroke();
+    }
+    updateFormula();
+  }
+
+  var formulaEl=document.getElementById('formula');
+  function updateFormula(){
+    formulaEl.innerHTML=
+      'r(φ) = ( |cos(<b>'+cur.m.toFixed(2)+'φ</b>/4)|<sup>n₂</sup> + |sin(<b>'+cur.m.toFixed(2)+'φ</b>/4)|<sup>n₃</sup> )<sup>−1/n₁</sup>\n'+
+      'n₁ <b>'+cur.n1.toFixed(2)+'</b>   n₂ <b>'+cur.n2.toFixed(2)+'</b>   n₃ <b>'+cur.n3.toFixed(2)+'</b>';
+  }
+
+  var last=performance.now();
+  function loop(now){
+    var dt=Math.min(0.05,(now-last)/1000);last=now;
+    drawFrame(dt);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  /* ---------- controls ---------- */
+  function bind(id,out,set){
+    var el=document.getElementById(id),o=document.getElementById(out);
+    el.addEventListener('input',function(){
+      var v=parseFloat(el.value);set(v);
+      o.textContent=(id==='pL')?String(v):v.toFixed(2);
+    });
+  }
+  bind('pM','oM',function(v){tgt.m=v;morphT=0;});
+  bind('pN1','oN1',function(v){tgt.n1=v;morphT=0;});
+  bind('pN2','oN2',function(v){tgt.n2=v;morphT=0;});
+  bind('pN3','oN3',function(v){tgt.n3=v;morphT=0;});
+  bind('pL','oL',function(v){layers=v;});
+  bind('pS','oS',function(v){speed=v;});
+
+  function rand(a,b){return a+Math.random()*(b-a);}
+  function randomize(){
+    var ms=[0,2,3,4,5,6,7,8,10,12,5.5,7.3];
+    tgt.m=ms[Math.floor(Math.random()*ms.length)];
+    tgt.n1=rand(0.15,4);tgt.n2=rand(0.2,5);tgt.n3=rand(0.2,5);
+    if(Math.random()<0.4){tgt.n2=tgt.n3;}
+    morphT=0;
+    syncSliders();
+  }
+  function syncSliders(){
+    var map=[['pM','oM',tgt.m],['pN1','oN1',tgt.n1],['pN2','oN2',tgt.n2],['pN3','oN3',tgt.n3]];
+    for(var i=0;i<map.length;i++){
+      document.getElementById(map[i][0]).value=map[i][2];
+      document.getElementById(map[i][1]).textContent=map[i][2].toFixed(2);
+    }
+  }
+  function save(){
+    var a=document.createElement('a');
+    a.download='superformula-'+Date.now()+'.png';
+    a.href=canvas.toDataURL('image/png');
+    a.click();
+  }
+  document.getElementById('btnRandom').addEventListener('click',randomize);
+  document.getElementById('btnSave').addEventListener('click',save);
+
+  window.addEventListener('mousemove',function(e){
+    mouse.x=e.clientX/W;mouse.y=e.clientY/H;
+  });
+  window.addEventListener('touchmove',function(e){
+    if(e.touches.length){mouse.x=e.touches[0].clientX/W;mouse.y=e.touches[0].clientY/H;}
+  },{passive:true});
+  window.addEventListener('click',function(e){
+    if(e.target===canvas){
+      /* gentle kick: jump morph target slightly toward random neighbour */
+      tgt.m+= (Math.random()<0.5?-1:1)*rand(0.4,1.6);
+      if(tgt.m<0)tgt.m=0;if(tgt.m>16)tgt.m=16;
+      morphT=0;
+    }
+  });
+  var panel=document.getElementById('panel');
+  document.getElementById('panelToggle').addEventListener('click',function(){panel.classList.remove('hidden');});
+  window.addEventListener('keydown',function(e){
+    var k=e.key.toLowerCase();
+    if(k==='r')randomize();
+    else if(k==='s')save();
+    else if(k==='h')panel.classList.toggle('hidden');
+  });
+})();
+</script>
+</body>
+</html>

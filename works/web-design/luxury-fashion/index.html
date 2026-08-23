@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VESPER 暮光高定时装屋 — Maison de Couture, Paris</title>
+<style>
+  :root{
+    --noir:#0C0A08;
+    --noir2:#161310;
+    --ivory:#EFE7D8;
+    --ivory-dim:rgba(239,231,216,.62);
+    --gold:#C19A3F;
+    --gold-soft:rgba(193,154,63,.35);
+    --serif:Didot,"Bodoni MT","Songti SC",Georgia,serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,monospace;
+    --ease:cubic-bezier(.19,1,.22,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--noir);color:var(--ivory);font-family:var(--serif);overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;cursor:none;}
+  ::selection{background:var(--gold);color:var(--noir);}
+  a{color:inherit;text-decoration:none;}
+  @media(pointer:coarse){body{cursor:auto;}}
+
+  /* ---------- custom cursor ---------- */
+  #cur,#curRing{position:fixed;top:0;left:0;pointer-events:none;z-index:200;border-radius:50%;}
+  #cur{width:6px;height:6px;background:var(--gold);transform:translate(-50%,-50%);}
+  #curRing{width:34px;height:34px;border:1px solid var(--gold-soft);transform:translate(-50%,-50%);
+    transition:width .35s var(--ease),height .35s var(--ease),border-color .35s;}
+  #curRing.big{width:64px;height:64px;border-color:var(--gold);}
+  @media(pointer:coarse){#cur,#curRing{display:none;}}
+
+  /* ---------- header ---------- */
+  header{position:fixed;top:0;left:0;right:0;z-index:90;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:18px 3vw;mix-blend-mode:difference;color:#fff;pointer-events:none;}
+  header>*{pointer-events:auto;}
+  .sig{font-family:var(--mono);font-size:11px;letter-spacing:.14em;line-height:1.8;}
+  .sig .no{color:var(--gold);font-weight:700;}
+  nav{display:flex;gap:34px;font-family:var(--mono);font-size:10px;letter-spacing:.3em;padding-top:4px;}
+  nav a{position:relative;padding-bottom:4px;}
+  nav a::after{content:"";position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--gold);
+    transition:width .45s var(--ease);}
+  nav a:hover::after{width:100%;}
+  @media(max-width:760px){nav{display:none;}}
+
+  /* ---------- hero ---------- */
+  .hero{position:relative;height:100vh;min-height:640px;display:flex;flex-direction:column;
+    justify-content:flex-end;padding:0 3vw 9vh;overflow:hidden;}
+  #silk{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .hero::after{content:"";position:absolute;inset:0;background:
+    linear-gradient(to top,var(--noir) 4%,rgba(12,10,8,.25) 38%,rgba(12,10,8,.15) 100%);pointer-events:none;}
+  .hero-in{position:relative;z-index:2;}
+  .mast-k{font-family:var(--mono);font-size:11px;letter-spacing:.55em;color:var(--gold);margin-bottom:3.2vh;}
+  h1{font-size:clamp(84px,17vw,300px);line-height:.86;font-weight:700;letter-spacing:.02em;
+    text-transform:uppercase;white-space:nowrap;}
+  h1 .L{display:inline-block;opacity:0;transform:translateY(110%) rotate(4deg);
+    animation:rise 1.3s var(--ease) forwards;}
+  @keyframes rise{to{opacity:1;transform:none;}}
+  h1 .L:nth-child(2){animation-delay:.07s}h1 .L:nth-child(3){animation-delay:.14s}
+  h1 .L:nth-child(4){animation-delay:.21s}h1 .L:nth-child(5){animation-delay:.28s}
+  h1 .L:nth-child(6){animation-delay:.35s}
+  .hero-sub{display:flex;justify-content:space-between;align-items:flex-end;margin-top:4.5vh;
+    border-top:1px solid rgba(239,231,216,.28);padding-top:20px;gap:16px;flex-wrap:wrap;
+    opacity:0;animation:fadein 1.2s ease .9s forwards;}
+  @keyframes fadein{to{opacity:1;}}
+  .hero-sub p{font-family:var(--sans);font-size:13px;line-height:2;max-width:44ch;color:var(--ivory-dim);}
+  .hero-sub .est{font-style:italic;font-size:clamp(18px,2vw,26px);color:var(--gold);}
+  .scrollhint{position:absolute;right:3vw;top:50%;z-index:2;writing-mode:vertical-rl;
+    font-family:var(--mono);font-size:10px;letter-spacing:.4em;color:var(--ivory-dim);}
+  .scrollhint::after{content:"";display:block;width:1px;height:56px;background:var(--gold);margin:14px auto 0;
+    animation:drop 2.2s var(--ease) infinite;transform-origin:top;}
+  @keyframes drop{0%{transform:scaleY(0);}55%{transform:scaleY(1);transform-origin:top;}
+    56%{transform-origin:bottom;}100%{transform:scaleY(0);transform-origin:bottom;}}
+
+  /* ---------- marquee ---------- */
+  .marquee{border-top:1px solid rgba(239,231,216,.2);border-bottom:1px solid rgba(239,231,216,.2);
+    overflow:hidden;padding:16px 0;background:var(--noir);}
+  .marquee .mq{display:flex;width:max-content;animation:mq 30s linear infinite;}
+  .marquee span{font-family:var(--serif);font-style:italic;font-size:15px;letter-spacing:.34em;
+    color:var(--ivory-dim);padding:0 34px;white-space:nowrap;}
+  .marquee span b{color:var(--gold);font-style:normal;font-family:var(--mono);font-size:11px;
+    letter-spacing:.3em;vertical-align:2px;}
+  @keyframes mq{to{transform:translateX(-50%);}}
+
+  /* ---------- sections common ---------- */
+  section{position:relative;}
+  .sec-head{display:flex;justify-content:space-between;align-items:baseline;padding:12vh 3vw 5vh;
+    gap:20px;flex-wrap:wrap;}
+  .sec-head h2{font-size:clamp(38px,5.5vw,88px);line-height:1;font-weight:700;text-transform:uppercase;
+    letter-spacing:-.01em;}
+  .sec-head h2 em{font-style:italic;font-weight:400;color:var(--gold);}
+  .sec-head .idx{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--ivory-dim);line-height:2;}
+  .rv{opacity:0;transform:translateY(36px);transition:opacity 1s var(--ease),transform 1s var(--ease);}
+  .rv.in{opacity:1;transform:none;}
+
+  /* ---------- collections ---------- */
+  .tabs{display:flex;margin:0 3vw;border-top:1px solid rgba(239,231,216,.25);border-bottom:1px solid rgba(239,231,216,.25);flex-wrap:wrap;}
+  .tabs button{flex:1;min-width:150px;background:transparent;border:none;border-right:1px solid rgba(239,231,216,.25);
+    color:var(--ivory-dim);font-family:var(--mono);font-size:11px;letter-spacing:.26em;padding:18px 10px;
+    cursor:none;transition:color .35s,background .35s;}
+  .tabs button:last-child{border-right:none;}
+  .tabs button:hover{color:var(--ivory);}
+  .tabs button.on{color:var(--noir);background:var(--gold);}
+  @media(pointer:coarse){.tabs button{cursor:pointer;}}
+  #lookgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;padding:2px 3vw 10vh;transition:opacity .45s ease;}
+  #lookgrid.swap{opacity:0;}
+  .look{position:relative;overflow:hidden;background:var(--noir2);}
+  .look canvas{display:block;width:100%;height:auto;transform:scale(1.02);
+    transition:transform 1.2s var(--ease),filter 1.2s var(--ease);filter:brightness(.86);}
+  .look:hover canvas{transform:scale(1.09);filter:brightness(1.04);}
+  .look .cap{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;
+    padding:16px 18px;font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--ivory);
+    background:linear-gradient(to top,rgba(12,10,8,.85),transparent);
+    transform:translateY(8px);opacity:.0;transition:opacity .6s var(--ease),transform .6s var(--ease);}
+  .look:hover .cap{opacity:1;transform:none;}
+  .look .cap b{color:var(--gold);}
+  @media(max-width:900px){#lookgrid{grid-template-columns:repeat(2,1fr);}}
+  @media(max-width:560px){#lookgrid{grid-template-columns:1fr;}}
+
+  /* ---------- atelier ---------- */
+  .atelier{display:grid;grid-template-columns:1.1fr 1fr;gap:5vw;padding:0 3vw 12vh;align-items:start;}
+  .atelier .lead{font-style:italic;font-size:clamp(22px,2.4vw,34px);line-height:1.75;color:var(--ivory);}
+  .atelier .lead::first-letter{color:var(--gold);}
+  .atelier .body{font-family:var(--sans);font-size:14px;line-height:2.2;color:var(--ivory-dim);margin-top:4vh;max-width:52ch;}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(239,231,216,.22);
+    border:1px solid rgba(239,231,216,.22);}
+  .stat{background:var(--noir);padding:34px 26px;}
+  .stat .num{font-size:clamp(40px,4vw,64px);font-weight:700;line-height:1;color:var(--gold);font-variant-numeric:tabular-nums;}
+  .stat .lbl{font-family:var(--mono);font-size:10px;letter-spacing:.24em;color:var(--ivory-dim);margin-top:14px;line-height:1.9;}
+  @media(max-width:900px){.atelier{grid-template-columns:1fr;}}
+
+  /* ---------- rendez-vous ---------- */
+  .rdv{background:var(--ivory);color:var(--noir);padding:12vh 3vw;}
+  .rdv .sec-head{padding:0 0 6vh;}
+  .rdv-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:5vw;align-items:start;}
+  .rdv h3{font-family:var(--mono);font-size:11px;letter-spacing:.34em;color:#7a6a45;margin:4vh 0 16px;font-weight:400;}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;}
+  .chip{border:1px solid var(--noir);background:transparent;color:var(--noir);font-family:var(--mono);
+    font-size:11px;letter-spacing:.14em;padding:12px 20px;cursor:none;transition:all .35s var(--ease);}
+  .chip:hover{background:rgba(12,10,8,.07);}
+  .chip.on{background:var(--noir);color:var(--gold);}
+  @media(pointer:coarse){.chip{cursor:pointer;}}
+  .rdv-note{font-family:var(--sans);font-size:13px;line-height:2.1;color:rgba(12,10,8,.66);max-width:40ch;}
+  .confirm-box{border:1px solid var(--noir);padding:34px 30px;min-height:280px;display:flex;flex-direction:column;}
+  .confirm-box .cb-k{font-family:var(--mono);font-size:10px;letter-spacing:.34em;color:#7a6a45;}
+  #cbLine{font-style:italic;font-size:clamp(19px,1.7vw,25px);line-height:1.9;margin-top:24px;flex:1;
+    transition:opacity .4s ease;}
+  #cbLine.fade{opacity:0;}
+  #cbBtn{background:var(--noir);color:var(--ivory);border:none;font-family:var(--mono);font-size:11px;
+    letter-spacing:.3em;padding:18px;cursor:none;transition:background .35s,color .35s;opacity:.35;pointer-events:none;}
+  #cbBtn.ready{opacity:1;pointer-events:auto;}
+  #cbBtn.ready:hover{background:var(--gold);color:var(--noir);}
+  @media(pointer:coarse){#cbBtn{cursor:pointer;}}
+  @media(max-width:900px){.rdv-grid{grid-template-columns:1fr;}}
+
+  footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:22px 3vw;
+    border-top:1px solid rgba(239,231,216,.2);font-family:var(--mono);font-size:10px;letter-spacing:.22em;
+    color:var(--ivory-dim);background:var(--noir);}
+</style>
+</head>
+<body>
+
+<div id="cur"></div><div id="curRing"></div>
+
+<header>
+  <div class="sig"><span class="no">№ 11</span> · <b>VESPER 暮光高定时装屋</b><br>MAISON DE COUTURE — PARIS</div>
+  <nav>
+    <a href="#collections">系列 COLLECTIONS</a>
+    <a href="#atelier">工坊 ATELIER</a>
+    <a href="#rdv">预约 RENDEZ-VOUS</a>
+  </nav>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <canvas id="silk"></canvas>
+  <div class="scrollhint">SCROLL — 下滑</div>
+  <div class="hero-in">
+    <div class="mast-k">HAUTE COUTURE · AUTOMNE—HIVER 2026</div>
+    <h1 id="brand"><span class="L">V</span><span class="L">E</span><span class="L">S</span><span class="L">P</span><span class="L">E</span><span class="L">R</span></h1>
+    <div class="hero-sub">
+      <p>夜色是这座时装屋的第一匹布料。三十八年里，我们只在黄昏后量体——
+        因为一个人真正的轮廓，要在光退下去之后才显形。移动指尖，抚过这片丝绸。</p>
+      <span class="est">8, Place Vendôme — Est. 1988</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MARQUEE ============ -->
+<div class="marquee"><div class="mq" id="mq"></div></div>
+
+<!-- ============ COLLECTIONS ============ -->
+<section id="collections">
+  <div class="sec-head rv">
+    <h2>LES <em>collections</em></h2>
+    <div class="idx">SEASON 2026 — 27 LOOKS<br>每一件均由工坊现场打版生成</div>
+  </div>
+  <div class="tabs rv" id="tabs">
+    <button data-c="couture" class="on">高定 COUTURE</button>
+    <button data-c="pret">成衣 PRÊT-À-PORTER</button>
+    <button data-c="atelierc">工坊 ATELIER LINE</button>
+  </div>
+  <div id="lookgrid"></div>
+</section>
+
+<!-- ============ ATELIER ============ -->
+<section id="atelier">
+  <div class="sec-head rv">
+    <h2>L'<em>atelier</em></h2>
+    <div class="idx">工艺 — 二楼天窗下，十二张裁台</div>
+  </div>
+  <div class="atelier">
+    <div class="rv">
+      <p class="lead">一件高定礼服在 VESPER 的平均诞生周期是一千二百个小时：三百小时打版，
+        四百小时刺绣，剩下的时间，用来等待布料安静下来。</p>
+      <p class="body">工坊在旺多姆广场八号的二楼，天窗朝北，光线稳定得像一位老员工。
+        版师先看人，再看布；针脚的方向顺着客人走路的习惯。我们相信奢侈的对立面不是廉价，
+        而是匆忙——所以这里从不开加急单，也从不解释为什么。</p>
+    </div>
+    <div class="stats rv" id="stats">
+      <div class="stat"><div class="num" data-n="1200">0</div><div class="lbl">HOURS / GARMENT<br>每件平均工时</div></div>
+      <div class="stat"><div class="num" data-n="38">0</div><div class="lbl">ARTISANS<br>在册匠人</div></div>
+      <div class="stat"><div class="num" data-n="1988">0</div><div class="lbl">ESTABLISHED<br>创立年份</div></div>
+      <div class="stat"><div class="num" data-n="27">0</div><div class="lbl">LOOKS / SEASON<br>本季造型</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RENDEZ-VOUS ============ -->
+<section class="rdv" id="rdv">
+  <div class="sec-head rv">
+    <h2 style="color:var(--noir)">RENDEZ<em>-vous</em></h2>
+    <div class="idx" style="color:#7a6a45">私人试装 — 仅接受预约<br>沙龙每次只接待一位客人</div>
+  </div>
+  <div class="rdv-grid rv">
+    <div>
+      <h3>选择日期 — DATE</h3>
+      <div class="chips" id="days"></div>
+      <h3>选择时辰 — HEURE</h3>
+      <div class="chips" id="times"></div>
+    </div>
+    <div>
+      <div class="confirm-box">
+        <span class="cb-k">VOTRE RENDEZ-VOUS — 您的预约</span>
+        <p id="cbLine">沙龙在黄昏六点亮起第一盏灯。请选择日期与时辰，我们将为您预留整张裁台。</p>
+        <button id="cbBtn">确认预约 CONFIRMER</button>
+      </div>
+      <p class="rdv-note" style="margin-top:20px">预约确认后，版师会提前四十八小时为您准备三本面料册。
+        着装无要求，但请留出至少两个小时。</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>VESPER — MAISON DE COUTURE · 8 PLACE VENDÔME, PARIS 1ER</span>
+  <span>SET IN DIDOT / SYSTEM STACK · SILK RENDERED LIVE</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var NOIR="#0C0A08",IVORY="#EFE7D8",GOLD="#C19A3F";
+var SERIF='Didot,"Bodoni MT","Songti SC",Georgia,serif';
+var MONO='"SF Mono",Menlo,monospace';
+
+/* ================= custom cursor ================= */
+var cur=document.getElementById("cur"),ring=document.getElementById("curRing");
+var mx=innerWidth/2,my=innerHeight/2,rx=mx,ry=my;
+addEventListener("mousemove",function(e){mx=e.clientX;my=e.clientY;
+  cur.style.left=mx+"px";cur.style.top=my+"px";});
+(function loopCur(){rx+=(mx-rx)*.16;ry+=(my-ry)*.16;
+  ring.style.left=rx+"px";ring.style.top=ry+"px";requestAnimationFrame(loopCur);})();
+document.addEventListener("mouseover",function(e){
+  ring.classList.toggle("big",!!e.target.closest("a,button,.look,.chip"));});
+
+/* ================= silk hero canvas ================= */
+var silk=document.getElementById("silk"),sx=silk.getContext("2d");
+var SW=0,SH=0,DPR=Math.min(devicePixelRatio||1,2);
+function sizeSilk(){SW=silk.clientWidth;SH=silk.clientHeight;
+  silk.width=SW*DPR;silk.height=SH*DPR;sx.setTransform(DPR,0,0,DPR,0,0);}
+sizeSilk();
+var hm={x:.62,y:.4,tx:.62,ty:.4};
+silk.parentElement.addEventListener("mousemove",function(e){
+  var r=silk.getBoundingClientRect();
+  hm.tx=(e.clientX-r.left)/r.width;hm.ty=(e.clientY-r.top)/r.height;});
+var motes=[];for(var i=0;i<46;i++)motes.push({x:Math.random(),y:Math.random(),
+  s:.6+Math.random()*1.6,v:.00016+Math.random()*.0004,ph:Math.random()*6.28});
+var T0=performance.now();
+function drawSilk(now){
+  var t=(now-T0)/1000;
+  hm.x+=(hm.tx-hm.x)*.05;hm.y+=(hm.ty-hm.y)*.05;
+  sx.fillStyle=NOIR;sx.fillRect(0,0,SW,SH);
+  var N=26;
+  for(var i=0;i<N;i++){
+    var p=i/(N-1);
+    var baseY=SH*(0.08+p*0.84);
+    var amp=10+p*26;
+    var grd=sx.createLinearGradient(0,0,SW,0);
+    var glow=0.10+0.30*Math.exp(-Math.pow((p-hm.y)*2.6,2));
+    grd.addColorStop(0,"rgba(193,154,63,0)");
+    grd.addColorStop(Math.max(.01,hm.x-.28),"rgba(193,154,63,"+(glow*.55)+")");
+    grd.addColorStop(hm.x,"rgba(232,206,138,"+Math.min(.9,glow*1.6)+")");
+    grd.addColorStop(Math.min(.99,hm.x+.28),"rgba(193,154,63,"+(glow*.55)+")");
+    grd.addColorStop(1,"rgba(193,154,63,0)");
+    sx.strokeStyle=grd;
+    sx.lineWidth=0.8+p*1.6;
+    sx.beginPath();
+    for(var x=0;x<=SW;x+=7){
+      var ny=baseY
+        +Math.sin(x*0.0042+t*0.55+i*0.42)*amp
+        +Math.sin(x*0.0113-t*0.32+i*1.3)*amp*0.38;
+      var d=x/SW-hm.x;
+      var g=Math.exp(-d*d*22);
+      ny+=(hm.y*SH-ny)*g*0.42;
+      if(x===0)sx.moveTo(x,ny);else sx.lineTo(x,ny);
+    }
+    sx.stroke();
+  }
+  /* gold dust */
+  for(var j=0;j<motes.length;j++){var m=motes[j];
+    m.y-=m.v;if(m.y<-0.02){m.y=1.02;m.x=Math.random();}
+    var tw=0.5+0.5*Math.sin(t*2+m.ph);
+    sx.fillStyle="rgba(232,206,138,"+(0.12+0.4*tw)+")";
+    sx.beginPath();sx.arc(m.x*SW,m.y*SH,m.s,0,7);sx.fill();}
+  requestAnimationFrame(drawSilk);
+}
+requestAnimationFrame(drawSilk);
+
+/* ================= marquee ================= */
+var mqItems=["DÉFILÉ AUTOMNE—HIVER 2026","<b>27 LOOKS</b>","旺多姆广场八号","<b>SUR RENDEZ-VOUS</b>",
+  "BRODERIE MAIN","<b>1200 HEURES</b>","LE SOIR EST UNE ÉTOFFE","<b>EST. 1988</b>"];
+var mqHTML=mqItems.map(function(s){return "<span>"+s+"</span>";}).join("");
+document.getElementById("mq").innerHTML=mqHTML+mqHTML;
+
+/* ================= look generator ================= */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+var COLLECTIONS={
+  couture:{name:"COUTURE",seed:1100,
+    looks:[["LOOK 01","夜幕曳地礼服",1],["LOOK 02","金丝刺绣斗篷",0],["LOOK 03","缎面斜裁晚装",1],
+           ["LOOK 04","羽饰收腰套装",0],["LOOK 05","液态金属长裙",1],["LOOK 06","天鹅绒吸烟装",0]]},
+  pret:{name:"PRÊT-À-PORTER",seed:2200,
+    looks:[["LOOK 07","雾灰羊绒大衣",0],["LOOK 08","直身丝质衬衫裙",1],["LOOK 09","双排扣呢绒西装",0],
+           ["LOOK 10","折纸感半裙",1],["LOOK 11","暗夜针织长裙",0],["LOOK 12","金扣骑行夹克",1]]},
+  atelierc:{name:"ATELIER LINE",seed:3300,
+    looks:[["PIÈCE I","胚布试样之一",0],["PIÈCE II","未完成的省道",1],["PIÈCE III","坯样披风",0],
+           ["PIÈCE IV","立裁练习·弧",1],["PIÈCE V","白坯与别针",0],["PIÈCE VI","手的形状",1]]}
+};
+function drawLook(cv,seed,dark){
+  var dpr=Math.min(devicePixelRatio||1,2);
+  var w=cv.clientWidth||300,h=w*1.32;
+  cv.width=w*dpr;cv.height=h*dpr;
+  var c=cv.getContext("2d");c.setTransform(dpr,0,0,dpr,0,0);
+  var R=mulberry32(seed);
+  var base=dark?[14,12,10]:[238,231,216];       /* noir / ivory */
+  var hi=dark?[219,183,105]:[176,141,63];       /* gold sheen */
+  var lo=dark?[4,3,2]:[206,196,172];
+  /* draped-fabric columns */
+  var f1=1.6+R()*2.4,f2=3.5+R()*4,ph1=R()*6.28,ph2=R()*6.28,tilt=(R()-.5)*1.6;
+  for(var x=0;x<w;x+=2){
+    var u=x/w;
+    var v=0.5+0.5*Math.sin(u*6.28*f1+ph1+Math.sin(u*6.28*f2+ph2)*1.1+u*tilt*3);
+    v=Math.pow(v,1.6);
+    var r2,g2,b2;
+    if(v<0.5){var k=v*2;r2=lo[0]+(base[0]-lo[0])*k;g2=lo[1]+(base[1]-lo[1])*k;b2=lo[2]+(base[2]-lo[2])*k;}
+    else{var k2=(v-0.5)*2;r2=base[0]+(hi[0]-base[0])*k2;g2=base[1]+(hi[1]-base[1])*k2;b2=base[2]+(hi[2]-base[2])*k2;}
+    c.fillStyle="rgb("+(r2|0)+","+(g2|0)+","+(b2|0)+")";
+    c.fillRect(x,0,2,h);
+  }
+  /* soft vertical fall-off shadow */
+  var sh=c.createLinearGradient(0,0,0,h);
+  sh.addColorStop(0,"rgba(0,0,0,.18)");sh.addColorStop(0.25,"rgba(0,0,0,0)");
+  sh.addColorStop(1,"rgba(0,0,0,.34)");
+  c.fillStyle=sh;c.fillRect(0,0,w,h);
+  /* a diagonal slash of contrast — the cut */
+  c.save();c.globalAlpha=0.9;
+  c.translate(w/2,h/2);c.rotate(-0.5+R()*0.24);c.translate(-w/2,-h/2);
+  c.fillStyle=dark?"rgba(239,231,216,.92)":"rgba(12,10,8,.9)";
+  var sw=w*(0.05+R()*0.05);
+  c.fillRect(w*(0.2+R()*0.5),-h*0.2,sw,h*1.5);
+  c.restore();
+  /* grain */
+  c.fillStyle="rgba(0,0,0,.05)";
+  for(var g=0;g<w*h/160;g++){c.fillRect(R()*w,R()*h,1,1);}
+  /* label */
+  c.fillStyle=dark?IVORY:NOIR;
+  c.font="400 "+Math.round(w*0.034)+"px "+MONO;
+  c.fillText("VESPER / "+(dark?"SOIR":"JOUR"),w*0.07,h*0.06);
+  c.fillStyle=GOLD;c.fillRect(w*0.07,h*0.075,w*0.1,2);
+}
+var grid=document.getElementById("lookgrid");
+var curCol="couture";
+function buildLooks(key){
+  var col=COLLECTIONS[key];
+  grid.innerHTML="";
+  col.looks.forEach(function(L,i){
+    var d=document.createElement("div");d.className="look";
+    d.innerHTML="<canvas></canvas><div class='cap'><span><b>"+L[0]+"</b></span><span>"+L[1]+"</span></div>";
+    grid.appendChild(d);
+    drawLook(d.querySelector("canvas"),col.seed+i*77,L[2]);
+  });
+}
+buildLooks(curCol);
+document.getElementById("tabs").addEventListener("click",function(e){
+  var b=e.target.closest("button");if(!b||b.dataset.c===curCol)return;
+  curCol=b.dataset.c;
+  document.querySelectorAll("#tabs button").forEach(function(x){x.classList.toggle("on",x===b);});
+  grid.classList.add("swap");
+  setTimeout(function(){buildLooks(curCol);grid.classList.remove("swap");},460);
+});
+
+/* ================= reveal on scroll ================= */
+var io=new IntersectionObserver(function(es){es.forEach(function(e){
+  if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.14});
+document.querySelectorAll(".rv").forEach(function(el){io.observe(el);});
+
+/* ================= counters ================= */
+var statsDone=false;
+var io2=new IntersectionObserver(function(es){
+  if(es[0].isIntersecting&&!statsDone){statsDone=true;runCounters();}},{threshold:.3});
+io2.observe(document.getElementById("stats"));
+function runCounters(){
+  document.querySelectorAll(".stat .num").forEach(function(el){
+    var target=+el.dataset.n,t0=performance.now(),dur=1800;
+    (function tick(now){
+      var p=Math.min((now-t0)/dur,1);
+      var e=1-Math.pow(1-p,4);
+      el.textContent=Math.round(target*e);
+      if(p<1)requestAnimationFrame(tick);
+    })(t0);
+  });
+}
+
+/* ================= rendez-vous ================= */
+var DAYS=[["JEU.","12 · 03"],["VEN.","12 · 04"],["SAM.","12 · 05"],["MAR.","12 · 08"],
+  ["MER.","12 · 09"],["JEU.","12 · 10"]];
+var TIMES=["10:00","14:00","16:30","18:00 — L'HEURE BLEUE"];
+var sel={d:null,t:null};
+function buildChips(id,items,key,fmt){
+  var box=document.getElementById(id);
+  items.forEach(function(it,i){
+    var b=document.createElement("button");b.className="chip";
+    b.innerHTML=fmt(it);
+    b.addEventListener("click",function(){
+      sel[key]=i;
+      box.querySelectorAll(".chip").forEach(function(x){x.classList.toggle("on",x===b);});
+      updateCB();
+    });
+    box.appendChild(b);
+  });
+}
+buildChips("days",DAYS,"d",function(d){return d[0]+" "+d[1];});
+buildChips("times",TIMES,"t",function(t){return t;});
+var cbLine=document.getElementById("cbLine"),cbBtn=document.getElementById("cbBtn");
+var confirmed=false;
+function updateCB(){
+  confirmed=false;
+  if(sel.d===null||sel.t===null){cbBtn.classList.remove("ready");return;}
+  cbBtn.classList.add("ready");
+  cbLine.classList.add("fade");
+  setTimeout(function(){
+    cbLine.textContent="已为您预留 "+DAYS[sel.d][0]+" "+DAYS[sel.d][1]+" · "+TIMES[sel.t]+
+      "，旺多姆广场八号二楼沙龙。请由金色转梯上楼。";
+    cbLine.classList.remove("fade");
+  },380);
+}
+cbBtn.addEventListener("click",function(){
+  if(confirmed)return;
+  confirmed=true;
+  cbBtn.textContent="已确认 — À BIENTÔT";
+  cbLine.classList.add("fade");
+  setTimeout(function(){
+    cbLine.textContent="预约已登记。版师将提前四十八小时为您备好三本面料册；沙龙当日只为您一人亮灯。";
+    cbLine.classList.remove("fade");
+  },380);
+});
+
+/* ================= resize ================= */
+var rt;
+addEventListener("resize",function(){clearTimeout(rt);
+  rt=setTimeout(function(){sizeSilk();buildLooks(curCol);},160);});
+})();
+</script>
+</body>
+</html>

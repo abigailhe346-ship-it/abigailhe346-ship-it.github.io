@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HALFTONE ATELIER — 半调网点生成器</title>
+<style>
+  :root{
+    --paper:#eceeed; --panel:#e3e6e2; --line:#c9cdc5;
+    --ink:#17191c; --dim:#7d827a;
+    --acc:#2a4d8f;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--acc);color:#fff}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .sig h1{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.04em}
+  .sig h1 em{font-style:italic;color:var(--acc)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--acc);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.06em;max-width:420px;text-align:right;line-height:1.7}
+  .rule{margin:14px 28px 0;border-top:1px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{
+    display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;
+    padding:24px 28px 40px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .stage-wrap{display:flex;justify-content:center}
+  .stage{
+    position:relative;width:100%;max-width:600px;background:#f4f5f3;
+    border:1px solid var(--ink);box-shadow:8px 8px 0 rgba(23,25,28,.10);
+    overflow:hidden;
+  }
+  .stage canvas{display:block;width:100%;height:auto;cursor:none}
+  .crop{position:absolute;width:14px;height:14px;pointer-events:none}
+  .crop::before,.crop::after{content:"";position:absolute;background:var(--ink)}
+  .crop::before{width:14px;height:1px}
+  .crop::after{width:1px;height:14px}
+  .crop.tl{left:6px;top:6px}.crop.tl::before{top:0;left:0}.crop.tl::after{left:0;top:0}
+  .crop.tr{right:6px;top:6px}.crop.tr::before{top:0;right:0}.crop.tr::after{right:0;top:0}
+  .crop.bl{left:6px;bottom:6px}.crop.bl::before{bottom:0;left:0}.crop.bl::after{left:0;bottom:0}
+  .crop.br{right:6px;bottom:6px}.crop.br::before{bottom:0;right:0}.crop.br::after{right:0;bottom:0}
+  .stamp{
+    position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.16em;color:var(--ink);border:1px solid var(--ink);
+    padding:4px 8px;background:rgba(236,238,237,.88);pointer-events:none;
+    text-transform:uppercase;
+  }
+  .hint{
+    position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;color:rgba(23,25,28,.55);pointer-events:none;text-transform:uppercase;
+  }
+  #loupe{
+    position:absolute;width:148px;height:148px;border-radius:50%;
+    border:1px solid var(--ink);box-shadow:0 6px 24px rgba(23,25,28,.28), inset 0 0 0 4px rgba(236,238,237,.9);
+    pointer-events:none;opacity:0;transition:opacity .18s var(--ease);
+    transform:translate(-50%,-50%);background:#f4f5f3;
+  }
+  #loupe.on{opacity:1}
+
+  .dock{
+    background:var(--panel);border:1px solid var(--ink);
+    padding:20px;display:flex;flex-direction:column;gap:18px;
+    align-self:start;position:sticky;top:20px;
+  }
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{
+    font-family:var(--mono);font-size:11px;font-weight:400;color:var(--dim);
+    letter-spacing:.22em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px;
+    display:flex;justify-content:space-between;
+  }
+  .dock h2 span{color:var(--acc)}
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:12px;letter-spacing:.04em;color:var(--ink);
+  }
+  .ctl label output{font-family:var(--mono);font-size:11px;color:var(--acc)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:13px;height:13px;margin-top:-6px;
+    background:var(--paper);border:1px solid var(--ink);border-radius:50%;
+    box-shadow:2px 2px 0 var(--acc);transition:transform .15s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;background:var(--paper);border:1px solid var(--ink);
+    border-radius:50%;box-shadow:2px 2px 0 var(--acc);
+  }
+
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--ink)}
+  .seg button{
+    appearance:none;border:0;border-right:1px solid var(--ink);background:transparent;
+    padding:8px 2px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;
+    color:var(--ink);cursor:pointer;transition:background .15s var(--ease),color .15s var(--ease);
+  }
+  .seg button:last-child{border-right:0}
+  .seg button:hover{background:rgba(42,77,143,.10)}
+  .seg button.on{background:var(--ink);color:var(--paper)}
+
+  .plates{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .plates button{
+    appearance:none;border:1px solid var(--ink);background:transparent;cursor:pointer;
+    padding:8px 4px 7px;display:flex;flex-direction:column;align-items:center;gap:5px;
+    transition:background .15s var(--ease);
+  }
+  .plates button:hover{background:rgba(42,77,143,.10)}
+  .plates button.on{background:var(--ink);color:var(--paper)}
+  .plates button.on svg *{stroke:var(--paper)}
+  .plates button span{font-size:11px;letter-spacing:.08em}
+  .plates svg{width:26px;height:26px}
+  .plates svg *{stroke:var(--ink);fill:none;stroke-width:1.4;transition:stroke .15s var(--ease)}
+
+  .inks{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .inks button{
+    appearance:none;height:34px;border:1px solid var(--ink);cursor:pointer;
+    position:relative;transition:transform .15s var(--ease);
+  }
+  .inks button:hover{transform:translateY(-2px)}
+  .inks button.on::after{
+    content:"";position:absolute;inset:3px;border:1px solid var(--paper);
+    outline:1px solid var(--ink);
+  }
+
+  .rowline{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .switch{position:relative;width:42px;height:22px;border:1px solid var(--ink);cursor:pointer;background:transparent;flex:none}
+  .switch i{
+    position:absolute;left:2px;top:2px;width:16px;height:16px;background:var(--ink);
+    transition:transform .2s var(--ease),background .2s var(--ease);
+  }
+  .switch.on i{transform:translateX(20px);background:var(--acc)}
+
+  .actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:4px;border-top:1px solid var(--line)}
+  .actions{padding-top:16px}
+  .btn{
+    appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    padding:11px 8px;font-family:var(--mono);font-size:11px;letter-spacing:.14em;
+    cursor:pointer;text-transform:uppercase;position:relative;overflow:hidden;
+    transition:color .18s var(--ease);
+  }
+  .btn::before{
+    content:"";position:absolute;inset:0;background:var(--ink);
+    transform:translateY(101%);transition:transform .22s var(--ease);z-index:0;
+  }
+  .btn:hover::before{transform:translateY(0)}
+  .btn:hover{color:var(--paper)}
+  .btn span{position:relative;z-index:1}
+  .btn.prime{background:var(--acc);border-color:var(--acc);color:#fff}
+  .btn.prime::before{background:var(--ink)}
+
+  footer{
+    padding:0 28px 26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+  }
+  @media (max-width:640px){
+    header{padding:18px 18px 0}
+    header p.tag{text-align:left;max-width:100%}
+    .rule{margin:12px 18px 0}
+    main{padding:18px 18px 32px}
+    footer{padding:0 18px 22px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>Halftone <em>Atelier</em></h1>
+    <span class="no">N°<b>06</b> — GEN-ART / 半调网点制版室</span>
+  </div>
+  <p class="tag">把光翻译成墨。连续的影调,在这里被拆解成大小、角度与形状的秩序。</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <div class="stage-wrap">
+    <div class="stage" id="stage">
+      <canvas id="cv" width="880" height="1100"></canvas>
+      <canvas id="loupe" width="296" height="296"></canvas>
+      <i class="crop tl"></i><i class="crop tr"></i><i class="crop bl"></i><i class="crop br"></i>
+      <div class="stamp" id="stamp">PL.01</div>
+      <div class="hint">移动光标 · 检视网点 — Inspect the dot</div>
+    </div>
+  </div>
+
+  <aside class="dock">
+    <h2>制版台 — Plate Room <span>04:05</span></h2>
+
+    <div class="ctl">
+      <label>底版 · 程序生成<output id="plateName">石膏像</output></label>
+      <div class="plates">
+        <button data-plate="bust" class="on">
+          <svg viewBox="0 0 26 26"><circle cx="13" cy="9" r="5"/><path d="M6 22c0-5 3-7 7-7s7 2 7 7"/></svg>
+          <span>石膏像</span>
+        </button>
+        <button data-plate="still">
+          <svg viewBox="0 0 26 26"><circle cx="10" cy="11" r="6"/><circle cx="18" cy="15" r="3.5"/><path d="M3 20h20"/></svg>
+          <span>静物</span>
+        </button>
+        <button data-plate="peaks">
+          <svg viewBox="0 0 26 26"><path d="M2 19l6-9 4 6 4-8 8 11"/></svg>
+          <span>远峰</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label>网点大小 · Cell<output id="oCell">13 px</output></label>
+      <input type="range" id="rCell" min="6" max="26" step="1" value="13">
+    </div>
+    <div class="ctl">
+      <label>加网角度 · Angle<output id="oAngle">45°</output></label>
+      <input type="range" id="rAngle" min="0" max="90" step="1" value="45">
+    </div>
+    <div class="ctl">
+      <label>网点形状 · Shape</label>
+      <div class="seg" id="segShape">
+        <button data-shape="circle" class="on">圆点</button>
+        <button data-shape="square">方块</button>
+        <button data-shape="diamond">菱钻</button>
+        <button data-shape="line">线网</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label>影调反差 · Gamma<output id="oGamma">1.05</output></label>
+      <input type="range" id="rGamma" min="70" max="150" step="1" value="105">
+    </div>
+    <div class="ctl">
+      <div class="rowline">
+        <label style="border:0">反相 · 墨地纸点</label>
+        <button class="switch" id="swInvert" aria-label="invert"><i></i></button>
+      </div>
+    </div>
+    <div class="ctl">
+      <label>油墨 · Ink</label>
+      <div class="inks" id="inks">
+        <button data-ink="#17191c" class="on" style="background:#17191c" title="玄黑"></button>
+        <button data-ink="#24468f" style="background:#24468f" title="钴蓝"></button>
+        <button data-ink="#b0382a" style="background:#b0382a" title="朱红"></button>
+        <button data-ink="#1f5c4d" style="background:#1f5c4d" title="松绿"></button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="btnRandom"><span>随机再生</span></button>
+      <button class="btn prime" id="btnSave"><span>下载 PNG</span></button>
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>Halftone Atelier — 制版车间</span>
+  <span>Amplitude Modulated Screening · MMXXVI</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ---------- constants & state ---------- */
+  var SRC_W = 440, SRC_H = 550;        // procedural plate resolution
+  var OUT_W = 880, OUT_H = 1100;       // output (device) resolution
+
+  var state = {
+    plate: "bust",
+    cell: 13,
+    angle: 45,
+    shape: "circle",
+    gamma: 1.05,
+    invert: false,
+    ink: "#17191c",
+    seed: 7
+  };
+  var PLATE_NAMES = { bust:"石膏像", still:"静物", peaks:"远峰" };
+  var SHAPE_NAMES = { circle:"圆点", square:"方块", diamond:"菱钻", line:"线网" };
+
+  var cv = document.getElementById("cv");
+  var ctx = cv.getContext("2d");
+  var stage = document.getElementById("stage");
+  var loupe = document.getElementById("loupe");
+  var lctx = loupe.getContext("2d");
+  var stamp = document.getElementById("stamp");
+
+  var srcGray = new Float32Array(SRC_W * SRC_H);  // 0..1 brightness
+  var lut = new Float32Array(1024);               // gray -> adjusted brightness
+
+  /* ---------- tiny utils ---------- */
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      var t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+  function norm3(x,y,z){
+    var l = 1/Math.sqrt(x*x+y*y+z*z);
+    return [x*l, y*l, z*l];
+  }
+  function hash2(x,y){
+    var n = Math.sin(x*127.1 + y*311.7) * 43758.5453;
+    return n - Math.floor(n);
+  }
+  /* 1D value noise */
+  function makeNoise1D(seed){
+    var rand = mulberry32(seed);
+    var tab = [];
+    for (var i=0;i<512;i++) tab.push(rand());
+    function at(i){ return tab[((i%512)+512)%512]; }
+    return function(x){
+      var i = Math.floor(x), f = x - i;
+      var u = f*f*(3-2*f);
+      return at(i)*(1-u) + at(i+1)*u;
+    };
+  }
+  function fbm1(noise, x, oct){
+    var v=0, a=0.5, f=1, norm=0;
+    for(var i=0;i<oct;i++){ v += noise(x*f)*a; norm+=a; a*=0.5; f*=2.03; }
+    return v/norm;
+  }
+  /* ellipsoid height: 0 outside, 1 at center */
+  function elli(u,v,cx,cy,rx,ry){
+    var dx=(u-cx)/rx, dy=(v-cy)/ry;
+    var d2 = dx*dx+dy*dy;
+    return d2>=1 ? 0 : Math.sqrt(1-d2);
+  }
+  function smax(a,b,k){
+    var h = clamp(0.5 + 0.5*(a-b)/k, 0, 1);
+    return b + (a-b)*h + k*h*(1-h);
+  }
+
+  /* ---------- plate generators (procedural, no external images) ---------- */
+
+  function heightBust(u,v){
+    var head = elli(u,v, 0.500,0.330, 0.170,0.200);
+    var neck = elli(u,v, 0.500,0.585, 0.080,0.130);
+    var ches = elli(u,v, 0.500,1.080, 0.460,0.460);
+    var h = smax(smax(head,neck,0.10), ches, 0.10);
+    if (h > 0.02){
+      var nose = elli(u,v, 0.500,0.372, 0.024,0.050) * 0.40;
+      var brow = elli(u,v, 0.500,0.318, 0.072,0.014) * 0.09;
+      var lips = elli(u,v, 0.500,0.445, 0.030,0.012) * 0.12;
+      var eyeL = elli(u,v, 0.444,0.338, 0.026,0.014) * 0.15;
+      var eyeR = elli(u,v, 0.556,0.338, 0.026,0.014) * 0.15;
+      var mask = clamp(h*2.2, 0, 1);
+      h += (nose+brow+lips)*mask - (eyeL+eyeR)*mask;
+    }
+    return clamp(h, 0, 1);
+  }
+
+  function genBust(seed){
+    var i, x, y;
+    var L = norm3(-0.42, -0.46, 0.78);
+    var L2 = norm3(0.72, 0.18, 0.34);
+    var eps = 1.2/SRC_W;
+    for (y=0; y<SRC_H; y++){
+      for (x=0; x<SRC_W; x++){
+        var u=(x+0.5)/SRC_W, v=(y+0.5)/SRC_H;
+        var h = heightBust(u,v);
+        var val;
+        if (h > 0.004){
+          var hx = (heightBust(u+eps,v)-heightBust(u-eps,v))/(2*eps);
+          var hy = (heightBust(u,v+eps)-heightBust(u,v-eps))/(2*eps);
+          var nx=-hx*0.22, ny=-hy*0.22, nz=1;
+          var il = 1/Math.sqrt(nx*nx+ny*ny+nz*nz);
+          nx*=il; ny*=il; nz*=il;
+          var dif = Math.max(0, nx*L[0]+ny*L[1]+nz*L[2]);
+          var rim = Math.pow(Math.max(0, nx*L2[0]+ny*L2[1]+nz*L2[2]), 2.6);
+          var fill = Math.max(0, nz)*0.10;
+          val = 0.10 + dif*0.62 + rim*0.24 + fill;
+        } else {
+          var dx=u-0.42, dy=v-0.30;
+          val = 0.22 - Math.sqrt(dx*dx+dy*dy)*0.38;
+        }
+        val += (hash2(x+seed*13, y) - 0.5) * 0.035;
+        srcGray[y*SRC_W+x] = clamp(Math.pow(clamp(val,0,1.2), 1.22), 0, 1);
+      }
+    }
+  }
+
+  function genStill(seed){
+    var x, y;
+    var ASPECT = SRC_H/SRC_W;
+    var L = norm3(-0.48, -0.62, 0.62);
+    var H = norm3(L[0], L[1], L[2]+1);
+    var vh = 0.605;
+    var s1 = {x:0.400, y:0.430, r:0.180};
+    var s2 = {x:0.665, y:0.510, r:0.082};
+    function shadeSphere(u,v,s){
+      var dx=(u-s.x), dy=(v-s.y)*ASPECT;
+      var d2=dx*dx+dy*dy, r2=s.r*s.r;
+      if (d2>=r2) return -1;
+      var z=Math.sqrt(r2-d2);
+      var nx=dx/s.r, ny=dy/s.r, nz=z/s.r;
+      var dif=Math.max(0, nx*L[0]+ny*L[1]+nz*L[2]);
+      var spec=Math.pow(Math.max(0, nx*H[0]+ny*H[1]+nz*H[2]), 90);
+      var refl=Math.max(0,-ny)*0.08;
+      return 0.09 + dif*0.80 + spec*0.60 + refl;
+    }
+    for (y=0; y<SRC_H; y++){
+      for (x=0; x<SRC_W; x++){
+        var u=(x+0.5)/SRC_W, v=(y+0.5)/SRC_H;
+        var val;
+        if (v < vh){
+          val = 0.66 - v*0.30 - Math.abs(u-0.35)*0.08;
+        } else {
+          val = 0.42 - (v-vh)*0.40;
+          /* cast shadows on the table */
+          var sh = 0;
+          var e1x=(u-(s1.x+0.048))/(s1.r*1.10), e1y=(v-(s1.y+s1.r/ASPECT+0.024))/(s1.r*0.30);
+          var e2x=(u-(s2.x+0.026))/(s2.r*1.15), e2y=(v-(s2.y+s2.r/ASPECT+0.014))/(s2.r*0.32);
+          sh = Math.max(sh, Math.exp(-(e1x*e1x+e1y*e1y)*2.2)*0.52);
+          sh = Math.max(sh, Math.exp(-(e2x*e2x+e2y*e2y)*2.2)*0.48);
+          val *= (1 - sh);
+        }
+        if (Math.abs(v-vh) < 0.0016) val *= 0.80;
+        var g1 = shadeSphere(u,v,s1);
+        if (g1 >= 0) val = g1;
+        var g2 = shadeSphere(u,v,s2);
+        if (g2 >= 0) val = g2;
+        val += (hash2(x+seed*7, y*3) - 0.5) * 0.030;
+        srcGray[y*SRC_W+x] = clamp(val, 0, 1);
+      }
+    }
+  }
+
+  function genPeaks(seed){
+    var x, y, i;
+    var layers = [
+      {base:0.400, amp:0.160, freq:3.0, val:0.70},
+      {base:0.520, amp:0.140, freq:4.6, val:0.53},
+      {base:0.640, amp:0.125, freq:6.8, val:0.36},
+      {base:0.760, amp:0.110, freq:9.5, val:0.17}
+    ];
+    var noises = [];
+    for (i=0;i<layers.length;i++) noises.push(makeNoise1D(seed*31 + i*101));
+    var sunX=0.665, sunY=0.205;
+    var ridge = new Float32Array(layers.length * (SRC_W+2));
+    for (i=0;i<layers.length;i++){
+      var L=layers[i];
+      for (x=0;x<SRC_W+2;x++){
+        var u=x/SRC_W;
+        var f = fbm1(noises[i], u*L.freq, 4);
+        ridge[i*(SRC_W+2)+x] = L.base - (0.5-Math.abs(f-0.5))*2*L.amp;
+      }
+    }
+    for (y=0; y<SRC_H; y++){
+      for (x=0; x<SRC_W; x++){
+        var u=(x+0.5)/SRC_W, v=(y+0.5)/SRC_H;
+        var val = 0.95 - v*0.35;                       /* sky */
+        var sdx=u-sunX, sdy=(v-sunY)*1.2;
+        var sd = sdx*sdx+sdy*sdy;
+        if (sd < 0.0032) val = 1.0;                    /* sun disc */
+        else val += Math.exp(-sd*38)*0.30;             /* halo */
+        for (i=layers.length-1; i>=0; i--){
+          var r = ridge[i*(SRC_W+2)+x];
+          if (v > r){
+            var slope = clamp((ridge[i*(SRC_W+2)+x+1]-ridge[i*(SRC_W+2)+Math.max(0,x-1)])*6.0, -0.14, 0.14);
+            val = clamp(layers[i].val - slope, 0.05, 1);
+            var mist = Math.exp(-(v-r)*26)*0.30;       /* mist clinging to the ridge */
+            val = val + (1-val)*mist*0.55;
+            break;
+          }
+        }
+        val += (hash2(x+seed*3, y+seed) - 0.5) * 0.032;
+        srcGray[y*SRC_W+x] = clamp(val, 0, 1);
+      }
+    }
+  }
+
+  var PLATES = { bust:genBust, still:genStill, peaks:genPeaks };
+
+  /* ---------- tone LUT ---------- */
+  function buildLUT(){
+    for (var i=0;i<1024;i++){
+      var b = i/1023;
+      b = clamp((b-0.5)*state.gamma + 0.5, 0, 1);
+      lut[i] = b;
+    }
+  }
+  function brightnessAt(fx, fy){
+    /* bilinear sample of srcGray through the LUT; fx,fy in 0..1 */
+    var x = clamp(fx,0,1)*(SRC_W-1), y = clamp(fy,0,1)*(SRC_H-1);
+    var x0 = Math.floor(x), y0 = Math.floor(y);
+    var x1 = Math.min(SRC_W-1, x0+1), y1 = Math.min(SRC_H-1, y0+1);
+    var tx = x-x0, ty = y-y0;
+    var a = srcGray[y0*SRC_W+x0], b = srcGray[y0*SRC_W+x1];
+    var c = srcGray[y1*SRC_W+x0], d = srcGray[y1*SRC_W+x1];
+    var g = (a*(1-tx)+b*tx)*(1-ty) + (c*(1-tx)+d*tx)*ty;
+    return lut[clamp(Math.round(g*1023),0,1023)];
+  }
+
+  /* ---------- halftone renderer ---------- */
+  function render(){
+    var W=OUT_W, H=OUT_H;
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.fillStyle = state.invert ? state.ink : "#f4f5f3";
+    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = state.invert ? "#f4f5f3" : state.ink;
+    ctx.strokeStyle = state.invert ? "#f4f5f3" : state.ink;
+
+    var s = state.cell * (OUT_W/880);   // cell size in device px
+    var ang = state.angle * Math.PI/180;
+    var cos=Math.cos(ang), sin=Math.sin(ang);
+    var cx=W/2, cy=H/2;
+    var R = Math.hypot(W,H)/2 + s;
+    var shape = state.shape;
+
+    for (var gy=-R; gy<=R; gy+=s){
+      for (var gx=-R; gx<=R; gx+=s){
+        var px = cx + gx*cos - gy*sin;
+        var py = cy + gx*sin + gy*cos;
+        if (px < -s || py < -s || px > W+s || py > H+s) continue;
+        var b = brightnessAt(px/W, py/H);
+        var t = state.invert ? b : 1-b;   // ink coverage 0..1
+        if (t <= 0.03) continue;
+        if (t > 1) t = 1;
+
+        if (shape === "circle"){
+          var r = s*Math.sqrt(t/Math.PI);
+          ctx.beginPath();
+          ctx.arc(px,py,r,0,6.2832);
+          ctx.fill();
+        } else if (shape === "square"){
+          var side = s*Math.sqrt(t);
+          ctx.setTransform(cos,sin,-sin,cos,px,py);
+          ctx.fillRect(-side/2,-side/2,side,side);
+        } else if (shape === "diamond"){
+          var d = s*Math.sqrt(2*t)/2;
+          ctx.setTransform(cos,sin,-sin,cos,px,py);
+          ctx.beginPath();
+          ctx.moveTo(0,-d); ctx.lineTo(d,0); ctx.lineTo(0,d); ctx.lineTo(-d,0);
+          ctx.closePath(); ctx.fill();
+        } else { /* line */
+          var w = s*t;
+          ctx.setTransform(cos,sin,-sin,cos,px,py);
+          ctx.fillRect(-s*0.52, -w/2, s*1.04, w);
+        }
+        ctx.setTransform(1,0,0,1,0,0);
+      }
+    }
+    updateStamp();
+  }
+
+  function updateStamp(){
+    var pi = {bust:"01", still:"02", peaks:"03"}[state.plate];
+    stamp.textContent = "PL."+pi+" · "+PLATE_NAMES[state.plate]+" — "+state.cell+"PX / "+state.angle+"° / "+SHAPE_NAMES[state.shape];
+  }
+
+  /* ---------- loupe ---------- */
+  function onMove(e){
+    var rect = cv.getBoundingClientRect();
+    var mx = e.clientX-rect.left, my = e.clientY-rect.top;
+    if (mx<0||my<0||mx>rect.width||my>rect.height){ loupe.classList.remove("on"); return; }
+    loupe.classList.add("on");
+    var srect = stage.getBoundingClientRect();
+    loupe.style.left = (e.clientX-srect.left)+"px";
+    loupe.style.top  = (e.clientY-srect.top)+"px";
+    var ZOOM=3.4, LW=loupe.width;
+    var sw = LW/ZOOM;
+    var sx = mx/rect.width*OUT_W - sw/2;
+    var sy = my/rect.height*OUT_H - sw/2;
+    lctx.imageSmoothingEnabled = false;
+    lctx.clearRect(0,0,LW,LW);
+    lctx.drawImage(cv, sx,sy,sw,sw, 0,0,LW,LW);
+    /* crosshair */
+    lctx.strokeStyle = "rgba(42,77,143,.65)";
+    lctx.lineWidth = 1;
+    lctx.beginPath();
+    lctx.moveTo(LW/2,0); lctx.lineTo(LW/2,LW);
+    lctx.moveTo(0,LW/2); lctx.lineTo(LW,LW/2);
+    lctx.stroke();
+  }
+  cv.addEventListener("mousemove", onMove);
+  cv.addEventListener("mouseleave", function(){ loupe.classList.remove("on"); });
+  cv.addEventListener("touchstart", function(){ loupe.classList.remove("on"); }, {passive:true});
+
+  /* ---------- controls ---------- */
+  function bindRange(id, key, out, fmt){
+    var el = document.getElementById(id);
+    el.addEventListener("input", function(){
+      state[key] = parseFloat(el.value);
+      if (key==="gamma") buildLUT();
+      document.getElementById(out).textContent = fmt(state[key]);
+      render();
+    });
+  }
+  bindRange("rCell","cell","oCell", function(v){return v+" px";});
+  bindRange("rAngle","angle","oAngle", function(v){return v+"°";});
+  bindRange("rGamma","gamma","oGamma", function(v){return v.toFixed(2);});
+
+  function segGroup(id, key, after){
+    var box = document.getElementById(id);
+    box.addEventListener("click", function(e){
+      var b = e.target.closest("button"); if(!b) return;
+      box.querySelectorAll("button").forEach(function(x){x.classList.remove("on");});
+      b.classList.add("on");
+      state[key] = b.dataset[key==="shape"?"shape":key] || b.dataset.plate || b.dataset.ink;
+      if (after) after();
+    });
+  }
+
+  document.querySelector(".plates").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll(".plates button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    state.plate = b.dataset.plate;
+    document.getElementById("plateName").textContent = PLATE_NAMES[state.plate];
+    PLATES[state.plate](state.seed);
+    render();
+  });
+
+  segGroup("segShape","shape", render);
+
+  document.getElementById("inks").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll("#inks button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    state.ink = b.dataset.ink;
+    render();
+  });
+
+  var swInvert = document.getElementById("swInvert");
+  swInvert.addEventListener("click", function(){
+    state.invert = !state.invert;
+    swInvert.classList.toggle("on", state.invert);
+    render();
+  });
+
+  document.getElementById("btnRandom").addEventListener("click", function(){
+    var plates = Object.keys(PLATES);
+    var shapes = ["circle","square","diamond","line"];
+    var inks = ["#17191c","#24468f","#b0382a","#1f5c4d"];
+    var angles = [0,15,30,45,60,75,90];
+    state.plate = plates[Math.floor(Math.random()*plates.length)];
+    state.shape = shapes[Math.floor(Math.random()*shapes.length)];
+    state.ink = inks[Math.floor(Math.random()*inks.length)];
+    state.angle = angles[Math.floor(Math.random()*angles.length)];
+    state.cell = 7 + Math.floor(Math.random()*17);
+    state.gamma = 0.8 + Math.random()*0.6;
+    state.invert = Math.random() < 0.22;
+    state.seed = Math.floor(Math.random()*9999);
+    syncUI();
+    PLATES[state.plate](state.seed);
+    buildLUT();
+    render();
+  });
+
+  function syncUI(){
+    document.getElementById("rCell").value = state.cell;
+    document.getElementById("oCell").textContent = state.cell+" px";
+    document.getElementById("rAngle").value = state.angle;
+    document.getElementById("oAngle").textContent = state.angle+"°";
+    document.getElementById("rGamma").value = Math.round(state.gamma*100);
+    document.getElementById("oGamma").textContent = state.gamma.toFixed(2);
+    document.getElementById("plateName").textContent = PLATE_NAMES[state.plate];
+    swInvert.classList.toggle("on", state.invert);
+    document.querySelectorAll(".plates button").forEach(function(x){
+      x.classList.toggle("on", x.dataset.plate===state.plate);
+    });
+    document.querySelectorAll("#segShape button").forEach(function(x){
+      x.classList.toggle("on", x.dataset.shape===state.shape);
+    });
+    document.querySelectorAll("#inks button").forEach(function(x){
+      x.classList.toggle("on", x.dataset.ink===state.ink);
+    });
+  }
+
+  document.getElementById("btnSave").addEventListener("click", function(){
+    var a = document.createElement("a");
+    a.download = "halftone-"+state.plate+"-"+state.cell+"px-"+state.angle+"deg.png";
+    a.href = cv.toDataURL("image/png");
+    a.click();
+  });
+
+  /* ---------- boot ---------- */
+  buildLUT();
+  PLATES[state.plate](state.seed);
+  render();
+})();
+</script>
+</body>
+</html>

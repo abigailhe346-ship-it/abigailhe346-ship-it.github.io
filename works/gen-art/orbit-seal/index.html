@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ORBIT SEAL — 轨道印鉴局</title>
+<style>
+  :root{
+    --night:#0f1220; --night2:#151a2e; --line:#2a3050;
+    --gold:#c9a227; --gold-dim:#8a7322; --cream:#f2ead8; --dim:#6d7492;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--night);color:var(--cream);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--gold);color:var(--night)}
+
+  header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 32px 0;gap:16px;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  .sig h1{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+  .sig h1 em{font-style:italic;color:var(--gold)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.14em}
+  .sig .no b{color:var(--gold);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.06em;max-width:420px;text-align:right;line-height:1.7}
+
+  .deco-rule{
+    margin:16px 32px 0;height:11px;position:relative;
+    border-top:1px solid var(--gold);
+  }
+  .deco-rule::before,.deco-rule::after{
+    content:"";position:absolute;top:-4px;width:7px;height:7px;
+    background:var(--night);border:1px solid var(--gold);transform:rotate(45deg);
+  }
+  .deco-rule::before{left:0}
+  .deco-rule::after{right:0}
+  .deco-rule i{
+    position:absolute;left:50%;top:-5px;width:9px;height:9px;margin-left:-4.5px;
+    background:var(--gold);transform:rotate(45deg);
+  }
+
+  main{padding:26px 32px 40px;max-width:1440px;margin:0 auto}
+
+  .stage{
+    position:relative;background:
+      radial-gradient(ellipse at 50% 42%, rgba(201,162,39,.07), transparent 62%),
+      var(--night2);
+    border:1px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;
+    min-height:min(62vh, 660px);padding:28px;overflow:hidden;
+  }
+  .stage::before{content:"";position:absolute;inset:6px;border:1px solid rgba(201,162,39,.35);pointer-events:none}
+  .corner{position:absolute;width:26px;height:26px;pointer-events:none}
+  .corner svg{display:block;width:100%;height:100%}
+  .corner.tl{left:10px;top:10px}
+  .corner.tr{right:10px;top:10px;transform:rotate(90deg)}
+  .corner.br{right:10px;bottom:10px;transform:rotate(180deg)}
+  .corner.bl{left:10px;bottom:10px;transform:rotate(270deg)}
+
+  .seal-wrap{
+    width:min(60vh,600px);max-width:88vw;position:relative;
+    animation:sealin .8s var(--ease) both;
+  }
+  @keyframes sealin{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+  .seal-wrap svg{display:block;width:100%;height:auto}
+  .spin-a{transform-origin:300px 300px;animation:spin 90s linear infinite}
+  .spin-b{transform-origin:300px 300px;animation:spin 140s linear infinite reverse}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spin-a,.spin-b,.seal-wrap{animation:none}}
+
+  .console{
+    margin-top:22px;border:1px solid var(--gold);background:var(--night2);
+    display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr .9fr;
+  }
+  .col{
+    padding:18px 18px 16px;border-right:1px solid var(--line);
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .col:last-child{border-right:0}
+  .col h3{
+    font-family:var(--mono);font-size:10px;font-weight:400;color:var(--gold);
+    letter-spacing:.24em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:9px;
+  }
+  .ctl{display:flex;flex-direction:column;gap:6px}
+  .ctl label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:11px;letter-spacing:.05em;color:var(--cream);
+  }
+  .ctl label output{font-family:var(--mono);font-size:10px;color:var(--gold)}
+
+  .textin{border:1px solid var(--gold);background:var(--night);display:flex}
+  .textin input{
+    appearance:none;border:0;background:transparent;flex:1;min-width:0;
+    font-family:var(--serif);font-size:13px;color:var(--cream);padding:8px 10px;
+    outline:none;letter-spacing:.14em;text-transform:uppercase;
+  }
+  .textin input::placeholder{color:var(--dim);font-size:11px}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--gold)}
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:11px;height:11px;margin-top:-5px;
+    background:var(--night);border:1px solid var(--gold);transform:rotate(45deg);border-radius:0;
+    transition:background .15s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--gold)}
+  input[type=range]::-moz-range-track{height:1px;background:var(--gold)}
+  input[type=range]::-moz-range-thumb{
+    width:11px;height:11px;background:var(--night);border:1px solid var(--gold);
+    transform:rotate(45deg);border-radius:0;
+  }
+
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--gold)}
+  .seg button{
+    appearance:none;border:0;border-right:1px solid var(--gold);background:transparent;
+    padding:7px 2px;font-family:var(--mono);font-size:11px;color:var(--cream);cursor:pointer;
+    transition:background .15s var(--ease),color .15s var(--ease);
+  }
+  .seg button:last-child{border-right:0}
+  .seg button:hover{background:rgba(201,162,39,.14)}
+  .seg button.on{background:var(--gold);color:var(--night)}
+
+  .emblems{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+  .emblems button{
+    appearance:none;border:1px solid var(--gold);background:transparent;cursor:pointer;
+    aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+    transition:background .15s var(--ease);
+  }
+  .emblems button:hover{background:rgba(201,162,39,.14)}
+  .emblems button.on{background:var(--gold)}
+  .emblems button.on svg *{stroke:var(--night)}
+  .emblems svg{width:22px;height:22px}
+  .emblems svg *{stroke:var(--gold);fill:none;stroke-width:1.5;transition:stroke .15s var(--ease)}
+
+  .schemes{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
+  .schemes button{
+    appearance:none;height:32px;border:1px solid var(--gold);cursor:pointer;
+    position:relative;transition:transform .15s var(--ease);
+  }
+  .schemes button:hover{transform:translateY(-2px)}
+  .schemes button.on::after{content:"";position:absolute;inset:3px;border:1px solid currentColor}
+
+  .actions{display:flex;flex-direction:column;gap:9px;flex:1;justify-content:flex-end}
+  .btn{
+    appearance:none;border:1px solid var(--gold);background:transparent;color:var(--gold);
+    padding:10px 8px;font-family:var(--mono);font-size:11px;letter-spacing:.16em;
+    cursor:pointer;text-transform:uppercase;position:relative;overflow:hidden;
+    transition:color .18s var(--ease);
+  }
+  .btn::before{
+    content:"";position:absolute;inset:0;background:var(--gold);
+    transform:translateY(101%);transition:transform .22s var(--ease);z-index:0;
+  }
+  .btn:hover::before{transform:translateY(0)}
+  .btn:hover{color:var(--night)}
+  .btn span{position:relative;z-index:1}
+  .btn.prime{background:var(--gold);color:var(--night)}
+  .btn.prime::before{background:var(--cream)}
+
+  footer{
+    padding:0 32px 26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+  }
+
+  @media (max-width:1100px){
+    .console{grid-template-columns:1fr 1fr}
+    .col{border-right:0;border-bottom:1px solid var(--line)}
+    .col:nth-child(odd){border-right:1px solid var(--line)}
+    .col:last-child{border-bottom:0}
+  }
+  @media (max-width:640px){
+    header{padding:18px 18px 0}
+    header p.tag{text-align:left;max-width:100%}
+    .deco-rule{margin:14px 18px 0}
+    main{padding:20px 18px 32px}
+    .console{grid-template-columns:1fr}
+    .col{border-right:0!important}
+    footer{padding:0 18px 22px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>Orbit <em>Seal</em></h1>
+    <span class="no">N°<b>09</b> — GEN-ART / 轨道印鉴局</span>
+  </div>
+  <p class="tag">每一枚印章,都是一个小型太阳系:文字沿轨道运行,星芒按层数绽放。</p>
+</header>
+<div class="deco-rule"><i></i></div>
+
+<main>
+  <div class="stage" id="stage">
+    <span class="corner tl"><svg viewBox="0 0 26 26"><path d="M25 25V8L8 25M25 15L15 25" stroke="#c9a227" fill="none" stroke-width="1"/></svg></span>
+    <span class="corner tr"><svg viewBox="0 0 26 26"><path d="M25 25V8L8 25M25 15L15 25" stroke="#c9a227" fill="none" stroke-width="1"/></svg></span>
+    <span class="corner br"><svg viewBox="0 0 26 26"><path d="M25 25V8L8 25M25 15L15 25" stroke="#c9a227" fill="none" stroke-width="1"/></svg></span>
+    <span class="corner bl"><svg viewBox="0 0 26 26"><path d="M25 25V8L8 25M25 15L15 25" stroke="#c9a227" fill="none" stroke-width="1"/></svg></span>
+    <div class="seal-wrap" id="sealWrap"></div>
+  </div>
+
+  <div class="console">
+    <div class="col">
+      <h3>环带文字 · Legend</h3>
+      <div class="ctl">
+        <label>上环 · Top Arc</label>
+        <div class="textin"><input id="txtTop" type="text" value="ORBIT SEAL ATELIER" maxlength="34"></div>
+      </div>
+      <div class="ctl">
+        <label>下环 · Bottom Arc</label>
+        <div class="textin"><input id="txtBottom" type="text" value="参数印章局 · MMXXVI" maxlength="34"></div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>星芒 · Rays</h3>
+      <div class="ctl">
+        <label>层数 · Layers</label>
+        <div class="seg" id="segLayers">
+          <button data-layers="1">壹</button>
+          <button data-layers="2" class="on">贰</button>
+          <button data-layers="3">叁</button>
+        </div>
+      </div>
+      <div class="ctl">
+        <label>光芒数量 · Count<output id="oRays">16</output></label>
+        <input type="range" id="rRays" min="8" max="32" step="1" value="16">
+      </div>
+    </div>
+    <div class="col">
+      <h3>轨道与刻度 · Orbit</h3>
+      <div class="ctl">
+        <label>轨道环 · Rings<output id="oOrbit">3</output></label>
+        <input type="range" id="rOrbit" min="0" max="4" step="1" value="3">
+      </div>
+      <div class="ctl">
+        <label>外环刻度 · Ticks<output id="oTicks">72</output></label>
+        <input type="range" id="rTicks" min="0" max="120" step="4" value="72">
+      </div>
+    </div>
+    <div class="col">
+      <h3>中心纹章 · Emblem</h3>
+      <div class="emblems" id="emblems">
+        <button data-emblem="sun" class="on" title="日轮">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1"/></svg>
+        </button>
+        <button data-emblem="mountain" title="山岳">
+          <svg viewBox="0 0 24 24"><path d="M3 19l6-11 4 7 3-4 5 8z"/><circle cx="17" cy="6" r="2.4"/></svg>
+        </button>
+        <button data-emblem="wave" title="海涛">
+          <svg viewBox="0 0 24 24"><path d="M2 9c2.7 0 2.7 2.6 5.4 2.6S10 9 12.7 9s2.7 2.6 5.4 2.6S20.8 9 23 9M1 15c2.7 0 2.7 2.6 5.4 2.6S9 15 11.7 15s2.7 2.6 5.4 2.6S19.8 15 22 15"/></svg>
+        </button>
+        <button data-emblem="gem" title="钻石">
+          <svg viewBox="0 0 24 24"><path d="M7 4h10l4 6-9 11L3 10z"/><path d="M3 10h18M7 4l5 6 5-6M12 10v11"/></svg>
+        </button>
+      </div>
+      <div class="ctl">
+        <label>印色 · Scheme</label>
+        <div class="schemes" id="schemes">
+          <button data-scheme="midnight" class="on" style="background:#0f1220;color:#c9a227" title="午夜金"></button>
+          <button data-scheme="shuin" style="background:#f2ead8;color:#b73e2c" title="朱印"></button>
+          <button data-scheme="malachite" style="background:#0e2a23;color:#c9a227" title="孔雀石"></button>
+        </div>
+      </div>
+    </div>
+    <div class="col">
+      <h3>铸印 · Mint</h3>
+      <div class="actions">
+        <button class="btn" id="btnRandom"><span>随机再生</span></button>
+        <button class="btn prime" id="btnSave"><span>下载 SVG</span></button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>Orbit Seal — 轨道印鉴局</span>
+  <span>Parametric Heraldry · MMXXVI</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+
+  var state = {
+    top: "ORBIT SEAL ATELIER",
+    bottom: "参数印章局 · MMXXVI",
+    layers: 2,
+    rays: 16,
+    orbits: 3,
+    ticks: 72,
+    emblem: "sun",
+    scheme: "midnight"
+  };
+
+  var SCHEMES = {
+    midnight:  { bg:"#0f1220", line:"#c9a227", soft:"#f2ead8", faint:"#8a7322" },
+    shuin:     { bg:"#f2ead8", line:"#b73e2c", soft:"#20211f", faint:"#d08a7d" },
+    malachite: { bg:"#0e2a23", line:"#c9a227", soft:"#e8dcc0", faint:"#3f6b58" }
+  };
+
+  var C = 300;   // center in 600x600 viewBox
+  var wrap = document.getElementById("sealWrap");
+  var stage = document.getElementById("stage");
+
+  function polar(r, deg){
+    var a = (deg-90)*Math.PI/180;
+    return [C + r*Math.cos(a), C + r*Math.sin(a)];
+  }
+  function f(n){ return Math.round(n*100)/100; }
+
+  function starPolygon(rOut, rIn, n, rot){
+    var pts = [];
+    for (var i=0;i<n*2;i++){
+      var r = i%2===0 ? rOut : rIn;
+      var p = polar(r, rot + i*180/n);
+      pts.push(f(p[0])+","+f(p[1]));
+    }
+    return pts.join(" ");
+  }
+
+  function tickRing(n, r0, r1, sw, color){
+    var s = "";
+    for (var i=0;i<n;i++){
+      var a = i*360/n;
+      var p0 = polar(r0, a), p1 = polar(r1, a);
+      var long = (i%6===0);
+      var q0 = long ? polar(r0-5, a) : p0;
+      s += '<line x1="'+f(q0[0])+'" y1="'+f(q0[1])+'" x2="'+f(p1[0])+'" y2="'+f(p1[1])+
+           '" stroke="'+color+'" stroke-width="'+(long?sw*1.6:sw)+'"/>';
+    }
+    return s;
+  }
+
+  function emblemSVG(kind, sc){
+    var g = '<g stroke="'+sc.line+'" fill="none" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">';
+    if (kind==="sun"){
+      g += '<circle cx="300" cy="300" r="38" fill="'+sc.line+'" stroke="none"/>';
+      for (var i=0;i<12;i++){
+        var p0 = polar(52, i*30), p1 = polar(70, i*30);
+        g += '<line x1="'+f(p0[0])+'" y1="'+f(p0[1])+'" x2="'+f(p1[0])+'" y2="'+f(p1[1])+'"/>';
+      }
+    } else if (kind==="mountain"){
+      g += '<path d="M218 338 L272 236 L308 306 L332 268 L382 338 Z"/>';
+      g += '<circle cx="344" cy="238" r="16" fill="'+sc.line+'" stroke="none"/>';
+      g += '<line x1="228" y1="358" x2="372" y2="358"/>';
+    } else if (kind==="wave"){
+      g += '<path d="M212 288 c24 0 24 18 48 18 s24-18 48-18 s24 18 48 18 s24-18 32-18"/>';
+      g += '<path d="M204 326 c26 0 26 18 52 18 s26-18 52-18 s26 18 52 18 s26-18 36-18"/>';
+      g += '<circle cx="300" cy="246" r="12" fill="'+sc.line+'" stroke="none"/>';
+    } else { /* gem */
+      g += '<path d="M262 248 L338 248 L366 292 L300 364 L234 292 Z"/>';
+      g += '<path d="M234 292 L366 292 M262 248 L300 292 L338 248 M300 292 L300 364"/>';
+    }
+    return g + "</g>";
+  }
+
+  function buildSVG(){
+    var sc = SCHEMES[state.scheme];
+    var s = [];
+    s.push('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">');
+    s.push('<rect width="600" height="600" fill="'+sc.bg+'"/>');
+
+    /* arc paths for circular text */
+    s.push('<defs>');
+    s.push('<path id="arcT" d="M 300,300 m -178,0 a 178,178 0 1,1 356,0 a 178,178 0 1,1 -356,0" fill="none"/>');
+    s.push('<path id="arcB" d="M 300,300 m -178,0 a 178,178 0 1,0 356,0 a 178,178 0 1,0 -356,0" fill="none"/>');
+    s.push('</defs>');
+
+    /* outer rings */
+    s.push('<circle cx="300" cy="300" r="246" fill="none" stroke="'+sc.line+'" stroke-width="2.5"/>');
+    s.push('<circle cx="300" cy="300" r="238" fill="none" stroke="'+sc.line+'" stroke-width="1"/>');
+    /* beaded ring (dots via dashed thick stroke) */
+    s.push('<circle cx="300" cy="300" r="228" fill="none" stroke="'+sc.line+'" stroke-width="7" stroke-linecap="round" stroke-dasharray="0.1 14.84"/>');
+
+    /* ticks */
+    if (state.ticks > 0){
+      s.push('<g>'+tickRing(state.ticks, 210, 218, 1.4, sc.line)+'</g>');
+    }
+
+    /* band dividers */
+    s.push('<circle cx="300" cy="300" r="204" fill="none" stroke="'+sc.line+'" stroke-width="1"/>');
+    s.push('<circle cx="300" cy="300" r="152" fill="none" stroke="'+sc.line+'" stroke-width="1"/>');
+
+    /* circular text */
+    var top = state.top || " ";
+    var bottom = state.bottom || " ";
+    s.push('<text font-family="Didot, \'Bodoni MT\', Georgia, \'Songti SC\', serif" font-size="25" letter-spacing="6" fill="'+sc.line+'">'
+      + '<textPath href="#arcT" startOffset="25%" text-anchor="middle">'+escapeXML(top.toUpperCase())+'</textPath></text>');
+    s.push('<text font-family="Didot, \'Bodoni MT\', Georgia, \'Songti SC\', serif" font-size="21" letter-spacing="4" fill="'+sc.line+'">'
+      + '<textPath href="#arcB" startOffset="25%" text-anchor="middle">'+escapeXML(bottom.toUpperCase())+'</textPath></text>');
+
+    /* side diamonds at 3 & 9 o'clock, separating the two legends */
+    [90,270].forEach(function(a){
+      var p = polar(178, a);
+      s.push('<rect x="'+f(p[0]-5)+'" y="'+f(p[1]-5)+'" width="10" height="10" transform="rotate(45 '+f(p[0])+' '+f(p[1])+')" fill="'+sc.line+'"/>');
+    });
+
+    /* starburst layers */
+    s.push('<g class="spin-a">');
+    var layerR = [ [148, 96], [128, 82], [108, 68] ];
+    for (var li=0; li<state.layers; li++){
+      var ro = layerR[li][0], ri = layerR[li][1];
+      var n = state.rays - li*2;
+      if (n < 6) n = 6;
+      s.push('<polygon points="'+starPolygon(ro, ri, n, li*90/state.rays)+'" fill="none" stroke="'+sc.line+'" stroke-width="'+(2.4-li*0.5)+'"/>');
+    }
+    s.push('</g>');
+
+    /* orbit ellipses — electrons circling in the open band */
+    if (state.orbits > 0){
+      s.push('<g class="spin-b" stroke="'+sc.line+'" fill="none">');
+      for (var oi=0; oi<state.orbits; oi++){
+        var ang = oi*(180/state.orbits);
+        var rx = 172, ry = 58;
+        s.push('<ellipse cx="300" cy="300" rx="'+rx+'" ry="'+ry+'" stroke-width="1.2" transform="rotate('+f(ang)+' 300 300)"/>');
+        /* electron */
+        var ea = (oi*67+30)*Math.PI/180;
+        var ex = rx*Math.cos(ea), ey = ry*Math.sin(ea);
+        var ra = ang*Math.PI/180;
+        var wx = 300 + ex*Math.cos(ra)-ey*Math.sin(ra);
+        var wy = 300 + ex*Math.sin(ra)+ey*Math.cos(ra);
+        s.push('<circle cx="'+f(wx)+'" cy="'+f(wy)+'" r="4.5" fill="'+sc.line+'" stroke="none"/>');
+      }
+      s.push('</g>');
+    }
+
+    /* emblem */
+    s.push(emblemSVG(state.emblem, sc));
+
+    /* cardinal studs inside */
+    [45,135,225,315].forEach(function(a){
+      var p = polar(132, a);
+      s.push('<circle cx="'+f(p[0])+'" cy="'+f(p[1])+'" r="2.6" fill="'+sc.line+'"/>');
+    });
+
+    s.push('</svg>');
+    return { svg: s.join(""), bg: sc.bg };
+  }
+
+  function escapeXML(t){
+    return t.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  function render(){
+    var out = buildSVG();
+    wrap.innerHTML = out.svg;
+    stage.style.background =
+      "radial-gradient(ellipse at 50% 42%, rgba(201,162,39,.07), transparent 62%), "+out.bg;
+    /* replay entrance animation */
+    wrap.style.animation = "none";
+    void wrap.offsetWidth;
+    wrap.style.animation = "";
+  }
+
+  /* ---------- controls ---------- */
+  var txtTop = document.getElementById("txtTop");
+  var txtBottom = document.getElementById("txtBottom");
+  var deb = null;
+  function onText(){
+    clearTimeout(deb);
+    deb = setTimeout(function(){
+      state.top = txtTop.value; state.bottom = txtBottom.value;
+      render();
+    }, 220);
+  }
+  txtTop.addEventListener("input", onText);
+  txtBottom.addEventListener("input", onText);
+
+  document.getElementById("segLayers").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll("#segLayers button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    state.layers = parseInt(b.dataset.layers,10);
+    render();
+  });
+
+  document.getElementById("rRays").addEventListener("input", function(){
+    state.rays = parseInt(this.value,10);
+    document.getElementById("oRays").textContent = state.rays;
+    render();
+  });
+  document.getElementById("rOrbit").addEventListener("input", function(){
+    state.orbits = parseInt(this.value,10);
+    document.getElementById("oOrbit").textContent = state.orbits;
+    render();
+  });
+  document.getElementById("rTicks").addEventListener("input", function(){
+    state.ticks = parseInt(this.value,10);
+    document.getElementById("oTicks").textContent = state.ticks;
+    render();
+  });
+
+  document.getElementById("emblems").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll("#emblems button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    state.emblem = b.dataset.emblem;
+    render();
+  });
+  document.getElementById("schemes").addEventListener("click", function(e){
+    var b = e.target.closest("button"); if(!b) return;
+    document.querySelectorAll("#schemes button").forEach(function(x){x.classList.remove("on");});
+    b.classList.add("on");
+    state.scheme = b.dataset.scheme;
+    render();
+  });
+
+  var RAYS = ["sun","mountain","wave","gem"];
+  var TOPS = ["ORBIT SEAL ATELIER","AURELIUS SIGNET","STELLAR mint CO","PARAMETRIC HERALDRY","SOLEIL · ORBITE"];
+  var BOTS = ["参数印章局 · MMXXVI","EST · 1925 · PARIS","DEPARTMENT OF RAYS","轨 道 印 鉴 局","SIGILLO DEL SOLE"];
+  document.getElementById("btnRandom").addEventListener("click", function(){
+    state.layers = 1+Math.floor(Math.random()*3);
+    state.rays = 8+Math.floor(Math.random()*25);
+    state.orbits = Math.floor(Math.random()*5);
+    state.ticks = Math.random()<0.2 ? 0 : (12+Math.floor(Math.random()*27))*4;
+    state.emblem = RAYS[Math.floor(Math.random()*RAYS.length)];
+    var keys = Object.keys(SCHEMES);
+    state.scheme = keys[Math.floor(Math.random()*keys.length)];
+    if (Math.random()<0.6){
+      state.top = TOPS[Math.floor(Math.random()*TOPS.length)];
+      state.bottom = BOTS[Math.floor(Math.random()*BOTS.length)];
+      txtTop.value = state.top; txtBottom.value = state.bottom;
+    }
+    /* sync UI */
+    document.getElementById("rRays").value = state.rays;
+    document.getElementById("oRays").textContent = state.rays;
+    document.getElementById("rOrbit").value = state.orbits;
+    document.getElementById("oOrbit").textContent = state.orbits;
+    document.getElementById("rTicks").value = state.ticks;
+    document.getElementById("oTicks").textContent = state.ticks;
+    document.querySelectorAll("#segLayers button").forEach(function(x){
+      x.classList.toggle("on", parseInt(x.dataset.layers,10)===state.layers);
+    });
+    document.querySelectorAll("#emblems button").forEach(function(x){
+      x.classList.toggle("on", x.dataset.emblem===state.emblem);
+    });
+    document.querySelectorAll("#schemes button").forEach(function(x){
+      x.classList.toggle("on", x.dataset.scheme===state.scheme);
+    });
+    render();
+  });
+
+  document.getElementById("btnSave").addEventListener("click", function(){
+    var out = buildSVG();
+    var blob = new Blob([out.svg], {type:"image/svg+xml;charset=utf-8"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "orbit-seal-"+state.emblem+"-"+state.rays+"rays.svg";
+    a.click();
+    setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

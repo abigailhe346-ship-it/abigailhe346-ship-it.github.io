@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mecha Assembler / 09 / MIRA</title>
+<style>
+:root{
+  --bg:#e9e7df; --ink:#2b2f33; --yellow:#f2b705; --red:#d33f2e; --line:#2b2f3330;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:44px 44px}
+::selection{background:var(--yellow);color:var(--ink)}
+header{height:64px;border-bottom:2px solid var(--ink);display:flex;align-items:center;justify-content:space-between;padding:0 4vw;font:10px var(--mono);letter-spacing:.12em;text-transform:uppercase;background:var(--bg)}
+a{color:inherit;text-decoration:none}
+.back{display:flex;align-items:center;gap:12px}
+.back b{font-weight:800;font-size:16px;transition:transform .35s cubic-bezier(.22,1,.36,1)}
+.back:hover b{transform:translateX(-4px)}
+.hero{padding:4.5vw 4vw 3vw;display:grid;grid-template-columns:1.5fr 1fr;gap:5vw;align-items:end}
+.kicker{font:10px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:#7a7d76}
+.kicker b{background:var(--ink);color:var(--yellow);padding:2px 8px;font-weight:400;margin-right:10px}
+h1{font:800 clamp(42px,6.8vw,96px)/0.9 var(--sans);letter-spacing:-.045em;text-transform:uppercase;margin:20px 0 20px}
+h1 em{font-style:normal;color:var(--yellow);text-shadow:2px 2px 0 var(--ink)}
+.hero p{max-width:440px;color:#5a5d58;font-size:14px;line-height:1.7;margin:0}
+.spec{border:2px solid var(--ink);background:var(--bg);padding:14px 18px;font:9px var(--mono);letter-spacing:.12em;text-transform:uppercase;line-height:2;color:#5a5d58}
+.spec b{color:var(--red);font-weight:400}
+.stage-wrap{padding:0 4vw 4.5vw}
+.stage{border:2px solid var(--ink);height:min(62vw,660px);min-height:420px;position:relative;overflow:hidden;background:#dcd9ce;cursor:grab}
+.stage:active{cursor:grabbing}
+.stage canvas{display:block;width:100%;height:100%}
+.stage::after{content:"FIG. 14-A — RX-09 ASSEMBLY SEQUENCE";position:absolute;bottom:10px;left:50%;transform:translateX(-50%);
+  font:9px var(--mono);letter-spacing:.16em;color:#7a7d76;pointer-events:none}
+.hud{position:absolute;inset:0;pointer-events:none;font:9px var(--mono);letter-spacing:.12em;text-transform:uppercase;z-index:2}
+.hud .a{position:absolute;top:14px;left:16px;color:#5a5d58}
+.hud .b{position:absolute;top:14px;right:16px;color:var(--red)}
+.hud .c{position:absolute;bottom:32px;left:16px;background:var(--ink);color:var(--yellow);padding:6px 10px}
+.steps{display:flex;border:2px solid var(--ink);border-top:none;background:var(--bg)}
+.steps div{flex:1;padding:9px 4px;text-align:center;font:9px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:#7a7d76;border-right:1px solid var(--line);cursor:pointer;transition:background .2s,color .2s}
+.steps div:last-child{border-right:none}
+.steps div.done{color:var(--ink)}
+.steps div.cur{background:var(--yellow);color:var(--ink)}
+.steps div:hover{background:#2b2f3314}
+.tools{border-top:2px solid var(--ink);border-bottom:2px solid var(--ink);padding:14px 0;margin-top:18px;display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.step-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.step-ctl input[type=range]{width:150px}
+input[type=range]{-webkit-appearance:none;appearance:none;height:2px;background:var(--ink);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;background:var(--yellow);border:2px solid var(--ink);cursor:grab}
+input[type=range]::-moz-range-thumb{width:13px;height:13px;background:var(--yellow);border:2px solid var(--ink);cursor:grab}
+.schemes{display:flex;gap:8px;align-items:center;font:9px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#7a7d76}
+button{font:9px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--ink);background:var(--bg);border:2px solid var(--ink);padding:8px 13px;cursor:pointer;transition:background .2s,color .2s}
+button:hover{background:var(--ink);color:var(--bg)}
+button.on{background:var(--yellow);color:var(--ink)}
+button.warn{border-color:var(--red);color:var(--red)}
+button.warn:hover{background:var(--red);color:var(--bg)}
+.caption{padding:6vw 4vw 8vw;display:grid;grid-template-columns:1fr 1fr;gap:6vw;border-top:2px solid var(--ink);background:var(--bg)}
+.caption h2{font:800 clamp(30px,4vw,54px)/1 var(--sans);letter-spacing:-.03em;text-transform:uppercase;margin:0}
+.caption h2 span{color:var(--red)}
+.caption p{color:#5a5d58;font-size:14px;line-height:1.8;margin:0;max-width:440px}
+.caption .sig{margin-top:26px;font:9px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:#7a7d76}
+@media(max-width:860px){
+  .hero{grid-template-columns:1fr;gap:24px}
+  .caption{grid-template-columns:1fr;gap:28px}
+  .stage{height:80vw;min-height:360px}
+  .tools{flex-direction:column;align-items:flex-start}
+  .steps div{font-size:8px;padding:8px 2px}
+}
+</style>
+</head>
+<body>
+<header>
+  <a class="back" href="../../../index.html#work"><b>←</b> Back to archive</a>
+  <span>14 / 100 · 3D Worlds</span>
+  <span>Mecha Assembler</span>
+</header>
+<main>
+  <section class="hero">
+    <div>
+      <div class="kicker"><b>SHEET 14</b>Assembly manual / RX-09</div>
+      <h1>Mecha<br><em>Assembler</em></h1>
+      <p>八步组装一台 RX-09：从双腿到背包推进器，每一步都有归位动画。已装好的部件可以随时点击拆下，三套涂装即点即换。</p>
+    </div>
+    <div class="spec">UNIT RX-09 / UTILITY FRAME<br>PARTS <b>08</b> · STEPS <b>08</b><br>CAUTION — <b>DO NOT FORCE JOINTS</b><br>CLICK INSTALLED PART TO DETACH</div>
+  </section>
+  <section class="stage-wrap">
+    <div class="stage" id="stage">
+      <div class="hud">
+        <span class="a">DRAG ORBIT · WHEEL ZOOM</span>
+        <span class="b" id="hudMsg">AWAITING ASSEMBLY</span>
+        <span class="c" id="hudStep">STEP 00/08 — STANDBY</span>
+      </div>
+    </div>
+    <div class="steps" id="steps"></div>
+    <div class="tools">
+      <div class="step-ctl">
+        <button id="bPrev">← Prev</button>
+        <input type="range" id="sProg" min="0" max="800" value="800">
+        <button id="bNext">Next →</button>
+        <button id="bPlay">Play 自动</button>
+      </div>
+      <div class="schemes">
+        <span>涂装</span>
+        <button class="sch on" data-s="0">Industrial</button>
+        <button class="sch" data-s="1">Arctic</button>
+        <button class="sch" data-s="2">Crimson</button>
+        <button id="bDown">Download PNG</button>
+      </div>
+    </div>
+  </section>
+  <section class="caption">
+    <h2>Eight steps from<br>parts to <span>posture.</span></h2>
+    <div>
+      <p>每台机甲在成为姿态之前，都只是一盒零件。这本说明书把组装过程做成了一条时间轴：拖动进度条可以倒放整场组装，点击任何归位的部件可以把它重新拆下来检查——好的工程手册从不阻止好奇心。</p>
+      <div class="sig">MIRA — Technical Manual Series · 09</div>
+    </div>
+  </section>
+</main>
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage');
+var scene,camera,renderer,raycaster,pointer,mecha;
+var theta=0.7,phi=0.38,radius=6.8,ttheta=theta,tphi=phi,tradius=radius;
+var target=new THREE.Vector3(0,1.35,0);
+var dragging=false,moved=0,px=0,py=0;
+var prog=8,tprog=8,playing=false;
+var armorMat,frameMat,accentMat,visorMat;
+var schemes=[
+  {armor:0xdcd8cc,frame:0x2b2f33,accent:0xf2b705,visor:0xd33f2e},
+  {armor:0xe8ecef,frame:0x39424e,accent:0x7fb6c9,visor:0xf2b705},
+  {armor:0x8c2f26,frame:0x241d1b,accent:0xe8b23a,visor:0xf2e8c8}
+];
+var PARTS=[];
+function box(w,h,d,m){var ms=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);ms.castShadow=true;return ms;}
+function cyl(rt,rb,h,seg,m){var ms=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),m);ms.castShadow=true;return ms;}
+function buildLeg(side){
+  var g=new THREE.Group();
+  var th=box(0.34,0.66,0.4,armorMat);th.position.y=-0.33;g.add(th);
+  var knee=box(0.36,0.14,0.42,accentMat);knee.position.y=-0.68;g.add(knee);
+  var shin=box(0.3,0.62,0.36,armorMat);shin.position.y=-1.05;g.add(shin);
+  var vent=box(0.32,0.2,0.3,frameMat);vent.position.set(0,-1.0,0.05);g.add(vent);
+  var foot=box(0.36,0.18,0.62,frameMat);foot.position.set(0,-1.44,0.1);g.add(foot);
+  var hip=cyl(0.15,0.15,0.4,8,frameMat);hip.rotation.z=Math.PI/2;hip.position.set(0,0.06,0);g.add(hip);
+  g.position.set(0.32*side,1.53,0);
+  return g;
+}
+function buildTorso(){
+  var g=new THREE.Group();
+  var waist=box(0.5,0.3,0.4,frameMat);waist.position.y=-0.32;g.add(waist);
+  var chest=box(0.95,0.72,0.58,armorMat);chest.position.y=0.24;g.add(chest);
+  var cockpit=box(0.3,0.24,0.06,accentMat);cockpit.position.set(0,0.2,0.3);g.add(cockpit);
+  var collar=box(0.5,0.16,0.5,frameMat);collar.position.y=0.66;g.add(collar);
+  var v1=box(0.12,0.3,0.06,frameMat);v1.position.set(-0.36,0.24,0.29);g.add(v1);
+  var v2=box(0.12,0.3,0.06,frameMat);v2.position.set(0.36,0.24,0.29);g.add(v2);
+  g.position.set(0,2.1,0);
+  return g;
+}
+function buildHead(){
+  var g=new THREE.Group();
+  var skull=box(0.36,0.3,0.38,armorMat);g.add(skull);
+  var visor=box(0.28,0.07,0.04,visorMat);visor.position.set(0,0.03,0.2);g.add(visor);
+  var chin=box(0.2,0.08,0.1,frameMat);chin.position.set(0,-0.16,0.16);g.add(chin);
+  var fin=box(0.05,0.22,0.3,accentMat);fin.position.set(0,0.24,-0.04);g.add(fin);
+  var ant=cyl(0.012,0.012,0.44,6,frameMat);ant.position.set(0.2,0.3,0);g.add(ant);
+  g.position.set(0,2.92,0);
+  return g;
+}
+function buildArm(side){
+  var g=new THREE.Group();
+  var shoulder=box(0.42,0.36,0.44,armorMat);shoulder.position.y=-0.05;g.add(shoulder);
+  var pad=box(0.46,0.12,0.48,accentMat);pad.position.y=0.14;g.add(pad);
+  var upper=box(0.24,0.44,0.28,frameMat);upper.position.y=-0.44;g.add(upper);
+  var fore=box(0.3,0.5,0.34,armorMat);fore.position.y=-0.9;g.add(fore);
+  var hand=box(0.2,0.2,0.24,frameMat);hand.position.y=-1.26;g.add(hand);
+  g.position.set(0.72*side,2.32,0);
+  return g;
+}
+function buildPack(){
+  var g=new THREE.Group();
+  var body=box(0.72,0.6,0.28,frameMat);g.add(body);
+  var t1=cyl(0.09,0.13,0.34,8,accentMat);t1.position.set(-0.2,-0.44,0);g.add(t1);
+  var t2=cyl(0.09,0.13,0.34,8,accentMat);t2.position.set(0.2,-0.44,0);g.add(t2);
+  var w1=box(0.06,0.5,0.34,armorMat);w1.position.set(-0.44,0.06,0);g.add(w1);
+  var w2=box(0.06,0.5,0.34,armorMat);w2.position.set(0.44,0.06,0);g.add(w2);
+  g.position.set(0,2.24,-0.46);
+  return g;
+}
+function buildRifle(){
+  var g=new THREE.Group();
+  var body=box(0.12,0.2,0.85,frameMat);g.add(body);
+  var barrel=cyl(0.035,0.035,0.5,8,armorMat);barrel.rotation.x=Math.PI/2;barrel.position.z=0.6;g.add(barrel);
+  var sight=box(0.05,0.1,0.16,accentMat);sight.position.set(0,0.15,-0.1);g.add(sight);
+  var grip=box(0.08,0.18,0.1,frameMat);grip.position.set(0,-0.18,-0.2);g.add(grip);
+  g.position.set(0.72,1.02,0.42);
+  return g;
+}
+function defineParts(){
+  PARTS=[
+    {code:'LEG.L',name:'左腿',build:function(){return buildLeg(-1);},dir:new THREE.Vector3(-1,1.4,0.5),spin:1.2},
+    {code:'LEG.R',name:'右腿',build:function(){return buildLeg(1);},dir:new THREE.Vector3(1,1.4,0.5),spin:-1.1},
+    {code:'CORE',name:'躯干',build:buildTorso,dir:new THREE.Vector3(0,2.2,-0.6),spin:0.8},
+    {code:'HEAD',name:'头部',build:buildHead,dir:new THREE.Vector3(0.3,2.6,0.4),spin:-1.6},
+    {code:'ARM.L',name:'左臂',build:function(){return buildArm(-1);},dir:new THREE.Vector3(-1.8,1.2,0.3),spin:1.5},
+    {code:'ARM.R',name:'右臂',build:function(){return buildArm(1);},dir:new THREE.Vector3(1.8,1.2,0.3),spin:-1.4},
+    {code:'PACK',name:'背包',build:buildPack,dir:new THREE.Vector3(0,1.8,-1.6),spin:2.0},
+    {code:'RIFLE',name:'步枪',build:buildRifle,dir:new THREE.Vector3(1.6,0.4,1.4),spin:-2.2}
+  ];
+}
+function buildMecha(){
+  mecha=new THREE.Group();
+  for(var i=0;i<PARTS.length;i++){
+    var p=PARTS[i];
+    p.group=p.build();
+    p.final=p.group.position.clone();
+    p.detached=false;p.detachT=0;
+    p.group.userData.partIdx=i;
+    p.group.traverse(function(o){o.userData.partIdx=i;});
+    mecha.add(p.group);
+  }
+  scene.add(mecha);
+}
+function setScheme(i){
+  var s=schemes[i];
+  armorMat.color.setHex(s.armor);frameMat.color.setHex(s.frame);
+  accentMat.color.setHex(s.accent);visorMat.color.setHex(s.visor);
+  var btns=document.querySelectorAll('.sch');
+  for(var j=0;j<btns.length;j++)btns[j].classList.toggle('on',j===i);
+}
+function ease(p){return 1-Math.pow(1-p,3);}
+function updateHud(){
+  var done=Math.floor(Math.min(8,Math.max(0,prog)));
+  var stepEl=document.getElementById('hudStep');
+  if(prog>=8){stepEl.textContent='COMPLETE — RX-09 ONLINE';}
+  else{stepEl.textContent='STEP 0'+done+'/08 — '+PARTS[Math.min(done,7)].code+' '+PARTS[Math.min(done,7)].name;}
+  var cells=document.getElementById('steps').children;
+  for(var i=0;i<8;i++){
+    cells[i].classList.toggle('done',i<done);
+    cells[i].classList.toggle('cur',i===done&&prog<8);
+  }
+}
+function init(){
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0xdcd9ce);
+  scene.fog=new THREE.Fog(0xdcd9ce,12,26);
+  camera=new THREE.PerspectiveCamera(36,stage.clientWidth/stage.clientHeight,0.1,100);
+  renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  renderer.setSize(stage.clientWidth,stage.clientHeight);
+  renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+  stage.appendChild(renderer.domElement);
+  raycaster=new THREE.Raycaster();pointer=new THREE.Vector2();
+  armorMat=new THREE.MeshStandardMaterial({color:0xdcd8cc,flatShading:true,roughness:0.5,metalness:0.35});
+  frameMat=new THREE.MeshStandardMaterial({color:0x2b2f33,flatShading:true,roughness:0.45,metalness:0.5});
+  accentMat=new THREE.MeshStandardMaterial({color:0xf2b705,flatShading:true,roughness:0.4,metalness:0.3});
+  visorMat=new THREE.MeshStandardMaterial({color:0xd33f2e,emissive:0xd33f2e,emissiveIntensity:0.6,roughness:0.3});
+  scene.add(new THREE.HemisphereLight(0xffffff,0x8a8a80,1.3));
+  var key=new THREE.DirectionalLight(0xffffff,1.4);
+  key.position.set(4,8,5);key.castShadow=true;
+  key.shadow.mapSize.set(2048,2048);
+  key.shadow.camera.left=-5;key.shadow.camera.right=5;key.shadow.camera.top=6;key.shadow.camera.bottom=-3;key.shadow.camera.far=25;
+  scene.add(key);
+  var rim=new THREE.DirectionalLight(0xf2b705,0.35);rim.position.set(-4,3,-5);scene.add(rim);
+  var ground=new THREE.Mesh(new THREE.PlaneGeometry(40,40),new THREE.MeshStandardMaterial({color:0xd3d0c4,roughness:1}));
+  ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+  var grid=new THREE.GridHelper(16,16,0x2b2f33,0x2b2f33);
+  grid.material.transparent=true;grid.material.opacity=0.1;grid.position.y=0.002;scene.add(grid);
+  defineParts();buildMecha();
+  var stepsEl=document.getElementById('steps');
+  for(var i=0;i<8;i++){
+    var d=document.createElement('div');d.textContent='0'+(i+1)+' '+PARTS[i].code;
+    (function(idx){d.addEventListener('click',function(){tprog=idx+1;playing=false;document.getElementById('bPlay').classList.remove('on');});})(i);
+    stepsEl.appendChild(d);
+  }
+  bind();updateHud();
+  requestAnimationFrame(loop);
+}
+function bind(){
+  var el=renderer.domElement;
+  el.addEventListener('pointerdown',function(e){dragging=true;moved=0;px=e.clientX;py=e.clientY;el.setPointerCapture(e.pointerId);});
+  el.addEventListener('pointermove',function(e){
+    if(!dragging)return;
+    var dx=e.clientX-px,dy=e.clientY-py;moved+=Math.abs(dx)+Math.abs(dy);
+    ttheta-=dx*0.006;tphi=Math.max(0.06,Math.min(1.3,tphi-dy*0.005));
+    px=e.clientX;py=e.clientY;
+  });
+  el.addEventListener('pointerup',function(e){
+    dragging=false;
+    if(moved<6){
+      var r=el.getBoundingClientRect();
+      pointer.x=((e.clientX-r.left)/r.width)*2-1;
+      pointer.y=-((e.clientY-r.top)/r.height)*2+1;
+      raycaster.setFromCamera(pointer,camera);
+      var hits=raycaster.intersectObjects(mecha.children,true);
+      if(hits.length){
+        var idx=hits[0].object.userData.partIdx;
+        if(idx!==undefined&&prog>=idx+1){
+          var p=PARTS[idx];p.detached=!p.detached;
+          document.getElementById('hudMsg').textContent=p.detached?(p.code+' DETACHED — 已拆下'):(p.code+' SECURED — 已归位');
+        }
+      }
+    }
+  });
+  el.addEventListener('wheel',function(e){e.preventDefault();tradius=Math.max(3.4,Math.min(12,tradius+e.deltaY*0.005));},{passive:false});
+  window.addEventListener('resize',resize);
+  document.getElementById('bPrev').addEventListener('click',function(){tprog=Math.max(0,Math.floor(tprog-1));stopPlay();});
+  document.getElementById('bNext').addEventListener('click',function(){tprog=Math.min(8,Math.floor(tprog)+1);stopPlay();});
+  document.getElementById('sProg').addEventListener('input',function(){tprog=this.value/100;stopPlay();});
+  document.getElementById('bPlay').addEventListener('click',function(){
+    playing=!playing;this.classList.toggle('on',playing);
+    if(playing&&tprog>=8){tprog=0;prog=0;}
+  });
+  var sch=document.querySelectorAll('.sch');
+  for(var i=0;i<sch.length;i++){(function(btn){btn.addEventListener('click',function(){setScheme(parseInt(btn.dataset.s,10));});})(sch[i]);}
+  document.getElementById('bDown').addEventListener('click',function(){
+    renderer.render(scene,camera);
+    var a=document.createElement('a');a.download='mecha-assembler.png';a.href=renderer.domElement.toDataURL('image/png');a.click();
+  });
+}
+function stopPlay(){playing=false;document.getElementById('bPlay').classList.remove('on');}
+function resize(){
+  if(!renderer)return;
+  camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();
+  renderer.setSize(stage.clientWidth,stage.clientHeight);
+}
+var last=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  var dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(playing){tprog+=dt*0.9;if(tprog>=8){tprog=8;stopPlay();}}
+  prog+=(tprog-prog)*Math.min(1,dt*5);
+  if(Math.abs(tprog-prog)<0.002)prog=tprog;
+  document.getElementById('sProg').value=Math.round(prog*100);
+  theta+=(ttheta-theta)*0.08;phi+=(tphi-phi)*0.08;radius+=(tradius-radius)*0.08;
+  camera.position.set(
+    target.x+radius*Math.sin(theta)*Math.cos(phi),
+    target.y+radius*Math.sin(phi),
+    target.z+radius*Math.cos(theta)*Math.cos(phi)
+  );
+  camera.lookAt(target);
+  for(var i=0;i<8;i++){
+    var p=PARTS[i];
+    var e=ease(Math.max(0,Math.min(1,prog-i)));
+    p.detachT+=((p.detached?1:0)-p.detachT)*Math.min(1,dt*6);
+    var off=Math.pow(1-e,1.4)*3.4+p.detachT*0.85;
+    p.group.position.set(
+      p.final.x+p.dir.x*off,
+      p.final.y+p.dir.y*off,
+      p.final.z+p.dir.z*off
+    );
+    p.group.rotation.y=(1-e)*p.spin;
+    p.group.rotation.z=(1-e)*p.spin*0.3;
+  }
+  updateHud();
+  renderer.render(scene,camera);
+}
+init();
+})();
+</script>
+</body>
+</html>

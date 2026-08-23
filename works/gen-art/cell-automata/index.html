@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Automata Loom — 元胞自动机艺术画布</title>
+<style>
+  :root{
+    --bg:#0F1317; --panel:#151A20; --line:rgba(200,194,180,.1);
+    --ember:#FF7847; --ash:#C8C2B4; --ink:#E8E4DA; --dim:#69707A;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:rgba(255,120,71,.3)}
+
+  header{height:56px;display:flex;align-items:center;gap:16px;padding:0 22px;
+         border-bottom:1px solid var(--line);position:relative;z-index:5;background:var(--bg)}
+  .brand{display:flex;align-items:baseline;gap:12px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--ember);letter-spacing:.14em}
+  .brand .name{font-family:var(--serif);font-size:19px;letter-spacing:.02em}
+  .brand .sub{font-size:10px;color:var(--dim);letter-spacing:.24em;text-transform:uppercase}
+  .crumbs{margin-left:auto;display:flex;align-items:center;gap:10px;font-family:var(--mono);
+          font-size:11px;color:var(--dim)}
+  .dotlive{width:7px;height:7px;background:var(--ember);box-shadow:0 0 8px var(--ember);
+           animation:pulse 2.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+  main{display:grid;grid-template-columns:1fr 300px;height:calc(100% - 56px)}
+  .stage{position:relative;overflow:hidden;cursor:crosshair;background:var(--bg)}
+  canvas{display:block;position:absolute;inset:0}
+  .hint{position:absolute;left:22px;bottom:16px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);letter-spacing:.14em;text-transform:uppercase;pointer-events:none;
+        transition:opacity .6s}
+  .gentag{position:absolute;right:22px;top:14px;font-family:var(--mono);font-size:10px;
+        color:var(--dim);letter-spacing:.2em;pointer-events:none;text-align:right;line-height:1.9}
+  .gentag b{color:var(--ember);font-weight:400}
+
+  aside{border-left:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;
+        overflow-y:auto}
+  .panel{padding:20px 20px 8px}
+  .blocklabel{font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:var(--dim);
+              text-transform:uppercase;display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .blocklabel::after{content:"";flex:1;height:1px;background:var(--line)}
+
+  .field{margin-bottom:16px}
+  .field label{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+               letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+  .field label .val{color:var(--ember)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:rgba(255,120,71,.18)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;margin-top:-5px;
+      border-radius:50%;background:var(--ember);box-shadow:0 0 8px rgba(255,120,71,.55);
+      transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-track{height:2px;background:rgba(255,120,71,.18)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;border-radius:50%;background:var(--ember);border:0}
+
+  .bits{display:flex;gap:4px;margin-top:2px}
+  .bit{flex:1;height:26px;border:1px solid var(--line);display:flex;align-items:center;
+       justify-content:center;font-family:var(--mono);font-size:9px;color:var(--dim);
+       transition:all .25s var(--ease)}
+  .bit.on{background:var(--ember);border-color:var(--ember);color:#140B06}
+
+  .presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .preset{border:1px solid var(--line);padding:8px 0 7px;text-align:center;cursor:pointer;
+          font-family:var(--mono);font-size:11px;color:var(--ash);
+          transition:all .25s var(--ease);position:relative}
+  .preset span{display:block;font-size:8px;letter-spacing:.1em;color:var(--dim);margin-top:3px;
+               text-transform:uppercase}
+  .preset:hover{border-color:var(--ember);color:var(--ember)}
+  .preset.on{background:var(--ember);border-color:var(--ember);color:#140B06}
+  .preset.on span{color:rgba(20,11,6,.65)}
+
+  .seg{display:flex;border:1px solid var(--line)}
+  .seg button{flex:1;background:transparent;border:0;padding:9px 0;font-family:var(--mono);
+              font-size:10px;letter-spacing:.16em;color:var(--dim);cursor:pointer;
+              transition:all .3s var(--ease);text-transform:uppercase}
+  .seg button + button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--ash);color:#14171B}
+
+  .actions{margin-top:auto;padding:16px 20px 20px;border-top:1px solid var(--line);
+           display:flex;flex-direction:column;gap:10px}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:13px 0;
+       border:1px solid var(--ember);background:var(--ember);color:#140B06;
+       font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+       cursor:pointer;transition:all .3s var(--ease)}
+  .btn:hover{background:transparent;color:var(--ember)}
+  .btn.ghost{background:transparent;color:var(--ash);border-color:rgba(200,194,180,.3)}
+  .btn.ghost:hover{background:var(--ash);color:#14171B;border-color:var(--ash)}
+  .btnrow{display:flex;gap:10px}
+  .btnrow .btn{flex:1}
+  .btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.6}
+  .credit{padding:0 20px 16px;font-family:var(--mono);font-size:9px;color:var(--dim);
+          letter-spacing:.14em;line-height:1.8;text-transform:uppercase}
+
+  @media (max-width:840px){
+    body{overflow:auto}
+    main{display:flex;flex-direction:column;height:auto}
+    .stage{height:56vh;min-height:380px}
+    aside{border-left:0;border-top:1px solid var(--line)}
+    header .sub{display:none}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="no">GA·04</span>
+    <span class="name">Automata Loom</span>
+    <span class="sub">Elementary Rule Weaver</span>
+  </div>
+  <div class="crumbs"><span class="dotlive"></span><span>GEN · <span id="genOut">0</span></span></div>
+</header>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="cv"></canvas>
+    <div class="gentag" id="ruleTag"></div>
+    <div class="hint" id="hint">DRAG TO SEED CELLS · 拖动播撒活细胞</div>
+  </div>
+
+  <aside>
+    <div class="panel">
+      <div class="blocklabel">Rule · 规则</div>
+      <div class="field">
+        <label>Wolfram Code <span class="val" id="ruleVal">110</span></label>
+        <input type="range" id="rule" min="0" max="255" value="110">
+      </div>
+      <div class="field">
+        <label>Binary 位图</label>
+        <div class="bits" id="bits"></div>
+      </div>
+      <div class="field">
+        <label>Presets 名谱</label>
+        <div class="presets" id="presets">
+          <div class="preset" data-r="30">30<span>混沌</span></div>
+          <div class="preset" data-r="54">54<span>织纹</span></div>
+          <div class="preset" data-r="90">90<span>分形</span></div>
+          <div class="preset on" data-r="110">110<span>图灵</span></div>
+          <div class="preset" data-r="150">150<span>叠加</span></div>
+          <div class="preset" data-r="184">184<span>车流</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="blocklabel">Flow · 织机</div>
+      <div class="field">
+        <label>Tempo 速度 <span class="val" id="speedVal">60</span></label>
+        <input type="range" id="speed" min="5" max="100" value="60">
+      </div>
+      <div class="field">
+        <label>Seed Rain 播种 <span class="val" id="rainVal">25</span></label>
+        <input type="range" id="rain" min="0" max="100" value="25">
+      </div>
+      <div class="field">
+        <label>Symmetry 对称</label>
+        <div class="seg" id="symSeg">
+          <button data-v="free" class="on">自由</button>
+          <button data-v="mirror">镜像</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn" id="randomBtn">
+        <svg viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M4 10a8 8 0 0 1 14-4.5M20 14a8 8 0 0 1-14 4.5"/></svg>
+        随机规则
+      </button>
+      <div class="btnrow">
+        <button class="btn ghost" id="pauseBtn">暂停</button>
+        <button class="btn ghost" id="clearBtn">清空</button>
+      </div>
+      <button class="btn ghost" id="dlBtn">
+        <svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5l5-5M5 20h14"/></svg>
+        下载 PNG
+      </button>
+    </div>
+    <div class="credit">Automata Loom — 256 rules of one dimension,<br>woven row by row. © MMXXVI</div>
+  </aside>
+</main>
+
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage'), cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+var DPR=1, W=0, H=0, CELL=7;
+var cols=0, maxRows=0;
+
+var P={rule:110, speed:60, rain:25, sym:'free'};
+var rows=[], gen=0, paused=false, paintX=-1, brush=3;
+var RULE_NAMES={30:'CHAOS · 混沌引擎',54:'LOOM · 织纹机',90:'SIERPINSKI · 分形毡',
+                110:'UNIVERSAL · 图灵完备',150:'ADDITIVE · 叠加态',184:'TRAFFIC · 车流模型'};
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=stage.clientWidth; H=stage.clientHeight;
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+'px'; cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  var nc=Math.floor((W-44)/CELL), nr=Math.floor((H-44)/CELL);
+  if(nc!==cols||nr!==maxRows){
+    cols=nc; maxRows=nr; reset();
+  }
+}
+window.addEventListener('resize',resize);
+
+function reset(){
+  rows=[]; gen=0;
+  var r=new Uint8Array(cols);
+  if(P.sym==='mirror'){
+    r[Math.floor(cols/2)]=1;
+  }else{
+    for(var i=0;i<cols;i++) r[i]=Math.random()<0.3?1:0;
+  }
+  rows.push(r);
+  /* pre-warm the loom so the first paint is a full fabric */
+  var warm=Math.min(maxRows,600);
+  for(var k=0;k<warm;k++) step();
+}
+
+function step(){
+  var prev=rows[rows.length-1];
+  var next=new Uint8Array(cols);
+  for(var i=0;i<cols;i++){
+    var l=prev[(i-1+cols)%cols], c=prev[i], rr=prev[(i+1)%cols];
+    var idx=(l<<2)|(c<<1)|rr;
+    next[i]=(P.rule>>idx)&1;
+  }
+  /* seed rain keeps the loom alive */
+  var rainN=Math.round(P.rain/100*cols*0.05);
+  for(var k=0;k<rainN;k++) next[Math.floor(Math.random()*cols)]^=1;
+  /* brush injection */
+  if(paintX>=0){
+    var c0=Math.floor((paintX-22)/CELL);
+    for(var b=-brush;b<=brush;b++){
+      var bi=c0+b;
+      if(bi>=0&&bi<cols) next[bi]=1;
+    }
+  }
+  if(P.sym==='mirror'){
+    for(var m=0;m<Math.floor(cols/2);m++) next[cols-1-m]=next[m];
+  }
+  rows.push(next);
+  if(rows.length>maxRows)rows.shift();
+  gen++;
+}
+
+/* age ramp: ember -> ash -> faint */
+function ageColor(f){
+  /* f: 0 newest, 1 oldest */
+  var r,g,b;
+  if(f<0.18){
+    var t=f/0.18;
+    r=255+(200-255)*t; g=120+(194-120)*t; b=71+(180-71)*t;
+  }else{
+    var t2=(f-0.18)/0.82;
+    r=200-160*t2; g=194-162*t2; b=180-152*t2;
+  }
+  return 'rgb('+(r|0)+','+(g|0)+','+(b|0)+')';
+}
+
+var last=performance.now(), acc=0, genT=0;
+function frame(now){
+  var dt=Math.min(now-last,100); last=now;
+  if(!paused){
+    acc+=dt;
+    var interval=220-(P.speed/100)*205;
+    while(acc>interval){ acc-=interval; step(); }
+  }
+
+  ctx.fillStyle='#0F1317'; ctx.fillRect(0,0,W,H);
+
+  /* faint column grid */
+  ctx.strokeStyle='rgba(200,194,180,.04)'; ctx.lineWidth=1;
+  ctx.beginPath();
+  for(var gx=22;gx<W-22;gx+=CELL*8){ ctx.moveTo(gx,22); ctx.lineTo(gx,H-22); }
+  ctx.stroke();
+
+  var total=rows.length;
+  for(var j=0;j<total;j++){
+    var row=rows[j];
+    var y=22+ (maxRows-total+j)*CELL;
+    var f=1-j/Math.max(1,total-1);
+    ctx.fillStyle=ageColor(f);
+    var run=-1;
+    for(var i=0;i<=cols;i++){
+      var v=i<cols?row[i]:0;
+      if(v&&run<0)run=i;
+      else if(!v&&run>=0){
+        ctx.fillRect(22+run*CELL, y, (i-run)*CELL, CELL-1);
+        run=-1;
+      }
+    }
+  }
+  /* brush cursor */
+  if(paintX>=0){
+    ctx.strokeStyle='rgba(255,120,71,.6)';
+    ctx.strokeRect(22+Math.floor((paintX-22)/CELL)*CELL-brush*CELL, H-22-CELL, (brush*2+1)*CELL, CELL-1);
+  }
+
+  if(now-genT>120){
+    genT=now;
+    document.getElementById('genOut').textContent=gen;
+    document.getElementById('ruleTag').innerHTML=
+      'RULE <b>'+P.rule+'</b>'+(RULE_NAMES[P.rule]?'<br>'+RULE_NAMES[P.rule]:'');
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ---------- interaction ---------- */
+stage.addEventListener('pointerdown',function(e){
+  paintX=e.clientX-stage.getBoundingClientRect().left;
+  stage.setPointerCapture(e.pointerId);
+  document.getElementById('hint').style.opacity=0;
+});
+stage.addEventListener('pointermove',function(e){
+  if(e.buttons>0||e.pointerType==='mouse')
+    paintX=e.clientX-stage.getBoundingClientRect().left;
+});
+stage.addEventListener('pointerup',function(){paintX=-1;});
+stage.addEventListener('pointerleave',function(){paintX=-1;});
+
+/* bits visual */
+var bitsEl=document.getElementById('bits');
+for(var i=7;i>=0;i--){
+  var b=document.createElement('div');
+  b.className='bit'; b.textContent=i; b.dataset.bit=i;
+  b.addEventListener('click',function(){
+    P.rule^=(1<<+this.dataset.bit);
+    syncRule();
+  });
+  bitsEl.appendChild(b);
+}
+function syncRule(){
+  document.getElementById('rule').value=P.rule;
+  document.getElementById('ruleVal').textContent=P.rule;
+  bitsEl.querySelectorAll('.bit').forEach(function(el){
+    el.classList.toggle('on',(P.rule>>+el.dataset.bit)&1);
+  });
+  document.querySelectorAll('.preset').forEach(function(el){
+    el.classList.toggle('on',+el.dataset.r===P.rule);
+  });
+}
+document.getElementById('rule').addEventListener('input',function(){
+  P.rule=+this.value; syncRule();
+});
+document.getElementById('presets').addEventListener('click',function(e){
+  var p=e.target.closest('.preset'); if(!p)return;
+  P.rule=+p.dataset.r; syncRule(); reset();
+});
+
+function bindRange(id,key,label){
+  var el=document.getElementById(id);
+  el.addEventListener('input',function(){
+    P[key]=+el.value; document.getElementById(label).textContent=el.value;
+  });
+}
+bindRange('speed','speed','speedVal');
+bindRange('rain','rain','rainVal');
+
+document.getElementById('symSeg').addEventListener('click',function(e){
+  var b=e.target.closest('button'); if(!b)return;
+  document.querySelectorAll('#symSeg button').forEach(function(x){x.classList.remove('on');});
+  b.classList.add('on'); P.sym=b.dataset.v;
+});
+
+document.getElementById('randomBtn').addEventListener('click',function(){
+  P.rule=Math.floor(Math.random()*256); syncRule(); reset();
+});
+document.getElementById('pauseBtn').addEventListener('click',function(){
+  paused=!paused; this.textContent=paused?'继续':'暂停';
+});
+document.getElementById('clearBtn').addEventListener('click',reset);
+document.getElementById('dlBtn').addEventListener('click',function(){
+  cv.toBlob(function(blob){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download='automata-rule'+P.rule+'-gen'+gen+'.png';
+    a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+});
+
+resize();
+syncRule();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

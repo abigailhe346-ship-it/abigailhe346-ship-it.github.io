@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>美术馆 1987 · 镀金时代 PALAIS</title>
+<style>
+:root{
+  --black:#0E0D0B; --gold:#C9A227; --gold-dim:rgba(201,162,39,.4); --ivory:#F2EBDC;
+  --green:#16281F; --fade:rgba(242,235,220,.5); --hair:rgba(201,162,39,.3);
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,monospace;
+  --ease:cubic-bezier(.22,.9,.24,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--black);color:var(--ivory);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+::selection{background:var(--gold);color:var(--black)}
+
+/* progress */
+#pbar{position:fixed;top:0;left:0;height:2px;background:linear-gradient(90deg,var(--gold),#E8CD7A);z-index:99;width:0;
+  box-shadow:0 0 10px rgba(201,162,39,.6)}
+
+/* header */
+.top{position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:14px;
+  padding:13px 26px;background:rgba(14,13,11,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--hair);
+  font:10px var(--mono);letter-spacing:.16em;text-transform:uppercase}
+.top .sig{text-align:center;line-height:1.7}
+.top .sig b{color:var(--gold)}
+.top .right{text-align:right;color:var(--fade)}
+.top .back:hover{color:var(--gold)}
+@media(max-width:720px){.top .right{display:none}.top{padding:11px 14px}}
+
+/* tour nav */
+.tour{position:sticky;top:57px;z-index:45;display:flex;justify-content:center;gap:0;background:rgba(14,13,11,.92);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--hair);overflow-x:auto}
+.tour a{display:flex;align-items:center;gap:9px;padding:12px 22px;font:9px var(--mono);letter-spacing:.22em;
+  text-transform:uppercase;color:var(--fade);white-space:nowrap;transition:.3s;border-bottom:2px solid transparent}
+.tour a .dm{width:9px;height:9px;border:1px solid var(--gold-dim);transform:rotate(45deg);transition:.3s;flex:none}
+.tour a:hover{color:var(--ivory)}
+.tour a.on{color:var(--gold);border-bottom-color:var(--gold)}
+.tour a.on .dm{background:var(--gold);border-color:var(--gold);box-shadow:0 0 8px rgba(201,162,39,.7)}
+
+/* hero */
+.hero{position:relative;text-align:center;padding:96px 24px 84px;overflow:hidden}
+.hero .burst{width:min(560px,86vw);margin:0 auto 8px;display:block;animation:slowspin 90s linear infinite}
+@keyframes slowspin{to{transform:rotate(360deg)}}
+.hero .kick{font:10px var(--mono);letter-spacing:.5em;color:var(--gold);text-transform:uppercase;margin-bottom:22px}
+.hero h1{font:400 clamp(52px,9vw,120px)/1 var(--serif);letter-spacing:.14em;margin:0 0 6px;text-indent:.14em}
+.hero .en{font:italic 400 clamp(15px,2vw,21px) var(--serif);color:var(--gold);letter-spacing:.28em;text-transform:uppercase}
+.hero .dates{margin-top:26px;font:11px var(--mono);letter-spacing:.3em;color:var(--fade)}
+.orn{display:flex;align-items:center;justify-content:center;gap:14px;margin:34px auto 0;color:var(--gold)}
+.orn::before,.orn::after{content:"";width:min(150px,20vw);height:1px;background:linear-gradient(90deg,transparent,var(--gold-dim));}
+.orn::after{background:linear-gradient(90deg,var(--gold-dim),transparent)}
+.orn .dm{width:10px;height:10px;border:1px solid var(--gold);transform:rotate(45deg)}
+.scrollcue{margin-top:44px;font:9px var(--mono);letter-spacing:.4em;color:var(--fade);text-transform:uppercase;animation:cue 2.4s var(--ease) infinite}
+@keyframes cue{50%{opacity:.35;transform:translateY(6px)}}
+
+/* rooms */
+.room{position:relative;padding:90px 24px 100px;border-top:1px solid var(--hair)}
+.room.alt{background:var(--green)}
+.room-head{text-align:center;margin-bottom:60px}
+.room-head .rn{display:inline-grid;place-items:center;width:52px;height:52px;border:1px solid var(--gold);
+  transform:rotate(45deg);margin-bottom:26px}
+.room-head .rn span{transform:rotate(-45deg);font:400 17px var(--serif);color:var(--gold)}
+.room-head h2{font:400 clamp(26px,3.4vw,40px) var(--serif);letter-spacing:.3em;text-indent:.3em}
+.room-head p{margin-top:14px;font:11px var(--mono);letter-spacing:.2em;color:var(--fade);text-transform:uppercase}
+.works{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,340px));justify-content:center;gap:44px;max-width:1100px;margin:0 auto}
+.piece{cursor:pointer;text-align:center;opacity:0;transform:translateY(30px);transition:opacity .8s var(--ease),transform .8s var(--ease)}
+.piece.in{opacity:1;transform:none}
+.frame{position:relative;padding:14px;border:1px solid var(--gold);outline:1px solid var(--gold-dim);outline-offset:5px;
+  background:#12110E;transition:box-shadow .5s var(--ease),transform .5s var(--ease)}
+.piece:hover .frame{box-shadow:0 0 0 1px var(--gold),0 0 34px rgba(201,162,39,.28),inset 0 0 24px rgba(201,162,39,.1);transform:translateY(-5px)}
+.frame svg{display:block;width:100%;height:auto}
+.frame .shine{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .5s;
+  background:linear-gradient(115deg,transparent 42%,rgba(242,235,220,.13) 50%,transparent 58%);background-size:250% 100%}
+.piece:hover .shine{opacity:1;animation:sweep 1.4s var(--ease) infinite}
+@keyframes sweep{from{background-position:120% 0}to{background-position:-120% 0}}
+.label{display:inline-block;margin-top:20px;padding:12px 22px;border:1px solid var(--hair);background:rgba(242,235,220,.04);transition:.4s}
+.piece:hover .label{border-color:var(--gold);background:rgba(201,162,39,.08)}
+.label h4{font:400 17px var(--serif);letter-spacing:.14em}
+.label p{margin-top:6px;font:9.5px var(--mono);letter-spacing:.16em;color:var(--fade);text-transform:uppercase}
+.chev{display:flex;justify-content:center;gap:8px;padding:54px 0 0;color:var(--gold-dim)}
+.chev i{width:14px;height:14px;border-right:1px solid var(--gold-dim);border-bottom:1px solid var(--gold-dim);transform:rotate(45deg)}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:4vmin;background:rgba(8,7,6,.75);
+  backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+.modal.open{opacity:1;pointer-events:auto}
+.mbox{width:min(780px,100%);max-height:92vh;overflow:auto;background:#12110E;border:1px solid var(--gold);outline:1px solid var(--gold-dim);outline-offset:6px;
+  transform:translateY(22px);transition:transform .45s var(--ease);position:relative}
+.modal.open .mbox{transform:none}
+.mcols{display:grid;grid-template-columns:1fr 1fr}
+.mcols .art{padding:34px 28px;border-right:1px solid var(--hair);display:grid;place-items:center}
+.mcols .art svg{width:100%;max-width:300px;height:auto}
+.mcols .txt{padding:38px 32px 28px;display:flex;flex-direction:column}
+.mcols .kick{font:9px var(--mono);letter-spacing:.34em;color:var(--gold);text-transform:uppercase}
+.mcols h2{font:400 32px/1.15 var(--serif);letter-spacing:.1em;margin:14px 0 4px}
+.mcols .who{font:italic 13px var(--serif);color:var(--gold);margin-bottom:18px}
+.mrow{display:flex;justify-content:space-between;font:10.5px var(--mono);letter-spacing:.08em;color:var(--fade);padding:9px 0;border-top:1px dashed var(--hair)}
+.mrow b{color:var(--ivory);font-weight:400}
+.mtxt{margin:16px 0;font-size:12.5px;line-height:2.05}
+.mfoot{margin-top:auto;padding-top:14px;border-top:1px solid var(--hair);font:9px var(--mono);letter-spacing:.2em;color:var(--fade);text-transform:uppercase}
+.mx{position:absolute;top:10px;right:14px;font:20px var(--mono);color:var(--fade);padding:8px;z-index:2}
+.mx:hover{color:var(--gold)}
+@media(max-width:680px){.mcols{grid-template-columns:1fr}.mcols .art{border-right:none;border-bottom:1px solid var(--hair)}}
+
+footer{border-top:1px solid var(--hair);padding:26px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  font:9px var(--mono);letter-spacing:.18em;color:var(--fade);text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<div id="pbar"></div>
+
+<header class="top">
+  <a class="back" href="../../../index.html#work">← 返回总目</a>
+  <div class="sig"><b>№ 10 · PALAIS 1987</b><br>美术馆一九八七 — 装饰艺术回顾展</div>
+  <div class="right">1987.06.12 — 09.30<br>免费参观 · 周一闭馆</div>
+</header>
+
+<nav class="tour" id="tour">
+  <a href="#room1" data-r="room1"><span class="dm"></span>I 日轮厅</a>
+  <a href="#room2" data-r="room2"><span class="dm"></span>II 扇形厅</a>
+  <a href="#room3" data-r="room3"><span class="dm"></span>III 折线厅</a>
+  <a href="#room4" data-r="room4"><span class="dm"></span>IV 镜像厅</a>
+</nav>
+
+<section class="hero">
+  <svg class="burst" viewBox="0 0 400 170" aria-hidden="true">
+    <g stroke="#C9A227" stroke-width="1" opacity=".85">
+      <line x1="200" y1="165" x2="200" y2="15"/><line x1="200" y1="165" x2="155" y2="20"/><line x1="200" y1="165" x2="245" y2="20"/>
+      <line x1="200" y1="165" x2="112" y2="32"/><line x1="200" y1="165" x2="288" y2="32"/>
+      <line x1="200" y1="165" x2="74" y2="52"/><line x1="200" y1="165" x2="326" y2="52"/>
+      <line x1="200" y1="165" x2="42" y2="78"/><line x1="200" y1="165" x2="358" y2="78"/>
+      <line x1="200" y1="165" x2="18" y2="110"/><line x1="200" y1="165" x2="382" y2="110"/>
+      <line x1="200" y1="165" x2="6" y2="140"/><line x1="200" y1="165" x2="394" y2="140"/>
+    </g>
+    <g fill="none" stroke="#C9A227" opacity=".9">
+      <path d="M120 165 A80 80 0 0 1 280 165" stroke-width="1.4"/>
+      <path d="M96 165 A104 104 0 0 1 304 165" stroke-width="1"/>
+      <path d="M72 165 A128 128 0 0 1 328 165" stroke-width=".7"/>
+    </g>
+    <circle cx="200" cy="165" r="26" fill="none" stroke="#C9A227" stroke-width="1.4"/>
+    <circle cx="200" cy="165" r="17" fill="#C9A227" opacity=".9"/>
+  </svg>
+  <div class="kick">RÉTROSPECTIVE · 回顾展</div>
+  <h1>镀金时代</h1>
+  <div class="en">The Gilded Age · Art Déco 1925—1937</div>
+  <div class="dates">展期 1987.06.12 — 09.30 · 本馆四层 · 四个展厅</div>
+  <div class="orn"><span class="dm"></span></div>
+  <div class="scrollcue">向下滚动 · 开始导览</div>
+</section>
+
+<div id="rooms"></div>
+
+<div class="chev"><i></i><i></i><i></i></div>
+
+<footer>
+  <span>PALAIS 1987 · № 10 / WEB DESIGN</span>
+  <span>全部展品为内联 SVG 绘制的装饰图案，无馆藏照片</span>
+  <span>导览结束 · 出口请向前</span>
+</footer>
+
+<div class="modal" id="modal">
+  <div class="mbox" role="dialog" aria-modal="true">
+    <button class="mx" id="mclose" aria-label="关闭">×</button>
+    <div class="mcols" id="mcols"></div>
+  </div>
+</div>
+
+<script>
+/* ---------------- deco artwork generators (viewBox 0 0 300 380) ---------------- */
+const G="#C9A227",GD="rgba(201,162,39,.45)",IV="#F2EBDC",BG="#12110E";
+function svgWrap(inner,label){return `<svg viewBox="0 0 300 380" role="img" aria-label="${label}"><rect width="300" height="380" fill="${BG}"/>${inner}</svg>`}
+function artSunburst(){
+  let s="";
+  for(let i=0;i<=16;i++){const a=Math.PI-i/16*Math.PI;
+    s+=`<line x1="150" y1="330" x2="${150+Math.cos(a)*210}" y2="${330-Math.sin(a)*210}" stroke="${G}" stroke-width="1" opacity=".8"/>`}
+  [70,110,150,190].forEach((r,i)=>{s+=`<path d="M${150-r} 330 A${r} ${r} 0 0 1 ${150+r} 330" fill="none" stroke="${G}" stroke-width="${1.4-i*.3}"/>`});
+  s+=`<circle cx="150" cy="330" r="34" fill="${G}"/>`;
+  /* stepped skyline base */
+  let steps="",x=30;
+  const hs=[40,64,52,88,72,100,80,60,92,56,44];
+  hs.forEach(h=>{steps+=`<rect x="${x}" y="${380-h-50}" width="14" height="${h+50}" fill="none" stroke="${G}" stroke-width="1"/>`;x+=24});
+  return s+steps;
+}
+function artRay(){
+  let s="";
+  for(let i=0;i<36;i++){const a=i/36*Math.PI*2;
+    s+=`<line x1="150" y1="190" x2="${150+Math.cos(a)*150}" y2="${190+Math.sin(a)*150}" stroke="${G}" stroke-width="${i%3?.7:1.4}" opacity=".85"/>`}
+  [40,80,120,150].forEach(r=>{s+=`<circle cx="150" cy="190" r="${r}" fill="none" stroke="${G}" stroke-width=".8" opacity=".7"/>`});
+  s+=`<circle cx="150" cy="190" r="24" fill="${IV}"/><circle cx="150" cy="190" r="24" fill="none" stroke="${G}" stroke-width="2"/>`;
+  return s;
+}
+function artFan(){
+  let s="";
+  const cx=150,cy=330;
+  for(let i=0;i<=10;i++){
+    const a=-Math.PI/2+(i-5)*.24,r=250*(i%2?1:.9);
+    s+=`<line x1="${cx}" y1="${cy}" x2="${cx+Math.cos(a)*r}" y2="${cy+Math.sin(a)*r}" stroke="${G}" stroke-width="1.1"/>`}
+  [60,120,180,240].forEach(r=>{s+=`<path d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="${G}" stroke-width="1.2"/>`});
+  [35,75,115].forEach(r=>{s+=`<path d="M${cx-r} ${cy} A${r} ${r} 0 0 1 ${cx+r} ${cy} Z" fill="${G}" opacity=".12"/>`});
+  s+=`<circle cx="${cx}" cy="${cy}" r="14" fill="${G}"/>`;
+  return s;
+}
+function artFountain(){
+  let s="";
+  for(let i=0;i<7;i++){const w=40+i*34,h=150+i*26;
+    s+=`<path d="M${150-w} 330 Q150 ${330-h} ${150+w} 330" fill="none" stroke="${G}" stroke-width="${1.5-i*.15}" opacity="${1-i*.1}"/>`}
+  s+=`<line x1="150" y1="330" x2="150" y2="80" stroke="${G}" stroke-width="1.2"/>`;
+  for(let i=0;i<5;i++){s+=`<circle cx="150" cy="${96+i*22}" r="${3.5-i*.5}" fill="${IV}" opacity="${.9-i*.15}"/>`}
+  s+=`<rect x="90" y="330" width="120" height="8" fill="none" stroke="${G}"/><rect x="110" y="338" width="80" height="8" fill="none" stroke="${G}"/>`;
+  return s;
+}
+function artZigzag(){
+  let s="";
+  for(let c=0;c<6;c++){const x=30+c*44,ph=c%2?20:0;
+    let d=`M${x} ${340-ph}`;
+    for(let i=0;i<6;i++){d+=` L${x+16} ${310-i*38-ph} L${x+32} ${340-i*38-ph}`}
+    s+=`<path d="${d}" fill="none" stroke="${G}" stroke-width="1.2"/>`}
+  s+=`<rect x="20" y="40" width="260" height="300" fill="none" stroke="${G}" stroke-width="1.4"/>`;
+  s+=`<rect x="28" y="48" width="244" height="284" fill="none" stroke="${GD}" stroke-width=".8"/>`;
+  return s;
+}
+function artArch(){
+  let s="";
+  for(let i=0;i<6;i++){const w=130-i*18,y=340-i*0;
+    s+=`<path d="M${150-w} 340 L${150-w} ${200-i*24} Q150 ${170-i*26} ${150+w} ${200-i*24} L${150+w} 340" fill="none" stroke="${G}" stroke-width="${1.6-i*.2}"/>`}
+  s+=`<circle cx="150" cy="110" r="26" fill="none" stroke="${G}" stroke-width="1.4"/><circle cx="150" cy="110" r="14" fill="${G}"/>`;
+  for(let i=0;i<9;i++){const a=Math.PI/4+i/9*Math.PI/2;
+    s+=`<line x1="${150+Math.cos(a)*34}" y1="${110-Math.sin(a)*34}" x2="${150+Math.cos(a)*52}" y2="${110-Math.sin(a)*52}" stroke="${G}" stroke-width="1"/>`}
+  s+=`<line x1="40" y1="340" x2="260" y2="340" stroke="${G}" stroke-width="1.6"/>`;
+  return s;
+}
+function artTowers(){
+  let s="";
+  [[70,1],[230,-1]].forEach(([cx,flip])=>{
+    for(let i=0;i<5;i++){const w=44-i*8;
+      s+=`<rect x="${cx-w}" y="${300-i*44}" width="${w*2}" height="44" fill="none" stroke="${G}" stroke-width="1.2"/>`}
+    s+=`<line x1="${cx}" y1="80" x2="${cx}" y2="56" stroke="${G}" stroke-width="1.4"/><circle cx="${cx}" cy="50" r="4" fill="${IV}"/>`;
+    for(let w2=0;w2<3;w2++)for(let r=0;r<4;r++)
+      s+=`<rect x="${cx-26+w2*18}" y="${316-r*44}" width="6" height="10" fill="${G}" opacity=".8"/>`;
+  });
+  s+=`<line x1="40" y1="344" x2="260" y2="344" stroke="${G}" stroke-width="1.6"/>`;
+  s+=`<circle cx="150" cy="150" r="30" fill="none" stroke="${G}"/><circle cx="150" cy="150" r="18" fill="${G}" opacity=".85"/>`;
+  return s;
+}
+function artEclipse(){
+  let s=`<circle cx="150" cy="170" r="80" fill="${G}"/><circle cx="172" cy="156" r="70" fill="${BG}"/>`;
+  for(let i=0;i<24;i++){const a=i/24*Math.PI*2,r1=96,r2=i%2?112:130;
+    s+=`<line x1="${150+Math.cos(a)*r1}" y1="${170+Math.sin(a)*r1}" x2="${150+Math.cos(a)*r2}" y2="${170+Math.sin(a)*r2}" stroke="${G}" stroke-width="${i%2?.8:1.4}"/>`}
+  [150,190].forEach(r=>{s+=`<circle cx="150" cy="170" r="${r}" fill="none" stroke="${GD}" stroke-width=".8"/>`});
+  s+=`<rect x="60" y="300" width="180" height="1.6" fill="${G}"/><rect x="90" y="312" width="120" height="1" fill="${GD}"/>`;
+  return s;
+}
+
+/* ---------------- exhibition data ---------------- */
+const ROOMS=[
+ {id:"room1",n:"I",name:"日轮厅",sub:"HALL OF THE SUNBURST · 晨光与天际线",alt:false,works:[
+  {t:"日出之城",en:"CITY AT DAYBREAK",who:"艾琳·沃恩",year:"1927",med:"纸本描金",art:artSunburst,
+   d:"旭日从阶梯状的天际线后升起，十六道光线用量角器般的精确排开。画家说：「城市醒来时，连光都是按图纸施工的。」"},
+  {t:"放射",en:"RAYONNEMENT",who:"M. 德维尔",year:"1931",med:"绢本设色",art:artRay,
+   d:"三十六道光芒自一枚象牙色圆心迸发。这幅作品曾挂在远洋邮轮的大厅正壁，据说晕船的旅客看着它会平静下来。"}]},
+ {id:"room2",n:"II",name:"扇形厅",sub:"HALL OF THE FAN · 展开的秩序",alt:true,works:[
+  {t:"羽扇",en:"THE PLUME FAN",who:"石川镏金",year:"1929",med:"漆面板贴金",art:artFan,
+   d:"一把永远停在半开状态的扇。扇骨的长短交替是画家从孔雀尾羽上量下来的比例——自然早就是装饰艺术的老师。"},
+  {t:"喷泉",en:"LA FONTAINE",who:"艾琳·沃恩",year:"1933",med:"纸本水粉描金",art:artFountain,
+   d:"为巴黎博览会展馆所作的喷泉立面稿。水被画成同心圆弧，一滴也没有飞溅——那个年代的优雅，是不许失态的。"}]},
+ {id:"room3",n:"III",name:"折线厅",sub:"HALL OF THE ZIGZAG · 电气的节奏",alt:false,works:[
+  {t:"锯齿交响曲",en:"ZIGZAG SYMPHONY",who:"卡尔·维登",year:"1928",med:"布面油画",art:artZigzag,
+   d:"六列锯齿像爵士乐的切分音。画家在芝加哥住过三年，他说摩天楼夜里的灯一格一格亮起来，就是这首曲子的谱。"},
+  {t:"梯级拱门",en:"STEPPED ARCH",who:"M. 德维尔",year:"1930",med:"石膏描金浮雕稿",art:artArch,
+   d:"六重拱门一层退后一层，像走进去的回声。顶端的小太阳有九道光芒，对应当时展馆的九根门柱。"}]},
+ {id:"room4",n:"IV",name:"镜像厅",sub:"HALL OF MIRRORS · 对称的终章",alt:true,works:[
+  {t:"双塔",en:"TWIN TOWERS",who:"卡尔·维登",year:"1935",med:"纸本石版画",art:artTowers,
+   d:"两座一模一样的塔，共享一轮悬在中间的金日。对称在这里不是手法，而是信仰——世界应当左右各半，各安其位。"},
+  {t:"终章·日蚀",en:"FINALE: ECLIPSE",who:"石川镏金",year:"1937",med:"绢本描金",art:artEclipse,
+   d:"展览年代的最后一件作品。金日正在被阴影合拢——画家两年后封笔。装饰艺术的时代，在这幅画里自己落下了幕。"}]}
+];
+
+/* ---------------- render rooms ---------------- */
+const roomsEl=document.getElementById("rooms");
+roomsEl.innerHTML=ROOMS.map(r=>`
+ <section class="room${r.alt?" alt":""}" id="${r.id}">
+   <div class="room-head">
+     <div class="rn"><span>${r.n}</span></div>
+     <h2>${r.name}</h2><p>${r.sub}</p>
+   </div>
+   <div class="works">${r.works.map((w,i)=>`
+     <figure class="piece" data-room="${r.id}" data-idx="${i}" tabindex="0" role="button" aria-label="查看展品《${w.t}》">
+       <div class="frame">${svgWrap(w.art(),w.t)}<span class="shine"></span></div>
+       <figcaption class="label"><h4>《${w.t}》</h4><p>${w.who} · ${w.year} · ${w.med}</p></figcaption>
+     </figure>`).join("")}
+   </div>
+   <div class="chev"><i></i><i></i><i></i></div>
+ </section>`).join("");
+
+/* ---------------- scroll progress + spy ---------------- */
+const pbar=document.getElementById("pbar");
+function onScroll(){
+  const h=document.documentElement;
+  const p=h.scrollTop/(h.scrollHeight-h.clientHeight);
+  pbar.style.width=(p*100)+"%";
+}
+document.addEventListener("scroll",onScroll,{passive:true});onScroll();
+const tourLinks=[...document.querySelectorAll(".tour a")];
+const spy=new IntersectionObserver(es=>{
+  es.forEach(e=>{
+    if(e.isIntersecting){
+      tourLinks.forEach(a=>a.classList.toggle("on",a.dataset.r===e.target.id));
+    }
+  });
+},{rootMargin:"-42% 0px -50% 0px"});
+ROOMS.forEach(r=>spy.observe(document.getElementById(r.id)));
+/* reveal artworks */
+const rev=new IntersectionObserver(es=>{
+  es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("in");rev.unobserve(e.target)}});
+},{threshold:.2});
+document.querySelectorAll(".piece").forEach(p=>rev.observe(p));
+
+/* ---------------- modal ---------------- */
+const modal=document.getElementById("modal"),mcols=document.getElementById("mcols");
+function openPiece(roomId,idx){
+  const r=ROOMS.find(x=>x.id===roomId),w=r.works[idx];
+  mcols.innerHTML=`
+   <div class="art">${svgWrap(w.art(),w.t)}</div>
+   <div class="txt">
+     <div class="kick">${r.n} ${r.name} · 展品 ${idx+1} / ${r.works.length}</div>
+     <h2>《${w.t}》</h2><div class="who">${w.en} — ${w.who}</div>
+     <div class="mrow"><span>年代</span><b>${w.year}</b></div>
+     <div class="mrow"><span>媒材</span><b>${w.med}</b></div>
+     <div class="mrow"><span>藏地</span><b>本馆四层 · ${r.name}常设</b></div>
+     <p class="mtxt">${w.d}</p>
+     <div class="mfoot">此展品图形由 SVG 实时绘制 · 分辨率无损</div>
+   </div>`;
+  modal.classList.add("open");document.body.style.overflow="hidden";
+}
+function closeModal(){modal.classList.remove("open");document.body.style.overflow=""}
+roomsEl.addEventListener("click",e=>{const p=e.target.closest(".piece");if(p)openPiece(p.dataset.room,+p.dataset.idx)});
+roomsEl.addEventListener("keydown",e=>{if(e.key==="Enter"){const p=e.target.closest(".piece");if(p)openPiece(p.dataset.room,+p.dataset.idx)}});
+document.getElementById("mclose").onclick=closeModal;
+modal.addEventListener("click",e=>{if(e.target===modal)closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal()});
+</script>
+</body>
+</html>

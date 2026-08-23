@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>白厅画廊 SALLE BLANCHE — 悬挂的状态</title>
+<style>
+:root{
+  --paper:#f7f6f2; --ink:#131313; --grey:#a49e92; --red:#d0432a;
+  --hair:rgba(19,19,19,.16);
+  --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","PingFang SC",sans-serif;
+  --mono:"SF Mono",Menlo,"Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:var(--ink);color:var(--paper)}
+
+header{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;justify-content:space-between;align-items:center;
+  padding:14px 4vw;font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase;mix-blend-mode:multiply;pointer-events:none}
+.sig{line-height:1.7}.sig .no{color:var(--red)}.sig b{font-weight:600}
+.hnav{letter-spacing:.14em;color:rgba(19,19,19,.6)}
+
+/* ---------- intro ---------- */
+.intro{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:14vh 4vw 8vh;border-bottom:1px solid var(--hair)}
+.kicker{font:10px var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--red);margin-bottom:4vh}
+.kicker::before{content:"";display:inline-block;width:26px;height:1px;background:var(--red);vertical-align:middle;margin-right:10px}
+.intro h1{font:400 clamp(64px,11vw,180px)/.95 var(--serif);letter-spacing:-.04em}
+.intro h1 .thin{font-style:italic;color:var(--grey)}
+.intro .row{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;margin-top:5vh;flex-wrap:wrap}
+.intro .lede{max-width:44ch;color:rgba(19,19,19,.72)}
+.meta-list{font:10px var(--mono);letter-spacing:.14em;text-transform:uppercase;line-height:2.1;color:rgba(19,19,19,.6);text-align:right}
+.meta-list b{color:var(--ink);font-weight:400}
+.scroll-cue{margin-top:7vh;font:10px var(--mono);letter-spacing:.24em;text-transform:uppercase;color:var(--grey);display:flex;align-items:center;gap:12px}
+.scroll-cue .line{width:1px;height:44px;background:var(--ink);transform-origin:top;animation:cue 1.8s cubic-bezier(.6,0,.3,1) infinite}
+@keyframes cue{0%{transform:scaleY(0)}55%{transform:scaleY(1)}100%{transform:scaleY(1);opacity:0}}
+
+/* ---------- corridor ---------- */
+.corridor{position:relative}
+.stage{position:sticky;top:0;height:100vh;overflow:hidden}
+canvas#hall{position:absolute;inset:0;width:100%;height:100%;display:block}
+.chrome{position:absolute;inset:0;pointer-events:none;font:10px var(--mono);letter-spacing:.16em;text-transform:uppercase}
+.room-tag{position:absolute;top:64px;left:4vw}
+.room-tag b{color:var(--red);font-weight:400}
+.caption{position:absolute;left:4vw;bottom:34px;max-width:46vw;line-height:1.9}
+.caption .cn{font-weight:600}
+.caption .en{color:var(--grey)}
+.rehang{position:absolute;top:64px;right:4vw;pointer-events:auto;appearance:none;background:var(--paper);
+  border:1px solid var(--ink);color:var(--ink);font:10px var(--mono);letter-spacing:.2em;text-transform:uppercase;
+  padding:10px 16px;cursor:pointer;transition:.25s}
+.rehang:hover{background:var(--ink);color:var(--paper)}
+.progress{position:absolute;left:0;right:0;bottom:0;height:2px;background:rgba(19,19,19,.08)}
+.progress i{display:block;height:100%;background:var(--ink);width:0}
+
+/* ---------- outro ---------- */
+.outro{padding:16vh 4vw;border-top:1px solid var(--hair)}
+.outro h2{font:400 clamp(34px,5vw,72px)/1.05 var(--serif);letter-spacing:-.02em;max-width:16ch;margin-bottom:8vh}
+.outro h2 em{color:var(--red)}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.cols article{padding-right:3vw}
+.cols article+article{border-left:1px solid var(--hair);padding-left:3vw}
+.cols h3{font:10px var(--mono);letter-spacing:.2em;text-transform:uppercase;margin-bottom:14px;color:var(--red)}
+.cols p{color:rgba(19,19,19,.72);font-size:13px;max-width:32ch}
+footer{padding:34px 4vw;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font:9px var(--mono);letter-spacing:.16em;color:var(--grey);text-transform:uppercase;border-top:1px solid var(--hair)}
+
+/* ---------- lightbox ---------- */
+.lightbox{position:fixed;inset:0;z-index:50;background:rgba(247,246,242,.97);display:none;align-items:center;justify-content:center;padding:5vh 4vw}
+.lightbox.open{display:flex}
+.lb-inner{display:grid;grid-template-columns:auto minmax(220px,300px);gap:4vw;align-items:end;max-width:1100px;width:100%}
+.lb-art{background:#fff;padding:18px;box-shadow:0 30px 80px rgba(19,19,19,.18),0 2px 8px rgba(19,19,19,.1)}
+.lb-art canvas{display:block;max-width:100%;max-height:70vh;width:auto;height:auto}
+.lb-meta .lb-no{font:10px var(--mono);letter-spacing:.2em;color:var(--red);margin-bottom:14px}
+.lb-meta h4{font:400 30px/1.15 var(--serif);margin-bottom:4px}
+.lb-meta .artist{font:italic 400 16px var(--serif);color:var(--grey);margin-bottom:22px}
+.lb-meta table{width:100%;border-collapse:collapse;font:10px var(--mono);letter-spacing:.12em;text-transform:uppercase;margin-bottom:26px}
+.lb-meta td{border-top:1px solid var(--hair);padding:9px 0;color:rgba(19,19,19,.7)}
+.lb-meta td:last-child{text-align:right;color:var(--ink)}
+.lb-btns{display:flex;gap:10px}
+.lb-btns button{appearance:none;cursor:pointer;font:10px var(--mono);letter-spacing:.18em;text-transform:uppercase;padding:12px 18px;transition:.25s;border:1px solid var(--ink)}
+.lb-btns .dl{background:var(--ink);color:var(--paper)}
+.lb-btns .dl:hover{background:var(--red);border-color:var(--red)}
+.lb-btns .cl{background:none;color:var(--ink)}
+.lb-btns .cl:hover{background:var(--ink);color:var(--paper)}
+
+@media(max-width:900px){
+  .cols{grid-template-columns:1fr;gap:34px}
+  .cols article+article{border-left:0;padding-left:0;border-top:1px solid var(--hair);padding-top:30px}
+  .lb-inner{grid-template-columns:1fr;align-items:start;gap:26px;overflow:auto;max-height:100%}
+  .caption{max-width:60vw;bottom:22px}
+  .hnav{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig"><span class="no">№ 07</span> · <b>SALLE BLANCHE 白厅画廊</b><br>WEB DESIGN / WHITE CUBE GALLERY</div>
+  <div class="hnav">TUE – SUN / 11:00 – 19:00</div>
+</header>
+
+<section class="intro">
+  <div class="kicker">群展 Group Exhibition · 2026.09.05 – 11.08</div>
+  <h1>悬挂的<br>状<span class="thin">态</span></h1>
+  <div class="row">
+    <p class="lede">八件作品，八次把一件东西交给一根钉子的尝试。画框离开地面的那半秒，摆幅、重心与墙面的距离被重新谈判——这个展厅把那一瞬拉得很长。向下滚动，沿着 46 米长的白墙走一遍。</p>
+    <div class="meta-list">
+      策展人 <b>陈以默</b><br>
+      空间 <b>白厅一号展厅</b><br>
+      作品 <b>8 件 · 布面 / 纸上 / 铝板</b>
+    </div>
+  </div>
+  <div class="scroll-cue"><span class="line"></span>SCROLL · 沿墙而行</div>
+</section>
+
+<section class="corridor" id="corridor">
+  <div class="stage">
+    <canvas id="hall"></canvas>
+    <div class="chrome">
+      <div class="room-tag">SALLE <b id="roomNo">01</b> / 03 — 悬挂的状态</div>
+      <button class="rehang" id="rehang">↻ 重新布展</button>
+      <div class="caption" id="caption"></div>
+      <div class="progress"><i id="pbar"></i></div>
+    </div>
+  </div>
+</section>
+
+<section class="outro">
+  <h2>所有作品都<em>不出售</em>，<br>只出借给会好好挂画的人。</h2>
+  <div class="cols">
+    <article>
+      <h3>参观 Visit</h3>
+      <p>周二至周日 11:00–19:00，周一闭馆换展。无需预约，但同一时间展厅内不超过 20 人——白立方需要留白。</p>
+    </article>
+    <article>
+      <h3>地址 Address</h3>
+      <p>滨江区美术馆路 46 号，白厅一号展厅。入口没有招牌，找一扇三米高的白门，推开即是。</p>
+    </article>
+    <article>
+      <h3>借展 Loan</h3>
+      <p>馆藏全部来自驻留艺术家的生成系统源码。点击展厅中任意一件作品，可查看细节并下载高清图源。</p>
+    </article>
+  </div>
+</section>
+
+<footer>
+  <div>№ 07 — WEB DESIGN<br>DESIGNED &amp; CODED BY HAND</div>
+  <div>SALLE BLANCHE · 白厅画廊<br>© 2026 悬挂的状态</div>
+</footer>
+
+<div class="lightbox" id="lightbox">
+  <div class="lb-inner">
+    <div class="lb-art"><canvas id="lbCanvas"></canvas></div>
+    <div class="lb-meta">
+      <div class="lb-no" id="lbNo">WORK 01 / 08</div>
+      <h4 id="lbTitle"></h4>
+      <div class="artist" id="lbArtist"></div>
+      <table>
+        <tr><td>年份 YEAR</td><td id="lbYear"></td></tr>
+        <tr><td>媒材 MEDIUM</td><td id="lbMedium"></td></tr>
+        <tr><td>尺寸 SIZE</td><td id="lbSize"></td></tr>
+        <tr><td>版数 EDITION</td><td>独版 1/1</td></tr>
+      </table>
+      <div class="lb-btns">
+        <button class="dl" id="lbDl">下载 PNG</button>
+        <button class="cl" id="lbClose">关闭 ESC</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+'use strict';
+function $(s){return document.querySelector(s)}
+var TAU=Math.PI*2;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ============ 作品数据 ============ */
+var WORKS=[
+ {t:'圆周练习',en:'Etude for Circles',artist:'顾远',year:'2024',medium:'布面丙烯',size:'120 × 150 cm',ratio:0.8,type:'rings',frame:'#1a1a1a'},
+ {t:'缺席的方格',en:'The Missing Square',artist:'林眠',year:'2026',medium:'纸上丝网版画',size:'90 × 90 cm',ratio:1,type:'grid',frame:'#c9b189'},
+ {t:'红的偏移',en:'Red, Shifted',artist:'沈素',year:'2025',medium:'铝板烤漆',size:'100 × 70 cm',ratio:1.43,type:'hatch',frame:'#d0432a'},
+ {t:'四月的地平线',en:'Horizon in April',artist:'江汀',year:'2023',medium:'亚麻布油画',size:'140 × 110 cm',ratio:0.79,type:'bands',frame:'#1a1a1a'},
+ {t:'转角研究',en:'A Study of Corners',artist:'白澍',year:'2026',medium:'纸上石墨',size:'80 × 80 cm',ratio:1,type:'arcs',frame:'#c9b189'},
+ {t:'阶梯，或上升',en:'Stairs, or Ascending',artist:'岑蔚',year:'2024',medium:'木板坦培拉',size:'110 × 90 cm',ratio:1.22,type:'stairs',frame:'#1a1a1a'},
+ {t:'雨点登记簿',en:'Register of Raindrops',artist:'苏堤',year:'2025',medium:'档案纸艺术微喷',size:'95 × 80 cm',ratio:1.19,type:'grid',frame:'#c9b189'},
+ {t:'归位',en:'Back in Place',artist:'陆离',year:'2026',medium:'布面丙烯',size:'130 × 95 cm',ratio:1.37,type:'rings',frame:'#1a1a1a'}
+];
+var seed=20260905;
+
+/* ============ 生成式画面 ============ */
+function drawArt(g,w,h,type,rand){
+  var ink='#131313',bone='#efece5',red='#d0432a',grey='#a49e92';
+  g.fillStyle=bone;g.fillRect(0,0,w,h);
+  var m=Math.min(w,h), i,j;
+  if(type==='rings'){
+    var n=6+Math.floor(rand()*5), cx=w*(0.35+rand()*0.3), cy=h*(0.35+rand()*0.3);
+    for(i=n;i>0;i--){
+      g.beginPath();g.arc(cx,cy,(i/n)*m*0.62,0,TAU);
+      if(i===1){g.fillStyle=red;g.fill()}
+      else{g.strokeStyle=i%2?ink:grey;g.lineWidth=m*0.012;g.stroke()}
+    }
+    g.beginPath();g.arc(cx+w*0.22,cy+h*0.18,m*0.05,0,TAU);g.fillStyle=ink;g.fill();
+  }
+  else if(type==='grid'){
+    var c=9+Math.floor(rand()*4), r=9+Math.floor(rand()*4), gx=w/(c+1), gy=h/(r+1);
+    for(i=1;i<=c;i++)for(j=1;j<=r;j++){
+      var skip=rand()<0.08, dot=rand()<0.12;
+      g.fillStyle=skip?'rgba(19,19,19,.10)':(dot?red:ink);
+      var s=dot?m*0.02:m*0.012;
+      g.beginPath();g.arc(i*gx+(rand()-0.5)*gx*0.15,j*gy+(rand()-0.5)*gy*0.15,s,0,TAU);g.fill();
+    }
+  }
+  else if(type==='hatch'){
+    var gap=m*0.045, redLine=Math.floor(rand()*h/gap);
+    g.lineWidth=m*0.008;
+    for(i=-h;i<w+h;i+=gap){
+      var idx=Math.round(i/gap);
+      g.strokeStyle=idx===redLine?red:'rgba(19,19,19,'+(0.35+rand()*0.4)+')';
+      g.beginPath();g.moveTo(i,0);g.lineTo(i+h,h);g.stroke();
+    }
+  }
+  else if(type==='bands'){
+    var b=3+Math.floor(rand()*3), y=0, cols=['#d8d2c4','#a49e92','#3c3a36','#d0432a','#e5e0d4'];
+    var order=cols.slice().sort(function(){return rand()-0.5});
+    for(i=0;i<b;i++){
+      var bh=(h-y)/(b-i)*(0.6+rand()*0.8);
+      g.fillStyle=order[i%order.length];g.fillRect(0,y,w,bh);
+      y+=bh;
+    }
+    g.fillRect(0,h-2,w,2);
+  }
+  else if(type==='arcs'){
+    var cc=6+Math.floor(rand()*3), cell=w/cc, rows=Math.ceil(h/cell);
+    g.lineWidth=m*0.014;g.strokeStyle=ink;
+    for(i=0;i<cc;i++)for(j=0;j<rows;j++){
+      var q=Math.floor(rand()*4), x=i*cell, y2=j*cell;
+      g.beginPath();
+      if(q===0)g.arc(x,y2,cell,0,Math.PI/2);
+      else if(q===1)g.arc(x+cell,y2,cell,Math.PI/2,Math.PI);
+      else if(q===2)g.arc(x+cell,y2+cell,cell,Math.PI,Math.PI*1.5);
+      else g.arc(x,y2+cell,cell,Math.PI*1.5,TAU);
+      if(rand()<0.06){g.strokeStyle=red;g.stroke();g.strokeStyle=ink}
+      else g.stroke();
+    }
+  }
+  else{ /* stairs */
+    var st=5+Math.floor(rand()*4), bw=w/st;
+    for(i=0;i<st;i++){
+      var hh=h*(0.25+0.75*rand());
+      g.fillStyle=i===st-1?red:(i%2?ink:'#3c3a36');
+      g.fillRect(i*bw+bw*0.12,h-hh,bw*0.76,hh);
+    }
+  }
+  /* 颗粒 */
+  for(i=0;i<w*h/900;i++){
+    g.fillStyle='rgba(19,19,19,'+(rand()*0.05)+')';
+    g.fillRect(rand()*w,rand()*h,1,1);
+  }
+}
+var artCanvases=[];
+function buildArts(){
+  artCanvases=WORKS.map(function(wk,i){
+    var rand=mulberry32(seed+i*97);
+    var c=document.createElement('canvas');
+    c.width=640; c.height=Math.round(640/wk.ratio);
+    drawArt(c.getContext('2d'),c.width,c.height,wk.type,rand);
+    return c;
+  });
+}
+buildArts();
+
+/* ============ 展厅渲染 ============ */
+var cv=$('#hall'), ctx=cv.getContext('2d');
+var W=0,H=0,DPR=1;
+var corridor=$('#corridor');
+var SPACING=760, INTRO_W=900, OUTRO_W=600;
+var wallLen=0, camX=0, camTarget=0, progress=0;
+var hangState=[]; /* per frame: {t0, dir} */
+function resetHang(){hangState=WORKS.map(function(){return{t0:null,dir:Math.random()<0.5?-1:1}})}
+resetHang();
+
+function resize(){
+  DPR=Math.min(2,window.devicePixelRatio||1);
+  W=window.innerWidth; H=window.innerHeight;
+  cv.width=W*DPR; cv.height=H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  SPACING=Math.max(560,Math.min(820,W*0.66));
+  INTRO_W=Math.max(700,W*0.9); OUTRO_W=Math.max(420,W*0.5);
+  wallLen=INTRO_W+WORKS.length*SPACING+OUTRO_W;
+  corridor.style.height=(wallLen*1.05)+'px';
+}
+window.addEventListener('resize',resize); resize();
+
+function onScroll(){
+  var r=corridor.getBoundingClientRect();
+  var total=r.height-H;
+  progress=Math.max(0,Math.min(1,-r.top/total));
+  camTarget=progress*(wallLen-W);
+}
+window.addEventListener('scroll',onScroll,{passive:true}); onScroll();
+
+var EYE=0.46; /* 视线高度比例 */
+function frameGeom(i){
+  var wx=INTRO_W+i*SPACING+SPACING*0.5;
+  var wk=WORKS[i];
+  var artH=Math.min(H*0.34,340)*(wk.ratio>1.2?0.86:1);
+  var artW=artH*wk.ratio;
+  var mat=artH*0.14, fr=Math.max(6,artH*0.035);
+  var fw=artW+2*(mat+fr), fh=artH+2*(mat+fr);
+  return {wx:wx,wk:wk,artW:artW,artH:artH,mat:mat,fr:fr,fw:fw,fh:fh};
+}
+
+function drawWallText(){
+  /* 墙面 vinyl 标题 */
+  ctx.save();
+  ctx.translate(INTRO_W*0.42,H*EYE);
+  ctx.fillStyle='#131313';
+  ctx.font='400 '+Math.min(90,H*0.11)+'px Didot,"Bodoni MT",Georgia,serif';
+  ctx.textAlign='center';
+  ctx.fillText('悬挂的状态',0,-H*0.02);
+  ctx.font='italic 400 '+Math.min(30,H*0.038)+'px Didot,Georgia,serif';
+  ctx.fillStyle='#a49e92';
+  ctx.fillText('Hanging / Pending — Eight Positions',0,H*0.05);
+  ctx.restore();
+  /* 尾墙 */
+  ctx.save();
+  ctx.translate(wallLen-OUTRO_W*0.42,H*EYE);
+  ctx.fillStyle='#131313';
+  ctx.font='400 '+Math.min(46,H*0.06)+'px Didot,Georgia,serif';
+  ctx.textAlign='center';
+  ctx.fillText('终',0,0);
+  ctx.font='10px "SF Mono",Menlo,monospace';
+  ctx.fillStyle='#a49e92';
+  ctx.fillText('— FIN —',0,H*0.045);
+  ctx.restore();
+}
+
+function drawFrame(i,now){
+  var g=frameGeom(i);
+  var sx=g.wx-camX;
+  if(sx<-g.fw-200||sx>W+g.fw+200)return;
+  var railY=H*0.16;
+  var nailY=railY+4;
+  var centerY=H*EYE;
+  var L=centerY-nailY; /* 钉子到画框中心的绳长 */
+
+  var st=hangState[i];
+  if(st.t0===null && Math.abs(sx-W/2)<W*0.72)st.t0=now;
+  var theta=0, drop=0, alpha=1;
+  if(st.t0===null){alpha=0}
+  else{
+    var t=(now-st.t0)/1000;
+    var env=Math.exp(-2.1*t);
+    theta=st.dir*0.42*env*Math.cos(5.4*t);
+    drop=-50*Math.pow(1-Math.min(1,t*1.4),3);
+    alpha=Math.min(1,t*3);
+  }
+  ctx.save();
+  ctx.globalAlpha=alpha;
+  ctx.translate(sx,nailY);
+  ctx.rotate(theta);
+  /* 钉子 */
+  ctx.fillStyle='#131313';
+  ctx.beginPath();ctx.arc(0,0,2.4,0,TAU);ctx.fill();
+  var topY=L-g.fh/2+drop, halfTop=g.fw/2-14;
+  /* 吊绳 */
+  ctx.strokeStyle='rgba(19,19,19,.55)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-halfTop,topY);ctx.moveTo(0,0);ctx.lineTo(halfTop,topY);ctx.stroke();
+  /* 框体（含投影） */
+  ctx.save();
+  ctx.translate(0,L+drop);
+  ctx.shadowColor='rgba(19,19,19,.22)';ctx.shadowBlur=26;ctx.shadowOffsetY=14;
+  ctx.fillStyle=g.wk.frame;
+  ctx.fillRect(-g.fw/2,-g.fh/2,g.fw,g.fh);
+  ctx.shadowColor='transparent';
+  /* 卡纸 */
+  ctx.fillStyle='#fbfaf6';
+  ctx.fillRect(-g.fw/2+g.fr,-g.fh/2+g.fr,g.fw-2*g.fr,g.fh-2*g.fr);
+  /* 卡纸内斜角 */
+  ctx.strokeStyle='rgba(19,19,19,.18)';ctx.lineWidth=1;
+  ctx.strokeRect(-g.artW/2-1,-g.artH/2-1,g.artW+2,g.artH+2);
+  /* 画面 */
+  ctx.drawImage(artCanvases[i],-g.artW/2,-g.artH/2,g.artW,g.artH);
+  /* 玻璃反光 */
+  var grd=ctx.createLinearGradient(-g.fw/2,-g.fh/2,g.fw/2,g.fh/2);
+  grd.addColorStop(0,'rgba(255,255,255,.10)');
+  grd.addColorStop(0.35,'rgba(255,255,255,0)');
+  grd.addColorStop(1,'rgba(255,255,255,.05)');
+  ctx.fillStyle=grd;ctx.fillRect(-g.fw/2,-g.fh/2,g.fw,g.fh);
+  ctx.restore();
+  /* 展签 */
+  var near=Math.max(0,1-Math.abs(sx-W/2)/(W*0.3));
+  ctx.globalAlpha=alpha*near;
+  ctx.rotate(-theta);
+  ctx.translate(0,-nailY);
+  var px=g.fw/2+26, py=centerY+g.fh/2-64;
+  ctx.fillStyle='#131313';
+  ctx.font='600 11px -apple-system,"Helvetica Neue","PingFang SC",sans-serif';
+  ctx.textAlign='left';
+  ctx.fillText(String(i+1).padStart(2,'0')+' · 《'+g.wk.t+'》',px,py);
+  ctx.font='10px "SF Mono",Menlo,monospace';
+  ctx.fillStyle='#a49e92';
+  ctx.fillText(g.wk.artist+' — '+g.wk.year,px,py+16);
+  ctx.fillText(g.wk.medium,px,py+31);
+  ctx.restore();
+}
+
+function drawBench(wx){
+  var sx=wx-camX*1.18; /* 前景视差 */
+  if(sx<-300||sx>W+300)return;
+  var y=H*0.88, bw=Math.min(300,W*0.24), bh=14;
+  ctx.fillStyle='rgba(19,19,19,.08)';
+  ctx.fillRect(sx-bw/2+10,y+34,bw,6); /* 投影 */
+  ctx.fillStyle='#3c3a36';
+  ctx.fillRect(sx-bw/2,y,bw,bh);
+  ctx.fillRect(sx-bw/2+16,y+bh,10,30);
+  ctx.fillRect(sx+bw/2-26,y+bh,10,30);
+}
+
+function render(now){
+  camX+=(camTarget-camX)*0.11;
+  /* 墙 */
+  ctx.fillStyle='#f7f6f2';ctx.fillRect(0,0,W,H);
+  /* 挂镜线 */
+  var railY=H*0.16;
+  var railOff=-(camX% 60);
+  ctx.strokeStyle='rgba(19,19,19,.25)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,railY);ctx.lineTo(W,railY);ctx.stroke();
+  ctx.strokeStyle='rgba(19,19,19,.10)';
+  for(var x=railOff;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,railY-3);ctx.lineTo(x,railY+3);ctx.stroke()}
+  /* 地面 */
+  var fy=H*0.9;
+  ctx.fillStyle='#e9e6df';ctx.fillRect(0,fy,W,H-fy);
+  ctx.strokeStyle='rgba(19,19,19,.2)';
+  ctx.beginPath();ctx.moveTo(0,fy);ctx.lineTo(W,fy);ctx.stroke();
+  /* 踢脚线刻度 */
+  ctx.strokeStyle='rgba(19,19,19,.08)';
+  var bo=-(camX%120);
+  for(x=bo;x<W;x+=120){ctx.beginPath();ctx.moveTo(x,fy);ctx.lineTo(x,fy+7);ctx.stroke()}
+
+  ctx.save();
+  drawWallText();
+  ctx.restore();
+
+  /* 尽头门洞 */
+  var doorX=wallLen-OUTRO_W*0.85-camX;
+  if(doorX>-200&&doorX<W+200){
+    ctx.fillStyle='#131313';
+    ctx.fillRect(doorX,H*0.3,110,fy-H*0.3);
+  }
+
+  drawBench(INTRO_W+SPACING*2.2);
+  drawBench(INTRO_W+SPACING*5.6);
+
+  for(var i=0;i<WORKS.length;i++)drawFrame(i,now);
+
+  /* UI */
+  $('#pbar').style.width=(progress*100)+'%';
+  var room=Math.min(3,1+Math.floor(progress*3));
+  $('#roomNo').textContent='0'+room;
+  var best=-1,bd=1e9;
+  for(i=0;i<WORKS.length;i++){
+    var d=Math.abs(frameGeom(i).wx-camX-W/2);
+    if(d<bd){bd=d;best=i}
+  }
+  if(best>=0&&bd<SPACING*0.6){
+    var wk=WORKS[best];
+    $('#caption').innerHTML='<span class="cn">'+String(best+1).padStart(2,'0')+' · 《'+wk.t+'》</span> — '+wk.artist+'<br><span class="en">'+wk.en+' · '+wk.medium+' · 点击画框查看</span>';
+  } else $('#caption').innerHTML='';
+
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+
+/* ============ 点击 → 灯箱 ============ */
+var lb=$('#lightbox'), lbArt=null;
+cv.addEventListener('click',function(e){
+  var r=cv.getBoundingClientRect();
+  var mx=e.clientX-r.left,my=e.clientY-r.top;
+  for(var i=0;i<WORKS.length;i++){
+    var g=frameGeom(i);
+    var sx=g.wx-camX, cy=H*EYE;
+    if(Math.abs(mx-sx)<g.fw/2&&Math.abs(my-cy)<g.fh/2){openLB(i);return}
+  }
+});
+function openLB(i){
+  var wk=WORKS[i];
+  var c=$('#lbCanvas');
+  var scale=Math.min(2,900/640);
+  c.width=artCanvases[i].width*scale;
+  c.height=artCanvases[i].height*scale;
+  var g=c.getContext('2d');
+  g.imageSmoothingEnabled=true;
+  g.drawImage(artCanvases[i],0,0,c.width,c.height);
+  lbArt=c;
+  $('#lbNo').textContent='WORK '+String(i+1).padStart(2,'0')+' / 0'+WORKS.length;
+  $('#lbTitle').textContent='《'+wk.t+'》';
+  $('#lbArtist').textContent=wk.artist+' · '+wk.en;
+  $('#lbYear').textContent=wk.year;
+  $('#lbMedium').textContent=wk.medium;
+  $('#lbSize').textContent=wk.size;
+  lb.classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeLB(){lb.classList.remove('open');document.body.style.overflow=''}
+$('#lbClose').addEventListener('click',closeLB);
+lb.addEventListener('click',function(e){if(e.target===lb)closeLB()});
+window.addEventListener('keydown',function(e){if(e.key==='Escape')closeLB()});
+$('#lbDl').addEventListener('click',function(){
+  var a=document.createElement('a');
+  a.href=lbArt.toDataURL('image/png');
+  a.download='salle-blanche-'+Date.now()+'.png';
+  a.click();
+});
+
+/* ============ 重新布展 ============ */
+$('#rehang').addEventListener('click',function(){
+  seed=Math.floor(Math.random()*1e9);
+  buildArts();
+  resetHang();
+});
+})();
+</script>
+</body>
+</html>

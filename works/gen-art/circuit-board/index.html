@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuit Board — 电路板纹样生成器</title>
+<style>
+  :root{
+    --bg:#0E3B2E; --copper:#D8A24E; --silk:#F2EBD9; --ink:#0A2A21;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--ink);
+    font-family:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;color:var(--silk)}
+  canvas{position:fixed;inset:0;display:block;cursor:crosshair}
+
+  header{position:fixed;top:0;left:0;right:0;display:flex;justify-content:space-between;
+    align-items:flex-start;padding:28px 34px;pointer-events:none;z-index:5}
+  .brand{display:flex;gap:14px;align-items:baseline}
+  .num{font-family:"SF Mono",Menlo,monospace;font-size:12px;color:var(--copper);opacity:.85}
+  h1{font-family:Didot,"Bodoni MT",Georgia,serif;font-weight:400;font-size:22px;letter-spacing:.04em;color:var(--silk)}
+  h1 em{font-style:normal;font-size:12px;letter-spacing:.34em;color:rgba(242,235,217,.5);margin-left:10px;vertical-align:2px}
+  .pal{display:flex;gap:8px;padding-top:6px}
+  .pal i{width:12px;height:12px;border-radius:50%;border:1px solid rgba(242,235,217,.3)}
+
+  .dock{position:fixed;left:34px;bottom:32px;z-index:6;display:flex;flex-direction:column;gap:14px;
+    background:rgba(10,30,24,.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(216,162,78,.28);padding:20px 22px;max-width:330px;
+    box-shadow:0 12px 40px rgba(0,0,0,.45);
+    animation:rise .9s var(--ease) both .2s}
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  .row{display:flex;align-items:center;gap:14px}
+  label{font-size:10px;letter-spacing:.22em;color:rgba(242,235,217,.55);width:74px;flex-shrink:0;text-transform:uppercase}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:2px;background:rgba(216,162,78,.35);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--copper);
+    border:2px solid var(--ink);border-radius:50%;transition:transform .3s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.35)}
+  input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--copper);border:2px solid var(--ink);border-radius:50%}
+  input[type=range]::-moz-range-track{height:2px;background:rgba(216,162,78,.35)}
+  .val{font-family:"SF Mono",Menlo,monospace;font-size:11px;width:26px;text-align:right;color:var(--copper)}
+  .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}
+  button{font-family:inherit;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    padding:10px 15px;background:transparent;border:1px solid rgba(242,235,217,.4);color:var(--silk);
+    cursor:pointer;transition:all .35s var(--ease)}
+  button:hover{background:var(--silk);color:var(--ink);border-color:var(--silk)}
+  button.accent{border-color:var(--copper);color:var(--copper)}
+  button.accent:hover{background:var(--copper);color:var(--ink)}
+  button.on{background:var(--copper);border-color:var(--copper);color:var(--ink)}
+
+  .probe{position:fixed;z-index:7;pointer-events:none;opacity:0;transition:opacity .25s var(--ease);
+    font-family:"SF Mono",Menlo,monospace;font-size:10px;letter-spacing:.14em;color:var(--ink);
+    background:var(--copper);padding:4px 9px;transform:translate(12px,-24px)}
+  .probe.show{opacity:1}
+
+  .hint{position:fixed;right:34px;bottom:36px;z-index:5;text-align:right;pointer-events:none;
+    font-size:10px;letter-spacing:.18em;color:rgba(242,235,217,.45);line-height:2;text-transform:uppercase;
+    animation:rise .9s var(--ease) both .35s}
+  .hint b{color:var(--silk);font-weight:500}
+  @media (max-width:640px){
+    header{padding:18px 20px}
+    h1{font-size:17px}
+    .dock{left:16px;right:16px;bottom:16px;max-width:none;padding:16px}
+    .hint{display:none}
+  }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<header>
+  <div class="brand">
+    <span class="num">N°02 / REV.C</span>
+    <h1>Circuit Board<em>电路板纹样</em></h1>
+  </div>
+  <div class="pal">
+    <i style="background:#0E3B2E"></i><i style="background:#D8A24E"></i><i style="background:#F2EBD9"></i>
+  </div>
+</header>
+
+<div class="dock">
+  <div class="row">
+    <label>Nets 网络</label>
+    <input type="range" id="nets" min="10" max="70" value="36">
+    <span class="val" id="netsVal">36</span>
+  </div>
+  <div class="row">
+    <label>Mask 阻焊</label>
+    <div class="btns" style="margin:0">
+      <button class="maskbtn on" data-m="0">绿</button>
+      <button class="maskbtn" data-m="1">墨</button>
+      <button class="maskbtn" data-m="2">紫</button>
+    </div>
+  </div>
+  <div class="btns">
+    <button id="btnRandom" class="accent">随机再生</button>
+    <button id="btnSave">下载 PNG</button>
+  </div>
+</div>
+
+<div class="probe" id="probe">NET-00</div>
+
+<div class="hint">
+  <b>移动鼠标</b> 探针点亮铜走线<br>
+  <b>按 R</b> 重新布线
+</div>
+
+<script>
+(function(){
+"use strict";
+var canvas=document.getElementById('cv'),ctx=canvas.getContext('2d');
+var probe=document.getElementById('probe');
+var W=0,H=0,DPR=1;
+
+var MASKS=[
+  {bg:'#0E3B2E',edge:'#0A2A21',copper:'#D8A24E',copperHi:'#FFD98A',silk:'#F2EBD9',pad:'#E8B45C',hatch:'rgba(255,255,255,0.028)'},
+  {bg:'#16181D',edge:'#0C0E11',copper:'#C9A35B',copperHi:'#F0D092',silk:'#E8E4DA',pad:'#D9B76F',hatch:'rgba(255,255,255,0.035)'},
+  {bg:'#2A1E3F',edge:'#1B1229',copper:'#D4B26A',copperHi:'#F6DC9C',silk:'#EFEAF6',pad:'#E2C27E',hatch:'rgba(255,255,255,0.03)'}
+];
+var mask=0;
+
+var seed=(Math.random()*1e9)|0;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+var rnd=mulberry32(seed);
+
+var CELL=15,gc=0,gr=0,occ=null;
+var pads=[],traces=[],comps=[],holes=[];
+var netCount=36,bornAt=0;
+
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth;H=window.innerHeight;
+  canvas.width=W*DPR;canvas.height=H*DPR;
+  canvas.style.width=W+'px';canvas.style.height=H+'px';
+  build();
+}
+function cellFree(x,y){return x>=0&&y>=0&&x<gc&&y<gr&&occ[y*gc+x]===0;}
+function mark(x,y){if(x>=0&&y>=0&&x<gc&&y<gr)occ[y*gc+x]=1;}
+
+function build(){
+  rnd=mulberry32(seed);
+  pads=[];traces=[];comps=[];holes=[];
+  bornAt=performance.now();
+  gc=Math.ceil(W/CELL);gr=Math.ceil(H/CELL);
+  occ=new Uint8Array(gc*gr);
+  var i,j,k;
+
+  /* mounting holes */
+  var mh=[[3,3],[gc-4,3],[3,gr-4],[gc-4,gr-4]];
+  mh.forEach(function(h){holes.push({x:(h[0]+.5)*CELL,y:(h[1]+.5)*CELL});
+    for(i=-2;i<=2;i++)for(j=-2;j<=2;j++)mark(h[0]+i,h[1]+j);});
+
+  /* components: ICs + discretes */
+  var nIC=3+((rnd()*3)|0);
+  var refU=1,refR=1,refC=1;
+  function placeFree(w,h){
+    for(var t=0;t<60;t++){
+      var x=4+((rnd()*(gc-w-8))|0),y=4+((rnd()*(gr-h-8))|0),ok=true;
+      for(i=-1;i<=w&&ok;i++)for(j=-1;j<=h&&ok;j++)if(!cellFree(x+i,y+j))ok=false;
+      if(ok)return{x:x,y:y};
+    }
+    return null;
+  }
+  var compPads=[];
+  for(k=0;k<nIC;k++){
+    var pins=3+((rnd()*4)|0); /* pins per side */
+    var w=5,h=pins*2+1;
+    var p=placeFree(w+2,h+2);if(!p)continue;
+    for(i=0;i<w;i++)for(j=0;j<h;j++)mark(p.x+1+i,p.y+1+j);
+    var cp={type:'ic',x:(p.x+1)*CELL,y:(p.y+1)*CELL,w:w*CELL,h:h*CELL,ref:'U'+(refU++),pads:[]};
+    for(i=0;i<pins;i++){
+      var py=(p.y+1+i*2+1);
+      var pl={x:(p.x)*CELL+CELL*0.5,y:py*CELL+CELL*0.5,net:-1};
+      var pr={x:(p.x+1+w)*CELL+CELL*0.5,y:py*CELL+CELL*0.5,net:-1};
+      cp.pads.push(pl,pr);pads.push(pl,pr);compPads.push(pl,pr);
+      mark(p.x,py);mark(p.x+1+w,py);
+    }
+    comps.push(cp);
+  }
+  var nDisc=8+((rnd()*8)|0);
+  for(k=0;k<nDisc;k++){
+    var horiz=rnd()<0.5,wl=horiz?5:2,hl=horiz?2:5;
+    var q=placeFree(wl+1,hl+1);if(!q)continue;
+    for(i=0;i<wl;i++)for(j=0;j<hl;j++)mark(q.x+i,q.y+j);
+    var isR=rnd()<0.6;
+    var dc={type:isR?'r':'c',
+      x:q.x*CELL,y:q.y*CELL,w:wl*CELL,h:hl*CELL,
+      ref:isR?'R'+(refR++):'C'+(refC++),pads:[]};
+    var p1,p2;
+    if(horiz){p1={x:(q.x)*CELL+CELL*.5,y:(q.y+1)*CELL,pads:0};p2={x:(q.x+wl)*CELL-CELL*.5,y:(q.y+1)*CELL};}
+    else{p1={x:(q.x+1)*CELL,y:(q.y)*CELL+CELL*.5};p2={x:(q.x+1)*CELL,y:(q.y+hl)*CELL-CELL*.5};}
+    p1.net=-1;p2.net=-1;
+    dc.pads.push(p1,p2);pads.push(p1,p2);compPads.push(p1,p2);
+    comps.push(dc);
+  }
+
+  /* route nets */
+  var DIRS=[[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]];
+  for(var net=0;net<netCount&&compPads.length>1;net++){
+    var ai=(rnd()*compPads.length)|0,a=compPads[ai],b=null,best=1e9;
+    for(k=0;k<14;k++){
+      var cand=compPads[(rnd()*compPads.length)|0];
+      if(cand===a)continue;
+      var d=Math.abs(cand.x-a.x)+Math.abs(cand.y-a.y);
+      if(d<best){best=d;b=cand;}
+    }
+    if(!b)continue;
+    a.net=net;b.net=net;
+    var sx=Math.floor(a.x/CELL),sy=Math.floor(a.y/CELL);
+    var tx=Math.floor(b.x/CELL),ty=Math.floor(b.y/CELL);
+    var path=[[sx,sy]],cx=sx,cy=sy,dir=-1,stuck=0;
+    mark(cx,cy);
+    var maxSteps=gc+gr;
+    for(var step=0;step<maxSteps*2;step++){
+      if(Math.abs(cx-tx)<=1&&Math.abs(cy-ty)<=1)break;
+      var scored=[];
+      for(k=0;k<8;k++){
+        var nx=cx+DIRS[k][0],ny=cy+DIRS[k][1];
+        if(!cellFree(nx,ny)&&!(Math.abs(nx-tx)<=1&&Math.abs(ny-ty)<=1))continue;
+        var ddx=tx-nx,ddy=ty-ny;
+        var dist=Math.sqrt(ddx*ddx+ddy*ddy);
+        var turn=(dir===-1||k===dir)?0:(Math.min(Math.abs(k-dir),8-Math.abs(k-dir))>1?3.5:1.2);
+        scored.push({k:k,score:dist+turn+rnd()*2.2,nx:nx,ny:ny});
+      }
+      if(!scored.length){if(++stuck>2)break;dir=-1;continue;}
+      scored.sort(function(p,q){return p.score-q.score;});
+      var mv=scored[0];cx=mv.nx;cy=mv.ny;dir=mv.k;
+      path.push([cx,cy]);mark(cx,cy);
+    }
+    path.push([tx,ty]);mark(tx,ty);
+    /* simplify collinear */
+    var pts=[[a.x,a.y]];
+    for(k=1;k<path.length;k++){
+      pts.push([(path[k][0]+.5)*CELL,(path[k][1]+.5)*CELL]);
+    }
+    pts.push([b.x,b.y]);
+    traces.push({pts:pts,net:net,len:0});
+  }
+  traces.forEach(function(t){
+    var L=0;for(var i=1;i<t.pts.length;i++){L+=Math.hypot(t.pts[i][0]-t.pts[i-1][0],t.pts[i][1]-t.pts[i-1][1]);}
+    t.len=L;
+  });
+}
+
+/* ---------- interaction ---------- */
+var mouse={x:-999,y:-999},hoverNet=-1;
+canvas.addEventListener('mousemove',function(e){
+  mouse.x=e.clientX;mouse.y=e.clientY;
+  probe.style.left=e.clientX+'px';probe.style.top=e.clientY+'px';
+});
+canvas.addEventListener('mouseleave',function(){mouse.x=-999;mouse.y=-999;});
+canvas.addEventListener('touchstart',function(e){if(e.touches[0]){mouse.x=e.touches[0].clientX;mouse.y=e.touches[0].clientY;}},{passive:true});
+window.addEventListener('keydown',function(e){if(e.key==='r'||e.key==='R')regen();});
+
+function findHover(){
+  hoverNet=-1;var bestD=14;
+  for(var i=0;i<traces.length;i++){
+    var t=traces[i];
+    for(var j=1;j<t.pts.length;j++){
+      var x1=t.pts[j-1][0],y1=t.pts[j-1][1],x2=t.pts[j][0],y2=t.pts[j][1];
+      var dx=x2-x1,dy=y2-y1,L2=dx*dx+dy*dy||1;
+      var u=((mouse.x-x1)*dx+(mouse.y-y1)*dy)/L2;u=Math.max(0,Math.min(1,u));
+      var px=x1+u*dx,py=y1+u*dy;
+      var d=Math.hypot(mouse.x-px,mouse.y-py);
+      if(d<bestD){bestD=d;hoverNet=t.net;}
+    }
+  }
+  if(hoverNet>=0){probe.textContent='NET-'+String(hoverNet).padStart(2,'0')+' · CU 1OZ';probe.classList.add('show');}
+  else probe.classList.remove('show');
+}
+
+/* ---------- render ---------- */
+function drawPolyline(pts,progress){
+  var L=0,target=progress;
+  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+  for(var i=1;i<pts.length;i++){
+    var seg=Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]);
+    if(L+seg<=target){ctx.lineTo(pts[i][0],pts[i][1]);L+=seg;}
+    else{var r=(target-L)/seg;if(r>0)ctx.lineTo(pts[i-1][0]+(pts[i][0]-pts[i-1][0])*r,pts[i-1][1]+(pts[i][1]-pts[i-1][1])*r);break;}
+  }
+  ctx.stroke();
+}
+
+function frame(t){
+  var M=MASKS[mask];
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.fillStyle=M.edge;ctx.fillRect(0,0,W,H);
+  /* board area */
+  var m=14;
+  ctx.fillStyle=M.bg;ctx.fillRect(m,m,W-2*m,H-2*m);
+  /* solder mask hatch texture */
+  ctx.save();ctx.beginPath();ctx.rect(m,m,W-2*m,H-2*m);ctx.clip();
+  ctx.strokeStyle=M.hatch;ctx.lineWidth=1;ctx.beginPath();
+  for(var x=-H;x<W+H;x+=9){ctx.moveTo(x,0);ctx.lineTo(x+H,H);}
+  ctx.stroke();ctx.restore();
+  /* board edge line */
+  ctx.strokeStyle=M.silk;ctx.globalAlpha=.5;ctx.lineWidth=1.2;
+  ctx.strokeRect(m+4,m+4,W-2*m-8,H-2*m-8);ctx.globalAlpha=1;
+  /* mounting holes */
+  holes.forEach(function(h){
+    ctx.beginPath();ctx.arc(h.x,h.y,7,0,7);ctx.fillStyle=M.edge;ctx.fill();
+    ctx.lineWidth=2.5;ctx.strokeStyle=M.pad;ctx.stroke();
+  });
+  findHover();
+  /* traces with draw-in */
+  var elapsed=t-bornAt;
+  traces.forEach(function(tr,i){
+    var prog=Math.max(0,Math.min(1,(elapsed-i*45)/700));
+    if(prog<=0)return;
+    var isHov=tr.net===hoverNet;
+    ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.lineWidth=isHov?4.4:3;
+    ctx.strokeStyle=isHov?M.copperHi:M.copper;
+    ctx.globalAlpha=isHov?1:(hoverNet>=0?0.32:0.94);
+    drawPolyline(tr.pts,tr.len*prog);
+    ctx.globalAlpha=1;
+    /* vias at ends */
+    if(prog>=1){
+      var a=tr.pts[0],b=tr.pts[tr.pts.length-1];
+      [a,b].forEach(function(p){
+        ctx.beginPath();ctx.arc(p[0],p[1],4.6,0,7);ctx.fillStyle=isHov?M.copperHi:M.pad;ctx.fill();
+        ctx.beginPath();ctx.arc(p[0],p[1],1.8,0,7);ctx.fillStyle=M.edge;ctx.fill();
+      });
+    }
+  });
+  /* components: silkscreen */
+  var silkProg=Math.min(1,elapsed/1800);
+  ctx.globalAlpha=silkProg;
+  comps.forEach(function(c){
+    ctx.strokeStyle=M.silk;ctx.lineWidth=1.4;
+    if(c.type==='ic'){
+      ctx.strokeRect(c.x,c.y,c.w,c.h);
+      ctx.beginPath();ctx.arc(c.x+7,c.y+7,2.6,0,7);ctx.stroke(); /* pin-1 dot */
+      /* pin stubs */
+      ctx.fillStyle=M.pad;
+      c.pads.forEach(function(p){ctx.fillRect(p.x-3,p.y-2.2,6,4.4);});
+    }else{
+      var cx=c.x+c.w/2,cy=c.y+c.h/2;
+      if(c.type==='r'){
+        ctx.strokeRect(c.x+3,c.y+3,c.w-6,c.h-6);
+      }else{
+        ctx.beginPath();ctx.arc(cx,cy,Math.min(c.w,c.h)/2-2,0,7);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(cx-4,cy-8);ctx.lineTo(cx-4,cy+8);ctx.stroke();
+      }
+      ctx.fillStyle=M.pad;
+      c.pads.forEach(function(p){ctx.beginPath();ctx.arc(p.x,p.y,3.4,0,7);ctx.fill();});
+    }
+    /* refdes */
+    ctx.fillStyle=M.silk;
+    ctx.font='10px "SF Mono",Menlo,monospace';
+    ctx.fillText(c.ref,c.x+2,c.y-5>0?c.y-5:c.y+c.h+12);
+  });
+  ctx.globalAlpha=1;
+  /* title silkscreen on board */
+  ctx.fillStyle=M.silk;ctx.globalAlpha=.55*silkProg;
+  ctx.font='11px "SF Mono",Menlo,monospace';
+  ctx.fillText('ORIGAMI-LABS // CB-'+String(seed%9999).padStart(4,'0')+'  1.6MM FR4',m+16,H-m-16);
+  ctx.globalAlpha=1;
+  requestAnimationFrame(frame);
+}
+
+/* ---------- controls ---------- */
+function regen(){seed=(Math.random()*1e9)|0;build();}
+var nEl=document.getElementById('nets'),nV=document.getElementById('netsVal');
+nEl.addEventListener('input',function(){netCount=+nEl.value;nV.textContent=nEl.value;build();});
+document.querySelectorAll('.maskbtn').forEach(function(b){
+  b.addEventListener('click',function(){
+    mask=+b.dataset.m;
+    document.querySelectorAll('.maskbtn').forEach(function(x){x.classList.toggle('on',x===b);});
+  });
+});
+document.getElementById('btnRandom').addEventListener('click',regen);
+document.getElementById('btnSave').addEventListener('click',function(){
+  canvas.toBlob(function(b){
+    var a=document.createElement('a');a.href=URL.createObjectURL(b);
+    a.download='circuit-board-'+seed+'.png';a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+});
+
+window.addEventListener('resize',resize);
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

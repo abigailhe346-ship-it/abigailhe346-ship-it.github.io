@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLOOM FIELD 滋生标本 — 差分生长研究所</title>
+<style>
+  :root{
+    --paper:#ece7d9; --panel:#e3ddcc; --line:#c9c1a8;
+    --ink:#2b2a24; --moss:#274035; --coral:#cf6b4d; --dim:#8a8268;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+  ::selection{background:var(--coral);color:#fff}
+
+  header{display:flex;justify-content:space-between;align-items:flex-end;padding:26px 30px 0;gap:20px;flex-wrap:wrap}
+  .sig{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+  .sig h1{font-family:var(--serif);font-size:27px;font-weight:700;letter-spacing:.03em;line-height:1}
+  .sig h1 em{font-style:italic;color:var(--moss)}
+  .sig .no{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.18em;padding-bottom:3px}
+  .sig .no b{color:var(--coral);font-weight:400}
+  header p.tag{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.14em;text-align:right;text-transform:uppercase;line-height:1.9}
+  .rule{margin:16px 30px 0;border-top:1px solid var(--ink);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{display:grid;grid-template-columns:1fr 292px;gap:26px;padding:24px 30px 48px;max-width:1460px;margin:0 auto}
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .stage{
+    position:relative;background:#f0ebdd;border:1px solid var(--ink);
+    box-shadow:7px 7px 0 rgba(43,42,36,.10);overflow:hidden;
+  }
+  .stage::before{content:"";display:block;padding-top:75%}
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #hud{pointer-events:none}
+  #bio{cursor:crosshair}
+  .stamp{position:absolute;right:12px;top:10px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--ink);border:1px solid var(--ink);padding:4px 9px;background:rgba(236,231,217,.88);pointer-events:none;text-transform:uppercase}
+  .hint{position:absolute;left:12px;bottom:10px;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:rgba(43,42,36,.55);pointer-events:none;text-transform:uppercase}
+
+  .dock{border:1px solid var(--ink);background:var(--panel);padding:22px 20px;display:flex;flex-direction:column;gap:20px;align-self:start;position:sticky;top:20px}
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{font-family:var(--serif);font-size:14px;font-weight:700;letter-spacing:.26em;border-bottom:1px solid var(--ink);padding-bottom:12px;display:flex;justify-content:space-between;align-items:baseline}
+  .dock h2 span{font-family:var(--mono);font-size:9px;font-weight:400;color:var(--dim);letter-spacing:.18em}
+  .ctl{display:flex;flex-direction:column;gap:8px}
+  .ctl label{display:flex;justify-content:space-between;font-size:12px;letter-spacing:.12em;color:var(--ink)}
+  .ctl label output{font-family:var(--mono);font-size:10px;color:var(--coral)}
+
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:11px;height:11px;margin-top:-5px;background:var(--coral);border:1px solid var(--ink);border-radius:50%}
+  input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--coral);border:1px solid var(--ink);border-radius:50%}
+
+  .btns{display:flex;flex-direction:column;gap:10px}
+  button{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;padding:12px 14px;border:1px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer;transition:all .25s var(--ease)}
+  button:hover{background:var(--moss);border-color:var(--moss);color:var(--paper)}
+  button.primary{background:var(--moss);border-color:var(--moss);color:var(--paper)}
+  button.primary:hover{background:var(--coral);border-color:var(--coral);color:#fff}
+  button:active{transform:translateY(1px)}
+
+  .note{font-size:11px;line-height:2;color:#54503f;border-top:1px solid var(--line);padding-top:14px;letter-spacing:.03em}
+  .note b{color:var(--moss)}
+
+  footer{padding:0 30px 30px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>BLOOM <em>FIELD</em></h1>
+    <span class="no">N°<b>07</b> — GEN-ART / 差分生长有机形态</span>
+  </div>
+  <p class="tag">Differential growth · specimen archive<br>差分生长 × 珊瑚地衣 × 活体标本</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <div class="stage" id="stage">
+    <canvas id="bio"></canvas>
+    <canvas id="hud"></canvas>
+    <div class="stamp">Specimen · Live</div>
+    <div class="hint">Click to seed · 点击播种 / Space 暂停</div>
+  </div>
+
+  <aside class="dock">
+    <h2>培养皿 <span>CULTURE</span></h2>
+    <div class="ctl">
+      <label>生长速度 <output id="oSpeed">4</output></label>
+      <input type="range" id="rSpeed" min="1" max="10" value="4">
+    </div>
+    <div class="ctl">
+      <label>曲折度 <output id="oRuff">55</output></label>
+      <input type="range" id="rRuff" min="10" max="100" value="55">
+    </div>
+    <div class="btns">
+      <button class="primary" id="bRegen">随机再生 · Reseed</button>
+      <button id="bPause">暂停 · Pause</button>
+      <button id="bSave">下载 PNG · Download</button>
+    </div>
+    <p class="note">每条闭合曲线是一株<b>活体标本</b>：节点相互排斥、向邻点均值收拢，边长超限即分裂——珊瑚与地衣由此成形。旧轮廓以极淡的墨色层层积存，像树木年轮。</p>
+  </aside>
+</main>
+
+<footer>
+  <span>Bloom Field — Differential Growth Study</span>
+  <span id="stats">NODES 0000 · SP 00</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+var PAPER="#ece7d9", MOSS="#274035", CORAL="#cf6b4d";
+var NAMES=["LICHEN","CORAL","MOSS","FUNGUS","ALGAE","LICHEN","CORAL","FUNGUS","MOSS","ALGAE"];
+var FILLS=["39,64,53","96,110,60","39,64,53","120,96,52","39,64,53","96,110,60"];
+
+var bio=document.getElementById("bio"), bg=bio.getContext("2d");
+var hud=document.getElementById("hud"), hg=hud.getContext("2d");
+var stage=document.getElementById("stage");
+
+var W=0,H=0,dpr=1;
+var seed=Math.floor(Math.random()*1e9);
+var P={speed:4,ruff:55};
+var organisms=[], running=true, tickCount=0, frameCount=0;
+var MAXNODES=5200, MAXSP=10;
+
+function resize(){
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  var r=stage.getBoundingClientRect();
+  W=r.width; H=r.height;
+  [bio,hud].forEach(function(c){c.width=Math.round(W*dpr);c.height=Math.round(H*dpr)});
+  bg.setTransform(dpr,0,0,dpr,0,0);
+  hg.setTransform(dpr,0,0,dpr,0,0);
+  seedScene(); // persistent layer is lost on resize — rebuild
+}
+window.addEventListener("resize",resize);
+
+/* ---------------- organisms ---------------- */
+function spawn(rand,x,y,idx){
+  var n=14, nodes=[];
+  var r0=10+rand()*8;
+  for(var i=0;i<n;i++){
+    var a=i/n*Math.PI*2;
+    nodes.push({x:x+Math.cos(a)*r0, y:y+Math.sin(a)*r0});
+  }
+  return {nodes:nodes, cx:x, cy:y, idx:idx, fill:FILLS[idx%FILLS.length],
+    name:NAMES[idx%NAMES.length], mature:false};
+}
+
+function seedScene(){
+  var rand=mulberry32(seed);
+  organisms=[];
+  var n=3+Math.floor(rand()*2);
+  for(var i=0;i<n;i++){
+    var x=W*(.18+rand()*.64), y=H*(.2+rand()*.6);
+    organisms.push(spawn(rand,x,y,i));
+  }
+  // paper base
+  bg.fillStyle="#f0ebdd"; bg.fillRect(0,0,W,H);
+  for(var k=0;k<2400;k++){
+    bg.fillStyle="rgba(90,84,60,"+(rand()*.05)+")";
+    bg.fillRect(rand()*W,rand()*H,1+rand()*1.4,1+rand()*1.4);
+  }
+  tickCount=0;
+}
+
+/* one growth tick for all organisms */
+function tick(){
+  var repR=4.2+P.ruff/100*5.5;        // repulsion radius
+  var repR2=repR*repR;
+  var align=0.32;
+  var maxEdge=repR*1.05;
+  var grid=new Map(), cell=repR;
+  var key=function(x,y){return Math.floor(x/cell)+Math.floor(y/cell)*4096};
+  var all=[];
+  organisms.forEach(function(o){o.nodes.forEach(function(p){all.push(p)})});
+  all.forEach(function(p){
+    var k=key(p.x,p.y);
+    var arr=grid.get(k); if(!arr){arr=[];grid.set(k,arr)}
+    arr.push(p);
+  });
+  var brown=.12;
+  organisms.forEach(function(o){
+    if(o.mature)return;
+    var ns=o.nodes, m=ns.length;
+    // repulsion
+    for(var i=0;i<m;i++){
+      var p=ns[i], fx=0, fy=0;
+      var gx=Math.floor(p.x/cell), gy=Math.floor(p.y/cell);
+      for(var ax=gx-1;ax<=gx+1;ax++)for(var ay=gy-1;ay<=gy+1;ay++){
+        var arr=grid.get(ax+ay*4096);
+        if(!arr)continue;
+        for(var j=0;j<arr.length;j++){
+          var q=arr[j];
+          if(q===p)continue;
+          var dx=p.x-q.x, dy=p.y-q.y, d2=dx*dx+dy*dy;
+          if(d2<repR2&&d2>1e-6){
+            var d=Math.sqrt(d2), f=(repR-d)/repR;
+            fx+=dx/d*f; fy+=dy/d*f;
+          }
+        }
+      }
+      p.x+=fx*.5+(Math.random()-.5)*brown;
+      p.y+=fy*.5+(Math.random()-.5)*brown;
+    }
+    // alignment toward neighbor midpoint
+    for(i=0;i<m;i++){
+      var prev=ns[(i-1+m)%m], next=ns[(i+1)%m], cur=ns[i];
+      cur.x+=((prev.x+next.x)/2-cur.x)*align;
+      cur.y+=((prev.y+next.y)/2-cur.y)*align;
+    }
+    // split long edges
+    var total=0;
+    organisms.forEach(function(oo){total+=oo.nodes.length});
+    if(total<MAXNODES){
+      for(i=ns.length-1;i>=0;i--){
+        var a=ns[i], b=ns[(i+1)%ns.length];
+        var dx=b.x-a.x, dy=b.y-a.y;
+        if(dx*dx+dy*dy>maxEdge*maxEdge){
+          ns.splice(i+1,0,{x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+        }
+      }
+    }
+    // keep recent center for labels
+    var sx=0,sy=0;
+    ns.forEach(function(p){sx+=p.x;sy+=p.y});
+    o.cx=sx/ns.length; o.cy=sy/ns.length;
+  });
+  tickCount++;
+}
+
+/* ---------------- persistent trace layer ---------------- */
+function trace(){
+  organisms.forEach(function(o){
+    var ns=o.nodes, m=ns.length;
+    if(m<3)return;
+    bg.beginPath();
+    bg.moveTo(ns[0].x,ns[0].y);
+    for(var i=1;i<m;i++)bg.lineTo(ns[i].x,ns[i].y);
+    bg.closePath();
+    bg.fillStyle="rgba("+o.fill+",0.030)";
+    bg.fill();
+    if(frameCount%10===0){
+      bg.strokeStyle="rgba("+o.fill+",0.09)";
+      bg.lineWidth=.7;
+      bg.stroke();
+    }
+  });
+}
+
+/* ---------------- hud layer ---------------- */
+function drawHud(){
+  hg.clearRect(0,0,W,H);
+  var total=0;
+  organisms.forEach(function(o){
+    total+=o.nodes.length;
+    var ns=o.nodes, m=ns.length;
+    // growth front
+    hg.beginPath();
+    hg.moveTo(ns[0].x,ns[0].y);
+    for(var i=1;i<m;i++)hg.lineTo(ns[i].x,ns[i].y);
+    hg.closePath();
+    hg.strokeStyle=o.mature?"rgba(43,42,36,.25)":"rgba(207,107,77,.65)";
+    hg.lineWidth=1.1;
+    hg.stroke();
+    // label
+    var lx=o.cx+40, ly=o.cy-40;
+    lx=Math.min(Math.max(lx,64),W-120); ly=Math.min(Math.max(ly,26),H-20);
+    hg.strokeStyle="rgba(43,42,36,.45)"; hg.lineWidth=.8;
+    hg.beginPath(); hg.moveTo(o.cx,o.cy); hg.lineTo(lx,ly); hg.stroke();
+    hg.fillStyle="rgba(43,42,36,.85)";
+    hg.font="400 10px 'SF Mono',Menlo,monospace";
+    hg.textAlign="left";
+    hg.fillText("SP."+("0"+(o.idx+1)).slice(-2)+" · "+o.name, lx+4, ly+3);
+    hg.fillStyle=CORAL;
+    hg.beginPath(); hg.arc(lx,ly,2,0,7); hg.fill();
+  });
+  if(!running){
+    hg.fillStyle="rgba(43,42,36,.6)";
+    hg.font="400 11px 'SF Mono',Menlo,monospace";
+    hg.textAlign="center";
+    hg.fillText("— PAUSED / 已暂停 —", W/2, 26);
+  }
+  document.getElementById("stats").textContent=
+    "NODES "+("0000"+total).slice(-4)+" · SP "+("0"+organisms.length).slice(-2)+" · GEN "+tickCount;
+}
+
+/* ---------------- main loop ---------------- */
+function frame(){
+  if(running){
+    for(var s=0;s<P.speed;s++)tick();
+    trace();
+  }
+  drawHud();
+  frameCount++;
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- events ---------------- */
+bio.addEventListener("pointerdown",function(e){
+  if(organisms.length>=MAXSP)return;
+  var r=stage.getBoundingClientRect();
+  var x=e.clientX-r.left, y=e.clientY-r.top;
+  organisms.push(spawn(Math.random,x,y,organisms.length));
+});
+
+document.getElementById("rSpeed").addEventListener("input",function(){
+  P.speed=+this.value; document.getElementById("oSpeed").textContent=this.value;
+});
+document.getElementById("rRuff").addEventListener("input",function(){
+  P.ruff=+this.value; document.getElementById("oRuff").textContent=this.value;
+});
+document.getElementById("bRegen").addEventListener("click",function(){
+  seed=Math.floor(Math.random()*1e9); running=true;
+  document.getElementById("bPause").textContent="暂停 · Pause";
+  seedScene();
+});
+var bPause=document.getElementById("bPause");
+function togglePause(){
+  running=!running;
+  bPause.textContent=running?"暂停 · Pause":"继续 · Resume";
+}
+bPause.addEventListener("click",togglePause);
+window.addEventListener("keydown",function(e){
+  if(e.code==="Space"&&e.target===document.body){e.preventDefault();togglePause();}
+});
+document.getElementById("bSave").addEventListener("click",function(){
+  var ex=document.createElement("canvas");
+  ex.width=Math.round(W*dpr); ex.height=Math.round(H*dpr);
+  var eg=ex.getContext("2d");
+  eg.drawImage(bio,0,0); eg.drawImage(hud,0,0);
+  var a=document.createElement("a");
+  a.download="bloom-field-"+seed+".png";
+  a.href=ex.toDataURL("image/png");
+  a.click();
+});
+
+resize();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Galaxy Cartography — 银河粒子星系 No.01</title>
+<style>
+  :root{
+    --bg:#050510;
+    --panel:#0b0b1c;
+    --line:#232344;
+    --warm:#ffb877;
+    --cool:#7a9bff;
+    --ink:#e8e6f4;
+    --dim:#5f5d85;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);}
+  body{font-family:"SF Mono",Menlo,"Courier New",monospace;color:var(--ink);
+       -webkit-font-smoothing:antialiased;}
+  #stage{position:fixed;inset:0;cursor:grab;}
+  #stage:active{cursor:grabbing;}
+  #stage canvas{display:block;width:100%;height:100%;}
+
+  /* ---------- name plate ---------- */
+  .plate{position:fixed;top:24px;left:26px;z-index:10;pointer-events:none;}
+  .plate .no{font-size:10px;letter-spacing:.4em;color:var(--warm);}
+  .plate h1{font-family:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+            font-size:22px;font-weight:400;letter-spacing:.12em;margin-top:6px;color:var(--ink);}
+  .plate .sub{font-size:10px;letter-spacing:.3em;color:var(--dim);margin-top:5px;}
+  .plate .rule{width:64px;height:1px;background:linear-gradient(90deg,var(--warm),transparent);margin-top:10px;}
+
+  .readout{position:fixed;top:26px;right:26px;z-index:10;text-align:right;pointer-events:none;
+           font-size:10px;letter-spacing:.22em;color:var(--dim);line-height:2.0;}
+  .readout b{color:var(--cool);font-weight:400;}
+  .readout .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--warm);
+                margin-right:8px;vertical-align:1px;animation:pulse 2.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+  .hint{position:fixed;left:26px;bottom:24px;z-index:10;pointer-events:none;
+        font-size:10px;letter-spacing:.26em;color:var(--dim);line-height:2.1;}
+  .hint em{font-style:normal;color:var(--ink);}
+
+  /* ---------- console ---------- */
+  .console{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:10;
+           display:flex;align-items:stretch;
+           background:linear-gradient(180deg,rgba(11,11,28,.88),rgba(5,5,16,.92));
+           border:1px solid var(--line);backdrop-filter:blur(8px);
+           box-shadow:0 0 0 1px rgba(0,0,0,.5),0 20px 60px rgba(0,0,0,.6);
+           max-width:min(960px,calc(100vw - 28px));}
+  .console::before,.console::after{content:"";position:absolute;width:10px;height:10px;
+           border:1px solid var(--warm);opacity:.85;}
+  .console::before{top:-4px;left:-4px;border-right:none;border-bottom:none;}
+  .console::after{bottom:-4px;right:-4px;border-left:none;border-top:none;}
+  .cell{padding:13px 18px;border-right:1px solid var(--line);display:flex;
+        flex-direction:column;justify-content:center;gap:9px;min-width:0;}
+  .cell:last-child{border-right:none;}
+  .label{font-size:9px;letter-spacing:.32em;color:var(--dim);white-space:nowrap;}
+  .seedval{font-size:12px;letter-spacing:.16em;color:var(--cool);white-space:nowrap;}
+
+  .btn{appearance:none;border:1px solid var(--warm);background:transparent;color:var(--warm);
+       font-family:inherit;font-size:10px;letter-spacing:.28em;padding:11px 15px 10px;cursor:pointer;
+       text-transform:uppercase;transition:background .2s cubic-bezier(.2,.7,.3,1),color .2s;}
+  .btn:hover{background:var(--warm);color:#050510;}
+  .btn.ghost{border-color:var(--line);color:var(--ink);}
+  .btn.ghost:hover{background:var(--ink);color:#050510;border-color:var(--ink);}
+  .btn:active{transform:translateY(1px);}
+  .btnrow{display:flex;gap:9px;}
+
+  .swatches{display:flex;gap:8px;align-items:center;}
+  .sw{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.25);
+      cursor:pointer;transition:transform .2s cubic-bezier(.2,.7,.3,1),box-shadow .2s;}
+  .sw:hover{transform:scale(1.18);}
+  .sw.on{box-shadow:0 0 0 2px var(--bg),0 0 0 3px var(--ink);}
+
+  .slider{display:flex;align-items:center;gap:11px;min-width:150px;}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:110px;height:1px;
+       background:var(--line);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;
+       width:11px;height:15px;background:var(--cool);border:none;cursor:ew-resize;
+       box-shadow:0 0 10px rgba(122,155,255,.55);}
+  input[type=range]::-moz-range-thumb{width:11px;height:15px;background:var(--cool);
+       border:none;cursor:ew-resize;}
+  .sval{font-size:10px;color:var(--cool);letter-spacing:.08em;width:34px;text-align:right;}
+
+  .vignette{position:fixed;inset:0;z-index:5;pointer-events:none;
+            background:radial-gradient(ellipse at center,transparent 55%,rgba(2,2,8,.55) 100%);}
+
+  @media (max-width:820px){
+    .console{flex-wrap:wrap;bottom:12px;}
+    .cell{padding:10px 13px;border-right:none;border-top:1px solid var(--line);flex:1 1 42%;}
+    .cell:first-child{border-top:none;}
+    .hint{display:none;}
+    .plate h1{font-size:18px;}
+  }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div class="vignette"></div>
+
+<div class="plate">
+  <div class="no">No.01 — THREE.JS / PARTICLES</div>
+  <h1>Galaxy Cartography</h1>
+  <div class="sub">银河粒子星系 · GPU 星尘测绘</div>
+  <div class="rule"></div>
+</div>
+
+<div class="readout">
+  <span class="dot"></span>LIVE RENDER<br>
+  STARS <b id="rCount">—</b><br>
+  SEED <b id="rSeed">—</b><br>
+  FPS <b id="rFps">—</b>
+</div>
+
+<div class="hint">
+  <em>拖拽</em> 旋转视角 · <em>滚轮</em> 推近拉远<br>
+  <em>R</em> 随机再生 · <em>1/2/3</em> 切换色谱
+</div>
+
+<div class="console">
+  <div class="cell">
+    <div class="label">星系列 / SPECTRUM</div>
+    <div class="swatches" id="swatches"></div>
+  </div>
+  <div class="cell">
+    <div class="label">旋臂 ARMS</div>
+    <div class="slider">
+      <input type="range" id="sArms" min="2" max="8" step="1" value="4">
+      <span class="sval" id="vArms">4</span>
+    </div>
+  </div>
+  <div class="cell">
+    <div class="label">弥散 DIFFUSE</div>
+    <div class="slider">
+      <input type="range" id="sDiff" min="0" max="200" step="5" value="70">
+      <span class="sval" id="vDiff">.70</span>
+    </div>
+  </div>
+  <div class="cell">
+    <div class="label">密度 DENSITY</div>
+    <div class="slider">
+      <input type="range" id="sDen" min="20" max="120" step="10" value="70">
+      <span class="sval" id="vDen">70k</span>
+    </div>
+  </div>
+  <div class="cell">
+    <div class="label">种子 SEED</div>
+    <div class="seedval" id="seedVal">0x0000</div>
+  </div>
+  <div class="cell">
+    <div class="btnrow">
+      <button class="btn" id="btnRegen">随机再生</button>
+      <button class="btn ghost" id="btnSpin">暂停自转</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../../vendor/three.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  /* ================= palettes ================= */
+  var SPECTRA = [
+    { name:"熔核 EMBER",  inner:"#ffd9a0", outer:"#ff4d6d", glow:"#ffb877" },
+    { name:"霜蓝 FROST",  inner:"#d9ecff", outer:"#3a5bff", glow:"#7a9bff" },
+    { name:"星霭 NEBULA", inner:"#ffd2f2", outer:"#6a3bff", glow:"#d18cff" }
+  ];
+
+  var state = {
+    spectrum: 0,
+    arms: 4,
+    diffuse: 0.7,
+    count: 70000,
+    radius: 11,
+    spin: 1.35,
+    seed: 1,
+    rotating: true
+  };
+
+  var rng = mulberry32(1);
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /* ================= renderer / scene ================= */
+  var stage = document.getElementById("stage");
+  var renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x050510, 1);
+  stage.appendChild(renderer.domElement);
+
+  var scene = new THREE.Scene();
+  var camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 400);
+
+  /* custom orbit state (spherical) */
+  var orbit = { theta: 0.6, phi: 0.9, radius: 26, tTheta: 0.6, tPhi: 0.9, tRadius: 26 };
+
+  /* ================= galaxy ================= */
+  var geo, points, material;
+  var grow = 1, growTarget = 1;
+
+  var uniforms = {
+    uTime:  { value: 0 },
+    uSize:  { value: 42.0 * renderer.getPixelRatio() },
+    uGrow:  { value: 1 },
+    uSpinT: { value: 0 }
+  };
+
+  var VERT = [
+    "attribute float aScale;",
+    "attribute vec3 aColor;",
+    "attribute float aTwinkle;",
+    "uniform float uTime;",
+    "uniform float uSize;",
+    "uniform float uGrow;",
+    "uniform float uSpinT;",
+    "varying vec3 vColor;",
+    "varying float vTw;",
+    "void main(){",
+    "  vec3 p = position * uGrow;",
+    "  float dist = length(p.xz);",
+    "  float ang = atan(p.x, p.z);",
+    "  ang += uSpinT / (dist * 0.35 + 0.55);",   /* differential rotation: core spins faster */
+    "  p.x = sin(ang) * dist;",
+    "  p.z = cos(ang) * dist;",
+    "  vec4 mv = modelViewMatrix * vec4(p, 1.0);",
+    "  gl_Position = projectionMatrix * mv;",
+    "  gl_PointSize = uSize * aScale * (1.0 / -mv.z);",
+    "  vColor = aColor;",
+    "  vTw = 0.62 + 0.38 * sin(uTime * 1.8 + aTwinkle * 6.2831);",
+    "}"
+  ].join("\n");
+
+  var FRAG = [
+    "varying vec3 vColor;",
+    "varying float vTw;",
+    "void main(){",
+    "  float d = distance(gl_PointCoord, vec2(0.5));",
+    "  float s = pow(max(1.0 - d * 2.0, 0.0), 3.0);",
+    "  gl_FragColor = vec4(vColor * vTw, s);",
+    "}"
+  ].join("\n");
+
+  function buildGalaxy(){
+    rng = mulberry32(state.seed);
+    if (points){ scene.remove(points); geo.dispose(); material.dispose(); }
+
+    var n = state.count;
+    var pos = new Float32Array(n * 3);
+    var col = new Float32Array(n * 3);
+    var scl = new Float32Array(n);
+    var twk = new Float32Array(n);
+
+    var cIn  = new THREE.Color(SPECTRA[state.spectrum].inner);
+    var cOut = new THREE.Color(SPECTRA[state.spectrum].outer);
+
+    for (var i = 0; i < n; i++){
+      var i3 = i * 3;
+      var r = Math.pow(rng(), 1.55) * state.radius;      /* denser core */
+      var branchAngle = ((i % state.arms) / state.arms) * Math.PI * 2;
+      var spinAngle = r * state.spin;
+
+      var rx = Math.pow(rng(), 3.0) * (rng() < 0.5 ? 1 : -1) * state.diffuse * r * 0.55;
+      var ry = Math.pow(rng(), 3.0) * (rng() < 0.5 ? 1 : -1) * state.diffuse * r * 0.28;
+      var rz = Math.pow(rng(), 3.0) * (rng() < 0.5 ? 1 : -1) * state.diffuse * r * 0.55;
+
+      pos[i3]   = Math.sin(branchAngle + spinAngle) * r + rx;
+      pos[i3+1] = ry;
+      pos[i3+2] = Math.cos(branchAngle + spinAngle) * r + rz;
+
+      var mixed = cIn.clone().lerp(cOut, Math.min(r / state.radius, 1));
+      var jitter = 0.88 + rng() * 0.24;
+      col[i3]   = mixed.r * jitter;
+      col[i3+1] = mixed.g * jitter;
+      col[i3+2] = mixed.b * jitter;
+
+      scl[i] = (rng() < 0.04) ? rng() * 3.2 + 1.4 : rng() * 1.2 + 0.35;
+      twk[i] = rng();
+    }
+
+    geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute("aColor",   new THREE.BufferAttribute(col, 3));
+    geo.setAttribute("aScale",   new THREE.BufferAttribute(scl, 1));
+    geo.setAttribute("aTwinkle", new THREE.BufferAttribute(twk, 1));
+
+    material = new THREE.ShaderMaterial({
+      vertexShader: VERT,
+      fragmentShader: FRAG,
+      uniforms: uniforms,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+
+    points = new THREE.Points(geo, material);
+    scene.add(points);
+
+    grow = 0.0; growTarget = 1.0;
+    document.getElementById("rCount").textContent = (n/1000).toFixed(0) + "K";
+    var hex = ("0000" + state.seed.toString(16)).slice(-4).toUpperCase();
+    document.getElementById("rSeed").textContent = "0x" + hex;
+    document.getElementById("seedVal").textContent = "0x" + hex;
+  }
+
+  /* ================= background starfield ================= */
+  (function buildStars(){
+    var n = 2400, p = new Float32Array(n * 3);
+    var s = mulberry32(99);
+    for (var i = 0; i < n; i++){
+      var th = s() * Math.PI * 2, ph = Math.acos(2 * s() - 1), rr = 120 + s() * 60;
+      p[i*3]   = rr * Math.sin(ph) * Math.cos(th);
+      p[i*3+1] = rr * Math.cos(ph);
+      p[i*3+2] = rr * Math.sin(ph) * Math.sin(th);
+    }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(p, 3));
+    var m = new THREE.PointsMaterial({ color: 0x8f92c8, size: 0.55, sizeAttenuation: true,
+                                       transparent: true, opacity: 0.55, depthWrite: false });
+    scene.add(new THREE.Points(g, m));
+  })();
+
+  /* ================= interaction: orbit ================= */
+  var dragging = false, px = 0, py = 0;
+  stage.addEventListener("pointerdown", function(e){
+    dragging = true; px = e.clientX; py = e.clientY;
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener("pointermove", function(e){
+    if (!dragging) return;
+    var dx = e.clientX - px, dy = e.clientY - py;
+    px = e.clientX; py = e.clientY;
+    orbit.tTheta -= dx * 0.005;
+    orbit.tPhi   -= dy * 0.004;
+    orbit.tPhi = Math.max(0.15, Math.min(Math.PI - 0.15, orbit.tPhi));
+  });
+  stage.addEventListener("pointerup", function(){ dragging = false; });
+  stage.addEventListener("wheel", function(e){
+    e.preventDefault();
+    orbit.tRadius *= (1 + e.deltaY * 0.0009);
+    orbit.tRadius = Math.max(8, Math.min(70, orbit.tRadius));
+  }, { passive: false });
+
+  /* ================= controls ================= */
+  var swatches = document.getElementById("swatches");
+  SPECTRA.forEach(function(sp, i){
+    var el = document.createElement("div");
+    el.className = "sw" + (i === state.spectrum ? " on" : "");
+    el.title = sp.name;
+    el.style.background = "radial-gradient(circle at 35% 35%," + sp.inner + "," + sp.outer + ")";
+    el.addEventListener("click", function(){ setSpectrum(i); });
+    swatches.appendChild(el);
+  });
+  function setSpectrum(i){
+    state.spectrum = i;
+    Array.prototype.forEach.call(swatches.children, function(c, j){
+      c.classList.toggle("on", j === i);
+    });
+    document.documentElement.style.setProperty("--warm", SPECTRA[i].glow);
+    buildGalaxy();
+  }
+
+  function bindSlider(id, vid, fmt, apply){
+    var s = document.getElementById(id), v = document.getElementById(vid);
+    s.addEventListener("input", function(){
+      apply(parseFloat(s.value));
+      v.textContent = fmt(parseFloat(s.value));
+      buildGalaxy();
+    });
+  }
+  bindSlider("sArms", "vArms", function(x){ return x | 0; }, function(x){ state.arms = x | 0; });
+  bindSlider("sDiff", "vDiff", function(x){ return (x/100).toFixed(2).slice(1); }, function(x){ state.diffuse = x/100; });
+  bindSlider("sDen",  "vDen",  function(x){ return (x|0) + "k"; },          function(x){ state.count = x * 1000; });
+
+  document.getElementById("btnRegen").addEventListener("click", regen);
+  function regen(){
+    state.seed = (Math.random() * 0xFFFF) | 0;
+    buildGalaxy();
+  }
+
+  var btnSpin = document.getElementById("btnSpin");
+  btnSpin.addEventListener("click", function(){
+    state.rotating = !state.rotating;
+    btnSpin.textContent = state.rotating ? "暂停自转" : "恢复自转";
+  });
+
+  window.addEventListener("keydown", function(e){
+    if (e.key === "r" || e.key === "R") regen();
+    if (e.key === "1") setSpectrum(0);
+    if (e.key === "2") setSpectrum(1);
+    if (e.key === "3") setSpectrum(2);
+  });
+
+  window.addEventListener("resize", function(){
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  /* ================= loop ================= */
+  var clock = new THREE.Clock();
+  var spinT = 0, spinSpeed = 1, frames = 0, fpsT = 0;
+
+  function tick(){
+    requestAnimationFrame(tick);
+    var dt = Math.min(clock.getDelta(), 0.05);
+    var t = clock.elapsedTime;
+    uniforms.uTime.value = t;
+
+    spinSpeed += ((state.rotating ? 1 : 0) - spinSpeed) * 0.04;
+    spinT += dt * 0.55 * spinSpeed;
+    uniforms.uSpinT.value = spinT;
+
+    grow += (growTarget - grow) * 0.035;
+    uniforms.uGrow.value = 1.0 - Math.pow(1.0 - grow, 3.0); /* easeOutCubic-ish unfold */
+
+    /* damped orbit */
+    orbit.theta  += (orbit.tTheta  - orbit.theta)  * 0.07;
+    orbit.phi    += (orbit.tPhi    - orbit.phi)    * 0.07;
+    orbit.radius += (orbit.tRadius - orbit.radius) * 0.08;
+    camera.position.set(
+      orbit.radius * Math.sin(orbit.phi) * Math.sin(orbit.theta),
+      orbit.radius * Math.cos(orbit.phi),
+      orbit.radius * Math.sin(orbit.phi) * Math.cos(orbit.theta)
+    );
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+
+    frames++; fpsT += dt;
+    if (fpsT >= 0.5){
+      document.getElementById("rFps").textContent = Math.round(frames / fpsT);
+      frames = 0; fpsT = 0;
+    }
+  }
+
+  regen();
+  tick();
+})();
+</script>
+</body>
+</html>

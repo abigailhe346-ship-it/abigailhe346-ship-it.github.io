@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RETRIEVAL ATLAS — RAG 检索增强交互图解</title>
+<style>
+  :root{
+    --bg:#10231C; --bg2:#0B1A15; --panel:#143026; --line:#23473A; --line2:#2F5A49;
+    --ink:#EFE6D2; --dim:#9DB4A5; --faint:#5E7A6B;
+    --brass:#C9A24B; --rust:#D2694C; --sage:#7FB98A;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+  ::selection{background:rgba(201,162,75,.3)}
+
+  header{flex:0 0 auto;border-bottom:1px solid var(--line);background:var(--bg2)}
+  .h-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 18px 8px}
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--brass);letter-spacing:.14em}
+  .brand .name{font-size:15px;font-weight:700;letter-spacing:.22em}
+  .brand .sub{font-size:11px;color:var(--dim)}
+  .h-top .spacer{flex:1}
+  .qseg{display:flex;border:1px solid var(--line2);flex-wrap:wrap}
+  .qseg button{font-family:var(--sans);font-size:11px;padding:7px 12px;background:transparent;
+    border:none;color:var(--dim);cursor:pointer;transition:all .15s var(--ease);letter-spacing:.02em}
+  .qseg button+button{border-left:1px solid var(--line)}
+  .qseg button:hover{color:var(--ink)}
+  .qseg button.on{background:var(--brass);color:#10231C;font-weight:600}
+  .play{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;padding:8px 18px;
+    background:var(--brass);color:#10231C;border:1px solid var(--brass);cursor:pointer;
+    font-weight:700;transition:all .16s var(--ease)}
+  .play:hover{background:#E2BC5E}
+  .play.running{background:var(--rust);border-color:var(--rust);color:var(--ink)}
+
+  .stages{display:flex;border-top:1px solid var(--line)}
+  .stage{flex:1;padding:9px 10px 10px;border-right:1px solid var(--line);cursor:pointer;
+    transition:background .2s var(--ease);position:relative;min-width:0}
+  .stage:last-child{border-right:none}
+  .stage .s-no{font-family:var(--mono);font-size:8.5px;color:var(--faint);letter-spacing:.18em}
+  .stage .s-t{font-size:12px;font-weight:600;color:var(--dim);margin-top:2px;letter-spacing:.06em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stage::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:0;background:var(--brass);transition:width .3s var(--ease)}
+  .stage:hover{background:rgba(201,162,75,.05)}
+  .stage.on{background:rgba(201,162,75,.1)}
+  .stage.on .s-t{color:var(--brass)}
+  .stage.on::after{width:100%}
+  .stage.done .s-no{color:var(--sage)}
+
+  main{flex:1;display:flex;min-height:0}
+  .cv-side{flex:1;position:relative;min-width:0}
+  #cv{position:absolute;inset:0;display:block}
+  .cv-cap{position:absolute;left:16px;top:14px;font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.2em;color:var(--faint);pointer-events:none}
+  .cv-cap b{color:var(--dim)}
+
+  .panel{flex:0 0 348px;border-left:1px solid var(--line);background:var(--bg2);
+    display:flex;flex-direction:column;min-height:0}
+  .p-scroll{flex:1;overflow-y:auto;padding:16px 18px}
+  .p-eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--brass)}
+  .p-title{font-family:var(--serif);font-size:23px;font-weight:400;margin:5px 0 9px;letter-spacing:.02em}
+  .p-copy{font-size:12.5px;line-height:1.9;color:var(--dim);margin-bottom:14px}
+  .p-copy b{color:var(--ink);font-weight:600}
+  .p-copy em{font-family:var(--serif);font-style:italic;color:var(--ink);font-size:1.05em}
+
+  .krow{display:flex;align-items:center;gap:10px;margin:4px 0 14px;
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--dim)}
+  .krow b{color:var(--brass);min-width:18px;text-align:right;font-size:13px}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;height:2px;background:var(--line2);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:13px;height:13px;
+    background:var(--brass);border:2px solid var(--bg2);box-shadow:0 0 0 1px var(--brass);border-radius:50%}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--brass);border:2px solid var(--bg2);border-radius:50%}
+
+  .rank-h{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--faint);
+    margin:4px 0 8px;display:flex;justify-content:space-between}
+  .rank{border:1px solid var(--line);margin-bottom:7px;padding:9px 11px;cursor:pointer;
+    transition:all .18s var(--ease);opacity:0;transform:translateX(10px);animation:rin .4s var(--ease) forwards}
+  @keyframes rin{to{opacity:1;transform:none}}
+  .rank:hover,.rank.hot{border-color:var(--brass);background:rgba(201,162,75,.07)}
+  .rank .r-top{display:flex;align-items:baseline;gap:8px}
+  .rank .r-no{font-family:var(--mono);font-size:10px;color:var(--brass)}
+  .rank .r-t{font-size:12px;font-weight:600;letter-spacing:.02em}
+  .rank .r-s{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--sage)}
+  .rank .r-bar{height:3px;background:var(--line);margin-top:7px}
+  .rank .r-bar i{display:block;height:100%;background:var(--sage);width:0;transition:width .5s var(--ease)}
+  .rank .r-d{font-size:10.5px;color:var(--faint);margin-top:6px;line-height:1.6}
+
+  .answer{border:1px solid var(--line2);border-left:3px solid var(--brass);
+    background:var(--panel);padding:12px 14px;margin-top:6px;display:none}
+  .answer.show{display:block;animation:rin .4s var(--ease)}
+  .answer .a-h{font-family:var(--mono);font-size:9px;letter-spacing:.2em;color:var(--brass);margin-bottom:7px}
+  .answer .a-b{font-size:12.5px;line-height:1.9}
+  .answer .cite{font-family:var(--mono);font-size:9px;color:var(--brass);border:1px solid var(--line2);
+    padding:0 4px;margin:0 1px;cursor:pointer;transition:all .15s}
+  .answer .cite:hover{background:var(--brass);color:#10231C}
+  .cursorB{display:inline-block;width:7px;height:13px;background:var(--brass);vertical-align:-2px;animation:bl .7s steps(1) infinite}
+  @keyframes bl{50%{opacity:0}}
+
+  footer{flex:0 0 30px;display:flex;align-items:center;gap:20px;padding:0 18px;
+    border-top:1px solid var(--line);background:var(--bg2);
+    font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.1em}
+  footer b{color:var(--dim);font-weight:600}
+  footer .sig{margin-left:auto}
+
+  @media (max-width:960px){
+    main{flex-direction:column;overflow-y:auto}
+    .cv-side{flex:0 0 52vh}
+    .panel{flex:1;border-left:none;border-top:1px solid var(--line)}
+    .stage .s-t{font-size:10px}
+    .brand .sub{display:none}
+  }
+  ::-webkit-scrollbar{width:9px}
+  ::-webkit-scrollbar-thumb{background:var(--line2);border:2px solid var(--bg2)}
+</style>
+</head>
+<body>
+<header>
+  <div class="h-top">
+    <div class="brand"><span class="no">N°04</span><span class="name">RETRIEVAL ATLAS</span><span class="sub">RAG 检索增强交互图解</span></div>
+    <div class="spacer"></div>
+    <div class="qseg" id="qseg"></div>
+    <button class="play" id="btnPlay">▶ 播放全流程</button>
+  </div>
+  <div class="stages" id="stages"></div>
+</header>
+
+<main>
+  <div class="cv-side">
+    <canvas id="cv"></canvas>
+    <div class="cv-cap">EMBEDDING SPACE · <b>2D PROJECTION</b> · 悬停查看文档</div>
+  </div>
+  <div class="panel"><div class="p-scroll">
+    <div class="p-eyebrow" id="pEyebrow">STAGE 01</div>
+    <div class="p-title" id="pTitle">提问</div>
+    <div class="p-copy" id="pCopy"></div>
+    <div class="krow">TOP-K<input type="range" id="topk" min="1" max="8" value="4"><b id="topkV">4</b></div>
+    <div class="rank-h"><span>RETRIEVED · 按相似度排序</span><span id="rankN">0</span></div>
+    <div id="rankList"></div>
+    <div class="answer" id="answer"><div class="a-h">GENERATED ANSWER · 基于检索证据</div><div class="a-b" id="answerBody"></div></div>
+  </div></div>
+</main>
+
+<footer>
+  <span>STAGE <b id="fStage">QUERY</b></span>
+  <span>DOCS <b id="fDocs">0</b></span>
+  <span>TOP-K <b id="fK">4</b></span>
+  <span class="sig">RETRIEVAL ATLAS · WORK 04 / AGENT-DEMOS</span>
+</footer>
+
+<script>
+"use strict";
+/* ============ knowledge base ============ */
+const CLUSTERS={
+  policy:{c:"#D2694C",cx:-0.55,cy:0.45,docs:[
+    ["退款政策 v3.2","自签收日起 30 天内支持无理由退款，年费会员延长至 60 天。"],
+    ["发票开具指引","电子发票在订单完成后 24 小时内自动发送至注册邮箱。"],
+    ["运费险说明","退货免运费服务覆盖中国大陆全境，港澳台除外。"],
+    ["会员等级权益","金卡会员享专属客服通道与每月两张加急券。"],
+    ["售后工单 SLA","普通工单 24h 内响应，加急工单 4h 内响应。"],
+    ["跨境订单关税","跨境订单关税由收件方承担，结算页预估仅供参考。"],
+    ["账户注销流程","注销申请提交后进入 7 天冷静期，期间可随时撤销。"],
+    ["隐私合规声明","用户对话数据保留 90 天，用于安全审计后匿名化。"]]},
+  eng:{c:"#C9A24B",cx:0.6,cy:0.35,docs:[
+    ["推理缓存设计","对 system prompt 的 KV cache 复用可降 40% 首 token 延迟。"],
+    ["向量索引选型","HNSW 在百万级语料下召回率与延迟的平衡最佳。"],
+    ["流式网关笔记","SSE 长连接需每 15s 发送心跳以防代理断连。"],
+    ["批处理调度","离线评测任务按优先级队列调度，避免抢占在线流量。"],
+    ["模型灰度发布","按 5%→25%→100% 三阶段灰度，每阶段观察 2 小时。"],
+    ["token 计费口径","输入输出分开计价，缓存命中部分按 1 折计。"],
+    ["限流策略","令牌桶容量按租户等级划分，突发系数 1.5。"],
+    ["Embedding 漂移","模型升级后需全量重建索引，新旧索引并行一周。"]]},
+  design:{c:"#7FB98A",cx:0.05,cy:-0.62,docs:[
+    ["品牌字体规范","中文正文最小 12px，英文最小 11px，禁止低于此值。"],
+    ["色彩系统 v2","主色取自汝窑天青，辅色为赭石与月白，禁用纯黑。"],
+    ["栅格与留白","桌面端 12 栅格， gutter 24px，段落间距不小于 1em。"],
+    ["图标绘制规则","2px 描边、圆角端点、24px 基准网格内绘制。"],
+    ["动效曲线库","统一使用 cubic-bezier(.22,1,.36,1)，时长 200–400ms。"],
+    ["暗黑模式对照","暗色背景上的强调色明度需提升 15% 以保对比度。"],
+    ["排版字号阶梯","字阶按 1.25 倍率递增：12/15/19/24/30/38。"],
+    ["无障碍清单","正文对比度 ≥ 4.5:1，交互元素 ≥ 3:1。"]]}
+};
+const QUESTIONS=[
+ {q:"退款政策是多少天？",cluster:"policy",
+  a:"根据现行政策 [1]，自签收日起 30 天内支持无理由退款；年费会员可延长至 60 天 [1]。退货在中国大陆全境免运费 [2]，售后工单 24 小时内响应 [3]。"},
+ {q:"如何降低模型的首 token 延迟？",cluster:"eng",
+  a:"最有效的手段是复用 system prompt 的 KV cache，实测可降约 40% 首 token 延迟 [1]。此外流式网关需 15s 心跳保活 [2]，token 计费上缓存命中部分按 1 折计 [3]，成本与速度兼得。"},
+ {q:"品牌正文字号的最小规范？",cluster:"design",
+  a:"品牌字体规范明确：中文正文最小 12px、英文最小 11px，禁止低于此值 [1]。完整字阶按 1.25 倍率递增（12/15/19/24/30/38）[2]，暗黑模式下强调色明度需提升 15% [3]。"}
+];
+const NOISE_TITLES=["食堂菜单 · 八月","羽毛球社招新","会议室预定规则","停车场改造通知","年会节目征集","行政采购流程","绿植养护排班","快递柜使用说明","门禁卡补办","咖啡豆拼配投票","团建目的地票选","打印机更换通告","工位调整方案","消防演习纪要","雨伞借用登记","夜班打车报销"];
+function rng(seed){let s=seed;return()=>{s=(s*1103515245+12345)&0x7fffffff;return s/0x7fffffff;};}
+const docs=[];
+(function build(){
+  let id=0;
+  for(const key in CLUSTERS){
+    const cl=CLUSTERS[key];
+    const R=rng(key.length*7919+13);
+    cl.docs.forEach((d,i)=>{
+      const a=R()*Math.PI*2, r=0.09+R()*0.16;
+      docs.push({id:id++,cl:key,x:cl.cx+Math.cos(a)*r,y:cl.cy+Math.sin(a)*r*0.8,
+        title:d[0],snip:d[1],color:cl.c,sim:0,rank:-1});
+    });
+  }
+  const R=rng(424242);
+  NOISE_TITLES.forEach((t,i)=>{
+    docs.push({id:id++,cl:"noise",x:R()*1.8-0.9,y:R()*1.5-0.75,
+      title:t,snip:"与本查询无关的行政文档。",color:"#3D5C4E",sim:0,rank:-1});
+  });
+})();
+document.getElementById("fDocs").textContent=docs.length;
+
+/* ============ stage machine ============ */
+const STAGES=[
+ {k:"QUERY",t:"提问",c:"一切始于一句人话。用户在右上角选择问题，它将被送往嵌入模型——<b>此时它还不是向量，只是字符</b>。"},
+ {k:"EMBED",t:"嵌入",c:"嵌入模型把问题压成一个 <em>高维向量</em>。在语义空间里，<b>意思相近的句子彼此靠近</b>——左图黄铜色的菱形，就是问题落进来的位置。"},
+ {k:"RETRIEVE",t:"检索",c:"以问题为圆心扫过整个向量库，计算与每篇文档的<b>余弦相似度</b>。圆环展开，圈住最近的 <b>Top-K</b> 篇——拖动滑杆改变 K 试试。"},
+ {k:"RERANK",t:"重排",c:"粗排靠距离，<em>精排靠理解</em>。重排模型逐篇细读候选，<b>剔除标题党</b>，把真正回答得了问题的文档顶到最前。"},
+ {k:"GENERATE",t:"生成",c:"胜出的文档被拼进上下文，模型<b>只许基于证据作答</b>。每个论断都挂着引用编号——点一下，就能跳回出处。"}
+];
+let stage=0, qIdx=0, TOPK=4, playing=false, ranked=[];
+const qPos={x:0,y:0};
+function queryPos(){
+  const cl=CLUSTERS[QUESTIONS[qIdx].cluster];
+  return {x:cl.cx+0.14,y:cl.cy+0.1};
+}
+
+/* ============ canvas ============ */
+const cv=document.getElementById("cv"), ctx=cv.getContext("2d");
+let W=0,H=0,DPR=1,hoverDoc=-1,anim={ringR:0,qIn:0,lines:0};
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  const r=cv.parentElement.getBoundingClientRect();
+  W=r.width;H=r.height;
+  cv.width=W*DPR;cv.height=H*DPR;
+  cv.style.width=W+"px";cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener("resize",resize);
+function toPx(x,y){
+  const s=Math.min(W,H)*0.46;
+  return {x:W/2+x*s,y:H/2-y*s};
+}
+function computeRank(){
+  const q=queryPos();
+  docs.forEach(d=>{
+    const dist=Math.hypot(d.x-q.x,d.y-q.y);
+    d.sim=Math.max(0,1-dist/1.15);
+  });
+  ranked=[...docs].sort((a,b)=>b.sim-a.sim);
+  ranked.forEach((d,i)=>d.rank=i);
+}
+let raf=null,clock=0,last=0;
+function frame(ts){
+  const dt=Math.min(50,ts-last);last=ts;clock+=dt;
+  draw();
+  raf=requestAnimationFrame(frame);
+}
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // grid + axes
+  ctx.strokeStyle="rgba(157,180,165,.07)";ctx.lineWidth=1;
+  const step=Math.min(W,H)*0.115;
+  for(let x=W/2%step;x<W;x+=step){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=H/2%step;y<H;y+=step){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.strokeStyle="rgba(157,180,165,.18)";
+  ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();
+  ctx.fillStyle="#5E7A6B";ctx.font="9px 'SF Mono',Menlo,monospace";
+  ctx.fillText("dim 1 →",W-52,H/2-6);ctx.fillText("dim 2 ↑",W/2+6,14);
+
+  const q=queryPos(), qp=toPx(q.x,q.y);
+  const showQ=stage>=1;
+  // retrieval ring + lines
+  if(stage>=2&&TOPK>0){
+    const kth=ranked[TOPK-1];
+    const kp=toPx(kth.x,kth.y);
+    const targetR=Math.hypot(kp.x-qp.x,kp.y-qp.y)+14;
+    anim.ringR+=(targetR-anim.ringR)*0.08;
+    ctx.beginPath();ctx.arc(qp.x,qp.y,anim.ringR,0,7);
+    ctx.strokeStyle="rgba(201,162,75,.4)";ctx.setLineDash([4,5]);ctx.lineWidth=1.2;ctx.stroke();ctx.setLineDash([]);
+    for(let i=0;i<TOPK;i++){
+      const d=ranked[i], p=toPx(d.x,d.y);
+      const grad=ctx.createLinearGradient(qp.x,qp.y,p.x,p.y);
+      grad.addColorStop(0,"rgba(201,162,75,.55)");grad.addColorStop(1,"rgba(201,162,75,.08)");
+      ctx.beginPath();ctx.moveTo(qp.x,qp.y);ctx.lineTo(p.x,p.y);
+      ctx.strokeStyle=grad;ctx.lineWidth=1.1;ctx.stroke();
+      // sim label at midpoint
+      const mx=(qp.x+p.x)/2,my=(qp.y+p.y)/2;
+      ctx.fillStyle="rgba(239,230,210,.75)";ctx.font="8.5px 'SF Mono',Menlo,monospace";
+      ctx.fillText(d.sim.toFixed(2),mx+4,my-4);
+    }
+  }
+  // docs
+  for(const d of docs){
+    const p=toPx(d.x,d.y);
+    const isTop=stage>=2&&d.rank<TOPK;
+    const isHover=d.id===hoverDoc;
+    const r=isHover?6.5:isTop?5:d.cl==="noise"?2.5:3.5;
+    ctx.beginPath();ctx.arc(p.x,p.y,r,0,7);
+    ctx.fillStyle=d.cl==="noise"?"rgba(61,92,78,.6)":d.color;
+    ctx.globalAlpha=isTop||stage<2?1:0.45;
+    ctx.fill();ctx.globalAlpha=1;
+    if(isTop){
+      ctx.beginPath();ctx.arc(p.x,p.y,r+3.5,0,7);
+      ctx.strokeStyle="rgba(201,162,75,.8)";ctx.lineWidth=1;ctx.stroke();
+      ctx.fillStyle="#C9A24B";ctx.font="700 8px 'SF Mono',Menlo,monospace";
+      ctx.fillText(String(d.rank+1),p.x+r+5,p.y+3);
+    }
+    if(isHover){
+      ctx.strokeStyle="#EFE6D2";ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.arc(p.x,p.y,r+3,0,7);ctx.stroke();
+      // tooltip
+      const tw=Math.min(220,W-30);
+      const tx=Math.min(Math.max(14,p.x+12),W-tw-14), ty=Math.max(14,p.y-58);
+      ctx.fillStyle="rgba(11,26,21,.95)";
+      ctx.strokeStyle="#2F5A49";
+      ctx.fillRect(tx,ty,tw,46);ctx.strokeRect(tx+.5,ty+.5,tw-1,45);
+      ctx.fillStyle="#EFE6D2";ctx.font="600 11px -apple-system,'PingFang SC',sans-serif";
+      ctx.fillText(d.title,tx+10,ty+17);
+      ctx.fillStyle="#9DB4A5";ctx.font="10px -apple-system,'PingFang SC',sans-serif";
+      ctx.fillText(d.snip.slice(0,20)+(d.snip.length>20?"…":""),tx+10,ty+34);
+    }
+  }
+  // query point
+  if(showQ){
+    const pulse=1+0.12*Math.sin(clock/300);
+    ctx.save();
+    ctx.translate(qp.x,qp.y);ctx.rotate(Math.PI/4);
+    const s=7*pulse;
+    ctx.fillStyle="#C9A24B";
+    ctx.shadowColor="#C9A24B";ctx.shadowBlur=14;
+    ctx.fillRect(-s/2,-s/2,s,s);
+    ctx.restore();
+    ctx.shadowBlur=0;
+    ctx.fillStyle="#EFE6D2";ctx.font="600 10.5px -apple-system,'PingFang SC',sans-serif";
+    ctx.fillText("Q · "+QUESTIONS[qIdx].q,qp.x+14,qp.y-10);
+  }
+}
+cv.addEventListener("mousemove",e=>{
+  const r=cv.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  hoverDoc=-1;
+  for(const d of docs){
+    const p=toPx(d.x,d.y);
+    if(Math.hypot(mx-p.x,my-p.y)<9){hoverDoc=d.id;break;}
+  }
+  cv.style.cursor=hoverDoc>=0?"pointer":"default";
+});
+cv.addEventListener("mouseleave",()=>hoverDoc=-1);
+cv.addEventListener("click",()=>{
+  if(hoverDoc>=0){
+    const el=[...document.querySelectorAll(".rank")].find(x=>x.dataset.id==hoverDoc);
+    if(el){document.querySelectorAll(".rank").forEach(x=>x.classList.remove("hot"));
+      el.classList.add("hot");el.scrollIntoView({behavior:"smooth",block:"nearest"});}
+  }
+});
+
+/* ============ panel ============ */
+const stageEls=[];
+(function buildStages(){
+  const wrap=document.getElementById("stages");
+  STAGES.forEach((s,i)=>{
+    const d=document.createElement("div");
+    d.className="stage";
+    d.innerHTML="<div class='s-no'>STAGE 0"+(i+1)+"</div><div class='s-t'>"+(i+1)+". "+s.t+"</div>";
+    d.onclick=()=>{ if(playing)return; setStage(i); };
+    wrap.appendChild(d); stageEls.push(d);
+  });
+  const qs=document.getElementById("qseg");
+  QUESTIONS.forEach((q,i)=>{
+    const b=document.createElement("button");
+    b.textContent=q.q; if(i===0)b.classList.add("on");
+    b.onclick=()=>{ if(playing)return; qIdx=i;
+      document.querySelectorAll("#qseg button").forEach((x,k)=>x.classList.toggle("on",k===i));
+      setStage(0); };
+    qs.appendChild(b);
+  });
+})();
+function setStage(s){
+  stage=s;
+  stageEls.forEach((el,i)=>{el.classList.toggle("on",i===s);el.classList.toggle("done",i<s);});
+  document.getElementById("pEyebrow").textContent="STAGE 0"+(s+1)+" / 05";
+  document.getElementById("pTitle").textContent=STAGES[s].t;
+  document.getElementById("pCopy").innerHTML=STAGES[s].c;
+  document.getElementById("fStage").textContent=STAGES[s].k;
+  const ans=document.getElementById("answer");
+  ans.classList.toggle("show",s===4);
+  if(s>=2)renderRanks(s>=3);
+  else{document.getElementById("rankList").innerHTML="";document.getElementById("rankN").textContent="0";}
+  if(s<2)anim.ringR=0;
+}
+function renderRanks(reranked){
+  computeRank();
+  const list=document.getElementById("rankList");
+  list.innerHTML="";
+  document.getElementById("rankN").textContent=TOPK+" / "+docs.length;
+  for(let i=0;i<TOPK;i++){
+    const d=ranked[i];
+    const el=document.createElement("div");
+    el.className="rank"; el.dataset.id=d.id;
+    el.style.animationDelay=(i*0.07)+"s";
+    // rerank stage: jitter order slightly by relevance to question cluster
+    const boost=reranked&&d.cl===QUESTIONS[qIdx].cluster?0.04:0;
+    const score=Math.min(0.99,d.sim+boost);
+    el.innerHTML="<div class='r-top'><span class='r-no'>#"+(i+1)+"</span><span class='r-t'>"+d.title
+      +"</span><span class='r-s'>"+score.toFixed(2)+"</span></div>"
+      +"<div class='r-bar'><i></i></div><div class='r-d'>"+d.snip+"</div>";
+    el.onmouseenter=()=>hoverDoc=d.id;
+    el.onmouseleave=()=>hoverDoc=-1;
+    list.appendChild(el);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      el.querySelector(".r-bar i").style.width=(score*100)+"%";
+    }));
+  }
+}
+const topkEl=document.getElementById("topk");
+topkEl.addEventListener("input",()=>{
+  TOPK=+topkEl.value;
+  document.getElementById("topkV").textContent=TOPK;
+  document.getElementById("fK").textContent=TOPK;
+  if(stage>=2)renderRanks(stage>=3);
+});
+
+/* ---- answer typewriter ---- */
+function typeAnswer(){
+  const q=QUESTIONS[qIdx];
+  const body=document.getElementById("answerBody");
+  // map citation numbers to actual top-3 ranked docs
+  computeRank();
+  const citeDocs=[ranked[0],ranked[1],ranked[2]];
+  let html="",i=0;
+  const src=q.a;
+  const plain=src.replace(/\[(\d)\]/g,"$1");
+  body.innerHTML="";
+  const timer=setInterval(()=>{
+    i+=2;
+    const slice=plain.slice(0,i);
+    body.innerHTML=slice.replace(/(\d)/g,(m,n)=>{
+      const d=citeDocs[+n-1];
+      return "<span class='cite' data-id='"+(d?d.id:-1)+"'>["+n+"]</span>";
+    })+(i<plain.length?"<span class='cursorB'></span>":"");
+    if(i>=plain.length){
+      clearInterval(timer);
+      body.querySelectorAll(".cite").forEach(c=>{
+        c.onmouseenter=()=>hoverDoc=+c.dataset.id;
+        c.onmouseleave=()=>hoverDoc=-1;
+        c.onclick=()=>{
+          setStage(2);
+          hoverDoc=+c.dataset.id;
+        };
+      });
+    }
+  },36);
+}
+
+/* ---- play all ---- */
+const btnPlay=document.getElementById("btnPlay");
+btnPlay.onclick=async()=>{
+  if(playing)return;
+  playing=true;btnPlay.textContent="■ 播放中";btnPlay.classList.add("running");
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  for(let s=0;s<5;s++){
+    setStage(s);
+    if(s===4)typeAnswer();
+    await wait(s===2?1500:s===4?2600:1400);
+  }
+  playing=false;btnPlay.textContent="▶ 播放全流程";btnPlay.classList.remove("running");
+};
+resize();computeRank();setStage(0);
+requestAnimationFrame(ts=>{last=ts;frame(ts);});
+</script>
+</body>
+</html>

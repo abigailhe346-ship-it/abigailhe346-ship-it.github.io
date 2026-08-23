@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAIN WINDOW 雨窗胶片 — 玻璃上的霓虹夜雨</title>
+<style>
+  :root{
+    --night:#07090e; --panel:#0c1017; --line:#1c2431;
+    --ink:#d5dbe4; --dim:#5d6878;
+    --amber:#f0a840; --teal:#41c8c0; --red:#e04536;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    background:var(--night);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  ::selection{background:var(--amber);color:#0a0c10}
+
+  /* film grain + vignette over everything */
+  .grain{
+    position:fixed;inset:-60px;pointer-events:none;z-index:60;opacity:.07;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    animation:grain .9s steps(4) infinite;
+  }
+  @keyframes grain{
+    0%{transform:translate(0,0)}25%{transform:translate(-28px,14px)}
+    50%{transform:translate(18px,-22px)}75%{transform:translate(-10px,-8px)}100%{transform:translate(0,0)}
+  }
+
+  header{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:18px;
+    padding:26px 32px 0;flex-wrap:wrap;
+  }
+  .sig{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+  .sig h1{
+    font-family:var(--serif);font-size:clamp(20px,2.6vw,28px);font-weight:700;
+    letter-spacing:.05em;color:#eef2f8;
+  }
+  .sig h1 em{font-style:italic;color:var(--amber)}
+  .no{
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim);
+    border:1px solid var(--line);padding:5px 9px;text-transform:uppercase;white-space:nowrap;
+  }
+  .no b{color:var(--amber);font-weight:400}
+  .meta{
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--dim);
+    text-transform:uppercase;display:flex;gap:18px;flex-wrap:wrap;
+  }
+  .meta span b{color:var(--ink);font-weight:400}
+  .rule{
+    margin:16px 32px 0;border-top:1px solid var(--line);position:relative;
+  }
+  .rule::after{
+    content:"";position:absolute;left:0;top:-1px;width:72px;height:3px;background:var(--amber);
+  }
+
+  main{
+    display:grid;grid-template-columns:1fr 290px;gap:22px;
+    padding:22px 32px 44px;max-width:1500px;margin:0 auto;
+  }
+  @media (max-width:980px){main{grid-template-columns:1fr}}
+
+  /* ——— stage ——— */
+  .stage{
+    position:relative;background:#04060a;border:1px solid var(--line);
+    box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden;aspect-ratio:16/9.4;
+    min-height:320px;
+  }
+  .stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;touch-action:none}
+  .vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 140px rgba(0,0,0,.75)}
+  .vf{position:absolute;inset:14px;pointer-events:none}
+  .vf i{position:absolute;width:16px;height:16px;border:1px solid rgba(213,219,228,.5)}
+  .vf i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0}
+  .vf i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0}
+  .vf i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0}
+  .vf i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0}
+  .hud{
+    position:absolute;left:22px;top:16px;display:flex;gap:14px;align-items:center;
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;color:rgba(213,219,228,.85);
+    pointer-events:none;text-transform:uppercase;
+  }
+  .rec{display:flex;gap:6px;align-items:center}
+  .rec i{width:7px;height:7px;border-radius:50%;background:var(--red);animation:blink 1.4s steps(2) infinite}
+  @keyframes blink{50%{opacity:.15}}
+  .hud .tc{color:var(--amber)}
+  .hud2{
+    position:absolute;right:22px;bottom:14px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.16em;color:rgba(213,219,228,.55);pointer-events:none;text-transform:uppercase;
+    text-align:right;line-height:1.9;
+  }
+  .hint{
+    position:absolute;left:22px;bottom:14px;font-family:var(--mono);font-size:9px;
+    letter-spacing:.16em;color:rgba(213,219,228,.5);pointer-events:none;text-transform:uppercase;
+  }
+
+  /* ——— control panel ——— */
+  .panel{
+    border:1px solid var(--line);background:var(--panel);
+    padding:20px 20px 22px;display:flex;flex-direction:column;gap:18px;
+  }
+  .p-title{
+    font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim);
+    text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;
+  }
+  .p-title::after{content:"";flex:1;margin-left:12px;border-top:1px solid var(--line)}
+  .ctl label{
+    display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+    letter-spacing:.14em;color:var(--ink);text-transform:uppercase;margin-bottom:8px;
+  }
+  .ctl label output{color:var(--amber)}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:22px;background:transparent;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-runnable-track{
+    height:2px;background:linear-gradient(90deg,var(--amber) var(--fill,50%),#232c3b var(--fill,50%));
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:14px;height:14px;margin-top:-6px;background:var(--night);
+    border:1px solid var(--amber);transform:rotate(45deg);transition:background .2s var(--ease);
+  }
+  input[type=range]::-webkit-slider-thumb:hover{background:var(--amber)}
+  input[type=range]::-moz-range-track{height:2px;background:#232c3b}
+  input[type=range]::-moz-range-progress{height:2px;background:var(--amber)}
+  input[type=range]::-moz-range-thumb{
+    width:13px;height:13px;border-radius:0;background:var(--night);border:1px solid var(--amber);transform:rotate(45deg);
+  }
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .btn{
+    border:1px solid var(--line);background:transparent;color:var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+    padding:12px 8px;cursor:pointer;transition:all .25s var(--ease);position:relative;overflow:hidden;
+  }
+  .btn:hover{border-color:var(--amber);color:var(--amber)}
+  .btn.primary{background:var(--amber);border-color:var(--amber);color:#0a0c10;font-weight:600}
+  .btn.primary:hover{background:#ffb84f;color:#0a0c10}
+  .btn:active{transform:translateY(1px)}
+  .note{
+    font-family:var(--mono);font-size:9px;line-height:2;letter-spacing:.1em;color:var(--dim);
+    text-transform:uppercase;border-top:1px dashed var(--line);padding-top:14px;
+  }
+  .note b{color:var(--teal);font-weight:400}
+
+  footer{
+    padding:0 32px 34px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    font-family:var(--mono);font-size:9px;letter-spacing:.16em;color:#3d4757;text-transform:uppercase;
+  }
+  @media (max-width:640px){
+    header{padding:20px 18px 0}.rule{margin:14px 18px 0}
+    main{padding:16px 18px 30px;gap:16px}
+    .stage{aspect-ratio:4/5;min-height:380px}
+    footer{padding:0 18px 26px}
+  }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<header>
+  <div class="sig">
+    <span class="no">N°<b>01</b> — AI-VIDEO</span>
+    <h1>RAIN WINDOW <em>雨窗胶片</em></h1>
+  </div>
+  <div class="meta">
+    <span>STOCK <b>KODAK 500T</b></span>
+    <span>LENS <b>50MM T1.8</b></span>
+    <span>SCENE <b id="sceneName">—</b></span>
+  </div>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section class="stage" aria-label="雨窗画面">
+    <canvas id="glass"></canvas>
+    <div class="vig"></div>
+    <div class="vf"><i></i><i></i><i></i><i></i></div>
+    <div class="hud">
+      <span class="rec"><i></i>REC</span>
+      <span class="tc" id="tc">00:00:00:00</span>
+      <span id="dropCount">DROPS 000</span>
+    </div>
+    <div class="hud2">RAIN ON 6MM GLASS<br>FOREGROUND · LIVE SIMULATION</div>
+    <div class="hint">拖动擦拭雾气 · 点击落一滴雨</div>
+  </section>
+
+  <aside class="panel">
+    <div class="p-title">DIRECTOR / 导演台</div>
+
+    <div class="ctl">
+      <label>雨强 RAINFALL <output id="oRain">55%</output></label>
+      <input type="range" id="rRain" min="0" max="100" value="55">
+    </div>
+    <div class="ctl">
+      <label>雾气 CONDENSATION <output id="oFog">60%</output></label>
+      <input type="range" id="rFog" min="0" max="100" value="60">
+    </div>
+    <div class="ctl">
+      <label>失焦 DEFOCUS <output id="oFocus">70%</output></label>
+      <input type="range" id="rFocus" min="10" max="100" value="70">
+    </div>
+
+    <div class="btns">
+      <button class="btn" id="bScene">随机街景 ↻</button>
+      <button class="btn primary" id="bSave">保存剧照 ↓</button>
+    </div>
+
+    <div class="note">
+      窗外是<b>失焦的霓虹街口</b>，雨点沿玻璃滑落、汇合、留下水痕。拖动可在起雾的玻璃上擦出一片清晰。
+    </div>
+  </aside>
+</main>
+
+<footer>
+  <span>RAIN WINDOW — CONDENSATION STUDY</span>
+  <span>AI-VIDEO / SYNTHETIC CINEMATOGRAPHY · 2026</span>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var stage = document.getElementById('glass');
+  var ctx = stage.getContext('2d');
+  var bg = document.createElement('canvas');
+  var bctx = bg.getContext('2d');
+  var fog = document.createElement('canvas');
+  var fctx = fog.getContext('2d');
+
+  var W = 0, H = 0, dpr = 1;
+  var params = { rain: .55, fogAmt: .6, focus: .7 };
+  var lights = [], drops = [], statics = [];
+  var sceneId = 0, frame = 0;
+  var SCENES = ['弥敦道','歌舞伎町','南门大街','NEON ALLEY','旧码头','RUE DE PLUIE','中环后巷'];
+  var PALETTES = [
+    ['#f0a840','#e04536','#41c8c0','#f5d9a0','#d98841'],
+    ['#41c8c0','#3f7fd4','#f0a840','#9be0d8','#2f8f8a'],
+    ['#e04536','#f0a840','#c94f7c','#f5b8a0','#8a2f2a'],
+    ['#f0c860','#41c8c0','#e04536','#7fd4c8','#d98841']
+  ];
+
+  function rnd(a,b){ return a + Math.random()*(b-a); }
+  function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+  /* ——— scene generation ——— */
+  function genScene(){
+    lights.length = 0;
+    var pal = PALETTES[sceneId % PALETTES.length];
+    var n = 34 + Math.floor(Math.random()*14);
+    for (var i=0;i<n;i++){
+      var yBand = Math.random();
+      lights.push({
+        x: Math.random(), y: yBand < .62 ? rnd(.18,.6) : rnd(.6,.95),
+        r: rnd(.012,.075), c: pick(pal),
+        a: rnd(.25,.85), ph: rnd(0,6.28), sp: rnd(.3,1.4),
+        vx: Math.random()<.22 ? rnd(-.05,.05)*(Math.random()<.5?1:-1) : 0,
+        halo: Math.random()<.3
+      });
+    }
+    // one big soft shop sign glow
+    lights.push({x:rnd(.2,.8), y:rnd(.25,.5), r:rnd(.14,.22), c:pick(pal), a:.16, ph:0, sp:.5, vx:0, halo:true});
+    document.getElementById('sceneName').textContent =
+      'SC.' + String(sceneId%97+1).padStart(2,'0') + ' ' + pick(SCENES);
+  }
+
+  /* ——— sizing ——— */
+  function resize(){
+    var r = stage.parentElement.getBoundingClientRect();
+    dpr = Math.min(window.devicePixelRatio||1, 2);
+    W = Math.max(320, r.width); H = Math.max(300, r.height);
+    [stage,bg,fog].forEach(function(c){ c.width = W*dpr; c.height = H*dpr; });
+    [ctx,bctx,fctx].forEach(function(c){ c.setTransform(dpr,0,0,dpr,0,0); });
+    seedFog();
+  }
+
+  function seedFog(){
+    fctx.clearRect(0,0,W,H);
+    fctx.fillStyle = 'rgba(214,224,233,.34)';
+    fctx.fillRect(0,0,W,H);
+    for (var i=0;i<260;i++){
+      fctx.fillStyle = 'rgba(214,224,233,'+rnd(.02,.09)+')';
+      fctx.beginPath(); fctx.arc(rnd(0,W),rnd(0,H),rnd(6,42),0,7); fctx.fill();
+    }
+  }
+
+  /* ——— raindrops ——— */
+  function spawnStatic(x,y,r){
+    statics.push({ x:x!==undefined?x:rnd(0,W), y:y!==undefined?y:rnd(0,H),
+      r:r!==undefined?r:rnd(.5,1.6), grow:rnd(.002,.011) });
+  }
+  function spawnRunner(x,y,r){
+    drops.push({ x:x!==undefined?x:rnd(0,W), y:y!==undefined?y:rnd(-20,-4),
+      r:r!==undefined?r:rnd(2.2,4.6), vy:0, wob:rnd(0,6.28), wobF:rnd(1.2,3.2), life:1 });
+  }
+
+  function update(dt,t){
+    var i, d, s;
+    // condensation births
+    if (Math.random() < .25 + params.fogAmt*.5 && statics.length < 320) spawnStatic();
+    // rain hits the glass
+    if (Math.random() < params.rain*.5) spawnRunner();
+    // static droplets grow, then let go
+    for (i=statics.length-1;i>=0;i--){
+      s = statics[i];
+      s.r += s.grow * (0.5 + params.rain);
+      if (s.r > rnd(2.4,3.6)){
+        statics.splice(i,1);
+        drops.push({x:s.x,y:s.y,r:s.r,vy:rnd(.1,.5),wob:rnd(0,6.28),wobF:rnd(1.2,3),life:1});
+      }
+    }
+    // runners fall, wobble, eat the small ones, leave a wake
+    for (i=drops.length-1;i>=0;i--){
+      d = drops[i];
+      d.vy = Math.min(d.vy + d.r*.09*dt, 1.1 + d.r*.55);
+      d.wob += d.wobF*.02*dt;
+      d.x += Math.sin(d.wob)*.5*(1.4/d.r);
+      d.y += d.vy*dt;
+      for (var j=statics.length-1;j>=0;j--){
+        s = statics[j];
+        var dx=s.x-d.x, dy=s.y-d.y;
+        if (dx*dx+dy*dy < d.r*d.r*1.15){
+          d.r = Math.min(d.r + s.r*.16, 7);
+          d.vy *= .985;
+          statics.splice(j,1);
+        }
+      }
+      if (Math.random()<.5) spawnStatic(d.x+rnd(-1,1), d.y-d.r*rnd(.6,1.6), rnd(.35,d.r*.22));
+      if (d.y > H+20) drops.splice(i,1);
+    }
+    // fog slowly re-condenses
+    if (frame % 2 === 0){
+      fctx.globalCompositeOperation = 'source-over';
+      fctx.fillStyle = 'rgba(214,224,233,'+(0.0015+params.fogAmt*.0045)+')';
+      fctx.fillRect(0,0,W,H);
+    }
+  }
+
+  /* ——— background: out-of-focus night street ——— */
+  function drawBG(t){
+    bctx.globalCompositeOperation = 'source-over';
+    var g = bctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,'#05070c'); g.addColorStop(.62,'#0a0e16'); g.addColorStop(1,'#05070a');
+    bctx.fillStyle = g; bctx.fillRect(0,0,W,H);
+    bctx.globalCompositeOperation = 'lighter';
+    var f = .4 + params.focus*1.5;
+    for (var i=0;i<lights.length;i++){
+      var L = lights[i];
+      var x = (L.x + (L.vx ? t*L.vx*.04 : 0)) % 1; if (x<0) x+=1;
+      var px = x*W, py = L.y*H;
+      var pulse = L.a * (0.72 + 0.28*Math.sin(t*L.sp + L.ph));
+      var r = L.r*Math.min(W,H)*f;
+      var grd = bctx.createRadialGradient(px,py,0,px,py,r);
+      grd.addColorStop(0, hexA(L.c, pulse*.9));
+      grd.addColorStop(.45, hexA(L.c, pulse*.38));
+      grd.addColorStop(1, hexA(L.c, 0));
+      bctx.fillStyle = grd;
+      bctx.beginPath(); bctx.arc(px,py,r,0,7); bctx.fill();
+      if (L.halo){
+        var h = bctx.createRadialGradient(px,py,r*.5,px,py,r*2.6);
+        h.addColorStop(0, hexA(L.c, pulse*.10)); h.addColorStop(1, hexA(L.c,0));
+        bctx.fillStyle = h; bctx.beginPath(); bctx.arc(px,py,r*2.6,0,7); bctx.fill();
+      }
+    }
+  }
+  var hexCache = {};
+  function hexA(hex,a){
+    var key = hex + '|' + ((a*40)|0);
+    if (hexCache[key]) return hexCache[key];
+    var r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+    return (hexCache[key] = 'rgba('+r+','+g+','+b+','+Math.max(0,Math.min(1,a)).toFixed(3)+')');
+  }
+
+  /* ——— a single drop, refracting the street upside-down ——— */
+  function drawDrop(d){
+    var r = d.r;
+    if (r < 1.9){
+      ctx.fillStyle = 'rgba(10,14,20,.35)';
+      ctx.beginPath(); ctx.arc(d.x,d.y,r,0,7); ctx.fill();
+      ctx.fillStyle = 'rgba(230,238,246,.5)';
+      ctx.beginPath(); ctx.arc(d.x-r*.3,d.y-r*.34,Math.max(.4,r*.26),0,7); ctx.fill();
+      return;
+    }
+    ctx.save();
+    ctx.beginPath(); ctx.arc(d.x,d.y,r,0,7); ctx.clip();
+    var k = 1.7;
+    ctx.drawImage(bg, (d.x-r*k)*dpr, (d.y-r*k)*dpr, 2*r*k*dpr, 2*r*k*dpr, d.x-r, d.y+r, 2*r, -2*r);
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(232,240,248,.30)'; ctx.lineWidth = .8;
+    ctx.beginPath(); ctx.arc(d.x,d.y,r-.4,0,7); ctx.stroke();
+    ctx.strokeStyle = 'rgba(240,246,252,.55)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(d.x,d.y,r*.62,-2.4,-1.1); ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath(); ctx.arc(d.x,d.y,r*.86,.5,2.2); ctx.stroke();
+  }
+
+  function render(t){
+    drawBG(t);
+    ctx.clearRect(0,0,W,H);
+    ctx.drawImage(bg,0,0,W,H);
+    ctx.drawImage(fog,0,0,W,H);
+    for (var i=0;i<statics.length;i++) drawDrop(statics[i]);
+    for (i=0;i<drops.length;i++) drawDrop(drops[i]);
+  }
+
+  /* ——— main loop + timecode ——— */
+  var last = 0;
+  var tcEl = document.getElementById('tc'), dcEl = document.getElementById('dropCount');
+  function loop(ts){
+    var dt = Math.min(3, (ts-last)/16.7 || 1); last = ts;
+    var t = ts/1000;
+    frame++;
+    update(dt,t);
+    render(t);
+    if (frame % 3 === 0){
+      var f24 = Math.floor(ts/41.67);
+      function p(n){ return String(n).padStart(2,'0'); }
+      tcEl.textContent = p(Math.floor(f24/86400)%24)+':'+p(Math.floor(f24/1440)%60)+':'+p(Math.floor(f24/24)%60)+':'+p(f24%24);
+      dcEl.textContent = 'DROPS ' + String(drops.length+statics.length).padStart(3,'0');
+    }
+    requestAnimationFrame(loop);
+  }
+
+  /* ——— pointer: wipe fog / drop a big rain ——— */
+  var pdown = null, wiped = false;
+  function toLocal(e){
+    var r = stage.getBoundingClientRect();
+    return { x: e.clientX-r.left, y: e.clientY-r.top };
+  }
+  function wipeAt(p, big){
+    fctx.globalCompositeOperation = 'destination-out';
+    var rad = big ? 46 : 30;
+    var g = fctx.createRadialGradient(p.x,p.y,0,p.x,p.y,rad);
+    g.addColorStop(0,'rgba(0,0,0,.55)'); g.addColorStop(1,'rgba(0,0,0,0)');
+    fctx.fillStyle = g;
+    fctx.beginPath(); fctx.arc(p.x,p.y,rad,0,7); fctx.fill();
+  }
+  stage.addEventListener('pointerdown', function(e){
+    stage.setPointerCapture(e.pointerId);
+    pdown = toLocal(e); wiped = false;
+  });
+  stage.addEventListener('pointermove', function(e){
+    if (!pdown) return;
+    var p = toLocal(e);
+    if (Math.hypot(p.x-pdown.x, p.y-pdown.y) > 7) wiped = true;
+    if (wiped){
+      var steps = Math.ceil(Math.hypot(p.x-pdown.x,p.y-pdown.y)/8)||1;
+      for (var i=1;i<=steps;i++){
+        wipeAt({x:pdown.x+(p.x-pdown.x)*i/steps, y:pdown.y+(p.y-pdown.y)*i/steps});
+      }
+      pdown = p;
+    }
+  });
+  stage.addEventListener('pointerup', function(e){
+    var p = toLocal(e);
+    if (!wiped){
+      spawnRunner(p.x, p.y, rnd(4.5,6.5));
+      wipeAt(p, true);
+    }
+    pdown = null;
+  });
+
+  /* ——— controls ——— */
+  function bindRange(id, out, fn){
+    var el = document.getElementById(id), o = document.getElementById(out);
+    function apply(){
+      var v = +el.value;
+      el.style.setProperty('--fill', ((v-el.min)/(el.max-el.min)*100)+'%');
+      o.textContent = v + '%';
+      fn(v);
+    }
+    el.addEventListener('input', apply); apply();
+  }
+  bindRange('rRain','oRain',function(v){ params.rain = v/100; });
+  bindRange('rFog','oFog',function(v){ params.fogAmt = v/100; });
+  bindRange('rFocus','oFocus',function(v){ params.focus = v/100; });
+
+  document.getElementById('bScene').addEventListener('click', function(){
+    sceneId++; genScene();
+  });
+  document.getElementById('bSave').addEventListener('click', function(){
+    var a = document.createElement('a');
+    a.download = 'rain-window_sc' + String(sceneId%97+1).padStart(2,'0') + '.png';
+    a.href = stage.toDataURL('image/png');
+    a.click();
+  });
+
+  window.addEventListener('resize', resize);
+
+  /* ——— boot ——— */
+  genScene();
+  resize();
+  for (var i=0;i<140;i++) spawnStatic();
+  for (i=0;i<7;i++) spawnRunner(rnd(0,1)*1, rnd(0,1));
+  for (i=0;i<drops.length;i++){ drops[i].x = rnd(0,600); drops[i].y = rnd(0,400); }
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

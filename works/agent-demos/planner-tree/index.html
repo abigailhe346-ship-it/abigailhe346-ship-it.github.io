@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLANNER TREE — 任务规划树可视化</title>
+<style>
+  :root{
+    --bp:#0E2E52; --bp-deep:#0A2340; --grid:rgba(127,179,224,.10); --grid2:rgba(127,179,224,.20);
+    --ink:#E9F1F8; --dim:#8FA9C4; --faint:#5B7692;
+    --gold:#F2C14E; --cut:#E2604C; --cyan:#7FB3E0;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{background:var(--bp);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+  ::selection{background:rgba(242,193,78,.3)}
+
+  header{flex:0 0 auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:10px 16px;border-bottom:1px solid rgba(127,179,224,.35);background:var(--bp-deep)}
+  .brand{display:flex;align-items:baseline;gap:10px;white-space:nowrap;margin-right:8px}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:.12em}
+  .brand .name{font-size:15px;font-weight:700;letter-spacing:.2em}
+  .brand .sub{font-size:11px;color:var(--dim)}
+  .grp{display:flex;align-items:center;gap:6px}
+  .grp .lbl{font-family:var(--mono);font-size:9px;letter-spacing:.18em;color:var(--faint);margin-right:2px}
+  .seg{display:flex;border:1px solid rgba(127,179,224,.4)}
+  .seg button{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;padding:7px 12px;
+    background:transparent;border:none;color:var(--dim);cursor:pointer;transition:all .15s var(--ease)}
+  .seg button+button{border-left:1px solid rgba(127,179,224,.25)}
+  .seg button:hover{color:var(--ink)}
+  .seg button.on{background:var(--cyan);color:var(--bp-deep);font-weight:600}
+  .btn{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;padding:7px 14px;cursor:pointer;
+    background:transparent;color:var(--gold);border:1px solid rgba(242,193,78,.5);transition:all .16s var(--ease)}
+  .btn:hover{background:rgba(242,193,78,.12);border-color:var(--gold)}
+  .btn.solid{background:var(--gold);color:var(--bp-deep);font-weight:600}
+  .btn.solid:hover{background:#FFD97A}
+  .btn.ghost{color:var(--dim);border-color:rgba(127,179,224,.4)}
+  .btn.ghost:hover{color:var(--ink);border-color:var(--cyan);background:rgba(127,179,224,.08)}
+  .btn.ghost.on{color:var(--cut);border-color:var(--cut);background:rgba(226,96,76,.1)}
+  header .spacer{flex:1}
+
+  main{flex:1;position:relative;min-height:0}
+  #cv{position:absolute;inset:0;display:block;cursor:default}
+
+  #log{position:absolute;left:16px;bottom:14px;width:340px;max-width:calc(100vw - 32px);
+    background:rgba(10,35,64,.88);border:1px solid rgba(127,179,224,.35);
+    font-family:var(--mono);font-size:10.5px;line-height:1.8;color:var(--dim);
+    padding:10px 12px;pointer-events:none;backdrop-filter:blur(3px)}
+  #log .lt{color:var(--faint);letter-spacing:.16em;font-size:9px;margin-bottom:4px}
+  #log .hl{color:var(--gold)}
+  #log .ct{color:var(--cut)}
+  #log div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+  #legend{position:absolute;right:16px;bottom:14px;display:flex;gap:14px;
+    font-family:var(--mono);font-size:9.5px;color:var(--dim);letter-spacing:.08em;
+    background:rgba(10,35,64,.88);border:1px solid rgba(127,179,224,.35);padding:8px 12px}
+  #legend i{display:inline-block;width:14px;height:8px;margin-right:5px;vertical-align:middle}
+  #legend .l1 i{background:var(--cyan)} #legend .l2 i{background:var(--gold)}
+  #legend .l3 i{background:repeating-linear-gradient(45deg,var(--cut) 0 2px,transparent 2px 5px)}
+
+  footer{flex:0 0 30px;display:flex;align-items:center;gap:20px;padding:0 16px;
+    border-top:1px solid rgba(127,179,224,.35);background:var(--bp-deep);
+    font-family:var(--mono);font-size:10px;color:var(--faint);letter-spacing:.08em}
+  footer b{color:var(--dim);font-weight:600}
+  footer .sig{margin-left:auto}
+  #tip{position:fixed;z-index:50;pointer-events:none;background:rgba(10,35,64,.95);
+    border:1px solid rgba(127,179,224,.5);padding:7px 10px;font-family:var(--mono);
+    font-size:10.5px;color:var(--ink);opacity:0;transition:opacity .15s;max-width:240px;line-height:1.6}
+  #tip .s{color:var(--gold)}
+
+  @media (max-width:860px){
+    header{padding:8px 10px;gap:6px}
+    .brand .sub{display:none}
+    .grp .lbl{display:none}
+    .btn,.seg button{padding:6px 9px;font-size:9.5px}
+    #legend{display:none}
+    #log{width:calc(100vw - 20px);left:10px;bottom:10px;font-size:9.5px}
+    footer{font-size:9px;gap:10px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·07</span>
+    <span class="name">PLANNER TREE</span>
+    <span class="sub">任务规划树可视化</span>
+  </div>
+  <div class="grp">
+    <span class="lbl">SEARCH</span>
+    <div class="seg" id="algo-seg">
+      <button data-a="bfs" class="on">BFS</button>
+      <button data-a="dfs">DFS</button>
+      <button data-a="greedy">贪心</button>
+    </div>
+  </div>
+  <button class="btn solid" id="run">开始搜索</button>
+  <button class="btn ghost" id="prune-mode">剪枝模式 OFF</button>
+  <div class="spacer"></div>
+  <button class="btn ghost" id="regen">随机再生</button>
+  <button class="btn" id="dl">下载 PNG</button>
+</header>
+
+<main>
+  <canvas id="cv"></canvas>
+  <div id="log">
+    <div class="lt">PLANNER LOG · 规划日志</div>
+    <div id="log-lines"><div>就绪。点击节点折叠/展开子任务。</div></div>
+  </div>
+  <div id="legend">
+    <span class="l1"><i></i>已访问</span>
+    <span class="l2"><i></i>最终路径</span>
+    <span class="l3"><i></i>已剪枝</span>
+  </div>
+</main>
+<div id="tip"></div>
+
+<footer>
+  <div>节点 <b id="st-nodes">0</b></div>
+  <div>深度 <b id="st-depth">0</b></div>
+  <div>已剪枝 <b id="st-pruned">0</b></div>
+  <div>访问 <b id="st-visited">0</b></div>
+  <div>悬停查看评分 · 剪枝模式下点击节点裁剪子树</div>
+  <div class="sig">ATELIER M · 2026</div>
+</footer>
+
+<script>
+'use strict';
+/* ================= 数据:随机任务树 ================= */
+const TASK_ROOTS = ['筹备秋季产品发布会','重构支付网关','组织团队北海道团建','上线多语言支持','撰写年度技术白皮书'];
+const TASK_MID = ['场地与档期','供应商谈判','视觉与物料','嘉宾邀请','预算编制','风险预案','数据迁移','接口设计','灰度方案','回滚预案','翻译管线','术语表对齐','问卷调研','路线规划','素材拍摄','法务审阅'];
+const TASK_LEAF = ['锁定 3 个候选场地','比价并拟合同','设计主视觉 KV','确认演讲嘉宾','拆分预算表','梳理 Top5 风险','写迁移脚本','定义错误码','列灰度名单','演练回滚','接入翻译 API','校对高频词','发放问卷','预订新干线票','踩点取景','审阅免责条款','准备彩排脚本','搭建监控看板','冻结需求列表','通知渠道伙伴'];
+
+let uid = 0;
+function mkNode(label, depth){
+  return {id:uid++, label, depth,
+    score:+(0.25+Math.random()*0.75).toFixed(2),
+    goal:false, children:[], parent:null,
+    collapsed:false, pruned:false,
+    x:0,y:0,tx:0,ty:0, a:0, ta:1,
+    visit:0, onPath:false};
+}
+function genTree(){
+  uid = 0;
+  const root = mkNode(TASK_ROOTS[Math.random()*TASK_ROOTS.length|0], 0);
+  const mids = [...TASK_MID].sort(()=>Math.random()-.5);
+  const leafs = [...TASK_LEAF].sort(()=>Math.random()-.5);
+  const nMid = 3+(Math.random()*2|0);
+  for(let i=0;i<nMid;i++){
+    const m = mkNode(mids[i% mids.length],1); m.parent=root; root.children.push(m);
+    const nLeaf = 1+(Math.random()*3|0);
+    for(let j=0;j<nLeaf;j++){
+      const l = mkNode(leafs[(i*3+j)%leafs.length],2); l.parent=m; m.children.push(l);
+      if(Math.random()<0.3){
+        const ll = mkNode(leafs[(i*5+j*2+7)%leafs.length],3); ll.parent=l; l.children.push(ll);
+      }
+    }
+  }
+  /* 在叶子上标 2 个可执行目标 */
+  const leaves=[]; (function walk(n){ n.children.length?n.children.forEach(walk):leaves.push(n); })(root);
+  leaves.sort(()=>Math.random()-.5).slice(0,2).forEach(n=>{n.goal=true;});
+  return root;
+}
+
+/* ================= 画布 ================= */
+const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+let W=0,H=0,DPR=1;
+function resize(){
+  DPR = Math.min(2, window.devicePixelRatio||1);
+  W = cv.clientWidth; H = cv.clientHeight;
+  cv.width = W*DPR; cv.height = H*DPR;
+  relayout();
+}
+window.addEventListener('resize', resize);
+
+/* ================= 布局 ================= */
+let root = null, allNodes = [];
+const NODE_H = 34;
+function hiddenByAncestor(n){
+  let p = n.parent;
+  while(p){ if(p.collapsed) return true; p = p.parent; }
+  return false;
+}
+function relayout(){
+  if(!root || W<10) return;
+  let leafCount = 0;
+  (function count(n){
+    if(n.collapsed || !n.children.length){ leafCount++; return; }
+    n.children.forEach(count);
+  })(root);
+  const pad = Math.max(30, W*0.05);
+  const unitW = (W-2*pad)/Math.max(1,leafCount);
+  const maxDepth = 3;
+  const levelH = (H-90)/Math.max(1,maxDepth);
+  let li = 0;
+  (function place(n, depth){
+    n.ty = 46 + depth*levelH;
+    if(n.collapsed || !n.children.length){ n.tx = pad + (li+0.5)*unitW; li++; }
+    else{
+      n.children.forEach(c=>place(c, depth+1));
+      n.tx = (n.children[0].tx + n.children[n.children.length-1].tx)/2;
+    }
+  })(root,0);
+  /* 目标透明度:被折叠祖先隐藏的节点淡出 */
+  allNodes.forEach(n=>{ n.ta = hiddenByAncestor(n)?0:1; });
+}
+
+/* ================= 搜索 ================= */
+let algo = 'bfs', searching = false, searchTimer = null;
+function visibleNodes(){
+  return allNodes.filter(n=>!hiddenByAncestor(n) && !n.pruned && !underPruned(n));
+}
+function underPruned(n){
+  let p = n.parent; while(p){ if(p.pruned) return true; p = p.parent; } return false;
+}
+function computeOrder(){
+  const seen = new Set(), order = [];
+  if(algo==='bfs'){
+    const q=[root];
+    while(q.length){ const n=q.shift();
+      if(seen.has(n.id)||n.pruned||hiddenByAncestor(n)||underPruned(n)) continue;
+      seen.add(n.id); order.push(n); q.push(...n.children); }
+  } else if(algo==='dfs'){
+    const st=[root];
+    while(st.length){ const n=st.pop();
+      if(seen.has(n.id)||n.pruned||hiddenByAncestor(n)||underPruned(n)) continue;
+      seen.add(n.id); order.push(n); st.push(...[...n.children].reverse()); }
+  } else {
+    /* 贪心 best-first:每次扩展当前分数最高的开放节点 */
+    const open=[root];
+    while(open.length){
+      open.sort((a,b)=>b.score-a.score);
+      const n=open.shift();
+      if(seen.has(n.id)||n.pruned||hiddenByAncestor(n)||underPruned(n)) continue;
+      seen.add(n.id); order.push(n); open.push(...n.children);
+      if(n.goal) break;
+    }
+  }
+  return order;
+}
+function runSearch(){
+  if(searching) return;
+  clearSearch(false);
+  searching = true;
+  const order = computeOrder();
+  let i = 0;
+  log('以 <span class="hl">'+algo.toUpperCase()+'</span> 开始搜索,开放节点 '+order.length+' 个');
+  searchTimer = setInterval(()=>{
+    if(i>=order.length){ log('搜索结束,未命中目标 — 目标可能被折叠或剪枝'); finishSearch(null); return; }
+    const n = order[i++];
+    n.visit = i;
+    $('st-visited').textContent = i;
+    if(n.goal){
+      let p=n; while(p){ p.onPath=true; p=p.parent; }
+      log('命中目标:<span class="hl">'+n.label+'</span> · 共访问 '+i+' 节点');
+      finishSearch(n);
+    }
+  }, 300);
+}
+function finishSearch(){
+  clearInterval(searchTimer); searchTimer=null; searching=false;
+}
+function clearSearch(logIt){
+  finishSearch();
+  allNodes.forEach(n=>{ n.visit=0; n.onPath=false; });
+  $('st-visited').textContent = '0';
+  if(logIt!==false) log('已清除搜索痕迹');
+}
+
+/* ================= 交互 ================= */
+let pruneMode = false;
+const tip = document.getElementById('tip');
+let mouse = {x:-1,y:-1}, hoverN = null;
+
+document.querySelectorAll('#algo-seg button').forEach(b=>{
+  b.onclick = ()=>{
+    document.querySelectorAll('#algo-seg button').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); algo = b.dataset.a;
+    clearSearch(false);
+    log('算法切换为 <span class="hl">'+algo.toUpperCase()+'</span>');
+  };
+});
+$('run').onclick = runSearch;
+$('prune-mode').onclick = e=>{
+  pruneMode = !pruneMode;
+  e.target.textContent = '剪枝模式 '+(pruneMode?'ON':'OFF');
+  e.target.classList.toggle('on', pruneMode);
+  log(pruneMode?'进入剪枝模式:点击节点裁剪 / 恢复子树':'退出剪枝模式');
+};
+$('regen').onclick = ()=>{
+  finishSearch();
+  root = genTree();
+  collect();
+  relayout();
+  allNodes.forEach(n=>{ n.a = hiddenByAncestor(n)?0:1; n.x=n.tx; n.y=n.ty; });
+  updateStats();
+  log('已生成新规划树:<span class="hl">'+root.label+'</span>');
+};
+$('dl').onclick = ()=>{
+  const a = document.createElement('a');
+  a.download = 'planner-tree.png';
+  a.href = cv.toDataURL('image/png');
+  a.click();
+  log('已导出 PNG 快照');
+};
+cv.addEventListener('mousemove', e=>{
+  const r = cv.getBoundingClientRect();
+  mouse = {x:e.clientX-r.left, y:e.clientY-r.top, cx:e.clientX, cy:e.clientY};
+});
+cv.addEventListener('mouseleave', ()=>{ mouse={x:-1,y:-1}; hoverN=null; tip.style.opacity=0; });
+cv.addEventListener('click', ()=>{
+  if(!hoverN || searching) return;
+  const n = hoverN;
+  if(pruneMode){
+    n.pruned = !n.pruned;
+    clearSearch(false);
+    updateStats();
+    log(n.pruned
+      ? '<span class="ct">✕ 剪枝</span> 「'+n.label+'」及其子树'
+      : '恢复 「'+n.label+'」子树');
+  } else if(n.children.length){
+    n.collapsed = !n.collapsed;
+    clearSearch(false);
+    relayout();
+    log((n.collapsed?'折叠 ':'展开 ')+'「'+n.label+'」');
+  }
+});
+
+/* ================= 日志 / 统计 ================= */
+const logEl = document.getElementById('log-lines');
+function log(html){
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  logEl.appendChild(d);
+  while(logEl.children.length>4) logEl.removeChild(logEl.firstChild);
+}
+function updateStats(){
+  $('st-nodes').textContent = allNodes.length;
+  $('st-depth').textContent = Math.max(...allNodes.map(n=>n.depth))+1;
+  $('st-pruned').textContent = allNodes.filter(n=>n.pruned||underPruned(n)).length;
+}
+
+/* ================= 绘制 ================= */
+function nodeWidth(n){
+  ctx.font = '11px "SF Mono",Menlo,monospace';
+  return Math.max(64, ctx.measureText(n.label).width + 26);
+}
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  /* 蓝图网格 */
+  ctx.strokeStyle = 'rgba(127,179,224,.10)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for(let x=0;x<W;x+=24){ ctx.moveTo(x+.5,0); ctx.lineTo(x+.5,H); }
+  for(let y=0;y<H;y+=24){ ctx.moveTo(0,y+.5); ctx.lineTo(W,y+.5); }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(127,179,224,.16)';
+  ctx.beginPath();
+  for(let x=0;x<W;x+=120){ ctx.moveTo(x+.5,0); ctx.lineTo(x+.5,H); }
+  for(let y=0;y<H;y+=120){ ctx.moveTo(0,y+.5); ctx.lineTo(W,y+.5); }
+  ctx.stroke();
+
+  /* 边:正交连接线 */
+  allNodes.forEach(n=>{
+    if(!n.parent || n.a<0.02) return;
+    const p = n.parent;
+    const x1=p.x, y1=p.y+NODE_H/2, x2=n.x, y2=n.y-NODE_H/2;
+    const my = (y1+y2)/2;
+    const cut = n.pruned || underPruned(n) || p.pruned || underPruned(p);
+    const onPath = n.onPath && p.onPath;
+    ctx.globalAlpha = n.a * (cut?0.35:1);
+    ctx.beginPath();
+    ctx.moveTo(x1,y1); ctx.lineTo(x1,my); ctx.lineTo(x2,my); ctx.lineTo(x2,y2);
+    if(onPath){ ctx.strokeStyle='#F2C14E'; ctx.lineWidth=2.2; }
+    else if(cut){ ctx.strokeStyle='#E2604C'; ctx.lineWidth=1; ctx.setLineDash([3,4]); }
+    else { ctx.strokeStyle='rgba(233,241,248,.45)'; ctx.lineWidth=1; }
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  });
+
+  /* 节点 */
+  hoverN = null;
+  let bestD = 14;
+  allNodes.forEach(n=>{
+    if(n.a<0.02) return;
+    const w = nodeWidth(n), x = n.x-w/2, y = n.y-NODE_H/2;
+    const cut = n.pruned || underPruned(n);
+    ctx.save();
+    ctx.globalAlpha = n.a * (cut?0.55:1);
+
+    /* 搜索访问脉冲 */
+    if(n.visit && !n.onPath){
+      const t = (performance.now()%1600)/1600;
+      ctx.beginPath(); ctx.arc(n.x, n.y, 10+t*16, 0, 7);
+      ctx.strokeStyle = 'rgba(127,179,224,'+(0.5*(1-t))+')'; ctx.lineWidth=1; ctx.stroke();
+    }
+    /* 框体 */
+    ctx.fillStyle = n.onPath ? 'rgba(242,193,78,.16)' : n.visit ? 'rgba(127,179,224,.16)' : 'rgba(10,35,64,.9)';
+    ctx.fillRect(x,y,w,NODE_H);
+    ctx.strokeStyle = n.onPath ? '#F2C14E' : cut ? '#E2604C' : hoverN===n ? '#E9F1F8' : 'rgba(233,241,248,.75)';
+    ctx.lineWidth = n.onPath ? 2 : 1;
+    if(cut) ctx.setLineDash([4,3]);
+    ctx.strokeRect(x,y,w,NODE_H);
+    ctx.setLineDash([]);
+    /* 剪枝斜纹 */
+    if(cut){
+      ctx.save(); ctx.beginPath(); ctx.rect(x,y,w,NODE_H); ctx.clip();
+      ctx.strokeStyle='rgba(226,96,76,.5)'; ctx.lineWidth=1;
+      for(let d=-NODE_H; d<w; d+=7){
+        ctx.beginPath(); ctx.moveTo(x+d,y+NODE_H); ctx.lineTo(x+d+NODE_H,y); ctx.stroke();
+      }
+      ctx.restore();
+    }
+    /* 角标十字 */
+    ctx.strokeStyle='rgba(233,241,248,.6)';
+    [[x,y],[x+w,y],[x,y+NODE_H],[x+w,y+NODE_H]].forEach(([cx,cy])=>{
+      ctx.beginPath(); ctx.moveTo(cx-3,cy); ctx.lineTo(cx+3,cy); ctx.moveTo(cx,cy-3); ctx.lineTo(cx,cy+3); ctx.stroke();
+    });
+    /* 文本 */
+    ctx.font = '11px "SF Mono",Menlo,monospace';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle = cut ? 'rgba(226,96,76,.9)' : n.onPath ? '#F2C14E' : '#E9F1F8';
+    ctx.fillText(n.label, n.x, n.y-2);
+    /* 评分小字 */
+    ctx.font = '8px "SF Mono",Menlo,monospace';
+    ctx.fillStyle = 'rgba(143,169,196,.9)';
+    ctx.fillText(n.goal ? 'GOAL · '+n.score.toFixed(2) : 's='+n.score.toFixed(2), n.x, n.y+9);
+    if(n.goal && !cut){
+      ctx.strokeStyle = '#F2C14E'; ctx.lineWidth=1;
+      ctx.strokeRect(x-3,y-3,w+6,NODE_H+6);
+    }
+    /* 折叠角标 */
+    if(n.children.length && n.collapsed){
+      ctx.fillStyle='#7FB3E0';
+      ctx.font='9px "SF Mono",Menlo,monospace';
+      ctx.fillText('+'+countSubtree(n), x+w+4, y);
+    }
+    ctx.restore();
+    /* 悬停检测 */
+    if(mouse.x>=x && mouse.x<=x+w && mouse.y>=y && mouse.y<=y+NODE_H && n.a>0.5){
+      const d = Math.abs(mouse.x-n.x)+Math.abs(mouse.y-n.y);
+      if(d<bestD+100){ hoverN = n; bestD = d; }
+    }
+  });
+
+  /* 悬停提示 */
+  if(hoverN){
+    const n = hoverN;
+    const cut = n.pruned || underPruned(n);
+    tip.innerHTML = n.label+'<br><span class="s">评分 '+n.score.toFixed(2)+'</span>'+
+      ' · 深度 '+n.depth+(n.goal?' · <span class="s">目标节点</span>':'')+
+      (cut?'<br>状态:已剪枝(点击恢复)':n.children.length?'<br>点击'+(n.collapsed?'展开':'折叠')+' · 子节点 '+n.children.length+' 个':'<br>叶节点')+
+      (n.visit?'<br>搜索第 '+n.visit+' 步访问':'');
+    tip.style.opacity = 1;
+    tip.style.left = Math.min(window.innerWidth-250, mouse.cx+14)+'px';
+    tip.style.top = (mouse.cy+16)+'px';
+    cv.style.cursor = 'pointer';
+  } else {
+    tip.style.opacity = 0;
+    cv.style.cursor = 'default';
+  }
+}
+function countSubtree(n){
+  let c = 0; (function w(m){ c++; m.children.forEach(w); })(n); return c-1;
+}
+
+/* ================= 主循环 ================= */
+let last = performance.now();
+function loop(now){
+  if(cv.clientWidth>0 && (cv.clientWidth!==W || cv.clientHeight!==H)) resize();
+  const dt = Math.min(0.05,(now-last)/1000); last = now;
+  const k = 1 - Math.pow(0.002, dt);
+  allNodes.forEach(n=>{
+    n.x += (n.tx-n.x)*k; n.y += (n.ty-n.y)*k; n.a += (n.ta-n.a)*k;
+  });
+  draw();
+  requestAnimationFrame(loop);
+}
+
+function collect(){
+  allNodes = [];
+  (function w(n){ allNodes.push(n); n.children.forEach(w); })(root);
+}
+
+/* ================= init ================= */
+root = genTree();
+collect();
+resize();
+allNodes.forEach(n=>{ n.a = hiddenByAncestor(n)?0:1; n.x=n.tx; n.y=n.ty; });
+updateStats();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

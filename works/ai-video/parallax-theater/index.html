@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PARALLAX THEATER — 多层视差剧场</title>
+<style>
+  :root{
+    --bg:#0a1220; --panel:#0f1a2d; --line:#24344f;
+    --ink:#efe3c8; --dim:#7c89a3;
+    --gold:#d9a441; --navy:#101c30;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+    background-image:radial-gradient(110% 80% at 50% 0%,#101d33 0%,var(--bg) 65%)}
+  ::selection{background:var(--gold);color:#0a1220}
+
+  header{display:flex;justify-content:space-between;align-items:baseline;
+    padding:22px 28px 0;gap:16px;flex-wrap:wrap}
+  .sig{display:flex;align-items:baseline;gap:14px}
+  .sig h1{font-family:var(--serif);font-size:22px;font-weight:700;letter-spacing:.06em}
+  .sig h1 em{font-style:italic;color:var(--gold)}
+  .sig .no{font-family:var(--mono);font-size:11px;color:var(--dim);letter-spacing:.16em}
+  .sig .no b{color:var(--gold);font-weight:400}
+  header p.tag{font-size:12px;color:var(--dim);letter-spacing:.05em}
+  .rule{margin:14px 28px 0;border-top:1px solid var(--gold);position:relative}
+  .rule::after{content:"";position:absolute;left:0;top:2px;width:100%;border-top:1px solid var(--line)}
+
+  main{display:grid;grid-template-columns:1fr 290px;gap:24px;
+    padding:24px 28px 44px;max-width:1420px;margin:0 auto}
+  @media (max-width:960px){main{grid-template-columns:1fr}}
+
+  .marquee{text-align:center;font-family:var(--serif);font-size:13px;letter-spacing:.5em;
+    color:var(--gold);text-transform:uppercase;margin-bottom:14px;text-indent:.5em}
+  .frame{position:relative;border:1px solid var(--gold);padding:8px;background:#060b14}
+  .frame::before{content:"";position:absolute;inset:3px;border:1px solid rgba(217,164,65,.35);pointer-events:none}
+  .frame i{position:absolute;width:9px;height:9px;background:var(--gold);
+    transform:rotate(45deg);z-index:2}
+  .frame i:nth-child(1){left:-5px;top:-5px}.frame i:nth-child(2){right:-5px;top:-5px}
+  .frame i:nth-child(3){left:-5px;bottom:-5px}.frame i:nth-child(4){right:-5px;bottom:-5px}
+  .stage{position:relative;overflow:hidden;cursor:crosshair}
+  .stage canvas{display:block;width:100%;height:auto}
+  .stamp{position:absolute;left:0;right:0;top:14px;text-align:center;
+    font-family:var(--mono);font-size:10px;letter-spacing:.34em;color:var(--ink);
+    opacity:.7;pointer-events:none;text-transform:uppercase;text-indent:.34em}
+  .hint{position:absolute;left:0;right:0;bottom:12px;text-align:center;
+    font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:rgba(239,227,200,.5);
+    pointer-events:none;text-transform:uppercase}
+
+  .dock{background:var(--panel);border:1px solid var(--line);
+    padding:20px;display:flex;flex-direction:column;gap:20px;
+    align-self:start;position:sticky;top:20px}
+  @media (max-width:960px){.dock{position:static}}
+  .dock h2{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--gold);
+    letter-spacing:.26em;text-transform:uppercase;
+    border-bottom:1px solid var(--line);padding-bottom:12px}
+  .ctl{display:flex;flex-direction:column;gap:9px}
+  .ctl label{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:10px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+  .ctl label output{color:var(--gold)}
+
+  .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .seg button{appearance:none;border:1px solid var(--line);background:transparent;
+    color:var(--dim);font-family:var(--mono);font-size:10px;letter-spacing:.12em;
+    padding:10px 4px;cursor:pointer;transition:all .25s var(--ease);text-transform:uppercase}
+  .seg button:hover{border-color:var(--gold);color:var(--ink)}
+  .seg button.on{background:var(--gold);border-color:var(--gold);color:#0a1220}
+
+  .btn{appearance:none;border:1px solid var(--ink);background:transparent;color:var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    padding:11px 6px;cursor:pointer;transition:all .25s var(--ease)}
+  .btn:hover{border-color:var(--gold);color:var(--gold)}
+  .btn.on{background:var(--ink);color:#0a1220;border-color:var(--ink)}
+
+  input[type=range]{appearance:none;-webkit-appearance:none;width:100%;height:2px;
+    background:var(--line);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;
+    width:13px;height:13px;background:var(--gold);border:2px solid var(--bg);
+    transform:rotate(45deg);border-radius:0;box-shadow:0 0 0 1px var(--gold);transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:rotate(45deg) scale(1.2)}
+  input[type=range]::-moz-range-thumb{width:11px;height:11px;background:var(--gold);
+    border:2px solid var(--bg);border-radius:0;box-shadow:0 0 0 1px var(--gold)}
+
+  .note{font-size:11px;line-height:1.8;color:var(--dim);border-top:1px solid var(--line);padding-top:14px}
+  .note b{color:var(--gold);font-weight:400}
+
+  footer{padding:0 28px 26px;font-family:var(--mono);font-size:10px;color:#43506b;
+    letter-spacing:.16em;text-transform:uppercase;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="sig">
+    <h1>PARALLAX <em>Theater</em></h1>
+    <span class="no">AI-VIDEO / <b>03</b> — 多层视差剧场</span>
+  </div>
+  <p class="tag">一座不落幕的城市：推拉升降间，昼与夜在金色射线上交替。</p>
+</header>
+<div class="rule"></div>
+
+<main>
+  <section>
+    <div class="marquee">Grand&nbsp;Parallax&nbsp;Theater</div>
+    <div class="frame">
+      <i></i><i></i><i></i><i></i>
+      <div class="stage" id="stage">
+        <canvas id="cv"></canvas>
+        <span class="stamp" id="stamp">ACT&nbsp;I&nbsp;·&nbsp;CITY&nbsp;AT&nbsp;NIGHT</span>
+        <span class="hint">MOVE&nbsp;CURSOR&nbsp;TO&nbsp;SHIFT&nbsp;DEPTH</span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="dock">
+    <h2>Stage&nbsp;Machinery</h2>
+
+    <div class="ctl">
+      <label>景深 DEPTH <output id="oDepth">1.00×</output></label>
+      <input type="range" id="rDepth" min="0" max="2" step="0.05" value="1">
+    </div>
+
+    <div class="ctl">
+      <label>幕次 ACT</label>
+      <div class="seg" id="segAct">
+        <button data-act="night" class="on">夜 NIGHT</button>
+        <button data-act="day">昼 DAY</button>
+      </div>
+    </div>
+
+    <div class="ctl">
+      <label>摇移 CAMERA</label>
+      <button class="btn" id="bPan">自动摇移 关</button>
+    </div>
+
+    <p class="note">七层布景以不同速率滑移——<b>放射日光、双子楼群、飞艇与楼廊</b>各就其位。昼夜切换时，窗火次第点亮，星辰沿射线退场，一如 1930 年的舞台机关。</p>
+  </aside>
+</main>
+
+<footer>
+  <span>PARALLAX THEATER — SEVEN-PLANE STAGE</span>
+  <span>DECO · SYMMETRY · SUNBURST</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var stage=document.getElementById('stage'),cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+var stamp=document.getElementById('stamp');
+var TAU=Math.PI*2,ASPECT=2.2;
+var W=0,H=0,DPR=1;
+
+var S={depth:1,dayT:0,dayTarget:0,mx:0,my:0,smx:0,smy:0,pan:false,t:0};
+
+/* ---------- procedural set pieces ---------- */
+function hash(n){var x=Math.sin(n*127.1+7.7)*43758.5453;return x-Math.floor(x);}
+var stars=[],farTowers=[],nearTowers=[],birds=[];
+(function build(){
+  var i;
+  for(i=0;i<90;i++)stars.push({x:hash(i*1.3),y:hash(i*2.7)*0.55,w:0.6+hash(i*3.1)*1.4,p:hash(i*4.3)*TAU,s:1+hash(i*5.9)*3});
+  /* far skyline: low stepped blocks, symmetric-ish */
+  var x=-0.08;
+  for(i=0;x<1.12;i++){
+    var w=0.035+hash(i*7.1)*0.05;
+    farTowers.push({x:x,w:w,h:0.10+hash(i*9.3)*0.16,step:hash(i*11.7)>0.5});
+    x+=w*0.85;
+  }
+  /* near skyline: taller towers, center tallest */
+  x=-0.06;
+  for(i=0;x<1.1;i++){
+    var w2=0.045+hash(i*13.3+50)*0.045;
+    var cx=x+w2/2;
+    var boost=1-Math.min(1,Math.abs(cx-0.5)*2.6);
+    nearTowers.push({x:x,w:w2,h:0.16+hash(i*17.9+50)*0.20+boost*0.22,spire:hash(i*19.7+50)>0.35,seed:i});
+    x+=w2*0.92;
+  }
+  for(i=0;i<6;i++)birds.push({p:hash(i*23.7)*TAU,y:0.16+hash(i*29.3)*0.22,s:0.6+hash(i*31.1)*0.7,sp:0.5+hash(i*37.7)});
+})();
+
+function lerp(a,b,t){return a+(b-a)*t;}
+function mix(c1,c2,t){
+  return 'rgb('+Math.round(lerp(c1[0],c2[0],t))+','+Math.round(lerp(c1[1],c2[1],t))+','+Math.round(lerp(c1[2],c2[2],t))+')';
+}
+function mixA(c1,c2,t,a){
+  return 'rgba('+Math.round(lerp(c1[0],c2[0],t))+','+Math.round(lerp(c1[1],c2[1],t))+','+Math.round(lerp(c1[2],c2[2],t))+','+a+')';
+}
+
+var GOLD=[217,164,65],CREAM=[239,227,200];
+var PAL={
+  skyTopN:[10,18,32], skyTopD:[240,231,206],
+  skyBotN:[27,42,68], skyBotD:[228,204,150],
+  farN:[28,44,72],    farD:[198,176,134],
+  nearN:[13,23,40],   nearD:[52,44,30],
+  fgN:[6,12,22],      fgD:[26,21,14]
+};
+function horizonY(){return H*0.74;}
+
+function drawTower(tx,baseY,tw,th,body,winA,spire,stepped,seedI){
+  ctx.fillStyle=body;
+  ctx.fillRect(tx,baseY-th,tw,th);
+  if(stepped){
+    ctx.fillRect(tx+tw*0.18,baseY-th*1.16,tw*0.64,th*0.16);
+    ctx.fillRect(tx+tw*0.32,baseY-th*1.26,tw*0.36,th*0.10);
+  }
+  if(spire){
+    ctx.beginPath();
+    ctx.moveTo(tx+tw*0.5,baseY-th*1.26-th*0.16);
+    ctx.lineTo(tx+tw*0.40,baseY-th*1.26);
+    ctx.lineTo(tx+tw*0.60,baseY-th*1.26);
+    ctx.closePath();ctx.fill();
+  }
+  if(winA>0.02){
+    ctx.fillStyle='rgba('+GOLD.join(',')+','+winA+')';
+    var cols=Math.max(1,Math.floor(tw/9)),rows=Math.max(2,Math.floor(th/14));
+    var cw=tw/(cols*2+1),ch=th/(rows*2+1);
+    for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
+      if(hash(seedI*100+r*7+c*3)>0.45)
+        ctx.fillRect(tx+cw*(c*2+1),baseY-th+ch*(r*2+1)+th*0.04,cw*0.8,ch*0.8);
+    }
+  }
+}
+
+function render(){
+  var d=S.dayT,hor=horizonY();
+  var offX=(S.smx-0.5)*W*0.06*S.depth,offY=(S.smy-0.5)*H*0.05*S.depth;
+  function P(f){ctx.save();ctx.translate(offX*f,offY*f*0.6);}
+
+  /* 1 sky */
+  ctx.save();
+  var g=ctx.createLinearGradient(0,0,0,hor);
+  g.addColorStop(0,mix(PAL.skyTopN,PAL.skyTopD,d));
+  g.addColorStop(1,mix(PAL.skyBotN,PAL.skyBotD,d));
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.restore();
+
+  var sx=W*0.5,sy=H*0.30;
+
+  /* 2 stars */
+  P(0.04);
+  if(d<0.98){
+    for(var i=0;i<stars.length;i++){
+      var st=stars[i];
+      var a=(1-d)*(0.35+0.65*Math.abs(Math.sin(S.t*st.s+st.p)));
+      ctx.fillStyle='rgba('+CREAM.join(',')+','+(a*0.9)+')';
+      var px=st.x*W,py=st.y*H;
+      ctx.fillRect(px-st.w,py,st.w*2,1);ctx.fillRect(px,py-st.w,1,st.w*2);
+    }
+  }
+  ctx.restore();
+
+  /* 3 sunburst + disc */
+  P(0.06);
+  var rays=28,rayA=(0.05+0.05*d),R=W*0.75;
+  for(i=0;i<rays;i++){
+    if(i%2)continue;
+    var a0=-Math.PI+(i/rays)*Math.PI,a1=-Math.PI+((i+1)/rays)*Math.PI;
+    ctx.fillStyle='rgba('+GOLD.join(',')+','+rayA+')';
+    ctx.beginPath();ctx.moveTo(sx,sy);
+    ctx.lineTo(sx+Math.cos(a0)*R,sy+Math.sin(a0)*R);
+    ctx.lineTo(sx+Math.cos(a1)*R,sy+Math.sin(a1)*R);
+    ctx.closePath();ctx.fill();
+  }
+  var dr=H*0.085;
+  var glow=ctx.createRadialGradient(sx,sy,0,sx,sy,dr*3.2);
+  glow.addColorStop(0,mixA(GOLD,CREAM,d,0.5));glow.addColorStop(1,mixA(GOLD,CREAM,d,0));
+  ctx.fillStyle=glow;ctx.fillRect(sx-dr*3.2,sy-dr*3.2,dr*6.4,dr*6.4);
+  ctx.fillStyle=mix(GOLD,CREAM,d);
+  ctx.beginPath();ctx.arc(sx,sy,dr,0,TAU);ctx.fill();
+  ctx.strokeStyle=mixA(CREAM,GOLD,d,0.8);ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(sx,sy,dr*1.28,0,TAU);ctx.stroke();
+  ctx.restore();
+
+  /* 4 zeppelin, closed sinusoidal drift */
+  P(0.18);
+  var zx=W*(0.5+0.40*Math.sin(S.t*TAU/38)),zy=H*(0.24+0.03*Math.sin(S.t*TAU/9));
+  var zl=W*0.075,zh=zl*0.26,zc=mix(PAL.nearN,PAL.nearD,d);
+  ctx.fillStyle=zc;
+  ctx.beginPath();ctx.ellipse(zx,zy,zl/2,zh/2,0,0,TAU);ctx.fill();
+  ctx.beginPath();ctx.moveTo(zx-zl*0.44,zy);ctx.lineTo(zx-zl*0.60,zy-zh*0.55);ctx.lineTo(zx-zl*0.60,zy+zh*0.55);ctx.closePath();ctx.fill();
+  ctx.fillRect(zx-zl*0.12,zy+zh*0.42,zl*0.2,zh*0.3);
+  ctx.strokeStyle=mixA(GOLD,GOLD,d,0.75);ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.ellipse(zx,zy,zl/2,zh/2,0,-0.5,0.5);ctx.stroke();
+  ctx.restore();
+
+  /* 5 far skyline */
+  P(0.12);
+  ctx.fillStyle=mix(PAL.farN,PAL.farD,d);
+  for(i=0;i<farTowers.length;i++){
+    var ft=farTowers[i];
+    drawTower(ft.x*W,hor,ft.w*W,ft.h*H,mix(PAL.farN,PAL.farD,d),0,false,ft.step,i);
+  }
+  ctx.restore();
+
+  /* 6 near skyline with lit windows */
+  P(0.25);
+  for(i=0;i<nearTowers.length;i++){
+    var nt=nearTowers[i];
+    drawTower(nt.x*W,hor,nt.w*W,nt.h*H,mix(PAL.nearN,PAL.nearD,d),(1-d)*0.75,nt.spire,true,nt.seed);
+  }
+  /* beacon on tallest */
+  var ba=0.5+0.5*Math.sin(S.t*3.5);
+  ctx.fillStyle='rgba(217,80,60,'+(ba*(1-d)+0.15)+')';
+  ctx.beginPath();ctx.arc(W*0.5,hor-H*0.52,2.4,0,TAU);ctx.fill();
+  ctx.restore();
+
+  /* birds by day */
+  if(d>0.03){
+    P(0.2);
+    ctx.strokeStyle='rgba(52,44,30,'+(d*0.8)+')';ctx.lineWidth=1.4;
+    for(i=0;i<birds.length;i++){
+      var b=birds[i];
+      var bx=W*(0.5+0.46*Math.sin(S.t*0.14*b.sp+b.p));
+      var by=H*(b.y+0.02*Math.sin(S.t*1.4+b.p));
+      var s2=6*b.s*(1+0.2*Math.sin(S.t*6+b.p));
+      ctx.beginPath();
+      ctx.moveTo(bx-s2,by);ctx.quadraticCurveTo(bx-s2*0.4,by-s2*0.7,bx,by);
+      ctx.quadraticCurveTo(bx+s2*0.4,by-s2*0.7,bx+s2,by);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* water band with reflection */
+  ctx.save();
+  var wg=ctx.createLinearGradient(0,hor,0,H);
+  wg.addColorStop(0,mix(PAL.skyBotN,PAL.skyBotD,d));
+  wg.addColorStop(1,mix(PAL.nearN,PAL.nearD,d));
+  ctx.fillStyle=wg;ctx.fillRect(0,hor,W,H-hor);
+  for(i=0;i<12;i++){
+    var ry=hor+4+(H-hor-8)*i/12;
+    var rw2=W*0.02*(1+i*0.14)*(0.7+0.3*Math.sin(S.t*2.2+i));
+    ctx.fillStyle=mixA(GOLD,CREAM,d,0.20*(1-i/14));
+    ctx.fillRect(sx-rw2/2+Math.sin(S.t*1.7+i*2)*3,ry,rw2,1.6);
+  }
+  ctx.restore();
+
+  /* 7 balcony railing, strongest parallax */
+  P(0.45);
+  var rail=H*0.90;
+  ctx.fillStyle=mix(PAL.fgN,PAL.fgD,d);
+  ctx.fillRect(-W*0.1,rail,W*1.2,H-rail);
+  ctx.strokeStyle=mixA(GOLD,GOLD,d,0.9);ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(-W*0.1,rail+2);ctx.lineTo(W*1.1,rail+2);ctx.stroke();
+  /* chevron fretwork */
+  ctx.beginPath();
+  var chW=W*0.028;
+  for(var cx2=-W*0.1;cx2<W*1.1;cx2+=chW){
+    ctx.moveTo(cx2,rail+8);
+    ctx.lineTo(cx2+chW/2,rail+8+(H-rail)*0.4);
+    ctx.lineTo(cx2+chW,rail+8);
+  }
+  ctx.strokeStyle=mixA(GOLD,GOLD,d,0.5);ctx.lineWidth=1.1;ctx.stroke();
+  /* side pylons */
+  ctx.fillStyle=mix(PAL.fgN,PAL.fgD,d);
+  ctx.beginPath();
+  ctx.moveTo(-W*0.1,H);ctx.lineTo(-W*0.1,H*0.52);ctx.lineTo(-W*0.1+W*0.045,H*0.47);ctx.lineTo(-W*0.1+W*0.075,H);ctx.closePath();ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(W*1.1,H);ctx.lineTo(W*1.1,H*0.52);ctx.lineTo(W*1.1-W*0.045,H*0.47);ctx.lineTo(W*1.1-W*0.075,H);ctx.closePath();ctx.fill();
+  ctx.strokeStyle=mixA(GOLD,GOLD,d,0.65);ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.moveTo(-W*0.1,H*0.52);ctx.lineTo(-W*0.1+W*0.045,H*0.47);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(W*1.1,H*0.52);ctx.lineTo(W*1.1-W*0.045,H*0.47);ctx.stroke();
+  ctx.restore();
+}
+
+/* ---------- loop ---------- */
+var last=performance.now();
+function tick(now){
+  var dt=Math.min((now-last)/1000,0.05);last=now;
+  S.t+=dt;
+  S.dayT+=(S.dayTarget-S.dayT)*Math.min(1,dt*2.6);
+  var tx=S.mx,ty=S.my;
+  if(S.pan){tx=0.5+0.42*Math.sin(S.t*TAU/22);ty=0.5+0.25*Math.sin(S.t*TAU/31);}
+  S.smx+=(tx-S.smx)*Math.min(1,dt*4);
+  S.smy+=(ty-S.smy)*Math.min(1,dt*4);
+  render();
+  requestAnimationFrame(tick);
+}
+
+/* ---------- events ---------- */
+stage.addEventListener('pointermove',function(e){
+  if(S.pan)return;
+  var r=stage.getBoundingClientRect();
+  S.mx=(e.clientX-r.left)/r.width;S.my=(e.clientY-r.top)/r.height;
+});
+stage.addEventListener('pointerleave',function(){S.mx=0.5;S.my=0.5;});
+
+var rDepth=document.getElementById('rDepth'),oDepth=document.getElementById('oDepth');
+rDepth.addEventListener('input',function(){S.depth=+this.value;oDepth.textContent=S.depth.toFixed(2)+'×';});
+
+document.getElementById('segAct').addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  this.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+  b.classList.add('on');
+  var night=b.dataset.act==='night';
+  S.dayTarget=night?0:1;
+  stamp.innerHTML=night?'ACT&nbsp;I&nbsp;·&nbsp;CITY&nbsp;AT&nbsp;NIGHT':'ACT&nbsp;II&nbsp;·&nbsp;CITY&nbsp;AT&nbsp;DAY';
+});
+
+var bPan=document.getElementById('bPan');
+bPan.addEventListener('click',function(){
+  S.pan=!S.pan;
+  this.classList.toggle('on',S.pan);
+  this.textContent=S.pan?'自动摇移 开':'自动摇移 关';
+});
+
+/* ---------- sizing ---------- */
+function resize(){
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  var cw=stage.clientWidth;
+  W=cw;H=Math.round(cw/ASPECT);
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);
+  cv.style.height=H+'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener('resize',resize);
+S.mx=0.5;S.my=0.5;S.smx=0.5;S.smy=0.5;
+resize();requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

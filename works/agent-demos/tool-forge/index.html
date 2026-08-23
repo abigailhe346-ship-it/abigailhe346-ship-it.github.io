@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TOOL FORGE — MCP 工具配置台</title>
+<style>
+  :root{
+    --paper:#F4F2EC; --panel:#ECE9E1; --ink:#141310; --ink2:#4A473E;
+    --gray:#8C887B; --line:#D6D2C6; --line2:#C2BDB0;
+    --accent:#E8490F; --ok:#0E6E4E; --err:#B02318; --key:#1D4F91;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
+    --mono:"SF Mono",Menlo,Consolas,monospace;
+    --ease:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;border-radius:0}
+  html,body{height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;overflow:hidden}
+  ::selection{background:var(--accent);color:var(--paper)}
+  :focus-visible{outline:1px solid var(--accent);outline-offset:2px}
+
+  /* ---------- header ---------- */
+  header{flex:0 0 54px;display:flex;align-items:stretch;border-bottom:1px solid var(--ink)}
+  .brand{display:flex;align-items:center;gap:14px;padding:0 18px;border-right:1px solid var(--ink)}
+  .brand .no{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.1em}
+  .brand .name{font-size:15px;font-weight:700;letter-spacing:.18em}
+  .brand .sub{font-size:11px;color:var(--gray);letter-spacing:.06em}
+  .hstat{display:flex;align-items:center;gap:8px;padding:0 16px;border-right:1px solid var(--line);
+    font-family:var(--mono);font-size:10px;color:var(--gray);letter-spacing:.1em}
+  .hstat b{font-size:13px;color:var(--ink);font-weight:600}
+  .hstat b.accent{color:var(--accent)}
+  header .spacer{flex:1}
+  .hnote{display:flex;align-items:center;padding:0 18px;font-family:var(--mono);
+    font-size:10px;color:var(--gray);letter-spacing:.12em}
+
+  /* ---------- layout ---------- */
+  main{flex:1;display:grid;grid-template-columns:250px 1fr 400px;min-height:0}
+  .col{min-height:0;display:flex;flex-direction:column;border-right:1px solid var(--ink)}
+  .col:last-child{border-right:none}
+  .col-head{flex:0 0 34px;display:flex;align-items:center;gap:8px;padding:0 14px;
+    border-bottom:1px solid var(--ink);font-family:var(--mono);font-size:9.5px;
+    letter-spacing:.22em;color:var(--ink2);background:var(--panel)}
+  .col-head .sq{width:7px;height:7px;background:var(--accent)}
+  .col-head .right{margin-left:auto;color:var(--gray);letter-spacing:.1em}
+
+  /* ---------- tool list ---------- */
+  #toollist{flex:1;overflow-y:auto}
+  .tool{display:grid;grid-template-columns:30px 1fr auto;gap:4px 10px;padding:11px 14px 10px;
+    border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s var(--ease),color .15s var(--ease)}
+  .tool .idx{font-family:var(--mono);font-size:10px;color:var(--gray);padding-top:2px}
+  .tool .tname{font-family:var(--mono);font-size:12.5px;font-weight:600;letter-spacing:.02em}
+  .tool .kind{font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;color:var(--ink2);
+    border:1px solid var(--line2);padding:2px 5px;align-self:start}
+  .tool .tdesc{grid-column:2/4;font-size:11px;color:var(--gray);line-height:1.45}
+  .tool:hover{background:var(--ink);color:var(--paper)}
+  .tool:hover .tdesc,.tool:hover .idx{color:#8C887B}
+  .tool:hover .kind{border-color:#4A473E;color:#B8B3A6}
+  .tool.active{background:var(--ink);color:var(--paper);box-shadow:inset 3px 0 0 var(--accent)}
+  .tool.active .tdesc,.tool.active .idx{color:#8C887B}
+  .tool.active .kind{border-color:var(--accent);color:var(--accent)}
+
+  /* ---------- schema editor ---------- */
+  #schema-wrap{flex:1;display:flex;min-height:0}
+  #gutter{flex:0 0 40px;border-right:1px solid var(--line);background:var(--panel);
+    font-family:var(--mono);font-size:10.5px;line-height:20px;color:var(--gray);
+    text-align:right;padding:12px 8px 12px 0;overflow:hidden;user-select:none}
+  #schema{flex:1;border:none;resize:none;outline:none;background:var(--paper);color:var(--ink);
+    font-family:var(--mono);font-size:12px;line-height:20px;padding:12px 14px;tab-size:2;white-space:pre;overflow:auto}
+  #schema::selection{background:rgba(232,73,15,.18);color:var(--ink)}
+  #schema-status{flex:0 0 32px;display:flex;align-items:center;gap:10px;padding:0 14px;
+    border-top:1px solid var(--line);font-family:var(--mono);font-size:10px;letter-spacing:.08em}
+  #schema-status .dot{width:8px;height:8px;background:var(--ok)}
+  #schema-status.err .dot{background:var(--err)}
+  #schema-status .msg{color:var(--ink2)}
+  #schema-status.err .msg{color:var(--err)}
+  #schema-status .actions{margin-left:auto;display:flex;gap:8px}
+  .mini-btn{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;padding:5px 10px;
+    background:transparent;border:1px solid var(--line2);color:var(--ink2);cursor:pointer;
+    transition:all .15s var(--ease)}
+  .mini-btn:hover{border-color:var(--ink);color:var(--ink)}
+  .mini-btn.warn{border-color:var(--err);color:var(--err)}
+  .mini-btn.warn:hover{background:var(--err);color:var(--paper)}
+
+  /* ---------- invoke panel ---------- */
+  #params{flex:0 1 auto;max-height:44%;overflow-y:auto;border-bottom:1px solid var(--ink)}
+  .pfield{padding:9px 14px;border-bottom:1px solid var(--line)}
+  .pfield .prow{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
+  .pfield .pname{font-family:var(--mono);font-size:11.5px;font-weight:600}
+  .pfield .ptype{font-family:var(--mono);font-size:9px;color:var(--gray);letter-spacing:.1em}
+  .pfield .req{width:6px;height:6px;background:var(--accent);align-self:center}
+  .pfield .pdesc{font-size:10px;color:var(--gray);margin-top:4px;line-height:1.4}
+  .pfield input[type=text],.pfield input[type=number],.pfield textarea{
+    width:100%;border:1px solid var(--line2);background:#FBFAF6;color:var(--ink);
+    font-family:var(--mono);font-size:11.5px;padding:7px 9px;outline:none;
+    transition:border-color .15s var(--ease),box-shadow .15s var(--ease)}
+  .pfield input:focus,.pfield textarea:focus{border-color:var(--ink);box-shadow:2px 2px 0 var(--accent)}
+  .pfield textarea{min-height:52px;resize:vertical;line-height:1.5}
+  .selwrap{position:relative}
+  .selwrap select{width:100%;appearance:none;-webkit-appearance:none;border:1px solid var(--line2);
+    background:#FBFAF6;color:var(--ink);font-family:var(--mono);font-size:11.5px;
+    padding:7px 26px 7px 9px;outline:none;cursor:pointer}
+  .selwrap select:focus{border-color:var(--ink);box-shadow:2px 2px 0 var(--accent)}
+  .selwrap::after{content:"";position:absolute;right:10px;top:50%;width:7px;height:7px;
+    border-right:1.5px solid var(--ink2);border-bottom:1.5px solid var(--ink2);
+    transform:translateY(-70%) rotate(45deg);pointer-events:none}
+  .boolrow{display:flex;align-items:center;gap:10px}
+  .bool{width:36px;height:18px;border:1px solid var(--ink);position:relative;cursor:pointer;background:#FBFAF6}
+  .bool::after{content:"";position:absolute;left:2px;top:2px;width:12px;height:12px;background:var(--gray);
+    transition:all .18s var(--ease)}
+  .bool.on::after{left:20px;background:var(--accent)}
+  .boolrow .bval{font-family:var(--mono);font-size:10px;color:var(--gray)}
+
+  /* ---------- actions + response ---------- */
+  #actions{flex:0 0 auto;display:flex;border-bottom:1px solid var(--ink)}
+  #invoke{flex:1;padding:13px;background:var(--accent);color:var(--paper);border:none;
+    font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.24em;cursor:pointer;
+    transition:background .15s var(--ease)}
+  #invoke:hover{background:#C93D0B}
+  #invoke:disabled{background:var(--line2);color:var(--paper);cursor:wait}
+  #fill-example{padding:13px 18px;background:var(--paper);border:none;border-right:1px solid var(--ink);
+    font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--ink2);cursor:pointer;
+    transition:all .15s var(--ease)}
+  #fill-example:hover{background:var(--ink);color:var(--paper)}
+  #resp-wrap{flex:1;display:flex;flex-direction:column;min-height:120px}
+  #resp-status{flex:0 0 30px;display:flex;align-items:center;gap:10px;padding:0 14px;
+    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--gray)}
+  #resp-status .code{font-weight:600}
+  #resp-status .code.ok{color:var(--ok)}
+  #resp-status .code.err{color:var(--err)}
+  #resp{flex:1;overflow:auto;background:#FBFAF6;padding:12px 14px;font-family:var(--mono);
+    font-size:11.5px;line-height:1.65;white-space:pre;min-height:0}
+  #resp .ph{color:var(--gray);font-size:11px;white-space:normal;line-height:1.7}
+  .tk-key{color:var(--key)} .tk-str{color:var(--ok)} .tk-num{color:var(--accent)}
+  .tk-bool{color:#7A2FA0} .tk-null{color:var(--err)} .tk-pun{color:var(--ink2)}
+  #history{flex:0 0 auto;max-height:118px;overflow-y:auto;border-top:1px solid var(--ink);background:var(--panel)}
+  .hrow{display:flex;gap:10px;align-items:center;padding:6px 14px;border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:10px;color:var(--ink2);cursor:pointer}
+  .hrow:hover{background:var(--paper)}
+  .hrow .st{width:7px;height:7px;background:var(--ok)}
+  .hrow .st.err{background:var(--err)}
+  .hrow .ht{color:var(--gray);margin-left:auto}
+
+  footer{flex:0 0 28px;display:flex;align-items:center;gap:18px;padding:0 18px;
+    border-top:1px solid var(--ink);font-family:var(--mono);font-size:9.5px;
+    color:var(--gray);letter-spacing:.1em;background:var(--panel)}
+  footer .sig{margin-left:auto}
+
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:var(--line2);border:2px solid var(--paper)}
+  ::-webkit-scrollbar-track{background:transparent}
+
+  @media (max-width:1020px){
+    body{overflow:auto}
+    main{grid-template-columns:1fr;grid-template-rows:auto auto auto}
+    .col{border-right:none;border-bottom:1px solid var(--ink)}
+    #toollist{max-height:220px}
+    #schema-wrap{height:300px}
+    #params{max-height:none}
+    #resp-wrap{min-height:240px}
+    .hstat{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="no">A·06</span>
+    <span class="name">TOOL FORGE</span>
+    <span class="sub">MCP 工具配置台</span>
+  </div>
+  <div class="hstat">调用 <b id="st-calls">0</b></div>
+  <div class="hstat">平均延迟 <b id="st-ms">—</b></div>
+  <div class="hstat">状态 <b class="accent" id="st-state">IDLE</b></div>
+  <div class="spacer"></div>
+  <div class="hnote">MOCK RUNTIME v0.9 · 数据均为本地模拟</div>
+</header>
+
+<main>
+  <!-- tool list -->
+  <section class="col">
+    <div class="col-head"><span class="sq"></span>TOOLS · 工具清单<span class="right" id="tool-count"></span></div>
+    <div id="toollist"></div>
+  </section>
+
+  <!-- schema editor -->
+  <section class="col">
+    <div class="col-head"><span class="sq"></span>SCHEMA · 参数定义<span class="right" id="schema-tool"></span></div>
+    <div id="schema-wrap">
+      <div id="gutter"></div>
+      <textarea id="schema" spellcheck="false"></textarea>
+    </div>
+    <div id="schema-status">
+      <span class="dot"></span><span class="msg">—</span>
+      <div class="actions">
+        <button class="mini-btn" id="fmt">FORMAT</button>
+        <button class="mini-btn warn" id="reset-schema">RESET</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- invoke panel -->
+  <section class="col">
+    <div class="col-head"><span class="sq"></span>INVOKE · 模拟调用<span class="right">stdio transport</span></div>
+    <div id="params"></div>
+    <div id="actions">
+      <button id="fill-example">填入示例</button>
+      <button id="invoke">调用 INVOKE</button>
+    </div>
+    <div id="resp-wrap">
+      <div id="resp-status"><span>RESPONSE</span><span class="code" id="resp-code"></span><span id="resp-meta"></span></div>
+      <div id="resp"><span class="ph">选择左侧工具，填写参数后点击「调用」。返回结果为本地 mock 运行时生成，附带 trace 与延迟信息。</span></div>
+      <div id="history"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div>JSON Schema 草案 2020-12 · 编辑 Schema 会实时重建右侧表单</div>
+  <div class="sig">ATELIER M · 2026</div>
+</footer>
+
+<script>
+'use strict';
+/* ================== 工具注册表(内置模拟数据) ================== */
+const TOOLS = [
+  {
+    id:'fs.read_file', kind:'READ', version:'1.4.0',
+    desc:'读取沙箱文件系统中的文本文件,可指定编码与字节上限。',
+    schema:{
+      type:'object',
+      properties:{
+        path:{type:'string',description:'沙箱内绝对路径'},
+        encoding:{type:'string',enum:['utf-8','base64'],default:'utf-8',description:'返回内容的编码'},
+        max_bytes:{type:'number',description:'读取上限,超出截断',minimum:1}
+      },
+      required:['path']
+    },
+    example:{path:'/sandbox/notes/todo.txt',encoding:'utf-8',max_bytes:4096},
+    mock(p){
+      const body = '# 本周事项\n- 复核 guardrail 规则集\n- 给 tool-forge 写 changelog\n- 回复 Mara 的邮件';
+      const enc = p.encoding==='base64' ? btoa(unescape(encodeURIComponent(body))) : body;
+      return {path:p.path, encoding:p.encoding||'utf-8', size_bytes:new Blob([body]).size,
+        truncated:false, content:enc};
+    }
+  },
+  {
+    id:'web.search', kind:'NET', version:'2.1.3',
+    desc:'联网检索并返回带摘要的结果列表,按相关度排序。',
+    schema:{
+      type:'object',
+      properties:{
+        query:{type:'string',description:'检索词'},
+        top_k:{type:'number',description:'返回条数 1-10',minimum:1,maximum:10},
+        time_range:{type:'string',enum:['day','week','month','any'],default:'any',description:'时间范围'}
+      },
+      required:['query']
+    },
+    example:{query:'MCP server registry 2026',top_k:3,time_range:'month'},
+    mock(p){
+      const k = Math.max(1, Math.min(10, p.top_k||3));
+      const titles = ['Model Context Protocol: 一年之后的生态','工具调用的正确姿势:schema 设计反模式','从 function calling 到 MCP:一次迁移记录','检索增强与工具编排的边界','沙箱执行的安全清单'];
+      const hosts = ['blog.example.dev','notes.mcp-eco.io','zhuanlan.example.com','eng-wiki.internal','rss.proxy.net'];
+      const results = [];
+      for(let i=0;i<k;i++) results.push({
+        rank:i+1, title:titles[i%titles.length], url:'https://'+hosts[i%hosts.length]+'/'+(1024+i*37),
+        score:+(0.97-i*0.06).toFixed(2), snippet:'与「'+p.query+'」相关的摘要片段,约 40 字,由检索管线生成。'});
+      return {query:p.query, time_range:p.time_range||'any', total_hits: 128+k*13, results};
+    }
+  },
+  {
+    id:'code.execute', kind:'EXEC', version:'0.9.8',
+    desc:'在隔离沙箱中执行代码,返回 stdout 与退出码。',
+    schema:{
+      type:'object',
+      properties:{
+        language:{type:'string',enum:['python','node'],default:'python',description:'运行时'},
+        source:{type:'string',description:'源码,长度 ≤ 8k 字符'},
+        timeout_ms:{type:'number',description:'超时毫秒',default:5000}
+      },
+      required:['source']
+    },
+    example:{language:'python',source:'import math\nprint(round(math.pi, 5))',timeout_ms:3000},
+    mock(p){
+      const isPy = (p.language||'python')==='python';
+      return {language:p.language||'python', exit_code:0,
+        stdout: isPy ? '3.14159\n' : '3.14159\n',
+        stderr:'', peak_mem_kb: 3812 + (String(p.source).length%400),
+        wall_ms: 12 + (String(p.source).length%37)};
+    }
+  },
+  {
+    id:'calendar.create_event', kind:'WRITE', version:'1.0.2',
+    desc:'在主日历创建事件,返回事件句柄与邀请状态。',
+    schema:{
+      type:'object',
+      properties:{
+        title:{type:'string',description:'事件标题'},
+        start_iso:{type:'string',description:'开始时间 ISO-8601'},
+        duration_min:{type:'number',description:'时长(分钟)',default:30},
+        attendees:{type:'array',items:{type:'string'},description:'参会人邮箱列表'}
+      },
+      required:['title','start_iso']
+    },
+    example:{title:'护栏评审会',start_iso:'2026-08-24T14:00:00+08:00',duration_min:45,attendees:['mara@atelier.dev','jun@atelier.dev']},
+    mock(p){
+      const n = Array.isArray(p.attendees)?p.attendees.length:0;
+      return {event_id:'evt_'+Math.random().toString(36).slice(2,10),
+        title:p.title, start:p.start_iso, duration_min:p.duration_min||30,
+        invites_sent:n, status:'confirmed'};
+    }
+  },
+  {
+    id:'db.query', kind:'READ', version:'3.3.1',
+    desc:'对只读分析库执行 SQL,自动附加 LIMIT。',
+    schema:{
+      type:'object',
+      properties:{
+        sql:{type:'string',description:'只读 SELECT 语句'},
+        row_limit:{type:'number',description:'返回行数上限',default:100,maximum:1000}
+      },
+      required:['sql']
+    },
+    example:{sql:'SELECT rule, hits FROM guardrail_stats ORDER BY hits DESC',row_limit:5},
+    mock(p){
+      const rows = [
+        {rule:'pii.email', hits:184},{rule:'jailbreak.dan', hits:97},
+        {rule:'prompt.exfil', hits:66},{rule:'toxicity.l2', hits:41},{rule:'pii.phone', hits:23}
+      ];
+      const lim = Math.max(1, Math.min(1000, p.row_limit||100));
+      return {sql:String(p.sql).slice(0,120), rows:rows.slice(0,Math.min(lim,rows.length)),
+        row_count:Math.min(lim,5), engine:'duckdb-mock', enforced_limit:lim};
+    }
+  },
+  {
+    id:'http.request', kind:'NET', version:'1.7.0',
+    desc:'发起一次 HTTP 请求,受域名白名单约束。',
+    schema:{
+      type:'object',
+      properties:{
+        method:{type:'string',enum:['GET','POST'],default:'GET',description:'请求方法'},
+        url:{type:'string',description:'目标 URL,需在白名单内'},
+        headers:{type:'object',description:'请求头键值对'},
+        body:{type:'string',description:'POST 请求体'}
+      },
+      required:['url']
+    },
+    example:{method:'GET',url:'https://api.internal/health',headers:{'x-trace':'tf-demo'},body:''},
+    mock(p){
+      return {method:p.method||'GET', url:p.url, status:200,
+        latency_ms: 40+(String(p.url).length%160),
+        bytes: 512+(String(p.url).length*7)%2048,
+        json:{service:'api.internal', ok:true, version:'2026.08'}};
+    }
+  }
+];
+
+/* ================== 状态 ================== */
+const $ = id => document.getElementById(id);
+let current = TOOLS[0];
+let invoking = false;
+const stats = {calls:0, totalMs:0};
+
+/* ================== 工具清单 ================== */
+const listEl = $('toollist');
+TOOLS.forEach((t,i)=>{
+  const el = document.createElement('div');
+  el.className = 'tool'+(i===0?' active':'');
+  el.innerHTML = '<span class="idx">'+String(i+1).padStart(2,'0')+'</span>'+
+    '<span class="tname">'+t.id+'</span>'+
+    '<span class="kind">'+t.kind+'</span>'+
+    '<span class="tdesc">'+t.desc+'</span>';
+  el.onclick = ()=>selectTool(t, el);
+  listEl.appendChild(el);
+});
+$('tool-count').textContent = TOOLS.length+' registered';
+
+function selectTool(t, el){
+  if(invoking) return;
+  current = t;
+  document.querySelectorAll('.tool').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  $('schema').value = JSON.stringify(t.schema,null,2);
+  onSchemaEdit(true);
+  $('schema-tool').textContent = t.id+'@'+t.version;
+  $('resp').innerHTML = '<span class="ph">已载入 '+t.id+' 的 Schema。填写参数后点击「调用」,或先「填入示例」。</span>';
+  $('resp-code').textContent = ''; $('resp-meta').textContent = '';
+}
+
+/* ================== Schema 编辑 ================== */
+const schemaEl = $('schema'), gutterEl = $('gutter'), statusEl = $('schema-status');
+schemaEl.value = JSON.stringify(current.schema,null,2);
+
+function updateGutter(){
+  const n = schemaEl.value.split('\n').length;
+  let s = '';
+  for(let i=1;i<=n;i++) s += i+'\n';
+  gutterEl.textContent = s;
+  gutterEl.scrollTop = schemaEl.scrollTop;
+}
+schemaEl.addEventListener('scroll', ()=>{ gutterEl.scrollTop = schemaEl.scrollTop; });
+schemaEl.addEventListener('keydown', e=>{
+  if(e.key==='Tab'){
+    e.preventDefault();
+    const s = schemaEl.selectionStart;
+    schemaEl.value = schemaEl.value.slice(0,s)+'  '+schemaEl.value.slice(schemaEl.selectionEnd);
+    schemaEl.selectionStart = schemaEl.selectionEnd = s+2;
+    onSchemaEdit();
+  }
+});
+schemaEl.addEventListener('input', ()=>onSchemaEdit());
+
+function validateSchema(text){
+  let obj;
+  try{ obj = JSON.parse(text); }
+  catch(err){
+    const m = /position (\d+)/.exec(err.message);
+    let loc = '';
+    if(m){
+      const pos = +m[1], pre = text.slice(0,pos);
+      const line = pre.split('\n').length, col = pos - pre.lastIndexOf('\n');
+      loc = ' · 第 '+line+' 行 '+col+' 列';
+    }
+    return {err:'JSON 语法错误'+loc};
+  }
+  if(!obj || obj.type!=='object' || typeof obj.properties!=='object' || Array.isArray(obj.properties))
+    return {err:'结构需为 {type:"object", properties:{…}}'};
+  return {obj};
+}
+
+function onSchemaEdit(silent){
+  updateGutter();
+  const r = validateSchema(schemaEl.value);
+  if(r.err){
+    statusEl.classList.add('err');
+    statusEl.querySelector('.msg').textContent = r.err+' · 表单保持上一有效版本';
+    return;
+  }
+  statusEl.classList.remove('err');
+  const names = Object.keys(r.obj.properties);
+  statusEl.querySelector('.msg').textContent =
+    'Schema 有效 · '+names.length+' 个参数 · '+(r.obj.required||[]).length+' 必填';
+  current.liveSchema = r.obj;
+  buildForm(r.obj);
+  if(!silent) $('invoke').disabled = false;
+}
+
+$('fmt').onclick = ()=>{
+  const r = validateSchema(schemaEl.value);
+  if(!r.err){ schemaEl.value = JSON.stringify(r.obj,null,2); onSchemaEdit(); }
+};
+$('reset-schema').onclick = ()=>{
+  schemaEl.value = JSON.stringify(current.schema,null,2);
+  onSchemaEdit();
+};
+
+/* ================== 参数表单 ================== */
+const paramsEl = $('params');
+let fieldInputs = {};
+
+function buildForm(schema){
+  paramsEl.innerHTML = '';
+  fieldInputs = {};
+  const req = new Set(schema.required||[]);
+  Object.entries(schema.properties).forEach(([name, def])=>{
+    const f = document.createElement('div');
+    f.className = 'pfield';
+    const enumNote = def.enum ? ' · '+def.enum.join(' / ') : '';
+    f.innerHTML = '<div class="prow"><span class="pname">'+name+'</span>'+
+      '<span class="ptype">'+def.type+enumNote+'</span>'+
+      (req.has(name)?'<span class="req"></span>':'')+'</div>';
+    let input;
+    if(def.enum){
+      const w = document.createElement('div'); w.className='selwrap';
+      input = document.createElement('select');
+      def.enum.forEach(v=>{
+        const o = document.createElement('option');
+        o.value=v; o.textContent=v+(v===def.default?' (默认)':'');
+        input.appendChild(o);
+      });
+      if(def.default) input.value = def.default;
+      w.appendChild(input); f.appendChild(w);
+    } else if(def.type==='boolean'){
+      const w = document.createElement('div'); w.className='boolrow';
+      input = document.createElement('div'); input.className='bool';
+      const val = document.createElement('span'); val.className='bval'; val.textContent='false';
+      input.onclick = ()=>{
+        input.classList.toggle('on');
+        val.textContent = input.classList.contains('on')?'true':'false';
+      };
+      input.getVal = ()=>input.classList.contains('on');
+      w.appendChild(input); w.appendChild(val); f.appendChild(w);
+    } else if(def.type==='number' || def.type==='integer'){
+      input = document.createElement('input'); input.type='number';
+      if(def.default!==undefined) input.value = def.default;
+      if(def.minimum!==undefined) input.min = def.minimum;
+      if(def.maximum!==undefined) input.max = def.maximum;
+      f.appendChild(input);
+    } else if(def.type==='array' || def.type==='object'){
+      input = document.createElement('textarea');
+      input.placeholder = def.type==='array' ? '["…"] JSON 数组' : '{…} JSON 对象';
+      f.appendChild(input);
+    } else {
+      input = document.createElement('input'); input.type='text';
+      if(def.default!==undefined) input.value = def.default;
+      f.appendChild(input);
+    }
+    if(def.description){
+      const d = document.createElement('div'); d.className='pdesc'; d.textContent=def.description;
+      f.appendChild(d);
+    }
+    fieldInputs[name] = input;
+    paramsEl.appendChild(f);
+  });
+}
+
+function gatherParams(){
+  const out = {};
+  const schema = current.liveSchema || current.schema;
+  for(const [name, input] of Object.entries(fieldInputs)){
+    const def = schema.properties[name];
+    if(input.getVal){ out[name] = input.getVal(); continue; }
+    let v = input.value;
+    if(v==='' ) continue;
+    if(def.type==='number'||def.type==='integer'){ v = +v; if(isNaN(v)) continue; }
+    else if(def.type==='array'||def.type==='object'){
+      try{ v = JSON.parse(v); }catch(e){ throw new Error('参数 '+name+' 不是合法 JSON'); }
+    }
+    out[name] = v;
+  }
+  return out;
+}
+
+$('fill-example').onclick = ()=>{
+  if(invoking) return;
+  const schema = current.liveSchema || current.schema;
+  Object.entries(current.example).forEach(([k,v])=>{
+    const input = fieldInputs[k]; if(!input) return;
+    const def = schema.properties[k];
+    if(input.getVal){ input.classList.toggle('on', !!v); input.nextSibling.textContent = String(!!v); }
+    else input.value = (def.type==='array'||def.type==='object') ? JSON.stringify(v) : v;
+  });
+};
+
+/* ================== JSON 语法高亮 ================== */
+function tokenizeJSON(str){
+  const re = /("(?:[^"\\]|\\.)*")(\s*:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|(\btrue\b|\bfalse\b)|(\bnull\b)|([{}[\],:])/g;
+  const toks = []; let m;
+  while((m = re.exec(str))){
+    if(m[1]) toks.push({t:m[1], c: m[2]?'tk-key':'tk-str'});
+    else if(m[3]) toks.push({t:m[3], c:'tk-num'});
+    else if(m[4]) toks.push({t:m[4], c:'tk-bool'});
+    else if(m[5]) toks.push({t:m[5], c:'tk-null'});
+    else if(m[6]) toks.push({t:m[6], c:'tk-pun'});
+  }
+  return toks;
+}
+/* 按 token 渐进渲染,带高亮 */
+function typeJSON(target, text, done){
+  const toks = tokenizeJSON(text);
+  const total = text.length;
+  let shown = 0;
+  target.innerHTML = '';
+  const spans = toks.map(tk=>{
+    const s = document.createElement('span');
+    s.className = tk.c; target.appendChild(s);
+    return {s, t:tk.t, i:0};
+  });
+  const perTick = ()=>Math.max(4, Math.round(total/38));
+  function tick(){
+    let budget = perTick();
+    while(budget>0){
+      const cur = spans.find(x=>x.i < x.t.length);
+      if(!cur){ done && done(); return; }
+      const take = Math.min(budget, cur.t.length - cur.i);
+      cur.s.textContent += cur.t.slice(cur.i, cur.i+take);
+      cur.i += take; budget -= take; shown += take;
+    }
+    target.scrollTop = target.scrollHeight;
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+/* ================== 调用 ================== */
+const invokeBtn = $('invoke'), respEl = $('resp');
+const hex = n => [...Array(n)].map(()=>'0123456789abcdef'[Math.random()*16|0]).join('');
+
+invokeBtn.onclick = ()=>{
+  if(invoking) return;
+  let params;
+  try{ params = gatherParams(); }
+  catch(err){
+    $('resp-code').textContent = '400 BAD ARGS'; $('resp-code').className='code err';
+    respEl.innerHTML = '<span class="tk-null">'+err.message+'</span>';
+    return;
+  }
+  /* 必填校验 */
+  const schema = current.liveSchema || current.schema;
+  const missing = (schema.required||[]).filter(k=>!(k in params));
+  if(missing.length){
+    $('resp-code').textContent = '422 UNPROCESSABLE'; $('resp-code').className='code err';
+    respEl.innerHTML = '<span class="tk-null">缺少必填参数: '+missing.join(', ')+'</span>';
+    return;
+  }
+  invoking = true;
+  invokeBtn.disabled = true;
+  $('st-state').textContent = 'RUNNING';
+  $('resp-code').textContent = ''; $('resp-meta').textContent = 'awaiting…';
+  respEl.innerHTML = '<span class="ph" id="spin">▸ 正在通过 stdio 发送 JSON-RPC 请求…</span>';
+  const frames = ['▸','▹','▸','▹']; let fi=0;
+  const spinTimer = setInterval(()=>{
+    const sp = $('spin'); if(sp) sp.textContent = frames[fi++%4]+' 正在通过 stdio 发送 JSON-RPC 请求…';
+  }, 140);
+
+  const latency = 90 + Math.random()*320;
+  setTimeout(()=>{
+    clearInterval(spinTimer);
+    const took = Math.round(latency + Math.random()*40);
+    const data = current.mock(params);
+    const payload = {ok:true, tool:current.id+'@'+current.version, took_ms:took,
+      trace:'tr_'+hex(8), data};
+    stats.calls++; stats.totalMs += took;
+    $('st-calls').textContent = stats.calls;
+    $('st-ms').textContent = Math.round(stats.totalMs/stats.calls)+'ms';
+    $('st-state').textContent = 'IDLE';
+    $('resp-code').textContent = '200 OK'; $('resp-code').className='code ok';
+    $('resp-meta').textContent = took+'ms · '+new Blob([JSON.stringify(payload)]).size+' B · '+payload.trace;
+    typeJSON(respEl, JSON.stringify(payload,null,2), ()=>{
+      invoking = false; invokeBtn.disabled = false;
+    });
+    addHistory(current.id, true, took, params, payload);
+  }, latency);
+};
+
+/* ================== 历史 ================== */
+const historyEl = $('history');
+function addHistory(toolId, ok, ms, params, payload){
+  const row = document.createElement('div');
+  row.className = 'hrow';
+  const time = new Date().toTimeString().slice(0,8);
+  row.innerHTML = '<span class="st'+(ok?'':' err')+'"></span><span>'+toolId+'</span>'+
+    '<span class="ht">'+time+' · '+ms+'ms</span>';
+  row.onclick = ()=>{
+    if(invoking) return;
+    $('resp-code').textContent = ok?'200 OK':'ERR'; $('resp-code').className = 'code '+(ok?'ok':'err');
+    $('resp-meta').textContent = ms+'ms · 历史回放';
+    respEl.innerHTML = '';
+    typeJSON(respEl, JSON.stringify(payload,null,2));
+  };
+  historyEl.prepend(row);
+  while(historyEl.children.length>8) historyEl.removeChild(historyEl.lastChild);
+}
+
+/* ================== init ================== */
+onSchemaEdit(true);
+$('schema-tool').textContent = current.id+'@'+current.version;
+</script>
+</body>
+</html>
