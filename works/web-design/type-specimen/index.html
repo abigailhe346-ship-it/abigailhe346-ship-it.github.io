@@ -319,6 +319,16 @@ var nowD=new Date();
 var heure=nowD.getHours()+nowD.getMinutes()/60;
 var hashM=/[#&]h=([\d.]+)/.exec(location.hash||"");
 if(hashM)heure=parseFloat(hashM[1]);
+/* 种子：#h=17&seed=6010 可复现同一版题字与影向 */
+var seedM=/[#&]seed=(\d+)/.exec(location.hash||"");
+var SEED=seedM?parseInt(seedM[1],10):6010;
+function mulberry48(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function writeSeed(reflect){
+  if(!reflect)return;
+  try{history.replaceState(null,"","#h="+heure.toFixed(1)+"&seed="+SEED);}catch(e){}
+  var so=document.getElementById("seedOut");if(so)so.textContent=SEED;
+}
 
 /* 太阳参数：仰角决定影长，方位决定影向；夜=台灯 */
 function sunParams(h){
@@ -344,10 +354,11 @@ function shadowCSS(len,angDeg,rgba){
   return parts.join(",");
 }
 var SHADOW_COL="rgba(94,110,126,"; /* 阴影补色蓝 #5E6E7E */
+var seedJ=0; /* 种子带来的微小影向差——同一时刻，不同的那一版 */
 function applySun(){
   var sp=sunParams(heure);
   var col=SHADOW_COL+sp.alpha+")";
-  var sh=shadowCSS(sp.len,sp.ang,col);
+  var sh=shadowCSS(sp.len,sp.ang+seedJ,col);
   document.querySelectorAll(".sunlit").forEach(function(el){el.style.textShadow=sh;});
   /* 对照室 A 面=此刻 */
   document.getElementById("bigA").style.textShadow=sh;
@@ -500,6 +511,7 @@ function setHeure(h){
   var hh=Math.floor(heure),mm=Math.floor((heure-hh)*60);
   hread.innerHTML="<b>"+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+"</b> "+heureName(heure);
   applySun();
+  writeSeed(true);
 }
 var hDrag=false;
 function hSetFromEvent(e){
@@ -599,6 +611,81 @@ if(sndOn){document.addEventListener("pointerdown",function boot(){
   master.gain.setTargetAtTime(0.9,AC.currentTime,0.5);
   document.removeEventListener("pointerdown",boot);
 },{once:true});}
+
+/* ================= 画室身份：种子 / 输出 / 快捷键 ================= */
+var MASTS=[["字样即","光影"],["排字即","布光"],["铅字","不死"],["字里","有光"]];
+function applySeed(){
+  var R=mulberry48((SEED*2654435761)>>>0);
+  var pair=MASTS[Math.floor(R()*MASTS.length)];
+  document.getElementById("mastA").textContent=pair[0];
+  document.getElementById("mastB").textContent=pair[1];
+  seedJ=(R()*2-1)*6;
+  applySun();
+}
+function reseed(){
+  SEED=1000+Math.floor(Math.random()*89000);
+  applySeed();writeSeed(true);
+}
+function savePNG(){
+  var box=document.getElementById("testerBox");
+  var cs=getComputedStyle(box);
+  var W=1400,H=760,cv=document.createElement("canvas");
+  cv.width=W;cv.height=H;
+  var cx=cv.getContext("2d");
+  cx.fillStyle=cs.backgroundColor||"#F4E3C2";cx.fillRect(0,0,W,H);
+  cx.strokeStyle="rgba(20,20,20,.4)";cx.strokeRect(24.5,24.5,W-49,H-49);
+  cx.fillStyle=cs.color||"#141414";
+  cx.textBaseline="top";
+  var lh=parseFloat(cs.lineHeight)||70;
+  var y=90;
+  var lines=box.innerText.split("\n");
+  cx.textAlign=cs.textAlign||"left";
+  var tx=cx.textAlign==="center"?W/2:(cx.textAlign==="right"?W-90:90);
+  lines.forEach(function(ln){
+    cx.font=(cs.fontWeight||"400")+" "+(parseFloat(cs.fontSize)||56)+"px "+cs.fontFamily;
+    /* 简单折行 */
+    var max=W-180,cur="";
+    for(var i=0;i<ln.length;i++){
+      if(cx.measureText(cur+ln[i]).width>max){cx.fillText(cur,tx,y);y+=lh;cur=ln[i];}
+      else cur+=ln[i];
+    }
+    cx.fillText(cur,tx,y);y+=lh*1.4;
+  });
+  cx.font="22px Menlo,monospace";
+  cx.fillStyle="rgba(20,20,20,.55)";
+  cx.textAlign="left";
+  cx.fillText("SPECIMEN ROOM · ÉTUDE N°48 · ATELIER MIRA · SEED "+SEED+" · "+document.getElementById("hread").textContent,90,H-80);
+  var a=document.createElement("a");
+  a.download="specimen-tester-seed"+SEED+".png";
+  a.href=cv.toDataURL("image/png");a.click();
+}
+function shareLink(){
+  var url=location.href.split("#")[0]+"#h="+heure.toFixed(1)+"&seed="+SEED;
+  if(navigator.clipboard&&navigator.clipboard.writeText)
+    navigator.clipboard.writeText(url).catch(function(){prompt("复制分享链接",url);});
+  else prompt("复制分享链接",url);
+}
+document.getElementById("bReseed").addEventListener("click",reseed);
+document.getElementById("bSave").addEventListener("click",savePNG);
+document.getElementById("bShare").addEventListener("click",shareLink);
+var LIGHT_PRESETS=[7.5,12,17,22.5],lpIdx=1;
+document.getElementById("sealSvg").addEventListener("dblclick",function(){
+  lpIdx=(lpIdx+1)%4;setHeure(LIGHT_PRESETS[lpIdx]);
+});
+document.addEventListener("keydown",function(e){
+  if(/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName))return;
+  if(document.activeElement.isContentEditable)return;
+  var k=e.key;
+  if(k==="r"||k==="R")reseed();
+  else if(k==="s"||k==="S")savePNG();
+  else if(k==="d"||k==="D"){
+    var cur=document.getElementById("testerBox").classList.contains("dark")?"light":"dusk";
+    document.querySelectorAll("#cGround button").forEach(function(b){
+      if(b.dataset.g===cur||(cur==="light"&&b.dataset.g==="light"))b.click();
+    });
+  }
+});
+applySeed();
 
 /* ================= 启动 ================= */
 setHeure(heure);
