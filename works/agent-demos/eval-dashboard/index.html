@@ -696,10 +696,12 @@ function draw(now){
   /* --- 麦捆（先画影，后画捆） --- */
   const sunA=Math.atan2(sun.y-horizonY,sun.x-W/2);
   const shDir=sun.x<W/2?1:-1; /* 影子背向太阳 */
-  /* 生长推进：墙钟 + stagger，缓出 */
+  /* 生长推进：墙钟与帧数取大者（headless 截图下同样能长成） */
   sheaves.forEach(s=>{
-    const k=Math.min(1,Math.max(0,(now-growBase)/1000-s.growDelay)/.9);
-    s.grow=1-Math.pow(1-Math.min(1,Math.max(0,k)),3);
+    const kw=((now-growBase)/1000-s.growDelay)/.9;
+    const kf=(frameN/60-s.growDelay)/.9;
+    const k=Math.min(1,Math.max(0,Math.max(kw,kf)));
+    s.grow=1-Math.pow(1-k,3);
   });
   const order=[...sheaves].sort((a,b)=>a.y-b.y);
   order.forEach(s=>{
@@ -792,11 +794,12 @@ function draw(now){
 
 /* ================= boot ================= */
 genData();layoutField();renderMatrix();writeHash();
+if(hashParams.has("still"))growBase=-1e7; /* QA/分享直出成熟画面 */
 if(innerWidth<760)document.body.classList.add("hideui");
-let last=performance.now();
+let last=performance.now(),frameN=0;
 (function loop(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;
-  t+=dt;
+  t+=dt;frameN++;
   draw(now);
   requestAnimationFrame(loop);
 })(last);

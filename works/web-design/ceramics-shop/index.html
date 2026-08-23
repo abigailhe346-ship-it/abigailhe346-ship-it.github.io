@@ -140,9 +140,13 @@
   @media(max-width:720px){
     #hero-ui{top:11vh;max-width:78vw;}
     .hint{display:none;}
-    #hud{right:4vw;bottom:13.5vh;}
-    #pot-card{left:4vw;right:4vw;bottom:24vh;max-width:none;}
-    #timeline{width:88vw;bottom:5.5vh;}
+    #hud{left:4vw;right:4vw;bottom:13.5vh;align-items:stretch;}
+    .etudes{width:100%;}
+    .etudes button{flex:1;padding:8px 4px;font-size:9px;letter-spacing:.1em;}
+    .acts{justify-content:space-between;}
+    .acts button{flex:1;padding:8px 6px;font-size:9px;letter-spacing:.08em;}
+    #pot-card{left:4vw;right:4vw;bottom:31vh;max-width:none;}
+    #timeline{width:62vw;bottom:6.5vh;left:4vw;transform:none;}
     .clock{display:none;}
     #journal .cols{grid-template-columns:1fr;}
     #sig .txt{font-size:8.5px;}
@@ -372,14 +376,19 @@ function buildPots(newSeed){
   });
 }
 function potLayout(){
-  const baseY=waterTop()-H*.02,n=slots.length;
+  const baseY=waterTop()-H*.02;
   const r=mulberry32(seed^0xC0C);
   const ASPECT={jar:.82,vase:.62,bowl:1.08,cup:.78,mizu:.9};
-  const margin=W*.22,span=W*.94-margin;
-  return slots.map((pi,i)=>{
+  const small=W<600;
+  const useSlots=small?slots.slice(0,3):slots;
+  const n=useSlots.length;
+  const margin=small?W*.08:W*.22,span=(small?W*.92:W*.94)-margin;
+  return useSlots.map((pi,i)=>{
     const p=pots[pi];
-    const cx=n===1?W*.6:margin+span*(i/(n-1))+(r()-.5)*W*.038;
-    const h=clamp(H*.24*p.hRel,80,H*.36),w=h*(ASPECT[p.shape]||.8);
+    const cx=n===1?W*.5:margin+span*(i/(n-1))+(r()-.5)*W*.038;
+    let h=clamp(H*.24*p.hRel,80,H*.36);
+    if(small)h=clamp(h*.62,64,120);
+    const w=h*(ASPECT[p.shape]||.8);
     return{pi,cx,baseY,h,w};
   });
 }
