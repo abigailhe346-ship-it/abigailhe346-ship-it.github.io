@@ -509,17 +509,105 @@ function resize(){
   cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);
   const m=Math.max(26,W*.04);
   mapR={x:m+10,y:m+10,w:W-m*2-20,h:H-m*2-20};
-  makePaper();
+  makePaper();mapC=null;
 }
 addEventListener('resize',resize);
+
+/* ---------- 地图层：离屏低速重绘（软件渲染下 15k cell/帧太贵） ---------- */
+let mapC=null,mapCtx=null,frameNo=0;
+function drawMapLayer(){
+  if(!mapC){mapC=document.createElement('canvas');mapC.width=W;mapC.height=H;mapCtx=mapC.getContext('2d');}
+  const g=mapCtx;
+  g.clearRect(0,0,W,H);
+  g.fillStyle=`rgb(${PAL.mist})`;g.fillRect(0,0,W,H);
+  // 晕渲
+  const cw=mapR.w/GW, ch=mapR.h/GH;
+  for(let j=0;j<GH;j++){
+    for(let i=0;i<GW;i++){
+      const v=(grid[j*(GW+1)+i]+grid[j*(GW+1)+i+1]+grid[(j+1)*(GW+1)+i]+grid[(j+1)*(GW+1)+i+1])/4;
+      if(v<SEA){g.fillStyle=`rgb(${SEA_C})`}
+      else{
+        const t2=Math.min(.999,(v-SEA)/(1-SEA));
+        g.fillStyle=`rgb(${LAND[Math.floor(t2*24)]})`;
+      }
+      g.fillRect(mapR.x+i*cw,mapR.y+j*ch,cw+.6,ch+.6);
+    }
+  }
+  // 碎色罩层：让色块有笔触（hatch）
+  g.lineCap='round';
+  const hr=mulberry32(5000+((t*2)|0));
+  for(let k=0;k<700;k++){
+    const i=(hr()*GW)|0, j=(hr()*GH)|0;
+    const v=grid[j*(GW+1)+i];
+    const x=mapR.x+i*cw+cw*.5, y=mapR.y+j*ch+ch*.5;
+    const c=v<SEA?SEA_C:LAND[Math.min(23,Math.floor((v-SEA)/(1-SEA)*24))];
+    g.strokeStyle=`rgba(${Math.max(0,c[0]-14)},${Math.max(0,c[1]-14)},${Math.max(0,c[2]-12)},${(.10+hr()*.1).toFixed(2)})`;
+    g.lineWidth=.8+hr();
+    g.beginPath();g.moveTo(x,y);g.lineTo(x+3+hr()*6,y-1-hr()*2);g.stroke();
+  }
+  // 等高线
+  const dh=.06;
+  let k=0;
+  for(let level=SEA-dh;level>0.06;level-=dh){
+    contourPath(g,level);
+    g.strokeStyle=`rgba(${BATHY},.5)`;g.lineWidth=.7;g.stroke();
+  }
+  for(let level=SEA;level<0.98;level+=dh,k++){
+    const isIndex=(k%5===4);
+    contourPath(g,level);
+    g.strokeStyle=isIndex?`rgba(${PAL.shade},.9)`:`rgba(${PAL.shade},.55)`;
+    g.lineWidth=isIndex?1.5:.7;
+    g.stroke();
+  }
+  contourPath(g,SEA);
+  g.strokeStyle=`rgba(${PAL.shade},.9)`;g.lineWidth=1.3;g.stroke();
+  // 峰标
+  g.font="700 11px 'SF Mono',Menlo,monospace";
+  g.textAlign="left";
+  for(const p of peaks){
+    const x=mapR.x+p.i*cw, y=mapR.y+p.j*ch;
+    g.fillStyle=`rgba(${PAL.shade},.9)`;
+    g.beginPath();g.moveTo(x,y-7);g.lineTo(x-6,y+4);g.lineTo(x+6,y+4);g.closePath();g.fill();
+    const label=toMeters(p.h)+"m";
+    const tw=g.measureText(label).width;
+    g.fillStyle="rgba(232,230,223,.85)";
+    g.fillRect(x+9,y-9,tw+6,14);
+    g.strokeStyle=`rgba(${PAL.shade},.6)`;g.lineWidth=.6;
+    g.strokeRect(x+9,y-9,tw+6,14);
+    g.fillStyle=`rgba(${PAL.shade},.9)`;
+    g.fillText(label,x+12,y+2);
+  }
+  // 图廓：经纬刻度 + 图签（Brume 色系）
+  g.strokeStyle=`rgba(${PAL.shade},.8)`;g.lineWidth=1.2;
+  g.strokeRect(mapR.x,mapR.y,mapR.w,mapR.h);
+  g.lineWidth=.5;
+  g.strokeRect(mapR.x-4,mapR.y-4,mapR.w+8,mapR.h+8);
+  g.fillStyle=`rgba(${PAL.shade},.9)`;
+  g.font="400 9px 'SF Mono',Menlo,monospace";g.textAlign="center";
+  for(let i=1;i<6;i++){
+    const x=mapR.x+mapR.w*i/6;
+    g.beginPath();g.moveTo(x,mapR.y);g.lineTo(x,mapR.y+5);g.moveTo(x,mapR.y+mapR.h-5);g.lineTo(x,mapR.y+mapR.h);g.stroke();
+    g.fillText((baseLon+i*2)+"°E",x,mapR.y-8);
+  }
+  g.textAlign="left";
+  g.fillStyle="rgba(232,230,223,.92)";
+  g.fillRect(mapR.x+12,mapR.y+12,212,54);
+  g.strokeStyle=`rgba(${PAL.shade},.7)`;g.lineWidth=.8;
+  g.strokeRect(mapR.x+12,mapR.y+12,212,54);
+  g.fillStyle=`rgba(${PAL.shade},.95)`;
+  g.font="700 12px 'SF Mono',Menlo,monospace";
+  g.fillText("TOPO DRIFT · 晨雾",mapR.x+22,mapR.y+31);
+  g.font="400 9.5px 'SF Mono',Menlo,monospace";
+  g.fillText("SURVEY №"+surveyNo+" · 1:250000",mapR.x+22,mapR.y+46);
+  g.fillText("BRUME MATINALE · fBM-4",mapR.x+22,mapR.y+58);
+}
 
 /* ---------- 主循环 ---------- */
 let t=0;
 function frame(){
   t+=.016;
-  // 地形漂移（风模式更快）
+  // 地形漂移（风模式更快）；网格每 3 帧随地图层重算
   tDrift+=mode==='vent'?.004:.0016;
-  computeGrid(tDrift);findPeaks();
   // 指针阻尼 + 停留吹雾
   if(ptx>-100){
     px+=(ptx-px)*.1;py+=(pty-py)*.1;
@@ -529,51 +617,11 @@ function frame(){
   const L=lightAt(heure);
   const fogBase=mode==='brume'?Math.max(.75,fogAt(heure)):mode==='vent'?fogAt(heure)*.5:fogAt(heure);
 
+  // 地图层（离屏，每 3 帧重绘；雾/光/指针保持每帧响应）
+  if((frameNo++%3)===0||!mapC){computeGrid(tDrift);findPeaks();drawMapLayer();}
   ctx.fillStyle=`rgb(${PAL.mist})`;ctx.fillRect(0,0,W,H);
-
-  // 晕渲
+  ctx.drawImage(mapC,0,0);
   const cw=mapR.w/GW, ch=mapR.h/GH;
-  for(let j=0;j<GH;j++){
-    for(let i=0;i<GW;i++){
-      const v=(grid[j*(GW+1)+i]+grid[j*(GW+1)+i+1]+grid[(j+1)*(GW+1)+i]+grid[(j+1)*(GW+1)+i+1])/4;
-      if(v<SEA){ctx.fillStyle=`rgb(${SEA_C})`}
-      else{
-        const t2=Math.min(.999,(v-SEA)/(1-SEA));
-        ctx.fillStyle=`rgb(${LAND[Math.floor(t2*24)]})`;
-      }
-      ctx.fillRect(mapR.x+i*cw,mapR.y+j*ch,cw+.6,ch+.6);
-    }
-  }
-  // 碎色罩层：让色块有笔触（hatch）
-  ctx.lineCap='round';
-  const hr=mulberry32(5000+((t*2)|0));
-  for(let k=0;k<700;k++){
-    const i=(hr()*GW)|0, j=(hr()*GH)|0;
-    const v=grid[j*(GW+1)+i];
-    const x=mapR.x+i*cw+cw*.5, y=mapR.y+j*ch+ch*.5;
-    const c=v<SEA?SEA_C:LAND[Math.min(23,Math.floor((v-SEA)/(1-SEA)*24))];
-    const dk=hr()<.5;
-    ctx.strokeStyle=`rgba(${Math.max(0,c[0]-14)},${Math.max(0,c[1]-14)},${Math.max(0,c[2]-12)},${(.10+hr()*.1).toFixed(2)})`;
-    ctx.lineWidth=.8+hr();
-    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+3+hr()*6,y-1-hr()*2);ctx.stroke();
-  }
-  // 等高线
-  const dh=.06;
-  ctx.lineCap='round';
-  let k=0;
-  for(let level=SEA-dh;level>0.06;level-=dh){
-    contourPath(ctx,level);
-    ctx.strokeStyle=`rgba(${BATHY},.5)`;ctx.lineWidth=.7;ctx.stroke();
-  }
-  for(let level=SEA;level<0.98;level+=dh,k++){
-    const isIndex=(k%5===4);
-    contourPath(ctx,level);
-    ctx.strokeStyle=isIndex?`rgba(${PAL.shade},.9)`:`rgba(${PAL.shade},.55)`;
-    ctx.lineWidth=isIndex?1.5:.7;
-    ctx.stroke();
-  }
-  contourPath(ctx,SEA);
-  ctx.strokeStyle=`rgba(${PAL.shade},.9)`;ctx.lineWidth=1.3;ctx.stroke();
 
   // 雾：低地积雾，随 heure 浓淡（wow：拖时间轴看雾散山现）
   const fr=mulberry32(9000+((t*3)|0));
@@ -583,7 +631,7 @@ function frame(){
     const v=grid[j*(GW+1)+i];
     if(v>SEA+.3)continue; // 雾只积在低地与海面
     const depth=Math.max(0,1-(v-SEA)/.3);
-    const drift=noise(i*.06+t*.35,j*.06,3.3);
+    const drift=.5+.5*Math.sin(i*.11+t*1.2+Math.sin(j*.17+t*.4)*2.2);
     const dens=Math.min(1,depth*.7+ (v<SEA?.35:0))*fogBase*(0.5+drift*.9);
     if(dens<.12)continue;
     const x=mapR.x+i*cw+fr()*cw, y=mapR.y+j*ch+fr()*ch;

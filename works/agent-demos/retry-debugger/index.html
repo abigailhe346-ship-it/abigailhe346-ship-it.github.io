@@ -3,1106 +3,839 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RETRY DEBUGGER — 失败重试自愈台 · ÉTUDE N°75</title>
+<title>Retry Debugger — 风中的退避小径 · Atelier MIRA N°075 · 罂粟田</title>
+<!--
+  Atelier MIRA · Étude N°075 · 罂粟田 CHAMP DE COQUELICOTS（阿让特伊的夏午，≈5600K）
+  家族锚点：#B7C98B 草甸 · #7A9A5B 深草 · #8FA3B8 远天 · #E4D9C2 小径 · #6B5D4F 泥土 · #B43A2E 罂粟红（唯一的纯色，≤8%，只许点状）
+  面积配比：草 50% / 天 22% / 小径与泥土 18% / 罂粟 ≤8% 点状。阴影走泥土褐绿，不用黑灰。
+  退避曲线是一条穿过草甸的小径：每一次尝试是一根测风杆，失败开一朵罂粟，
+  熔断是小径尽头那扇木门。按住 INJECT，风暴就来了。
+-->
 <style>
   :root{
-    --bg:#16100A; --panel:#1E160D; --panel2:#261C10; --line:#3A2C17; --line2:#54401F;
-    --amber:#FFB000; --amber-dim:#7A5A1E; --amber-ghost:#4A3818;
-    --red:#FF4A2E; --green:#57E389; --ink:#F0DCA8; --dim:#9C7E46;
-    --accent:#FFB000;
+    --ink:#4A4433; --dim:#7E7660; --paper:rgba(228,217,194,.9); --paper-solid:#E4D9C2;
+    --line:rgba(107,93,79,.32); --accent:#6B5D4F; --poppy:#B43A2E; --accent-soft:rgba(107,93,79,.14);
     --mono:"SF Mono",Menlo,Consolas,monospace;
+    --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
+    --sans:-apple-system,"Helvetica Neue","PingFang SC",sans-serif;
     --ease:cubic-bezier(.22,1,.36,1);
   }
-  /* 同一台仪器在一天里的四种光 */
-  body[data-atmo=aube]{--bg:#1C150C;--panel:#261C10;--panel2:#2E2214;--line:#42311A;--line2:#5C4622;
-    --amber:#FFAE1F;--dim:#A8864C}
-  body[data-atmo=soir]{--bg:#1E1006;--panel:#281608;--panel2:#301C0A;--line:#46290E;--line2:#5E3812;
-    --amber:#FF9A1A;--amber-dim:#8A5A14;--dim:#A87838}
-  body[data-atmo=nuit]{--bg:#0C0906;--panel:#131009;--panel2:#1A140B;--line:#2C2210;--line2:#463617;
-    --amber:#FFC22E;--amber-dim:#6A4E16;--dim:#8A7040}
   *{margin:0;padding:0;box-sizing:border-box}
-  html,body{height:100%;overflow-x:clip}
-  body{background:var(--bg);color:var(--ink);font-family:var(--mono);
-    -webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-height:100vh;
-    transition:background 1.2s var(--ease)}
-  ::selection{background:rgba(255,176,0,.3)}
+  html,body{height:100%}
+  body{background:#B7C98B;color:var(--ink);font-family:var(--sans);overflow:hidden;
+       -webkit-font-smoothing:antialiased}
+  ::selection{background:var(--accent-soft)}
+  button{font-family:inherit;color:inherit}
+  .snap *{transition:none!important}
+  canvas#field{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
 
-  /* CRT scanlines + vignette over everything */
-  body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
-    background:repeating-linear-gradient(0deg,rgba(0,0,0,.09) 0 1px,transparent 1px 3px);
-    mix-blend-mode:multiply}
-  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:98;
-    background:radial-gradient(ellipse at 50% 42%,transparent 62%,rgba(8,5,2,.38) 100%)}
-  #mira-light{position:fixed;inset:0;z-index:94;pointer-events:none;mix-blend-mode:soft-light;width:100%;height:100%}
-  #mira-grain{position:fixed;inset:0;z-index:95;pointer-events:none;mix-blend-mode:overlay;opacity:.4}
+  header{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:flex-start;
+         gap:14px;padding:18px 22px 30px;pointer-events:none;
+         background:linear-gradient(rgba(228,217,194,.5),rgba(228,217,194,0))}
+  .seal{flex:0 0 auto;pointer-events:auto;opacity:.92}
+  .etitle{padding-top:1px}
+  .etitle .no{font-family:var(--mono);font-size:9.5px;letter-spacing:.26em;color:var(--accent)}
+  .etitle h1{font-family:var(--serif);font-weight:400;font-size:22px;letter-spacing:.02em;margin-top:2px}
+  .etitle h1 span{font-family:var(--sans);font-size:12.5px;color:var(--dim);margin-left:9px;letter-spacing:.06em}
+  .etitle .epig{font-family:var(--serif);font-style:italic;font-size:14px;color:var(--dim);
+                margin-top:5px;letter-spacing:.04em}
+  .hdr-right{margin-left:auto;display:flex;gap:8px;align-items:flex-start;pointer-events:auto;flex-wrap:wrap;justify-content:flex-end}
 
-  header{flex:0 0 auto;display:flex;align-items:center;gap:13px;padding:11px 22px;
-    border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap;transition:background 1.2s}
-  .brand{display:flex;align-items:center;gap:11px;white-space:nowrap;cursor:pointer}
-  .seal{width:44px;height:44px;flex:0 0 auto;transition:transform .5s var(--ease)}
-  .brand:hover .seal{transform:rotate(-8deg)}
-  .brand .txt{display:flex;flex-direction:column;gap:2px}
-  .brand .etude{font-size:9px;letter-spacing:.18em;color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.6)}
-  .brand .name{font-size:12.5px;font-weight:700;letter-spacing:.22em;line-height:1}
-  .brand .sub{font-size:9.5px;color:var(--dim);letter-spacing:.1em}
-  .spacer{flex:1}
-  .atmo{display:flex;border:1px solid var(--line2)}
-  .atmo button{font-family:var(--mono);font-size:9.5px;padding:6px 9px;border:none;
-    border-right:1px solid var(--line);background:transparent;color:var(--dim);cursor:pointer;transition:all .18s}
-  .atmo button:last-child{border-right:none}
-  .atmo button:hover{color:var(--ink)}
-  .atmo button.on{background:var(--amber);color:#1A0B06}
-  .seedbox{display:flex;align-items:center;gap:7px;font-size:9.5px;letter-spacing:.1em;color:var(--dim)}
-  .seedbox b{color:var(--amber)}
-  .seedbox .mini{font-family:var(--mono);font-size:9px;letter-spacing:.08em;padding:5px 8px;cursor:pointer;
-    border:1px solid var(--line2);background:transparent;color:var(--dim);transition:all .14s}
-  .seedbox .mini:hover{border-color:var(--amber);color:var(--amber)}
-  .state-lamp{display:flex;align-items:center;gap:9px;font-size:10px;letter-spacing:.22em}
-  .lamp{width:10px;height:10px;border-radius:50%;background:var(--amber-ghost);
-    border:1px solid var(--line2);transition:all .3s}
-  .lamp.idle{background:var(--amber-ghost)}
-  .lamp.busy{background:var(--amber);box-shadow:0 0 12px var(--amber);animation:flick .12s infinite}
-  .lamp.wait{background:var(--amber);box-shadow:0 0 12px var(--amber);animation:blink 1s steps(2) infinite}
-  .lamp.ok{background:var(--green);box-shadow:0 0 12px var(--green)}
-  .lamp.dead{background:var(--red);box-shadow:0 0 14px var(--red);animation:blink .5s steps(2) infinite}
-  @keyframes blink{50%{opacity:.35}}
-  @keyframes flick{50%{opacity:.86}}
-  #stateword{color:var(--amber);text-shadow:0 0 8px rgba(255,176,0,.5)}
-  #stateword.ok{color:var(--green);text-shadow:0 0 8px rgba(87,227,137,.5)}
-  #stateword.dead{color:var(--red);text-shadow:0 0 8px rgba(255,74,46,.6)}
+  #snd{width:34px;height:34px;border:1px solid var(--line);background:var(--paper);
+       backdrop-filter:blur(8px);cursor:pointer;display:flex;align-items:center;justify-content:center;
+       transition:border-color .3s var(--ease);flex:0 0 auto}
+  #snd:hover{border-color:var(--accent)}
+  #snd svg{stroke:var(--dim);transition:stroke .3s}
+  #snd.on svg{stroke:var(--accent)}
+  #snd .waves{opacity:0;transition:opacity .4s}
+  #snd.on .waves{opacity:1}
 
-  main{flex:1;display:grid;grid-template-columns:296px minmax(0,1fr);min-height:0}
+  #etudes{display:flex;border:1px solid var(--line);background:var(--paper);backdrop-filter:blur(8px)}
+  #etudes button{font-family:var(--mono);font-size:10px;letter-spacing:.08em;color:var(--dim);
+               background:transparent;border:0;padding:9px 12px;cursor:pointer;transition:all .3s var(--ease)}
+  #etudes button:hover{color:var(--ink)}
+  #etudes button.on{color:var(--paper-solid);background:var(--accent)}
 
-  /* ---- control rack ---- */
-  .rack{border-right:1px solid var(--line);background:var(--panel);padding:18px;
-    display:flex;flex-direction:column;gap:16px;overflow-y:auto;transition:background 1.2s}
-  .rk-label{font-size:9px;letter-spacing:.3em;color:var(--dim);border-bottom:1px solid var(--line);
-    padding-bottom:7px}
-  .ctl{display:flex;flex-direction:column;gap:8px}
-  .ctl .row{display:flex;justify-content:space-between;font-size:10px;letter-spacing:.12em}
-  .ctl .row b{color:var(--amber);font-weight:400}
-  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--line2);
-    outline:none;cursor:ew-resize}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:16px;
-    background:var(--amber);border:1px solid #8A5F00;border-radius:1px;
-    box-shadow:0 0 8px rgba(255,176,0,.5);cursor:ew-resize}
-  input[type=range]::-moz-range-thumb{width:12px;height:16px;background:var(--amber);
-    border:1px solid #8A5F00;border-radius:1px}
-  .seg-btns{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-  .fmode{font-family:var(--mono);font-size:9px;letter-spacing:.06em;padding:8px 6px;
-    background:var(--panel2);border:1px solid var(--line);color:var(--dim);cursor:pointer;
-    transition:all .15s;text-align:center}
-  .fmode:hover{border-color:var(--line2);color:var(--ink)}
-  .fmode.on{border-color:var(--red);color:var(--red);background:rgba(255,74,46,.08);
-    text-shadow:0 0 6px rgba(255,74,46,.5)}
-  .toggle{display:flex;align-items:center;justify-content:space-between;font-size:10px;
-    letter-spacing:.12em;cursor:pointer;user-select:none}
-  .twin{width:34px;height:16px;border:1px solid var(--line2);position:relative;background:var(--panel2);transition:all .2s}
-  .twin::after{content:"";position:absolute;top:2px;left:2px;width:12px;height:10px;
-    background:var(--amber-ghost);transition:all .2s var(--ease)}
-  .toggle.on .twin{border-color:var(--amber)}
-  .toggle.on .twin::after{left:18px;background:var(--amber);box-shadow:0 0 8px rgba(255,176,0,.6)}
-  /* 熔断器 */
-  .breaker{display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);
-    background:var(--panel2);padding:9px 10px}
-  .breaker .bl-label{font-size:9px;letter-spacing:.18em;color:var(--dim)}
-  .breaker .bl-state{font-size:10px;letter-spacing:.14em;color:var(--green);text-shadow:0 0 7px rgba(87,227,137,.5)}
-  .breaker.half .bl-state{color:var(--amber);text-shadow:0 0 7px rgba(255,176,0,.6)}
-  .breaker.open .bl-state{color:var(--red);text-shadow:0 0 7px rgba(255,74,46,.6);animation:blink .6s steps(2) infinite}
-  .bl-dots{display:flex;gap:5px}
-  .bl-dots i{width:8px;height:8px;border-radius:50%;border:1px solid var(--line2);background:var(--panel)}
-  .breaker .bl-dots i.c{background:var(--green);box-shadow:0 0 6px rgba(87,227,137,.6)}
-  .breaker.half .bl-dots i.h{background:var(--amber);box-shadow:0 0 6px rgba(255,176,0,.7)}
-  .breaker.open .bl-dots i.o{background:var(--red);box-shadow:0 0 8px rgba(255,74,46,.8)}
-  .bigbtns{display:flex;flex-direction:column;gap:7px;margin-top:2px}
-  .gbtn{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;padding:13px 10px;cursor:pointer;
-    border:1px solid var(--amber);background:transparent;color:var(--amber);transition:all .18s var(--ease);
-    text-shadow:0 0 6px rgba(255,176,0,.4)}
-  .gbtn:hover{background:rgba(255,176,0,.12);box-shadow:0 0 16px rgba(255,176,0,.25)}
-  .gbtn:disabled{opacity:.3;cursor:default;box-shadow:none}
-  .gbtn.danger{border-color:var(--red);color:var(--red);text-shadow:0 0 6px rgba(255,74,46,.4)}
-  .gbtn.danger:hover{background:rgba(255,74,46,.1);box-shadow:0 0 16px rgba(255,74,46,.2)}
-  .gbtn.danger.armed{background:var(--red);color:#1A0B06;text-shadow:none;animation:blink .6s steps(2) infinite}
-  .gbtn.danger.storm{background:var(--red);color:#1A0B06;text-shadow:none;box-shadow:0 0 22px rgba(255,74,46,.7)}
-  .gbtn.ghost{border-color:var(--line2);color:var(--dim);text-shadow:none}
-  .gbtn.ghost:hover{color:var(--ink);border-color:var(--dim);background:var(--panel2)}
-  .session{border-top:1px dashed var(--line);padding-top:11px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-  .session .sv{font-size:16px;color:var(--amber);text-shadow:0 0 7px rgba(255,176,0,.4)}
-  .session .sv.g{color:var(--green)} .session .sv.r{color:var(--red)}
-  .session .sk{font-size:7.5px;letter-spacing:.16em;color:var(--dim);margin-top:3px}
+  #desk{position:fixed;left:22px;bottom:64px;z-index:10;width:248px;
+        background:var(--paper);border:1px solid var(--line);backdrop-filter:blur(10px);
+        padding:14px 16px 15px;transition:transform .5s var(--ease),opacity .5s var(--ease)}
+  .desklabel{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--dim);margin-bottom:10px}
+  .srow{margin-bottom:9px}
+  .srow .head{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;
+              letter-spacing:.06em;color:var(--dim);margin-bottom:3px}
+  .srow .head .v{color:var(--ink)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;cursor:pointer}
+  input[type=range]::-webkit-slider-runnable-track{height:2px;background:
+      linear-gradient(90deg,var(--accent) var(--fill,50%),rgba(107,93,79,.22) var(--fill,50%))}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;border-radius:50%;
+      background:var(--paper-solid);border:2px solid var(--accent);margin-top:-4.5px;transition:transform .2s var(--ease)}
+  input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.25)}
+  input[type=range]::-moz-range-track{height:2px;background:rgba(107,93,79,.22)}
+  input[type=range]::-moz-range-progress{height:2px;background:var(--accent)}
+  input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;
+      background:var(--paper-solid);border:2px solid var(--accent)}
+  .deskbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+  .btn{font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;color:var(--dim);
+       border:1px solid var(--line);background:transparent;padding:7px 10px;cursor:pointer;
+       transition:all .3s var(--ease)}
+  .btn:hover{color:var(--ink);border-color:var(--accent)}
+  .btn.on{color:var(--paper-solid);background:var(--accent);border-color:var(--accent)}
+  .btn.poppy.on{color:var(--paper-solid);background:var(--poppy);border-color:var(--poppy)}
+  .btn.full{flex:1 1 100%}
+  .metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px 8px;margin-top:11px;
+           font-family:var(--mono);font-size:9px;color:var(--dim)}
+  .metrics b{display:block;font-size:12px;color:var(--ink);font-weight:500;margin-top:1px}
+  body.hideui #desk,body.hideui #log{transform:translateX(-130%);opacity:0;pointer-events:none}
 
-  /* ---- scope + right side ---- */
-  .deck{display:flex;flex-direction:column;min-width:0;min-height:0}
-  .scope-wrap{position:relative;padding:16px 18px 6px}
-  .scope-frame{position:relative;border:1px solid var(--line2);background:#100B06;
-    box-shadow:inset 0 0 40px rgba(0,0,0,.7),0 0 0 4px #1B130B,0 0 0 5px var(--line)}
-  .scope-frame.shake{animation:shk .1s 6}
-  @keyframes shk{25%{transform:translate(2px,-1px)}50%{transform:translate(-2px,1px)}75%{transform:translate(1px,2px)}}
-  .scope-frame .corner{position:absolute;font-size:8px;letter-spacing:.24em;color:var(--amber-dim);z-index:3}
-  .corner.tl{top:7px;left:10px}
-  .corner.tr{top:7px;right:10px}
-  .corner.bl{bottom:7px;left:10px}
-  .corner.br{bottom:7px;right:10px;color:var(--amber)}
-  .vtab{position:absolute;top:5px;left:50%;transform:translateX(-50%);z-index:4;display:flex;gap:4px}
-  .vtab button{font-family:var(--mono);font-size:8px;letter-spacing:.14em;padding:3px 8px;cursor:pointer;
-    background:rgba(22,14,5,.85);border:1px solid var(--line2);color:var(--dim);transition:all .15s}
-  .vtab button.on{border-color:var(--amber);color:var(--amber)}
-  #scope{display:block;width:100%;height:300px;cursor:crosshair;touch-action:none}
-  #scopetip{position:absolute;pointer-events:none;font-size:9.5px;color:var(--amber);
-    background:rgba(22,14,5,.92);border:1px solid var(--line2);padding:4px 8px;display:none;
-    white-space:nowrap;z-index:5;letter-spacing:.06em}
-  #dragread{position:absolute;right:10px;top:26px;font-size:9px;color:var(--green);z-index:4;
-    letter-spacing:.1em;display:none;text-shadow:0 0 7px rgba(87,227,137,.6)}
+  /* 事件手记 */
+  #log{position:fixed;right:22px;bottom:64px;z-index:10;width:280px;
+       background:var(--paper);border:1px solid var(--line);backdrop-filter:blur(10px);
+       padding:11px 13px;font-family:var(--mono);font-size:9.5px;line-height:1.85;color:var(--dim);
+       transition:transform .5s var(--ease),opacity .5s var(--ease);max-height:172px;overflow:hidden}
+  #log .llabel{font-size:8.5px;letter-spacing:.22em;margin-bottom:5px}
+  #log .ev b{color:var(--ink);font-weight:500}
+  #log .ev.bad b{color:var(--poppy)}
+  body.hideui #log{transform:translateX(130%)}
 
-  .lower{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:0;gap:0}
-  .tline-wrap{border-top:1px solid var(--line);border-right:1px solid var(--line);
-    padding:14px 18px;display:flex;flex-direction:column;gap:10px;min-width:0;background:var(--panel);transition:background 1.2s}
-  .tl-label{font-size:9px;letter-spacing:.3em;color:var(--dim)}
-  #timeline{display:flex;align-items:center;gap:0;min-height:56px;overflow-x:auto;padding:6px 0}
-  .tl-node{position:relative;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
-  .tl-node .dot{width:15px;height:15px;border-radius:50%;border:1.5px solid var(--line2);
-    background:var(--panel2);transition:all .25s var(--ease)}
-  .tl-node .lb{font-size:8px;letter-spacing:.1em;color:var(--dim)}
-  .tl-node.fail .dot{border-color:var(--red);background:rgba(255,74,46,.25);box-shadow:0 0 9px rgba(255,74,46,.5)}
-  .tl-node.ok .dot{border-color:var(--green);background:rgba(87,227,137,.3);box-shadow:0 0 9px rgba(87,227,137,.55)}
-  .tl-node.probe .dot{border-style:dashed}
-  .tl-node.sel .dot{outline:1px solid var(--amber);outline-offset:2px}
-  .tl-link{flex:0 0 34px;height:1px;background:var(--line2);margin-bottom:17px;position:relative;overflow:hidden}
-  .tl-link i{position:absolute;inset:0;background:var(--amber);transform:translateX(-100%)}
-  .tl-link.fill i{transition:transform .4s var(--ease);transform:translateX(0)}
-  #tl-detail{font-size:9.5px;line-height:1.8;color:var(--dim);letter-spacing:.05em;min-height:34px;
-    border-top:1px dashed var(--line);padding-top:9px}
-  #tl-detail b{color:var(--amber);font-weight:400}
-  #tl-detail .e{color:var(--red)}
+  #timer{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:10;width:min(430px,72vw);
+         background:var(--paper);border:1px solid var(--line);backdrop-filter:blur(10px);
+         padding:9px 14px 8px;cursor:ew-resize;user-select:none;touch-action:none}
+  #timer .face{position:relative;height:12px;margin-bottom:5px}
+  #timer .track{position:absolute;left:0;right:0;top:5px;height:2px;
+                background:linear-gradient(90deg,#6B5D4F,#8FA3B8 22%,#E4D9C2 50%,#E8B96F 74%,#6B5D4F)}
+  #timer .tick{position:absolute;top:2px;width:1px;height:8px;background:rgba(107,93,79,.3)}
+  #timer .sun{position:absolute;top:1px;width:10px;height:10px;border-radius:50%;
+              background:#E4D9C2;border:2px solid var(--accent);transform:translateX(-50%);
+              box-shadow:0 0 0 3px rgba(228,217,194,.35)}
+  #timer .lab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9px;
+              letter-spacing:.12em;color:var(--dim)}
+  #timer .lab b{color:var(--ink);font-weight:500}
 
-  .console-wrap{border-top:1px solid var(--line);padding:14px 18px;display:flex;flex-direction:column;
-    gap:8px;min-width:0;min-height:0;background:#130D07}
-  #console{flex:1;overflow-y:auto;font-size:10px;line-height:1.9;letter-spacing:.04em;min-height:120px}
-  #console .ln{white-space:pre-wrap;word-break:break-all}
-  #console .t{color:var(--amber-ghost)}
-  #console .inf{color:var(--dim)}
-  #console .err{color:var(--red)}
-  #console .okg{color:var(--green)}
-  #console .amb{color:var(--amber)}
+  #uibtn{position:fixed;left:22px;bottom:16px;z-index:11;font-family:var(--mono);font-size:9.5px;
+         letter-spacing:.12em;color:var(--dim);background:var(--paper);border:1px solid var(--line);
+         padding:8px 12px;cursor:pointer;transition:all .3s var(--ease);backdrop-filter:blur(8px)}
+  #uibtn:hover{color:var(--ink);border-color:var(--accent)}
 
-  footer{flex:0 0 auto;display:flex;gap:16px;align-items:center;padding:9px 22px;flex-wrap:wrap;
-    border-top:1px solid var(--line);font-size:8.5px;letter-spacing:.16em;color:var(--dim);background:var(--panel);
-    transition:background 1.2s}
-  footer .keys b{color:var(--amber);font-weight:400}
-  footer .colo{margin-left:auto;display:flex;gap:14px;white-space:nowrap}
-  footer .colo .sd{color:var(--amber)}
+  #note{position:fixed;right:22px;bottom:56px;z-index:11;width:min(320px,80vw);
+        font-family:var(--serif);font-style:italic;font-size:13.5px;line-height:1.65;color:var(--ink);
+        background:var(--paper);border:1px solid var(--line);padding:16px 18px;
+        opacity:0;transform:translateY(8px);pointer-events:none;
+        transition:opacity .6s var(--ease),transform .6s var(--ease);backdrop-filter:blur(10px);z-index:12}
+  #note.show{opacity:1;transform:translateY(0)}
 
-  @media (max-width:900px){
-    main{grid-template-columns:1fr}
-    .rack{border-right:none;border-bottom:1px solid var(--line);flex-direction:row;flex-wrap:wrap;gap:14px}
-    .rack>.ctl,.rack>.rk-label,.rack>.bigbtns,.rack>.breaker,.rack>.session{flex:1 1 200px}
-    .rk-label{width:100%}
-    .lower{grid-template-columns:1fr}
-    .tline-wrap{border-right:none}
-    #scope{height:230px}
-    footer .colo{margin-left:0;flex-wrap:wrap}
+  #colo{position:fixed;right:22px;bottom:16px;z-index:10;display:flex;align-items:center;gap:8px;
+        font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:var(--ink);opacity:.68;
+        cursor:pointer;user-select:none}
+
+  @media (max-width:760px){
+    header{padding:12px 14px 22px;gap:10px}
+    .etitle h1{font-size:17px}
+    .etitle h1 span{display:block;margin:2px 0 0}
+    .etitle .epig{font-size:12px}
+    #desk{width:calc(100vw - 28px);left:14px;bottom:60px}
+    #log{display:none}
+    #etudes{display:none}
+    #timer{width:calc(100vw - 120px);bottom:12px}
+    #timer .lab span:last-child{display:none}
+    #colo{right:14px;bottom:12px;font-size:8px}
+    #uibtn{left:14px;bottom:12px}
   }
 </style>
 </head>
-<body data-atmo="midi" data-scope="curve">
-
-<canvas id="mira-light" aria-hidden="true"></canvas>
-<div id="mira-grain" aria-hidden="true"></div>
+<body>
 
 <header>
-  <div class="brand" id="brand" title="双击印章:上光一变">
-    <svg class="seal" viewBox="0 0 64 64" role="img" aria-label="Atelier MIRA 印章">
-      <circle cx="32" cy="32" r="29" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
-      <circle cx="32" cy="32" r="17.5" fill="none" stroke="var(--accent)" stroke-width=".9" opacity=".55"/>
-      <defs><path id="seal-ring" d="M32 32 m-23 0 a23 23 0 1 1 46 0 a23 23 0 1 1 -46 0"/></defs>
-      <text font-family="SF Mono,Menlo,monospace" font-size="6.2" letter-spacing="2.1" fill="var(--accent)">
-        <textPath href="#seal-ring" startOffset="2">ATELIER MIRA&#160;&#160;&#183;&#160;&#160;PLEIN AIR</textPath>
-      </text>
-      <path d="M23.5 42.5 C22.8 35.5 23.2 28.5 24.2 22.5 C26.8 27.5 29.4 32.5 31.6 37.5 C33.9 32 36.3 27 39 22 C40 29 40.6 35.8 39.8 42.2"
-        fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <div class="seal">
+    <svg width="50" height="50" viewBox="0 0 52 52" aria-label="Atelier MIRA seal">
+      <circle cx="26" cy="26" r="24.6" fill="none" stroke="#6B5D4F" stroke-width="1"/>
+      <circle cx="26" cy="26" r="14.2" fill="none" stroke="#6B5D4F" stroke-width=".55" opacity=".55"/>
+      <path d="M18.4 33.4 V20.1 L25.9 29.9 L33.7 20.4 V33.1" fill="none" stroke="#6B5D4F"
+            stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    <div class="txt">
-      <span class="etude">ÉTUDE N°75/100</span>
-      <span class="name">RETRY DEBUGGER</span>
-      <span class="sub">失败重试 / 自愈流程台</span>
+  </div>
+  <div class="etitle">
+    <div class="no">ÉTUDE N°075 · AGENT-DEMOS</div>
+    <h1>Retry Debugger<span>风中的退避小径</span></h1>
+    <div class="epig">「失败开一朵罂粟，修好一朵，田还是那片田。」</div>
+  </div>
+  <div class="hdr-right">
+    <div id="etudes" role="group" aria-label="Études 练习曲">
+      <button data-e="brise" class="on">微风 BRISE</button>
+      <button data-e="rafale">阵风 RAFALE</button>
+      <button data-e="orage">风暴 ORAGE</button>
     </div>
-  </div>
-  <div class="atmo" id="atmo" title="时刻光色习作 [T]">
-    <button data-a="aube">晨</button>
-    <button data-a="midi" class="on">午</button>
-    <button data-a="soir">昏</button>
-    <button data-a="nuit">夜</button>
-  </div>
-  <div class="seedbox">
-    SEED <b id="seed-read">—</b>
-    <button class="mini" id="reseed" title="换一盘故障带 [N]">再生 ↻</button>
-    <button class="mini" id="share" title="复制可复现链接">复制链接</button>
-  </div>
-  <div class="spacer"></div>
-  <div class="state-lamp">
-    <span class="lamp idle" id="lamp"></span>
-    <span id="stateword">IDLE 待机</span>
+    <button id="snd" aria-label="环境声开关" title="环境声（默认关闭）">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke-width="1.3" stroke-linecap="round">
+        <path d="M2 6.5v3h2.4L8 12.6V3.4L4.4 6.5H2z"/>
+        <path class="waves" d="M10.2 5.2a4 4 0 0 1 0 5.6M12 3.4a6.4 6.4 0 0 1 0 9.2"/>
+      </svg>
+    </button>
   </div>
 </header>
 
-<main>
-  <aside class="rack">
-    <div class="rk-label">CONTROL RACK — 参数台</div>
-    <div class="ctl">
-      <div class="row"><span>基础退避 BASE DELAY</span><b id="v-base">400ms</b></div>
-      <input type="range" id="r-base" min="100" max="2000" step="50" value="400">
-    </div>
-    <div class="ctl">
-      <div class="row"><span>最大尝试 MAX ATTEMPTS</span><b id="v-att">6</b></div>
-      <input type="range" id="r-att" min="2" max="10" step="1" value="6">
-    </div>
-    <div class="ctl">
-      <div class="row"><span>故障率 CHAOS RATE</span><b id="v-chaos">35%</b></div>
-      <input type="range" id="r-chaos" min="0" max="90" step="5" value="35">
-    </div>
-    <div class="ctl">
-      <div class="row"><span>故障类型 FAILURE MODE</span></div>
-      <div class="seg-btns" id="fmodes">
-        <button class="fmode on" data-f="TIMEOUT">TIMEOUT</button>
-        <button class="fmode" data-f="429 RATE_LIMIT">429 RATE_LIMIT</button>
-        <button class="fmode" data-f="502 BAD_GATEWAY">502 BAD_GATEWAY</button>
-        <button class="fmode" data-f="PARSE_ERROR">PARSE_ERROR</button>
-      </div>
-    </div>
-    <div class="toggle on" id="tgl-jitter">
-      <span>抖动 JITTER</span><span class="twin"></span>
-    </div>
-    <div class="breaker" id="breaker">
-      <span class="bl-label">CIRCUIT<br>BREAKER</span>
-      <span class="bl-dots"><i class="c"></i><i class="h"></i><i class="o"></i></span>
-      <span class="bl-state" id="bl-state">CLOSED</span>
-    </div>
-    <div class="bigbtns">
-      <button class="gbtn" id="btn-run">发起请求 RUN</button>
-      <button class="gbtn danger" id="btn-inject">注入失败 INJECT</button>
-      <button class="gbtn ghost" id="btn-reset">重置 RESET</button>
-    </div>
-    <div class="session">
-      <div><div class="sv" id="ss-runs">0</div><div class="sk">RUNS</div></div>
-      <div><div class="sv g" id="ss-heal">0</div><div class="sk">HEALED</div></div>
-      <div><div class="sv r" id="ss-open">0</div><div class="sk">TRIPPED</div></div>
-    </div>
-  </aside>
+<canvas id="field"></canvas>
 
-  <section class="deck">
-    <div class="scope-wrap">
-      <div class="scope-frame" id="scope-frame">
-        <span class="corner tl">CH-1 · BACKOFF SCOPE</span>
-        <span class="corner tr">EXP ×2^N</span>
-        <span class="corner bl">拖动波形:纵向 CHAOS · 横向 BASE</span>
-        <span class="corner br" id="scope-read">—</span>
-        <div class="vtab">
-          <button data-s="curve" class="on">曲线 CURVE</button>
-          <button data-s="fall">瀑布 FALL</button>
-        </div>
-        <canvas id="scope"></canvas>
-        <div id="scopetip"></div>
-        <div id="dragread"></div>
-      </div>
-    </div>
-    <div class="lower">
-      <div class="tline-wrap">
-        <div class="tl-label">REPAIR TIMELINE — 修复时间线</div>
-        <div id="timeline"></div>
-        <div id="tl-detail">点击时间线节点查看单次尝试详情。绿色为成功,红色为失败,虚线为半开探针。</div>
-      </div>
-      <div class="console-wrap">
-        <div class="tl-label">EVENT LOG — 事件日志</div>
-        <div id="console"></div>
-      </div>
-    </div>
-  </section>
-</main>
-
-<footer>
-  <div class="keys"><b>R</b> 请求 · <b>I</b> 注入 · <b>J</b> 抖动 · <b>V</b> 示波 · <b>1-4</b> 故障 · <b>T</b> 光色 · <b>N</b> 种子 · <b>P</b> 导出</div>
-  <div class="colo">
-    <span>Canvas 2D · 指数退避 + 抖动 · 熔断半开自愈</span>
-    <span class="sd" id="colo-seed">seed —</span>
-    <span id="colo-atmo">午 MIDI</span>
-    <span>Painted with code, plein air</span>
+<aside id="desk" aria-label="Réglage">
+  <div class="desklabel">RÉGLAGE · 风与门</div>
+  <div class="srow">
+    <div class="head"><span class="k">基础退避 BASE</span><span class="v" id="v-base">400 ms</span></div>
+    <input type="range" id="s-base" min="100" max="1200" step="50" value="400" aria-label="基础退避">
   </div>
+  <div class="srow">
+    <div class="head"><span class="k">最大尝试 ESSAIS</span><span class="v" id="v-max">6</span></div>
+    <input type="range" id="s-max" min="3" max="8" value="6" aria-label="最大尝试">
+  </div>
+  <div class="srow">
+    <div class="head"><span class="k">故障率 CHAOS</span><span class="v" id="v-chaos">35%</span></div>
+    <input type="range" id="s-chaos" min="0" max="90" value="35" aria-label="故障率">
+  </div>
+  <div class="deskbtns">
+    <button class="btn full" id="b-run">出发 RUN · 沿小径走一遍 (空格)</button>
+    <button class="btn poppy" id="b-inject">按住风暴 INJECT</button>
+    <button class="btn" id="b-reset">重置 R</button>
+    <button class="btn" id="b-regen">SEED (G)</button>
+    <button class="btn" id="b-png">SAVE PNG (S)</button>
+  </div>
+  <div class="metrics">
+    <div>出发<b id="m-runs">0</b></div>
+    <div>抵达<b id="m-ok">0</b></div>
+    <div>熔断<b id="m-trip">0</b></div>
+  </div>
+</aside>
+
+<aside id="log" aria-label="事件手记">
+  <div class="llabel">CARNET · 事件手记</div>
+  <div id="log-body"></div>
+</aside>
+
+<div id="timer" aria-label="时间轴">
+  <div class="face" id="timerface">
+    <div class="track"></div>
+    <div class="sun" id="sundot"></div>
+  </div>
+  <div class="lab"><span id="t-phase">夏午 L'ÉTÉ</span><b id="t-clock">13:00</b><span>拖动 · 罂粟向光转头</span></div>
+</div>
+
+<button id="uibtn" title="收起/展开面板 (H)">H · 面板</button>
+
+<div id="note">退避不是退缩，是风停一下再吹。那扇木门关上的声音，比一百条告警都诚实。——画室手记 N°075</div>
+
+<footer id="colo">
+  <svg width="22" height="14" viewBox="0 0 64 40" fill="#4A4433" aria-hidden="true">
+    <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
+             C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
+             C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
+             C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
+             C 35 17, 33 17, 32 20 Z"/>
+  </svg>
+  <span>ATELIER MIRA · N°075 · 罂粟田 COQUELICOTS</span>
 </footer>
 
 <script>
-'use strict';
-/* ============================================================
-   ATELIER MIRA · 共用画室层(种子 / 光色 / 纸纹)
-   ============================================================ */
-const MIRA = (()=>{
-  const ATMOS = {
-    aube:{label:'晨 AUBE',  blobs:['#F5C9A4','#E9B4C0','#C7D2E6','#F8E3BE'], lamp:'#F7B04A', dust:'rgba(150,110,70,.30)', alpha:.55},
-    midi:{label:'午 MIDI',  blobs:['#FFF0C8','#E4EBD4','#D4E0E8','#FFFFFF'], lamp:'#FFE9A0', dust:'rgba(120,110,90,.24)', alpha:.4},
-    soir:{label:'昏 SOIR',  blobs:['#F09A58','#C9768B','#7E6AA8','#F4BE78'], lamp:'#FF9C38', dust:'rgba(90,50,30,.34)',  alpha:.7},
-    nuit:{label:'夜 NUIT',  blobs:['#22304E','#121C34','#33445F','#0D1526'], lamp:'#FFB03E', dust:'rgba(200,180,140,.22)', alpha:.9}
-  };
-  const ORDER = ['aube','midi','soir','nuit'];
-  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
-  const parse=()=>{
-    const hs=location.hash, sm=hs.match(/seed=(\d+)/), am=hs.match(/atmo=(aube|midi|soir|nuit)/);
-    return {seed: sm?+sm[1]:(Math.floor(Math.random()*89999)+10000), atmo: am?am[1]:'midi'};
-  };
-  const st = parse();
-  let rng = mulberry32(st.seed);
-  let onchangeCb = null;
-  const cv = document.getElementById('mira-light');
-  const ctx = cv.getContext('2d');
-  let W=0,H=0, blobs=[], dabs=[];
-  function resize(){
-    W = Math.ceil(innerWidth/2); H = Math.ceil(innerHeight/2);
-    cv.width=W; cv.height=H; buildField();
+"use strict";
+const $=id=>document.getElementById(id);
+const canvas=$("field"),ctx=canvas.getContext("2d");
+let W=0,H=0,DPR=1;
+function resize(){DPR=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;
+  canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);layoutField()}
+addEventListener("resize",resize);
+
+/* ================= seed & hash ================= */
+const hashParams=new URLSearchParams(location.hash.slice(1));
+let seed=parseInt(hashParams.get("seed"),10);
+if(!Number.isFinite(seed))seed=(Math.random()*8999+1000)|0;
+let heure=hashParams.get("h")!==null?+hashParams.get("h"):(new Date().getHours()+new Date().getMinutes()/60);
+if(!Number.isFinite(heure)||heure<0||heure>24)heure=13;
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function writeHash(){
+  const p=new URLSearchParams({seed:String(seed),h:heure.toFixed(1)});
+  history.replaceState(null,"","#"+p.toString());
+}
+
+/* ================= colour helpers ================= */
+function hx(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+function rgb2hsl(c){const[r,g,b]=c.map(v=>v/255);const mx=Math.max(r,g,b),mn=Math.min(r,g,b);
+  let h=0,s=0;const l=(mx+mn)/2;const d=mx-mn;
+  if(d){s=d/(1-Math.abs(2*l-1));if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360}
+  return[h,s,l]}
+function hsl2rgb(h,s,l){const c=(1-Math.abs(2*l-1))*s,x=c*(1-Math.abs((h/60)%2-1)),m=l-c/2;
+  let r,g,b;if(h<60){r=c;g=x;b=0}else if(h<120){r=x;g=c;b=0}else if(h<180){r=0;g=c;b=x}
+  else if(h<240){r=0;g=x;b=c}else if(h<300){r=x;g=0;b=c}else{r=c;g=0;b=x}
+  return[Math.round((r+m)*255),Math.round((g+m)*255),Math.round((b+m)*255)]}
+function lerpHSL(a,b,k){const A=rgb2hsl(a),B=rgb2hsl(b);let dh=B[0]-A[0];
+  if(dh>180)dh-=360;if(dh<-180)dh+=360;
+  return hsl2rgb(A[0]+dh*k,A[1]+(B[1]-A[1])*k,A[2]+(B[2]-A[2])*k)}
+function fade(col,target,k){const A=rgb2hsl(col),B=rgb2hsl(target);
+  return hsl2rgb(A[0],A[1]+(B[1]-A[1])*k*.8,A[2]+(B[2]-A[2])*k)}
+const rgb=(c,a)=>a===undefined?`rgb(${c[0]|0},${c[1]|0},${c[2]|0})`:`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a})`;
+
+/* ================= 罂粟田家族 + heure ================= */
+const FAM={pre:hx("#B7C98B"),herbe:hx("#7A9A5B"),ciel:hx("#8FA3B8"),
+           chemin:hx("#E4D9C2"),terre:hx("#6B5D4F"),pavot:hx("#B43A2E")};
+/* sky, hor, far（远草）, near（近草）, warm */
+const KEYS=[
+  {h:0,   sky:hx("#6E7B78"),hor:hx("#7E8878"),far:hx("#6E7A5E"),near:hx("#6B6A50"),warm:.1},
+  {h:5,   sky:hx("#8FA0A8"),hor:hx("#B4B89E"),far:hx("#8A966E"),near:hx("#84905F"),warm:.25},
+  {h:7,   sky:hx("#A8B8C4"),hor:hx("#D9D9BC"),far:hx("#A4B47E"),near:hx("#9AAB72"),warm:.45},
+  {h:10,  sky:hx("#9FB4C6"),hor:hx("#E4E4CC"),far:hx("#B0C284"),near:hx("#AABD7C"),warm:.35},
+  {h:13,  sky:hx("#8FA3B8"),hor:hx("#EAE8D2"),far:hx("#B7C98B"),near:hx("#B0C484"),warm:.3},
+  {h:16,  sky:hx("#9AA8B4"),hor:hx("#E8DFC0"),far:hx("#B2C284"),near:hx("#ACBC78"),warm:.5},
+  {h:17.8,sky:hx("#C4AE8E"),hor:hx("#EBD2A0"),far:hx("#B4AE72"),near:hx("#ACA668"),warm:.85},
+  {h:19.2,sky:hx("#A08468"),hor:hx("#D9AE7E"),far:hx("#948A5C"),near:hx("#8E8456"),warm:.7},
+  {h:20.6,sky:hx("#767E7E"),hor:hx("#9A9478"),far:hx("#727C5C"),near:hx("#6E7452"),warm:.35},
+  {h:22,  sky:hx("#6E7B78"),hor:hx("#7E8878"),far:hx("#6E7A5E"),near:hx("#6B6A50"),warm:.1},
+  {h:24,  sky:hx("#6E7B78"),hor:hx("#7E8878"),far:hx("#6E7A5E"),near:hx("#6B6A50"),warm:.1},
+];
+function sampleLight(h){
+  h=((h%24)+24)%24;
+  let i=0;while(i<KEYS.length-2&&KEYS[i+1].h<h)i++;
+  const a=KEYS[i],b=KEYS[i+1],k=Math.min(1,Math.max(0,(h-a.h)/(b.h-a.h)));
+  const e=k*k*(3-2*k);
+  return{sky:lerpHSL(a.sky,b.sky,e),hor:lerpHSL(a.hor,b.hor,e),
+         far:lerpHSL(a.far,b.far,e),near:lerpHSL(a.near,b.near,e),
+         warm:a.warm+(b.warm-a.warm)*e};
+}
+function phaseName(h){
+  if(h<4.5||h>=21.5)return"夜 LA NUIT";
+  if(h<6)return"拂晓 AVANT L'AUBE";
+  if(h<9)return"清晨 L'AUBE";
+  if(h<11.5)return"上午 LE MATIN";
+  if(h<15)return"夏午 L'ÉTÉ";
+  if(h<17)return"午后 L'APRÈS-MIDI";
+  if(h<19.8)return"暮野 LE SOIR";
+  return"入夜 LA TOMBÉE";
+}
+function sunPos(){
+  const day=heure>=5.5&&heure<=19.5;
+  const k=day?(heure-5.5)/14:((heure+24-20.5)%24)/9;
+  return{x:W*(.16+.68*Math.min(1,Math.max(0,k))),y:H*(.28-Math.sin(Math.PI*Math.min(1,Math.max(0,k)))*.2),day};
+}
+
+/* ================= 田地与退避小径 ================= */
+let BASE=400,MAXA=6,CHAOS=.35;
+let grass=[],poppies=[],clouds=[],stones=[],gate={},windPetals=[];
+function pathY(nx){return H*(.62+.10*Math.sin(nx*4.2+1.2)+.04*Math.sin(nx*9.7))}
+function delayAt(i){return BASE*Math.pow(2,i)}
+function layoutField(){
+  const rng=mulberry32(seed^0xf1e1d);
+  grass=[];
+  const nG=Math.min(1900,(W*H/700)|0);
+  for(let i=0;i<nG;i++)grass.push({nx:rng(),ny:rng(),len:4+rng()*12,hue:rng(),ph:rng()*7,tilt:(rng()-.5)*.6});
+  poppies=[];
+  for(let i=0;i<34;i++)poppies.push({nx:rng(),ny:.35+rng()*.62,s:.7+rng()*.9,ph:rng()*7,dyn:false});
+  /* 前景一丛：阿让特伊的那一角 */
+  for(let i=0;i<26;i++)poppies.push({nx:.05+rng()*.3,ny:.82+rng()*.17,s:1.2+rng()*1.1,ph:rng()*7,dyn:false});
+  clouds=[];
+  for(let i=0;i<4;i++)clouds.push({nx:rng(),ny:rng()*.24,r:80+rng()*140,sp:(rng()-.5)*5,ph:rng()*7});
+  stones=[];
+  for(let i=0;i<8;i++){
+    const nx=.18+i*.085;
+    stones.push({i,nx,x:nx*W,y:pathY(nx),state:"idle"}); /* idle|trying|fail|ok */
   }
-  function buildField(){
-    const r = mulberry32(st.seed*7+13);
-    blobs = [];
-    for(let i=0;i<5;i++){
-      blobs.push({bx:r(),by:r(),rad:.28+r()*.3,sp:.000016+r()*.00002,ph:r()*6.28,ph2:r()*6.28,ci:i%4});
-    }
-    dabs = [];
-    const n = Math.floor(W*H/5200);
-    for(let i=0;i<n;i++) dabs.push({x:r()*W,y:r()*H,vx:.05+r()*.16,ph:r()*6.28,sz:1+r()*2.2,tw:.4+r()*.6});
+  gate={nx:.18+8*.085+.05,open:1,target:1}; /* 1 全开 0 关 */
+  windPetals=[];
+}
+
+/* ================= 状态机：沿小径走一遍 ================= */
+let runState="idle",runI=-1,waitT=0,walker=null,stats={runs:0,ok:0,trip:0},storm=0,injectHold=false;
+let runRng=mulberry32(1);
+function log(msg,bad){
+  const el=$("log-body");
+  const d=document.createElement("div");
+  d.className="ev"+(bad?" bad":"");
+  const hh=String(Math.floor(heure)).padStart(2,"0"),mm=String(Math.floor((heure%1)*60)).padStart(2,"0");
+  d.innerHTML=`[${hh}:${mm}] <b>${msg}</b>`;
+  el.prepend(d);
+  while(el.children.length>6)el.lastChild.remove();
+}
+function startRun(){
+  if(runState==="running")return;
+  if(gate.open<.5){log("门还关着，等冷却");return}
+  runRng=mulberry32((seed^(stats.runs*997+1))>>>0);
+  runState="running";runI=-1;waitT=.4;walker=null;
+  stones.forEach(s=>s.state="idle");
+  stats.runs++;syncStats();
+  log("出发 · 第 "+stats.runs+" 次沿小径");
+}
+function stepRun(dt){
+  if(runState!=="running")return;
+  waitT-=dt;
+  if(waitT>0)return;
+  runI++;
+  if(runI>=MAXA){ /* 尝试用尽 → 熔断 */
+    runState="cooldown";waitT=4;gate.target=0;
+    stats.trip++;syncStats();
+    log("尝试用尽 · 木门关上了",true);
+    Snd.gust(.5);
+    return;
   }
-  function paintGrain(){
-    const g = document.createElement('canvas'); g.width=g.height=168;
-    const gg = g.getContext('2d'), r = mulberry32(st.seed*3+7);
-    const im = gg.createImageData(168,168);
-    for(let i=0;i<im.data.length;i+=4){
-      const v = 190+r()*65;
-      im.data[i]=im.data[i+1]=im.data[i+2]=v;
-      im.data[i+3]=r()*34;
-    }
-    gg.putImageData(im,0,0);
-    gg.globalAlpha=.05; gg.strokeStyle='#5a5348';
-    for(let i=0;i<26;i++){
-      const y=r()*168; gg.beginPath(); gg.moveTo(0,y);
-      gg.bezierCurveTo(56,y+r()*4-2,112,y+r()*4-2,168,y+r()*3-1.5); gg.stroke();
-    }
-    document.getElementById('mira-grain').style.background='url('+g.toDataURL()+')';
+  const st=stones[runI];
+  const chaos=Math.min(.95,CHAOS+storm*.5);
+  const fail=runRng()<chaos;
+  walker={from:runI-1,to:runI,k:0,dur:.5};
+  waitT=.55+Math.min(1.6,delayAt(runI)/1000*.4);
+  if(fail){
+    st.state="fail";
+    poppies.push({nx:st.nx+(runRng()-.5)*.02,ny:.35+((st.y/H)-.35)+.02,s:1+runRng()*.6,ph:runRng()*7,dyn:true,bloom:t});
+    log("#"+(runI+1)+" 失败 · 开了一朵罂粟（"+delayAt(runI)+"ms）",true);
+  }else{
+    st.state="ok";
+    runState="done";walker=null;
+    stats.ok++;syncStats();
+    log("#"+(runI+1)+" 抵达 · 小径亮起来了");
+    gate.target=1;
   }
-  function frame(t){
-    const A = ATMOS[st.atmo];
-    ctx.clearRect(0,0,W,H);
-    ctx.globalAlpha = A.alpha;
-    blobs.forEach(b=>{
-      const x = (b.bx + Math.sin(t*b.sp*60+b.ph)*.22)*W;
-      const y = (b.by + Math.cos(t*b.sp*47+b.ph2)*.18)*H;
-      const rad = b.rad*Math.max(W,H);
-      const g = ctx.createRadialGradient(x,y,0,x,y,rad);
-      g.addColorStop(0,A.blobs[b.ci]); g.addColorStop(1,'rgba(255,255,255,0)');
-      ctx.fillStyle=g; ctx.fillRect(x-rad,y-rad,rad*2,rad*2);
-    });
-    if(st.atmo==='nuit'){
-      const lx = W*.78 + Math.sin(t*.00005)*W*.05, ly = H*.2;
-      const g = ctx.createRadialGradient(lx,ly,0,lx,ly,H*.7);
-      g.addColorStop(0,'rgba(255,176,62,.8)'); g.addColorStop(1,'rgba(255,176,62,0)');
-      ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
-    }
-    ctx.fillStyle = A.dust;
-    dabs.forEach(d=>{
-      d.x += d.vx; if(d.x>W+4) d.x=-4;
-      const tw = .35 + .65*Math.abs(Math.sin(t*.0006*d.tw+d.ph));
-      ctx.globalAlpha = A.alpha * tw * .8;
-      ctx.fillRect(d.x, d.y + Math.sin(t*.0004+d.ph)*3, d.sz, d.sz*.7);
-    });
-    ctx.globalAlpha = 1;
-    requestAnimationFrame(frame);
+  if(runI===MAXA-1&&fail){ /* 下一次 step 触发熔断 */ }
+}
+function stepCooldown(dt){
+  if(runState!=="cooldown")return;
+  waitT-=dt;
+  if(waitT<=0){
+    runState="halfopen";waitT=1.2;
+    gate.target=.5;
+    log("半开 · 放一只探路的麻雀过去");
   }
-  function apply(){
-    document.body.dataset.atmo = st.atmo;
-    document.querySelectorAll('#atmo button').forEach(b=>b.classList.toggle('on', b.dataset.a===st.atmo));
-    document.getElementById('seed-read').textContent = st.seed;
-    document.getElementById('colo-seed').textContent = 'seed '+st.seed;
-    document.getElementById('colo-atmo').textContent = ATMOS[st.atmo].label;
-    history.replaceState(null,'','#seed='+st.seed+'&atmo='+st.atmo);
-    paintGrain(); buildField();
-    if(onchangeCb) onchangeCb(st);
+}
+function stepHalf(dt){
+  if(runState!=="halfopen")return;
+  waitT-=dt;
+  if(waitT>0)return;
+  const chaos=Math.min(.95,CHAOS+storm*.5);
+  if(runRng()<chaos*.6){
+    runState="cooldown";waitT=4;gate.target=0;
+    log("试探失败 · 门又关上了",true);
+  }else{
+    runState="idle";gate.target=1;
+    log("试探通过 · 门开了，风过去了");
+    stats.ok++;syncStats();
   }
-  const api = {
-    get seed(){return st.seed}, get atmo(){return st.atmo},
-    rng:()=>rng,
-    set onchange(fn){ onchangeCb = fn; },
-    setAtmo(a){ st.atmo=a; apply(); },
-    cycleAtmo(){ st.atmo = ORDER[(ORDER.indexOf(st.atmo)+1)%4]; apply(); },
-    regen(){ st.seed = (st.seed*1664525+1013904223)%90000+10000; rng = mulberry32(st.seed); apply(); },
-    share(){
-      const url = location.href;
-      const done = ()=>{ const b=document.getElementById('share'); b.textContent='已复制 ✓'; setTimeout(()=>b.textContent='复制链接',1600); };
-      if(navigator.clipboard) navigator.clipboard.writeText(url).then(done).catch(()=>prompt('复制此链接',url));
-      else prompt('复制此链接',url);
+}
+function syncStats(){
+  $("m-runs").textContent=stats.runs;
+  $("m-ok").textContent=stats.ok;
+  $("m-trip").textContent=stats.trip;
+}
+
+/* ================= études ================= */
+function setSlider(id,v){const el=$(id);el.value=v;paintSlider(el);el.dispatchEvent(new Event("input"))}
+document.querySelectorAll("#etudes button").forEach(b=>{
+  b.addEventListener("click",()=>{
+    document.querySelectorAll("#etudes button").forEach(x=>x.classList.remove("on"));
+    b.classList.add("on");
+    const e=b.dataset.e;
+    if(e==="brise"){setSlider("s-chaos",20);setSlider("s-base",400)}
+    else if(e==="rafale"){setSlider("s-chaos",45);setSlider("s-base",600)}
+    else{setSlider("s-chaos",80);setSlider("s-base",800)}
+  });
+});
+
+/* ================= desk ================= */
+function paintSlider(el){el.style.setProperty("--fill",((el.value-el.min)/(el.max-el.min)*100)+"%")}
+function bindSlider(id,fn){const el=$(id);paintSlider(el);
+  el.addEventListener("input",()=>{paintSlider(el);fn(+el.value)})}
+bindSlider("s-base",v=>{BASE=v;$("v-base").textContent=v+" ms"});
+bindSlider("s-max",v=>{MAXA=v;$("v-max").textContent=v});
+bindSlider("s-chaos",v=>{CHAOS=v/100;$("v-chaos").textContent=v+"%"});
+$("b-run").addEventListener("click",startRun);
+$("b-inject").addEventListener("pointerdown",()=>{injectHold=true;$("b-inject").classList.add("on");
+  log("风暴来了 · 按住不放",true);Snd.gust(1)});
+addEventListener("pointerup",()=>{if(injectHold)log("风住了");injectHold=false;$("b-inject").classList.remove("on")});
+$("b-reset").addEventListener("click",()=>{
+  runState="idle";runI=-1;walker=null;gate.target=1;
+  stones.forEach(s=>s.state="idle");
+  poppies=poppies.filter(p=>!p.dyn);
+  log("重置 · 田恢复了");
+});
+function regen(){
+  seed=(seed*1664525+1013904223)>>>0;seed=1000+seed%9000;
+  layoutField();writeHash();log("换了一块田 · seed "+seed);
+}
+$("b-regen").addEventListener("click",regen);
+$("b-png").addEventListener("click",()=>{
+  const c2=document.createElement("canvas");
+  c2.width=canvas.width;c2.height=canvas.height;
+  const x=c2.getContext("2d");x.drawImage(canvas,0,0);
+  const s=DPR;
+  x.fillStyle="rgba(74,68,51,.85)";
+  x.font=`${9*s}px "SF Mono",Menlo,monospace`;x.textAlign="right";
+  x.fillText(`ATELIER MIRA · N°075 · 罂粟田 COQUELICOTS · ${phaseName(heure)} · seed ${seed}`,
+             c2.width-20*s,c2.height-16*s);
+  const a=document.createElement("a");
+  a.download=`poppy-retry-seed${seed}.png`;a.href=c2.toDataURL("image/png");a.click();
+});
+
+/* ================= time ruler ================= */
+const timerEl=$("timer"),sundot=$("sundot");
+(function(){const face=$("timerface");
+  for(let h=0;h<=24;h+=3){const t2=document.createElement("div");t2.className="tick";
+    t2.style.left=(h/24*100)+"%";face.appendChild(t2)}})();
+let scrubbing=false;
+function scrubTo(cx){const r=timerEl.getBoundingClientRect();const pad=14;
+  heure=Math.min(1,Math.max(0,(cx-r.left-pad)/(r.width-pad*2)))*24;writeHash()}
+timerEl.addEventListener("pointerdown",e=>{scrubbing=true;timerEl.setPointerCapture(e.pointerId);scrubTo(e.clientX)});
+timerEl.addEventListener("pointermove",e=>{if(scrubbing)scrubTo(e.clientX)});
+timerEl.addEventListener("pointerup",()=>scrubbing=false);
+timerEl.addEventListener("pointercancel",()=>scrubbing=false);
+function syncTimer(){
+  sundot.style.left=(heure/24*100).toFixed(2)+"%";
+  const hh=Math.floor(heure),mm=Math.floor((heure-hh)*60);
+  $("t-clock").textContent=`${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+  $("t-phase").textContent=phaseName(heure);
+}
+
+/* ================= pointer：风跟着手走 ================= */
+const ptr={x:-999,y:-999,vx:0,vy:0,px:-999,py:-999,inC:false};
+canvas.addEventListener("pointermove",e=>{
+  ptr.px=ptr.x;ptr.py=ptr.y;ptr.x=e.clientX;ptr.y=e.clientY;ptr.inC=true;
+  if(ptr.px<-500){ptr.px=ptr.x;ptr.py=ptr.y}
+  ptr.vx+=(ptr.x-ptr.px)*.25;ptr.vy+=(ptr.y-ptr.py)*.25;
+});
+canvas.addEventListener("pointerleave",()=>ptr.inC=false);
+canvas.addEventListener("pointerdown",e=>{
+  /* 点击田：一阵小风 + 花瓣 */
+  for(let i=0;i<8;i++)windPetals.push({x:e.clientX,y:e.clientY,
+    vx:(Math.random()-.3)*4,vy:-Math.random()*2,life:1,rot:Math.random()*7});
+  Snd.gust(.3);
+});
+
+/* ================= keyboard ================= */
+$("uibtn").addEventListener("click",()=>document.body.classList.toggle("hideui"));
+document.addEventListener("keydown",e=>{
+  const tag=document.activeElement&&document.activeElement.tagName;
+  if(tag==="INPUT"||tag==="TEXTAREA")return;
+  const k=e.key.toLowerCase();
+  if(k==="g")regen();
+  else if(k==="s")$("b-png").click();
+  else if(k==="h")document.body.classList.toggle("hideui");
+  else if(k===" "){e.preventDefault();startRun()}
+  else if(k==="r")$("b-reset").click();
+  else if(k==="i"){injectHold=!injectHold;$("b-inject").classList.toggle("on",injectHold)}
+  else if(e.key==="["){heure=((heure-0.5)+24)%24;writeHash()}
+  else if(e.key==="]"){heure=(heure+0.5)%24;writeHash()}
+  else if(e.key>="1"&&e.key<="4"){heure=[7,12,17.8,22][+e.key-1];writeHash()}
+});
+let coloTap=0,coloTimer=null;
+$("colo").addEventListener("click",()=>{
+  coloTap++;clearTimeout(coloTimer);
+  coloTimer=setTimeout(()=>coloTap=0,900);
+  if(coloTap>=3){$("note").classList.toggle("show");coloTap=0}
+});
+
+/* ================= sound (L5, 默认 OFF)：风 + 阵风 + 远鸟 ================= */
+const Snd=(()=>{
+  let ac=null,master=null,on=false,birdTimer=null,wg=null,bp=null;
+  function build(){
+    ac=new (window.AudioContext||window.webkitAudioContext)();
+    master=ac.createGain();master.gain.value=0;master.connect(ac.destination);
+    const len=ac.sampleRate*4,buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);
+    let last=0;for(let i=0;i<len;i++){const w=Math.random()*2-1;last=(last+.02*w)/1.02;d[i]=last*3.2}
+    const src=ac.createBufferSource();src.buffer=buf;src.loop=true;
+    bp=ac.createBiquadFilter();bp.type="bandpass";bp.frequency.value=500;bp.Q.value=.9;
+    wg=ac.createGain();wg.gain.value=.12;
+    src.connect(bp);bp.connect(wg);wg.connect(master);src.start();
+    const lfo=ac.createOscillator();lfo.frequency.value=.06;
+    const lg=ac.createGain();lg.gain.value=180;lfo.connect(lg);lg.connect(bp.frequency);lfo.start();
+  }
+  function chirp(){
+    if(!on)return;
+    const t0=ac.currentTime+.05;
+    const o=ac.createOscillator(),g=ac.createGain(),m=ac.createOscillator(),mg=ac.createGain();
+    o.type="sine";o.frequency.setValueAtTime(2500+Math.random()*300,t0);
+    o.frequency.exponentialRampToValueAtTime(3100+Math.random()*400,t0+.08);
+    m.frequency.value=40+Math.random()*28;mg.gain.value=320;m.connect(mg);mg.connect(o.frequency);
+    g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(.02,t0+.02);
+    g.gain.exponentialRampToValueAtTime(.0004,t0+.3);
+    o.connect(g);g.connect(master);m.start(t0);o.start(t0);o.stop(t0+.36);m.stop(t0+.36);
+    birdTimer=setTimeout(chirp,(3+Math.random()*8)*1000);
+  }
+  return{
+    toggle(){
+      if(!ac)build();
+      if(ac.state==="suspended")ac.resume();
+      on=!on;
+      master.gain.cancelScheduledValues(ac.currentTime);
+      master.gain.linearRampToValueAtTime(on?1:0,ac.currentTime+1.5);
+      if(on)chirp();else clearTimeout(birdTimer);
+      localStorage.setItem("mira-snd-075",on?"1":"0");
+      return on;
     },
-    ATMOS, mulberry32
-  };
-  window.addEventListener('resize', resize);
-  resize(); apply();
-  requestAnimationFrame(frame);
-  return api;
+    gust(k){
+      if(!ac||!on)return;
+      wg.gain.cancelScheduledValues(ac.currentTime);
+      wg.gain.linearRampToValueAtTime(.12+k*.22,ac.currentTime+.4);
+      wg.gain.linearRampToValueAtTime(.12,ac.currentTime+2.2);
+      bp.frequency.linearRampToValueAtTime(500+k*400,ac.currentTime+.5);
+      bp.frequency.linearRampToValueAtTime(500,ac.currentTime+2.4);
+    }};
 })();
+$("snd").addEventListener("click",()=>$("snd").classList.toggle("on",Snd.toggle()));
 
-/* ============================================================
-   RETRY DEBUGGER 本体
-   ============================================================ */
-(function(){
-  var P = { base:400, att:6, chaos:0.35, jitter:true, fmode:"TIMEOUT" };
-  var S = { state:"IDLE", attempt:0, armed:false, storm:0, running:false, probe:false,
-    history:[], waitEnd:0, waitDur:0, sendEnd:0, sendDur:0, willFail:false,
-    breaker:"CLOSED", coolEnd:0, runCount:0 };
-  var SESS = { runs:0, heal:0, open:0 };
+/* ================= paper & grain ================= */
+function makePaper(){
+  const c=document.createElement("canvas");c.width=c.height=480;
+  const x=c.getContext("2d"),rng=mulberry32(0x75ab);
+  x.fillStyle="#808080";x.fillRect(0,0,480,480);
+  for(let i=0;i<4200;i++){const g=110+rng()*90;
+    x.fillStyle=`rgba(${g|0},${g|0},${g|0},${.02+rng()*.04})`;
+    x.fillRect(rng()*480,rng()*480,1+rng()*2,1+rng()*2)}
+  x.strokeStyle="rgba(140,150,110,.05)";
+  for(let i=0;i<46;i++){x.beginPath();
+    const px=rng()*480,py=rng()*480,a=rng()*Math.PI,l=8+rng()*26;
+    x.moveTo(px,py);x.lineTo(px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke()}
+  return c;
+}
+const paperC=makePaper();let paperPat=null;
+const grainC=document.createElement("canvas");grainC.width=grainC.height=128;
+const grainX=grainC.getContext("2d");
+let grainPat=null,lastGrain=0;
+function updateGrain(now){
+  if(now-lastGrain<83)return;lastGrain=now;
+  const img=grainX.createImageData(128,128),d=img.data;
+  for(let i=0;i<d.length;i+=4){const v=118+Math.random()*20;d[i]=d[i+1]=d[i+2]=v;d[i+3]=255}
+  grainX.putImageData(img,0,0);grainPat=null;
+}
 
-  var lamp = document.getElementById("lamp");
-  var stateword = document.getElementById("stateword");
-  var consoleEl = document.getElementById("console");
-  var timelineEl = document.getElementById("timeline");
-  var tlDetail = document.getElementById("tl-detail");
-  var scopeRead = document.getElementById("scope-read");
-  var btnRun = document.getElementById("btn-run");
-  var btnInject = document.getElementById("btn-inject");
-  var breakerEl = document.getElementById("breaker");
-  var blState = document.getElementById("bl-state");
-  var scopeFrame = document.getElementById("scope-frame");
-  var runRng = MIRA.mulberry32(MIRA.seed);
-
-  /* ---------- controls ---------- */
-  function bindRange(id, key, fmt, scale){
-    var el = document.getElementById("r-" + id), out = document.getElementById("v-" + id);
-    el.addEventListener("input", function(){
-      wake();
-      P[key] = scale ? +el.value/scale : +el.value;
-      out.textContent = fmt(P[key]);
-    });
-    out.textContent = fmt(P[key]);
+/* ================= draw ================= */
+let t=0;
+function draw(now){
+  const L=sampleLight(heure);
+  const sun=sunPos();
+  const hz=H*.30;
+  const dayF=Math.min(1,Math.max(0,Math.min((heure-5.2)/1.6,(20.8-heure)/1.6,1)));
+  storm+=((injectHold?1:0)-storm)*.05;
+  const windBase=1+storm*6;
+  ptr.vx*=.9;ptr.vy*=.9;
+  /* --- 天空 --- */
+  const g=ctx.createLinearGradient(0,0,0,hz);
+  g.addColorStop(0,rgb(fade(L.sky,FAM.terre,storm*.25)));
+  g.addColorStop(1,rgb(fade(L.hor,FAM.terre,storm*.2)));
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,hz+1);
+  /* 天空碎色 */
+  for(let i=0;i<180;i++){
+    const sx=(i*57.7)%W,sy=(i*27.3)%hz;
+    const c2=fade(lerpHSL(L.sky,L.hor,sy/hz),FAM.chemin,(i%5)/5*.3);
+    ctx.strokeStyle=rgb(c2,.10+((i*13)%10)/10*.07);
+    ctx.lineWidth=1.6;
+    ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(sx+8+(i%19),sy+Math.sin(i*1.7)*2);ctx.stroke();
   }
-  bindRange("base", "base", function(v){ return v + "ms"; });
-  bindRange("att", "att", function(v){ return String(v); });
-  bindRange("chaos", "chaos", function(v){ return Math.round(v * 100) + "%"; }, 100);
-  function syncControls(){
-    document.getElementById("r-base").value = P.base;
-    document.getElementById("v-base").textContent = P.base + "ms";
-    document.getElementById("r-chaos").value = Math.round(P.chaos*100);
-    document.getElementById("v-chaos").textContent = Math.round(P.chaos*100) + "%";
+  /* 太阳 */
+  if(sun.day&&storm<.5){
+    const sg=ctx.createRadialGradient(sun.x,sun.y,0,sun.x,sun.y,H*.34);
+    sg.addColorStop(0,rgb(FAM.chemin,(.4*L.warm+.12)*(1-storm)));sg.addColorStop(1,rgb(FAM.chemin,0));
+    ctx.fillStyle=sg;ctx.fillRect(0,0,W,hz+2);
+    ctx.fillStyle=rgb(lerpHSL(FAM.chemin,FAM.pavot,0),.85*(1-storm));
+    ctx.beginPath();ctx.arc(sun.x,sun.y,H*.026,0,7);ctx.fill();
   }
-  function setFmode(f, btn){
-    P.fmode = f;
-    document.querySelectorAll(".fmode").forEach(function(x){ x.classList.toggle("on", x.dataset.f === f); });
-  }
-  document.getElementById("fmodes").addEventListener("click", function(e){
-    var b = e.target.closest(".fmode");
-    if (!b) return;
-    wake();
-    setFmode(b.dataset.f, b);
-  });
-  document.getElementById("tgl-jitter").addEventListener("click", function(){
-    wake();
-    this.classList.toggle("on");
-    P.jitter = this.classList.contains("on");
-  });
-
-  /* ---------- log ---------- */
-  function stamp(){
-    var d = new Date();
-    function p(n, l){ return String(n).padStart(l || 2, "0"); }
-    return p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds()) + "." + p(d.getMilliseconds(), 3);
-  }
-  function log(cls, msg){
-    var d = document.createElement("div");
-    d.className = "ln";
-    d.innerHTML = '<span class="t">[' + stamp() + ']</span> <span class="' + cls + '">' + msg + "</span>";
-    consoleEl.appendChild(d);
-    consoleEl.scrollTop = consoleEl.scrollHeight;
-  }
-
-  /* ---------- state ---------- */
-  function setState(st, word, cls){
-    S.state = st;
-    lamp.className = "lamp " + cls;
-    stateword.textContent = word;
-    stateword.className = cls === "ok" ? "ok" : cls === "dead" ? "dead" : "";
-  }
-  function setBreaker(b){
-    S.breaker = b;
-    breakerEl.className = "breaker" + (b==="OPEN" ? " open" : b==="HALF" ? " half" : "");
-    blState.textContent = b==="OPEN" ? "OPEN" : b==="HALF" ? "HALF-OPEN" : "CLOSED";
-  }
-  function renderSess(){
-    document.getElementById("ss-runs").textContent = SESS.runs;
-    document.getElementById("ss-heal").textContent = SESS.heal;
-    document.getElementById("ss-open").textContent = SESS.open;
-  }
-
-  function delayFor(n){
-    var d = P.base * Math.pow(2, n - 1);
-    if (P.jitter) d = d * (0.6 + runRng() * 0.8);
-    return Math.round(d);
-  }
-  function curveDelay(n){ return P.base * Math.pow(2, n - 1); }
-
-  function reset(){
-    wake();
-    S.running = false; S.attempt = 0; S.armed = false; S.storm = 0; S.probe = false; S.history = [];
-    timelineEl.innerHTML = ""; tlNodes = [];
-    btnInject.classList.remove("armed","storm");
-    btnInject.textContent = "注入失败 INJECT";
-    btnRun.disabled = false;
-    btnRun.textContent = "发起请求 RUN";
-    setBreaker("CLOSED");
-    setState("IDLE", "IDLE 待机", "idle");
-    log("inf", "系统复位,等待指令。");
-  }
-
-  btnRun.addEventListener("click", function(){
-    wake();
-    if (S.running) return;
-    if (S.breaker === "OPEN"){
-      if (performance.now() < S.coolEnd){
-        log("err", "×× 熔断器仍打开,冷却 " + Math.ceil((S.coolEnd - performance.now())/1000) + "s — 拒绝请求");
-        return;
-      }
-      /* 半开探针 */
-      setBreaker("HALF");
-      S.probe = true;
-      S.running = true; S.history = []; S.attempt = 0;
-      timelineEl.innerHTML = ""; tlNodes = [];
-      btnRun.disabled = true;
-      log("amb", ">>> 熔断冷却完毕 — 放出半开探针 HALF-OPEN PROBE");
-      startAttempt();
-      return;
+  /* 云 */
+  clouds.forEach(c=>{
+    c.nx+=c.sp*.00016*(1+storm*2);if(c.nx>1.2)c.nx=-.2;if(c.nx<-.2)c.nx=1.2;
+    const cx=c.nx*W,cy=c.ny*H+H*.03;
+    for(let k=0;k<9;k++){
+      const a=k/9*Math.PI*2+c.ph;
+      const px=cx+Math.cos(a)*c.r*.6,py=cy+Math.sin(a)*c.r*.15;
+      ctx.fillStyle=rgb(fade(FAM.chemin,L.sky,.3+storm*.4),.15*dayF+.05+storm*.1);
+      ctx.beginPath();ctx.ellipse(px,py,c.r*.34,c.r*.09,0,0,7);ctx.fill();
     }
-    S.probe = false;
-    S.running = true; S.history = []; S.attempt = 0;
-    timelineEl.innerHTML = ""; tlNodes = [];
-    btnRun.disabled = true;
-    S.runCount++;
-    runRng = MIRA.mulberry32(MIRA.seed*7919 + S.runCount*104729);
-    log("amb", ">>> 发起请求 run #" + S.runCount + " — 目标 tool:web.fetch · 故障带 tape " + MIRA.seed + "-" + S.runCount);
-    startAttempt();
   });
-
-  /* 注入:单击武装一次;按住 600ms 武装风暴(4 连击) */
-  var injectHold = null;
-  btnInject.addEventListener("pointerdown", function(){
-    wake();
-    injectHold = setTimeout(function(){
-      injectHold = "fired";
-      S.storm = 4; S.armed = false;
-      btnInject.classList.remove("armed");
-      btnInject.classList.add("storm");
-      btnInject.textContent = "风暴武装 STORM×4";
-      scopeFrame.classList.add("shake");
-      setTimeout(function(){ scopeFrame.classList.remove("shake"); }, 700);
-      log("err", "!! 风暴注入器武装 — 接下来 4 次尝试连续失败 (STORM SURGE)");
-    }, 600);
-  });
-  function injectRelease(){
-    if (injectHold === "fired"){ injectHold = null; return; }
-    clearTimeout(injectHold); injectHold = null;
-    if (S.armed || S.storm) return;
-    S.armed = true;
-    btnInject.classList.add("armed");
-    btnInject.textContent = "故障已武装 ARMED";
-    log("err", "!! 故障注入器已武装 — 下一次尝试必定失败 (" + P.fmode + ")");
+  /* 远山一线 */
+  ctx.fillStyle=rgb(fade(FAM.ciel,L.hor,.55),.5);
+  ctx.beginPath();ctx.moveTo(0,hz);
+  for(let x=0;x<=W;x+=10)ctx.lineTo(x,hz-H*.01*(1+Math.sin(x*.004)*.6)-H*.005*Math.sin(x*.021));
+  ctx.lineTo(W,hz);ctx.closePath();ctx.fill();
+  /* --- 草地基色 --- */
+  const fg=ctx.createLinearGradient(0,hz,0,H);
+  fg.addColorStop(0,rgb(L.far));fg.addColorStop(1,rgb(L.near));
+  ctx.fillStyle=fg;ctx.fillRect(0,hz,W,H-hz);
+  /* --- 小径（先铺土路） --- */
+  ctx.strokeStyle=rgb(fade(FAM.chemin,L.near,.18),.95);
+  ctx.lineWidth=H*.055;ctx.lineCap="round";ctx.lineJoin="round";
+  ctx.beginPath();
+  for(let x=0;x<=W;x+=16){
+    const y=pathY(x/W);
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
   }
-  btnInject.addEventListener("pointerup", injectRelease);
-  btnInject.addEventListener("pointerleave", function(){ if(injectHold && injectHold!=="fired"){ clearTimeout(injectHold); injectHold=null; } });
-  document.getElementById("btn-reset").addEventListener("click", reset);
-
-  function startAttempt(){
-    S.attempt++;
-    S.sendDur = 500 + runRng() * 500;
-    S.sendEnd = performance.now() + S.sendDur;
-    S.willFail = S.armed || S.storm > 0 || runRng() < P.chaos;
-    if (S.storm > 0) S.storm--;
-    if (S.storm === 0){ btnInject.classList.remove("storm"); if(!S.armed) btnInject.textContent = "注入失败 INJECT"; }
-    S.armed = false;
-    if (!btnInject.classList.contains("storm")){ btnInject.classList.remove("armed"); btnInject.textContent = "注入失败 INJECT"; }
-    setState("SENDING", (S.probe ? "PROBE 探针 #" : "SENDING 尝试 #") + S.attempt, "busy");
-    log("inf", "attempt " + S.attempt + "/" + (S.probe ? 1 : P.att) + " — 发送中…");
+  ctx.stroke();
+  /* 路边泥土碎笔触 */
+  for(let i=0;i<240;i++){
+    const nx=(i*37.3%1000)/1000;
+    const x=nx*W,y=pathY(nx)+(((i*53)%40)-20)*H*.0016;
+    const side=i%2?1:-1;
+    const yy=y+side*H*.028;
+    ctx.strokeStyle=rgb(fade(FAM.terre,FAM.chemin,(i%5)/5*.4),.3+((i*7)%10)/10*.15);
+    ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(x-4,yy);ctx.lineTo(x+4+((i*11)%8),yy+((i*7)%3)-1);ctx.stroke();
   }
-
-  function finishAttempt(){
-    var ok = !S.willFail;
-    S.history.push({ n:S.attempt, ok:ok, dur:Math.round(S.sendDur), fmode:ok ? null : P.fmode, wait:0, probe:S.probe });
-    addTimelineNode(S.attempt, ok, S.probe);
-    if (S.probe){
-      /* 半开探针:一击定生死 */
-      if (ok){
-        setBreaker("CLOSED");
-        SESS.heal++; renderSess();
-        setState("HEALED", "CLOSED 熔断复位", "ok");
-        log("okg", "++ 探针成功 (" + Math.round(S.sendDur) + "ms) — 熔断器复位,流量恢复");
-        scopeRead.textContent = "CLOSED";
-      } else {
-        setBreaker("OPEN");
-        S.coolEnd = performance.now() + 4000;
-        setState("CIRCUIT", "RE-OPEN 再熔断", "dead");
-        log("err", "×× 探针失败 — 熔断器再次打开,冷却 4s");
-        scopeRead.textContent = "RE-OPEN";
-      }
-      S.probe = false;
-      S.running = false; btnRun.disabled = false;
-      return;
+  /* --- 草（风跟着手，风暴压倒） --- */
+  grass.forEach(gr=>{
+    const depth=gr.ny;
+    const x=gr.nx*W,y=hz+4+depth*(H-hz-4);
+    /* 路径附近草稀疏 */
+    const pd=Math.abs(y-pathY(gr.nx));
+    if(pd<H*.03)return;
+    let sway=Math.sin(t*(1.1+gr.hue*.8)+gr.ph)*windBase*(1+depth);
+    if(ptr.inC){
+      const d=Math.hypot(ptr.x-x,ptr.y-y);
+      if(d<120)sway+=ptr.vx*(1-d/120)*.5;
     }
-    if (ok){
-      setState("HEALED", "HEALED 已自愈", "ok");
-      SESS.heal++; renderSess();
-      log("okg", "++ attempt " + S.attempt + " 成功 (" + Math.round(S.sendDur) + "ms) — 流程自愈完成");
-      S.running = false; btnRun.disabled = false;
-      scopeRead.textContent = "OK@" + S.attempt;
-    } else {
-      log("err", "-- attempt " + S.attempt + " 失败 — " + P.fmode);
-      if (S.attempt >= P.att){
-        setState("CIRCUIT", "CIRCUIT OPEN 熔断", "dead");
-        setBreaker("OPEN");
-        SESS.open++; renderSess();
-        S.coolEnd = performance.now() + 4000;
-        log("err", "×× 尝试耗尽,熔断器打开。冷却 4s 后 RUN 放出半开探针。");
-        btnRun.textContent = "半开探针 PROBE";
-        S.running = false; btnRun.disabled = false;
-        scopeRead.textContent = "OPEN";
-      } else {
-        var d = delayFor(S.attempt);
-        S.history[S.history.length - 1].wait = d;
-        S.waitDur = d;
-        S.waitEnd = performance.now() + d;
-        setState("WAITING", "BACKOFF " + d + "ms", "wait");
-        log("amb", "… 指数退避等待 " + d + "ms 后重试 (base " + P.base + " × 2^" + (S.attempt - 1) + (P.jitter ? " + jitter" : "") + ")");
-      }
-    }
-  }
-
-  /* ---------- timeline ---------- */
-  var tlNodes = [];
-  function addTimelineNode(n, ok, probe){
-    if (tlNodes.length){
-      var link = document.createElement("div");
-      link.className = "tl-link";
-      link.innerHTML = "<i></i>";
-      timelineEl.appendChild(link);
-      requestAnimationFrame(function(){ requestAnimationFrame(function(){ link.classList.add("fill"); }); });
-    }
-    var node = document.createElement("div");
-    node.className = "tl-node " + (ok ? "ok" : "fail") + (probe ? " probe" : "");
-    node.innerHTML = '<span class="dot"></span><span class="lb">' + (probe ? "P" : "#" + n) + "</span>";
-    node.addEventListener("click", function(){
-      document.querySelectorAll(".tl-node").forEach(function(x){ x.classList.remove("sel"); });
-      node.classList.add("sel");
-      var h = S.history[n - 1];
-      if (!h) return;
-      tlDetail.innerHTML = "<b>" + (h.probe ? "PROBE 探针" : "ATTEMPT #" + h.n) + "</b> — " +
-        (h.ok ? '<span style="color:var(--green)">SUCCESS</span>' : '<span class="e">FAIL · ' + h.fmode + "</span>") +
-        " · 耗时 " + h.dur + "ms" + (h.wait ? " · 随后退避 " + h.wait + "ms" : "");
-    });
-    timelineEl.appendChild(node);
-    tlNodes.push(node);
-    timelineEl.scrollLeft = timelineEl.scrollWidth;
-  }
-
-  /* ---------- oscilloscope ---------- */
-  var cv = document.getElementById("scope");
-  var ctx = cv.getContext("2d");
-  var tip = document.getElementById("scopetip");
-  var dragRead = document.getElementById("dragread");
-  var W = 0, H = 0, DPR = 1;
-  var pointHits = [];
-  var scopeMode = "curve";
-  var dragging = false;
-
-  function resize(){
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
-    var r = cv.getBoundingClientRect();
-    W = r.width; H = r.height;
-    cv.width = W * DPR; cv.height = H * DPR;
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  }
-  window.addEventListener("resize", resize);
-  resize();
-
-  document.querySelectorAll(".vtab button").forEach(function(b){
-    b.addEventListener("click", function(){
-      wake();
-      scopeMode = b.dataset.s;
-      document.body.dataset.scope = scopeMode;
-      document.querySelectorAll(".vtab button").forEach(function(x){ x.classList.toggle("on", x===b); });
-      document.querySelector(".corner.tl").textContent = scopeMode==="curve" ? "CH-1 · BACKOFF SCOPE" : "CH-2 · TIME WATERFALL";
-      document.querySelector(".corner.tr").textContent = scopeMode==="curve" ? "EXP ×2^N" : "ms →";
-    });
-  });
-
-  cv.addEventListener("pointerdown", function(e){
-    wake();
-    dragging = true;
-    cv.setPointerCapture(e.pointerId);
-    dragApply(e);
-  });
-  cv.addEventListener("pointermove", function(e){
-    if (dragging){ dragApply(e); return; }
-    var r = cv.getBoundingClientRect();
-    var mx = e.clientX - r.left, my = e.clientY - r.top;
-    var best = null, bd = 14;
-    pointHits.forEach(function(p){
-      var d = Math.hypot(p.x - mx, p.y - my);
-      if (d < bd){ bd = d; best = p; }
-    });
-    if (best){
-      tip.style.display = "block";
-      tip.style.left = (mx + 14) + "px";
-      tip.style.top = (my - 10) + "px";
-      tip.textContent = best.label;
-    } else tip.style.display = "none";
-  });
-  function dragApply(e){
-    var r = cv.getBoundingClientRect();
-    var fx = Math.min(1, Math.max(0, (e.clientX - r.left)/r.width));
-    var fy = Math.min(1, Math.max(0, (e.clientY - r.top)/r.height));
-    P.chaos = Math.round((1-fy)*90)/100;
-    P.base = Math.round((100 + fx*1900)/50)*50;
-    syncControls();
-    dragRead.style.display = "block";
-    dragRead.textContent = "CHAOS " + Math.round(P.chaos*100) + "% · BASE " + P.base + "ms";
-    tip.style.display = "none";
-  }
-  cv.addEventListener("pointerup", function(){ dragging = false; dragRead.style.display = "none"; });
-  cv.addEventListener("pointercancel", function(){ dragging = false; dragRead.style.display = "none"; });
-  cv.addEventListener("mouseleave", function(){ tip.style.display = "none"; });
-
-  var PADL = 46, PADR = 20, PADT = 30, PADB = 30;
-  function plot(){
-    var maxN = P.att;
-    var maxD = curveDelay(maxN) * 1.25;
-    var pw = W - PADL - PADR, ph = H - PADT - PADB;
-    function X(n){ return PADL + (maxN === 1 ? 0 : (n - 1) / (maxN - 1)) * pw; }
-    function Y(d){ return PADT + ph - Math.min(d / maxD, 1) * ph; }
-    return {X:X, Y:Y, maxD:maxD, pw:pw, ph:ph};
-  }
-  function graticule(pw, ph){
-    ctx.strokeStyle = "rgba(84,64,31,.35)";
-    ctx.lineWidth = 1;
+    let c;
+    if(gr.hue>.85)c=fade(lerpHSL(L.far,L.near,depth),FAM.chemin,.35*L.warm+.1);
+    else if(gr.hue<.34)c=fade(lerpHSL(L.far,L.near,depth),FAM.herbe,.6);
+    else c=lerpHSL(L.far,L.near,depth*.75+gr.hue*.2);
+    const lean=sway*(2+storm*8);
+    const tall=gr.len*(.5+depth*.7)*(1-storm*.35);
+    ctx.strokeStyle=rgb(c,.5+.34*depth);
+    ctx.lineWidth=Math.max(.8,1.8*depth);
     ctx.beginPath();
-    for (var i = 0; i <= 8; i++){
-      var gx = PADL + pw * i / 8;
-      ctx.moveTo(gx, PADT); ctx.lineTo(gx, PADT + ph);
-    }
-    for (i = 0; i <= 4; i++){
-      var gy = PADT + ph * i / 4;
-      ctx.moveTo(PADL, gy); ctx.lineTo(PADL + pw, gy);
-    }
+    ctx.moveTo(x,y);
+    ctx.quadraticCurveTo(x+gr.tilt*3+lean*.4,y-tall*.6,x+gr.tilt*5+lean,y-tall*(1-Math.min(.6,Math.abs(lean)*.02)));
     ctx.stroke();
-  }
-
-  function drawCurve(now){
-    var pl = plot(), i, n;
-    graticule(pl.pw, pl.ph);
-    ctx.fillStyle = "rgba(156,126,70,.8)";
-    ctx.font = "8.5px 'SF Mono',Menlo,monospace";
-    ctx.textAlign = "right";
-    for (i = 0; i <= 4; i++){
-      var dv = pl.maxD * (1 - i / 4) / 1.25;
-      ctx.fillText(Math.round(dv) + "", PADL - 6, PADT + pl.ph * i / 4 + 3);
-    }
-    ctx.textAlign = "center";
-    for (n = 1; n <= P.att; n++) ctx.fillText("#" + n, pl.X(n), PADT + pl.ph + 16);
-
-    /* 理论曲线 */
-    ctx.strokeStyle = "rgba(255,176,0,.32)";
-    ctx.setLineDash([3, 4]);
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    for (n = 1; n <= P.att; n++){
-      var x = pl.X(n), y = pl.Y(curveDelay(n));
-      if (n === 1) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    pointHits = [];
-    for (n = 1; n <= P.att; n++){
-      var gx2 = pl.X(n), gy2 = pl.Y(curveDelay(n));
-      pointHits.push({x:gx2, y:gy2, label:"理论退避 attempt #" + n + " ≈ " + Math.round(curveDelay(n)) + "ms"});
-      ctx.fillStyle = "rgba(255,176,0,.25)";
-      ctx.beginPath(); ctx.arc(gx2, gy2, 3, 0, 7); ctx.fill();
-    }
-
-    S.history.forEach(function(h, idx){
-      var x = pl.X(h.n), y = pl.Y(h.wait || 0);
-      if (!h.ok){
-        pointHits.push({x:x, y:y, label:"#" + h.n + " 失败 " + h.fmode + " >> 退避 " + h.wait + "ms"});
-        ctx.fillStyle = "#FF4A2E";
-        ctx.shadowColor = "rgba(255,74,46,.9)"; ctx.shadowBlur = 10;
-        ctx.beginPath(); ctx.arc(x, y, 4.5, 0, 7); ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.strokeStyle = "rgba(255,74,46,.5)";
-        ctx.beginPath(); ctx.moveTo(x - 8, y - 8); ctx.lineTo(x + 8, y + 8);
-        ctx.moveTo(x + 8, y - 8); ctx.lineTo(x - 8, y + 8); ctx.stroke();
-        if (h.wait){
-          var nx = pl.X(h.n + 1);
-          ctx.strokeStyle = "rgba(255,176,0,.55)";
-          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(nx, y); ctx.stroke();
-        }
-      } else {
-        pointHits.push({x:x, y:y, label:"#" + h.n + " 成功 · " + h.dur + "ms"});
-        ctx.fillStyle = "#57E389";
-        ctx.shadowColor = "rgba(87,227,137,.9)"; ctx.shadowBlur = 12;
-        ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-    });
-
-    /* in-flight pulse */
-    if (S.state === "SENDING"){
-      var t = 1 - (S.sendEnd - now) / S.sendDur;
-      var px = pl.X(S.attempt), py = PADT + pl.ph * (1 - Math.min(Math.max(t, 0), 1));
-      ctx.strokeStyle = "rgba(255,176,0,.7)";
-      ctx.beginPath(); ctx.moveTo(px, PADT + pl.ph); ctx.lineTo(px, py); ctx.stroke();
-      ctx.fillStyle = "#FFB000";
-      ctx.shadowColor = "rgba(255,176,0,.9)"; ctx.shadowBlur = 12;
-      ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fill();
-      ctx.shadowBlur = 0;
-      scopeRead.textContent = "TX#" + S.attempt + " " + Math.round(t * 100) + "%";
-    }
-    if (S.state === "WAITING"){
-      var last = S.history[S.history.length - 1];
-      var t2 = 1 - (S.waitEnd - now) / S.waitDur;
-      var x1 = pl.X(last.n), x2 = pl.X(last.n + 1), yy = pl.Y(last.wait);
-      var sx = x1 + (x2 - x1) * Math.min(Math.max(t2, 0), 1);
-      ctx.strokeStyle = "rgba(255,176,0,.9)";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(x1, yy); ctx.lineTo(sx, yy); ctx.stroke();
-      ctx.lineWidth = 1.2;
-      ctx.fillStyle = "#FFB000";
-      ctx.shadowColor = "rgba(255,176,0,1)"; ctx.shadowBlur = 14;
-      ctx.beginPath(); ctx.arc(sx, yy, 4.5, 0, 7); ctx.fill();
-      ctx.shadowBlur = 0;
-      scopeRead.textContent = "WAIT " + Math.max(0, Math.round(S.waitEnd - now)) + "ms";
-    }
-  }
-
-  function drawFall(now){
-    /* 瀑布:每次尝试一行,[退避虚线][发送实条][结果] */
-    var rows = Math.max(P.att, S.history.length, 1);
-    var pw = W - PADL - PADR, ph = H - PADT - PADB;
-    graticule(pw, ph);
-    var totalMs = 0;
-    S.history.forEach(function(h){ totalMs += h.dur + (h.wait||0); });
-    totalMs = Math.max(totalMs, S.sendDur + 400, 1200);
-    var rowH = Math.min(26, ph/rows);
-    function TX(ms){ return PADL + ms/totalMs*pw; }
-    ctx.font = "8.5px 'SF Mono',Menlo,monospace";
-    ctx.textAlign = "right";
-    ctx.fillStyle = "rgba(156,126,70,.8)";
-    for (var i = 0; i <= 4; i++){
-      ctx.textAlign = "center";
-      ctx.fillText(Math.round(totalMs*i/4) + "", PADL + pw*i/4, PADT + ph + 16);
-    }
-    pointHits = [];
-    var cursor = 0;
-    S.history.forEach(function(h, idx){
-      var y = PADT + idx*rowH + rowH/2;
-      /* 退避间隙(这次尝试之前的等待,画在前一次之后) */
-      var sx0 = TX(cursor);
-      cursor += h.dur;
-      var sx1 = TX(cursor);
-      ctx.strokeStyle = h.ok ? "rgba(87,227,137,.9)" : "rgba(255,74,46,.9)";
-      ctx.lineWidth = rowH*.42;
-      ctx.beginPath(); ctx.moveTo(sx0, y); ctx.lineTo(sx1, y); ctx.stroke();
-      pointHits.push({x:(sx0+sx1)/2, y:y, label:"#" + h.n + " " + (h.ok?"成功":"失败 "+h.fmode) + " · 耗时 " + h.dur + "ms"});
-      /* 结果帽 */
-      ctx.fillStyle = h.ok ? "#57E389" : "#FF4A2E";
-      ctx.shadowColor = h.ok ? "rgba(87,227,137,.9)" : "rgba(255,74,46,.9)";
-      ctx.shadowBlur = 8;
-      ctx.fillRect(sx1-1.5, y-rowH*.42, 3, rowH*.84);
-      ctx.shadowBlur = 0;
-      ctx.textAlign = "right";
-      ctx.fillStyle = "rgba(156,126,70,.9)";
-      ctx.fillText(h.probe ? "P" : "#" + h.n, PADL - 8, y + 3);
-      if (h.wait){
-        var wx0 = TX(cursor);
-        cursor += h.wait;
-        var wx1 = TX(cursor);
-        ctx.strokeStyle = "rgba(255,176,0,.55)";
-        ctx.lineWidth = 1.4;
-        ctx.setLineDash([3,3]);
-        ctx.beginPath(); ctx.moveTo(wx0, y); ctx.lineTo(wx1, y); ctx.stroke();
-        ctx.setLineDash([]);
-        pointHits.push({x:(wx0+wx1)/2, y:y, label:"#" + h.n + " 之后退避 " + h.wait + "ms"});
-      }
-    });
-    /* in-flight */
-    if (S.state === "SENDING"){
-      var t = 1 - (S.sendEnd - now)/S.sendDur;
-      var y2 = PADT + S.history.length*rowH + rowH/2;
-      var ex = TX(cursor + S.sendDur*Math.min(Math.max(t,0),1));
-      ctx.strokeStyle = "rgba(255,176,0,.9)";
-      ctx.lineWidth = rowH*.42;
-      ctx.beginPath(); ctx.moveTo(TX(cursor), y2); ctx.lineTo(ex, y2); ctx.stroke();
-      ctx.fillStyle = "#FFB000";
-      ctx.shadowColor = "rgba(255,176,0,1)"; ctx.shadowBlur = 12;
-      ctx.beginPath(); ctx.arc(ex, y2, 4, 0, 7); ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.textAlign = "right"; ctx.fillStyle = "rgba(255,176,0,.9)";
-      ctx.fillText("#" + S.attempt, PADL - 8, y2 + 3);
-      scopeRead.textContent = "TX#" + S.attempt + " " + Math.round(t*100) + "%";
-    }
-    if (S.state === "WAITING"){
-      var t3 = 1 - (S.waitEnd - now)/S.waitDur;
-      var y3 = PADT + (S.history.length-1)*rowH + rowH/2;
-      var bx0 = TX(cursor - S.waitDur), bx1 = TX(cursor - S.waitDur + S.waitDur*Math.min(Math.max(t3,0),1));
-      ctx.strokeStyle = "rgba(255,176,0,.9)";
-      ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.moveTo(bx0, y3); ctx.lineTo(bx1, y3); ctx.stroke();
-      scopeRead.textContent = "WAIT " + Math.max(0, Math.round(S.waitEnd - now)) + "ms";
-    }
-    if (!S.history.length && S.state !== "SENDING"){
-      ctx.textAlign = "center";
-      ctx.fillStyle = "rgba(156,126,70,.7)";
-      ctx.font = "9.5px 'SF Mono',Menlo,monospace";
-      ctx.fillText("— RUN 一次,瀑布自会流下 —", PADL + pw/2, PADT + ph/2);
-    }
-  }
-
-  /* 风暴静电噪点 */
-  function drawStatic(){
-    if (!btnInject.classList.contains("storm")) return;
-    for (var i = 0; i < 90; i++){
-      ctx.fillStyle = "rgba(255,74,46," + (Math.random()*.25) + ")";
-      ctx.fillRect(Math.random()*W, Math.random()*H, 2, 2);
-    }
-  }
-
-  function draw(now){
-    ctx.clearRect(0, 0, W, H);
-    if (scopeMode === "curve") drawCurve(now); else drawFall(now);
-    drawStatic();
-    /* 熔断冷却倒计时弧 */
-    if (S.breaker === "OPEN" && S.coolEnd > now){
-      var left = (S.coolEnd - now)/4000;
-      ctx.strokeStyle = "rgba(255,74,46,.8)";
-      ctx.lineWidth = 3;
-      ctx.beginPath(); ctx.arc(W-34, H-30, 14, -Math.PI/2, -Math.PI/2 + (1-left)*Math.PI*2); ctx.stroke();
-      ctx.fillStyle = "rgba(255,74,46,.9)";
-      ctx.font = "8px 'SF Mono',Menlo,monospace";
-      ctx.textAlign = "center";
-      ctx.fillText(Math.ceil((S.coolEnd-now)/1000) + "s", W-34, H-27);
-    }
-  }
-
-  /* ---------- main loop ---------- */
-  function frame(){
-    var now = performance.now();
-    if (S.state === "SENDING" && now >= S.sendEnd) finishAttempt();
-    if (S.state === "WAITING" && now >= S.waitEnd) startAttempt();
-    draw(now);
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-
-  /* ---------- 闲置彩蛋:自动演示 ---------- */
-  var idleTimer=null, demoing=false, demoTimer=null;
-  window.wake = function(){
-    if (demoing){ demoing=false; clearInterval(demoTimer); }
-    clearTimeout(idleTimer);
-    idleTimer=setTimeout(startDemo, 30000);
-  };
-  function startDemo(){
-    if (S.running) { window.wake(); return; }
-    demoing = true;
-    log("inf", "… 闲置 30s,进入自巡检 — 任意操作接管");
-    demoTimer = setInterval(function(){
-      if (S.running) return;
-      if (S.breaker === "OPEN" && performance.now() < S.coolEnd) return;
-      btnRun.click();
-    }, 5200);
-  }
-  ["pointerdown","pointermove","keydown","wheel"].forEach(function(ev){
-    document.addEventListener(ev, window.wake, {passive:true});
   });
-  window.wake();
-
-  /* ---------- 键盘 ---------- */
-  document.addEventListener("keydown", function(e){
-    if (["INPUT","TEXTAREA","SELECT"].includes(document.activeElement && document.activeElement.tagName)) return;
-    var k = e.key.toLowerCase();
-    if (k==="r") btnRun.click();
-    else if (k==="i") injectRelease();
-    else if (k==="j") document.getElementById("tgl-jitter").click();
-    else if (k==="v"){ var nx = scopeMode==="curve" ? "fall" : "curve";
-      document.querySelector('.vtab button[data-s="'+nx+'"]').click(); }
-    else if (k==="1") setFmode("TIMEOUT");
-    else if (k==="2") setFmode("429 RATE_LIMIT");
-    else if (k==="3") setFmode("502 BAD_GATEWAY");
-    else if (k==="4") setFmode("PARSE_ERROR");
-    else if (k==="t") MIRA.cycleAtmo();
-    else if (k==="n") MIRA.regen();
-    else if (k==="p") exportPNG();
-  });
-
-  MIRA.onchange = function(st){
-    runRng = MIRA.mulberry32(st.seed*7919 + S.runCount*104729);
-    log("amb", "◷ 更换故障带 — 新 tape " + st.seed + " · 光色 " + MIRA.ATMOS[st.atmo].label);
-  };
-
-  /* ---------- PNG 输出 ---------- */
-  window.exportPNG = function(){
-    var c = document.createElement("canvas"); c.width=1200; c.height=800;
-    var x = c.getContext("2d");
-    x.fillStyle = "#100B06"; x.fillRect(0,0,1200,800);
-    var r = MIRA.rng();
-    var A = MIRA.ATMOS[MIRA.atmo];
-    A.blobs.forEach(function(col){
-      var bx=r()*1200, by=r()*800, rad=240+r()*220;
-      var g=x.createRadialGradient(bx,by,0,bx,by,rad);
-      g.addColorStop(0,col); g.addColorStop(1,"rgba(0,0,0,0)");
-      x.globalAlpha=.3; x.fillStyle=g; x.fillRect(bx-rad,by-rad,rad*2,rad*2);
-    });
-    x.globalAlpha=1;
-    for (var i=0;i<2000;i++){
-      x.fillStyle="rgba(240,220,168,"+(r()*.06)+")";
-      x.fillRect(r()*1200, r()*800, 1.4, 1.4);
+  /* --- 罂粟（点状，唯一的纯色） --- */
+  poppies.forEach(p=>{
+    const x=p.nx*W,y=hz+4+p.ny*(H-hz-4);
+    if(Math.abs(y-pathY(p.nx))<H*.032)return;
+    const depth=p.ny;
+    const sway=Math.sin(t*1.3+p.ph)*windBase*1.4;
+    /* 茎 */
+    ctx.strokeStyle=rgb(fade(FAM.herbe,FAM.terre,.3),.6);
+    ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+sway,y-8*p.s,x+sway*1.6,y-13*p.s);ctx.stroke();
+    /* 花：3-5 个红点，点彩 */
+    const bloom=p.bloom?Math.min(1,(t-p.bloom)/.8):1;
+    const nb=3+((p.s*2)|0);
+    for(let k=0;k<nb;k++){
+      const a=k/nb*Math.PI*2+p.ph;
+      ctx.fillStyle=rgb(FAM.pavot,(.55+.3*Math.sin(k*2.1))*bloom);
+      ctx.beginPath();
+      ctx.arc(x+sway*1.6+Math.cos(a)*2.2*p.s*bloom,y-13*p.s+Math.sin(a)*1.6*p.s*bloom,
+              1.5*p.s*bloom*(.8+.2*Math.sin(t*2+k)),0,7);
+      ctx.fill();
     }
-    x.strokeStyle = "#FFB000"; x.lineWidth=2.5; x.strokeRect(36,36,1128,728);
-    x.save(); x.translate(110,118); x.strokeStyle="#FFB000"; x.lineWidth=2.4;
-    x.beginPath(); x.arc(0,0,44,0,7); x.stroke();
-    x.lineWidth=3.4; x.lineCap="round";
-    x.beginPath(); x.moveTo(-13,16); x.lineTo(-12,-14); x.lineTo(0,6); x.lineTo(12,-14); x.lineTo(13,16); x.stroke();
-    x.restore();
-    x.fillStyle = "#F0DCA8"; x.textAlign="left";
-    x.font="700 32px 'SF Mono',Menlo,monospace";
-    x.fillText("RETRY DEBUGGER", 180, 106);
-    x.font="600 15px 'SF Mono',Menlo,monospace"; x.fillStyle="#FFB000";
-    x.fillText("ÉTUDE N°75/100 · 失败重试自愈台", 180, 134);
-    x.fillStyle = "#9C7E46";
-    x.fillText(A.label+" · seed "+MIRA.seed+" · base "+P.base+"ms · att "+P.att+" · chaos "+Math.round(P.chaos*100)+"% · "+P.fmode+(P.jitter?" · jitter":""), 180, 160);
-    /* 内嵌示波器快照 */
-    x.save();
-    x.translate(90, 210);
-    var dw=1020, dh=380;
-    x.drawImage(cv, 0,0,cv.width,cv.height, 0,0,dw,dh);
-    x.strokeStyle="#54401F"; x.lineWidth=2; x.strokeRect(0,0,dw,dh);
-    x.restore();
-    /* 时间线节点 */
-    var tx = 100, ty = 660;
-    x.font="700 13px 'SF Mono',Menlo,monospace"; x.fillStyle="#9C7E46";
-    x.fillText("TIMELINE", 90, ty-30);
-    S.history.forEach(function(h){
-      x.beginPath(); x.arc(tx, ty, 9, 0, 7);
-      x.fillStyle = h.ok ? "#57E389" : "#FF4A2E"; x.fill();
-      if (h.probe){ x.strokeStyle="#FFB000"; x.setLineDash([2,2]); x.beginPath(); x.arc(tx,ty,13,0,7); x.stroke(); x.setLineDash([]); }
-      x.fillStyle="#9C7E46"; x.font="600 10px 'SF Mono',Menlo,monospace"; x.textAlign="center";
-      x.fillText(h.probe?"P":"#"+h.n, tx, ty+26);
-      tx += 46;
-    });
-    x.textAlign="right"; x.font="600 13px 'SF Mono',Menlo,monospace"; x.fillStyle="#9C7E46";
-    x.fillText("BREAKER "+S.breaker+" · RUNS "+SESS.runs+" HEALED "+SESS.heal+" TRIPPED "+SESS.open, 1130, 640);
-    x.fillText("Canvas 2D · Painted with code, plein air · ATELIER MIRA 2026", 1130, 736);
-    var a=document.createElement("a");
-    a.download="retry-debugger_N75_seed"+MIRA.seed+"_"+MIRA.atmo+".png";
-    a.href=c.toDataURL("image/png"); a.click();
-  };
+  });
+  /* --- 测风杆（尝试 = 杆高 = 退避时长） --- */
+  const maxD=delayAt(MAXA-1);
+  stones.forEach((st,i)=>{
+    if(i>=MAXA){return}
+    const x=st.x,y=st.y;
+    const hFrac=Math.log2(delayAt(i)/BASE+1)/Math.log2(maxD/BASE+1);
+    const poleH=H*(.04+.13*hFrac);
+    const sway=Math.sin(t*1.2+i)*windBase*.8;
+    /* 杆影（泥土色，背向太阳） */
+    const shDir=sun.x<W/2?1:-1;
+    ctx.strokeStyle=rgb(fade(FAM.terre,L.near,.3),.25);
+    ctx.lineWidth=3;
+    ctx.beginPath();ctx.moveTo(x,y+2);ctx.lineTo(x+shDir*poleH*.5*Math.abs(12-heure)/6,y+4);ctx.stroke();
+    /* 杆身 */
+    const stC=st.state==="fail"?FAM.pavot:st.state==="ok"?fade(FAM.chemin,FAM.terre,.2):fade(FAM.terre,FAM.chemin,.25);
+    ctx.strokeStyle=rgb(stC,.9);ctx.lineWidth=2.6;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+sway,y-poleH);ctx.stroke();
+    /* 杆顶旗/光 */
+    if(st.state==="ok"){
+      const pl=.7+.3*Math.sin(t*3+i);
+      ctx.fillStyle=rgb(FAM.chemin,.9*pl);
+      ctx.beginPath();ctx.arc(x+sway,y-poleH,4*pl,0,7);ctx.fill();
+      ctx.fillStyle=rgb(FAM.chemin,.25*pl);
+      ctx.beginPath();ctx.arc(x+sway,y-poleH,10*pl,0,7);ctx.fill();
+    }else if(st.state==="fail"){
+      ctx.fillStyle=rgb(FAM.pavot,.9);
+      ctx.beginPath();ctx.arc(x+sway,y-poleH,3.4,0,7);ctx.fill();
+    }else{
+      ctx.fillStyle=rgb(FAM.chemin,.8);
+      ctx.beginPath();ctx.arc(x+sway,y-poleH,2.4,0,7);ctx.fill();
+    }
+    /* 标签 */
+    ctx.font="8px 'SF Mono',Menlo,monospace";ctx.textAlign="center";
+    ctx.fillStyle=rgb(fade(FAM.terre,L.near,(1-dayF)*.4),.75);
+    ctx.fillText("#"+(i+1)+" · "+delayAt(i)+"ms",x,y+13);
+  });
+  /* 虚线缰绳（退避曲线） */
+  ctx.strokeStyle=rgb(fade(FAM.terre,FAM.chemin,.3),.5);
+  ctx.setLineDash([3,5]);ctx.lineDashOffset=-t*8;ctx.lineWidth=1.1;
+  ctx.beginPath();
+  let first=true;
+  stones.forEach((st,i)=>{
+    if(i>=MAXA)return;
+    const hFrac=Math.log2(delayAt(i)/BASE+1)/Math.log2(maxD/BASE+1);
+    const poleH=H*(.04+.13*hFrac);
+    first?ctx.moveTo(st.x,st.y-poleH):ctx.lineTo(st.x,st.y-poleH);
+    first=false;
+  });
+  ctx.stroke();ctx.setLineDash([]);
+  /* --- 行走的光（RUN 主角） --- */
+  if(walker){
+    walker.k+=1/60/walker.dur;
+    if(walker.k>1)walker.k=1;
+    const a=walker.from<0?{x:stones[0].x-60,y:pathY((stones[0].x-60)/W)}:stones[walker.from];
+    const b=stones[walker.to];
+    const e=walker.k*walker.k*(3-2*walker.k);
+    const wx=a.x+(b.x-a.x)*e,wy=pathY(wx/W)-6-Math.sin(e*Math.PI)*26;
+    const pl=.7+.3*Math.sin(t*8);
+    ctx.fillStyle=rgb(FAM.chemin,.35*pl);
+    ctx.beginPath();ctx.arc(wx,wy,14*pl,0,7);ctx.fill();
+    ctx.fillStyle=rgb(fade(FAM.chemin,FAM.terre,.1),.95);
+    ctx.beginPath();ctx.arc(wx,wy,4.5*pl,0,7);ctx.fill();
+  }
+  /* --- 木门（熔断器） --- */
+  gate.open+=(gate.target-gate.open)*.06;
+  const gx=gate.nx*W,gy=pathY(gate.nx);
+  ctx.strokeStyle=rgb(FAM.terre,.9);ctx.lineWidth=3;
+  const gh=H*.075;
+  ctx.beginPath();ctx.moveTo(gx-14,gy+4);ctx.lineTo(gx-14,gy-gh);
+  ctx.moveTo(gx+14,gy+4);ctx.lineTo(gx+14,gy-gh);ctx.stroke();
+  /* 门扇：open 决定角度 */
+  const sw=(1-gate.open)*1.35;
+  ctx.save();ctx.translate(gx-14,gy+2);ctx.rotate(-sw);
+  ctx.strokeStyle=rgb(fade(FAM.terre,FAM.chemin,.15),.92);ctx.lineWidth=2.4;
+  for(let b=0;b<3;b++){
+    ctx.beginPath();ctx.moveTo(0,-b*gh/3-4);ctx.lineTo(28,-b*gh/3-4);ctx.stroke();
+  }
+  ctx.restore();
+  /* 门状态灯：开=小径色，半开=琥珀闪，关=罂粟 */
+  const lampC=gate.open>.75?FAM.chemin:gate.open>.25?(Math.sin(t*6)>0?FAM.chemin:FAM.pavot):FAM.pavot;
+  ctx.fillStyle=rgb(lampC,.9);
+  ctx.beginPath();ctx.arc(gx-14,gy-gh-6,3,0,7);ctx.fill();
+  ctx.font="8px 'SF Mono',Menlo,monospace";ctx.textAlign="center";
+  ctx.fillStyle=rgb(FAM.terre,.7);
+  ctx.fillText(gate.open>.75?"PORTE OUVERTE":gate.open>.25?"ENTROUVERT":"Fermé · 熔断",gx,gy+16);
+  /* --- 风暴花瓣 --- */
+  if(storm>.3&&Math.random()<.3){
+    windPetals.push({x:-10,y:Math.random()*H*.7+H*.15,
+      vx:6+Math.random()*5,vy:(Math.random()-.5)*2,life:1,rot:Math.random()*7});
+  }
+  for(let i=windPetals.length-1;i>=0;i--){
+    const p=windPetals[i];
+    p.x+=p.vx*(1+storm*2);p.y+=p.vy+Math.sin(t*4+p.rot)*1.4;
+    p.vx*=.99;p.rot+=.1;p.life-=.006;
+    if(p.life<=0||p.x>W+20){windPetals.splice(i,1);continue}
+    ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);
+    ctx.fillStyle=rgb(FAM.pavot,p.life*.8);
+    ctx.beginPath();ctx.ellipse(0,0,3.4,1.6,0,0,7);ctx.fill();
+    ctx.restore();
+  }
+  /* --- 状态机 --- */
+  stepRun(1/60);stepCooldown(1/60);stepHalf(1/60);
+  /* --- 纸纹 + 颗粒 --- */
+  if(!paperPat)paperPat=ctx.createPattern(paperC,"repeat");
+  ctx.save();ctx.globalAlpha=.07;ctx.globalCompositeOperation="multiply";
+  ctx.fillStyle=paperPat;ctx.fillRect(0,0,W,H);ctx.restore();
+  updateGrain(now*1000);
+  if(!grainPat)grainPat=ctx.createPattern(grainC,"repeat");
+  if(grainPat){ctx.save();ctx.globalAlpha=.03;ctx.globalCompositeOperation="overlay";
+    ctx.fillStyle=grainPat;ctx.fillRect(0,0,W,H);ctx.restore()}
+  syncTimer();
+}
 
-  log("inf", "RETRY DEBUGGER 就绪。调节参数或直接 RUN。");
-  log("inf", "提示:先 RUN 再 INJECT;按住 INJECT 0.6s 触发四连风暴。故障带由 seed 决定,可复现。");
-})();
+/* ================= boot ================= */
+resize();layoutField();writeHash();
+log("田已就位 · 空格出发");
+if(innerWidth<760){document.body.classList.add("snap","hideui");setTimeout(()=>document.body.classList.remove("snap"),700)}
+let last=performance.now(),frameN=0;
+(function loop(now){
+  const dt=Math.min(.05,(now-last)/1000);last=now;
+  t+=dt;frameN++;
+  draw(now/1000);
+  requestAnimationFrame(loop);
+})(last);
 </script>
 </body></html>

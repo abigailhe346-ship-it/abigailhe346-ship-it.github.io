@@ -20,6 +20,7 @@
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
+  body.booted *{transition:none!important}
   html,body{height:100%}
   body{background:#B5C2C4;color:var(--ink);font-family:var(--sans);overflow:hidden;
        -webkit-font-smoothing:antialiased}
@@ -468,7 +469,7 @@ const FLY=1.15; /* 水脉冲渡时间（秒） */
 let pulses=[],ripples=[],flares={};
 
 /* ================= 灯桩布局 ================= */
-const POS={user:[.11,.46],coordinator:[.56,.50],researcher:[.25,.64],coder:[.80,.67],critic:[.48,.83]};
+const POS={user:[.09,.44],coordinator:[.52,.50],researcher:[.22,.64],coder:[.67,.67],critic:[.44,.83]};
 function pier(id){return{x:POS[id][0]*W,y:POS[id][1]*H}}
 function pathBetween(a,b){
   const A=pier(a),B=pier(b);
@@ -856,7 +857,7 @@ function draw(now){
     const base=lerpHSL(fade(FAM.mer,L.hor,.35),FAM.mer,depth);
     const c=s.hue>.6?fade(base,FAM.coquille,.3+.2*s.hue):fade(base,FAM.prof,.25);
     const wave=Math.sin(t*1.2+s.nx*8+s.ny*18)*depth*2;
-    ctx.strokeStyle=rgb(c,.34+.2*depth);
+    ctx.strokeStyle=rgb(c,.42+.22*depth);
     ctx.lineWidth=Math.max(.7,1.4*depth);
     ctx.beginPath();ctx.moveTo(x-s.len*.8,y+wave);ctx.lineTo(x+s.len*.8,y+wave*.6);ctx.stroke();
   });
@@ -871,10 +872,36 @@ function draw(now){
       ctx.beginPath();ctx.moveTo(xx-spread*.4,y);ctx.lineTo(xx+spread*.4,y);ctx.stroke();
     }
   }
-  /* --- 浅滩湿沙（近） --- */
-  const sandG=ctx.createLinearGradient(0,H*.58,0,H);
+  /* --- 浅滩湿沙（近，蛇形潮线） --- */
+  const sandG=ctx.createLinearGradient(0,H*.56,0,H);
   sandG.addColorStop(0,rgb(fade(FAM.sable,FAM.mer,.35)));sandG.addColorStop(1,rgb(L.near));
-  ctx.fillStyle=sandG;ctx.fillRect(0,H*.58,W,H*.42);
+  ctx.fillStyle=sandG;
+  ctx.beginPath();ctx.moveTo(0,H);
+  ctx.lineTo(0,H*.60);
+  for(let x=0;x<=W;x+=14){
+    ctx.lineTo(x,H*.585+Math.sin(x*.006+1.2)*H*.014+Math.sin(x*.017)*H*.006);
+  }
+  ctx.lineTo(W,H);ctx.closePath();ctx.fill();
+  /* 潮线一线亮 */
+  ctx.strokeStyle=rgb(FAM.coquille,.4);ctx.lineWidth=1.2;
+  ctx.beginPath();
+  for(let x=0;x<=W;x+=14){
+    const y=H*.585+Math.sin(x*.006+1.2)*H*.014+Math.sin(x*.017)*H*.006;
+    x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  /* 潮池：沙上的天空碎片 */
+  [[.16,.88,90],[.36,.94,120],[.62,.90,80],[.86,.95,100]].forEach(([px,py,pr],pi)=>{
+    const cx=px*W,cy=py*H;
+    ctx.fillStyle=rgb(fade(FAM.mer,L.sky,.45),.5);
+    ctx.beginPath();ctx.ellipse(cx,cy,pr,pr*.22,0,0,7);ctx.fill();
+    for(let k=0;k<5;k++){
+      ctx.strokeStyle=rgb(FAM.coquille,.3+.1*Math.sin(t*1.5+k+pi));
+      ctx.lineWidth=1;
+      const wy=cy-pr*.14+k*pr*.07;
+      ctx.beginPath();ctx.moveTo(cx-pr*.6+Math.sin(t+k)*4,wy);ctx.lineTo(cx+pr*.5+Math.sin(t+k+2)*4,wy);ctx.stroke();
+    }
+  });
   sandStrokes.forEach(s=>{
     const y=H*.58+6+s.ny*(H*.42-6);
     const depth=(y-H*.58)/(H*.42);
@@ -952,7 +979,16 @@ function draw(now){
 /* ================= boot ================= */
 resize();
 genScenario();renderLog();syncTransport();writeHash();
-if(innerWidth<760)document.body.classList.add("hideui");
+if(innerWidth<760){document.body.classList.add("hideui","booted");
+  setTimeout(()=>document.body.classList.remove("booted"),400)}
+/* QA/分享：#st=秒 直接涨到某拍；#play=1 自动播放 */
+if(hashParams.get("st")!==null){
+  scenT=Math.min(T_MAX,Math.max(0,+hashParams.get("st")||0));
+  EVENTS.forEach(ev=>{if(ev.t<=scenT-FLY)flares[ev.t+"|"+ev.label+"_fired"]=1});
+  fireEvents(); /* 让最近一拍的水脉冲停在半途 */
+  syncTransport();
+}
+if(hashParams.has("play"))togglePlay();
 let last=performance.now();
 (function loop(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;

@@ -5,12 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>INK DIFFUSION 墨滴 — 四时之水 · Atelier MIRA N°028</title>
 <style>
-  /* 调色板家族：四时之水 Encre et Saisons —— 同一池水的四次研磨
-     纸 #F2EEE0 · 墨 #1E242E · 朱砂 #A83A2E · 苔绿 #7A8A6E · 黛蓝 #3E4E5E */
+  /* ══════════════════════════════════════════════════════════════
+     调色板家族：主家族 ③ 睡莲 Nymphéas —— 冷中带暖斑
+       水光 #F2EFE6 · 浅漪 #DCE4DA · 柳绿 #A9BFAD · 深塘 #5F7D6E
+       天光倒影 #7C8FA6 · 莲粉 #C9A6B4（仅藏家印旁一笔，≤8%）
+     季节变量（L3.4，四时在 §1.1 家族间映射）：
+       春 = ③ 睡莲 Nymphéas · 夏 = ④ 罂粟田 Champ de Coquelicots
+       秋 = ⑦ 林间光 Sous-bois · 冬 = ① 晨雾 Brume Matinale
+     色温：主家族冷调 ~7000K；heure 光色叠加负责晨→暮的暖移。
+     面积配比：纸色水光 ~80% · 柳绿/浅漪洇色 ~12% · 深塘浓云 ~7% · 朱砂印 ≤1%。
+     墨为画材本体（同 §1.4.1 燕子用色 #2b2b26 一族），不作为底色平涂。
+     ══════════════════════════════════════════════════════════════ */
   :root{
-    --paper:#F2EEE0; --paper2:#F8F4E8; --panel:#EAE4D0; --line:#CFC6AC;
+    --paper:#F2EFE6; --paper2:#F8F4E8; --panel:#EAE4D0; --line:#CFC6AC;
     --ink:#1E242E; --dim:#80796A;
-    --cinnabar:#A83A2E; --moss:#7A8A6E;
+    --cinnabar:#A83A2E; --moss:#5F7D6E;
     --sans:"Helvetica Neue",-apple-system,Helvetica,"PingFang SC",sans-serif;
     --serif:Didot,"Bodoni MT",Georgia,"Songti SC",serif;
     --mono:"SF Mono",Menlo,monospace;
@@ -37,8 +46,16 @@
   .sig .no{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--dim);
     text-transform:uppercase;margin-top:4px}
   .sig .no b{color:var(--cinnabar);font-weight:400}
+  .epig{width:100%;font-family:var(--serif);font-style:italic;font-size:15px;
+    color:var(--dim);margin:2px 0 0 62px;letter-spacing:.04em}
+  .hright{display:flex;align-items:center;gap:14px}
   .hnote{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;line-height:2;
     color:var(--dim);text-align:right;text-transform:uppercase}
+  .sndbtn{width:34px;height:34px;border:1px solid var(--ink);background:transparent;
+    color:var(--ink);border-radius:50%;cursor:pointer;display:grid;place-items:center;
+    transition:all .3s var(--ease);flex:0 0 auto}
+  .sndbtn:hover{border-color:var(--cinnabar);color:var(--cinnabar)}
+  .sndbtn.on{background:var(--moss);border-color:var(--moss);color:#F8F4E8}
   .rule{margin:14px 3vw 0;border-top:1px solid var(--ink);position:relative}
   .rule::after{content:"";position:absolute;left:0;top:1px;width:100%;border-top:1px solid var(--line)}
 
@@ -69,9 +86,27 @@
     font-family:var(--mono);font-size:9px;letter-spacing:.12em;padding:5px 8px;border-radius:2px;
     transform:translate(12px,14px);white-space:nowrap;display:none;z-index:5}
 
+  /* heure 时间轴：画在画框下沿的一日光线尺 */
+  .heurewrap{margin-top:12px;border:1px solid var(--ink);background:var(--paper2);
+    padding:10px 14px 8px;user-select:none}
+  .heurewrap .hlab{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:9px;letter-spacing:.2em;color:var(--dim);text-transform:uppercase;margin-bottom:8px}
+  .heurewrap .hlab b{color:var(--cinnabar);font-weight:400}
+  .heurebar{position:relative;height:14px;cursor:ew-resize;touch-action:none;
+    background:linear-gradient(90deg,
+      #3E4660 0%, #7E8A96 8%, #C9CDD6 21%, #F6F3EA 38%, #FBF6E8 55%,
+      #E8B96F 72%, #D98E4A 80%, #6B5B85 90%, #3E4660 100%);
+    border:1px solid rgba(30,36,46,.5)}
+  .heurebar .hk{position:absolute;top:-4px;width:9px;height:20px;background:var(--paper2);
+    border:1.5px solid var(--ink);border-radius:5px;transform:translateX(-50%);
+    box-shadow:1px 1px 0 rgba(30,36,46,.25);pointer-events:none}
+  .heureticks{display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:8px;letter-spacing:.14em;color:var(--dim);margin-top:5px;text-transform:uppercase}
+
   .dock{background:var(--panel);border:1px solid var(--ink);padding:20px;
     display:flex;flex-direction:column;gap:0;align-self:start;position:sticky;top:20px}
   @media (max-width:980px){.dock{position:static}}
+  .dock.hidden{display:none}
   .dock h2{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);
     letter-spacing:.26em;text-transform:uppercase;padding-bottom:12px;
     border-bottom:2px solid var(--ink);margin-bottom:4px;display:flex;justify-content:space-between}
@@ -122,9 +157,12 @@
 
   @media (max-width:640px){
     .hnote{display:none}
+    .epig{margin-left:0}
     main{padding-bottom:60px}
     #colophon{position:static;margin:0 3vw 16px;display:inline-flex}
     .stage{aspect-ratio:3/3.8}
+    .hud2{font-size:8px;right:10px;letter-spacing:.1em}
+    .stamp{font-size:8.5px}
   }
   @media (max-width:980px){.side-verse{display:none}}
 </style>
@@ -147,10 +185,19 @@
     </svg>
     <div>
       <h1>INK <em>Diffusion</em> · 墨滴</h1>
-      <div class="no">ÉTUDE <b>N°028/100</b> — 四时之水 QUATRE SAISONS</div>
+      <div class="no">ÉTUDE <b>N°028/100</b> — 睡莲 NYMPHÉAS × 四时</div>
     </div>
   </div>
-  <div class="hnote">墨分五色，水有四时<br>L'ENCRE A CINQ TONS</div>
+  <p class="epig">「墨落进水里，时间就有了形状。」</p>
+  <div class="hright">
+    <div class="hnote">墨分五色，水有四时<br>L'ENCRE A CINQ TONS</div>
+    <button class="sndbtn" id="sndBtn" aria-label="声景开关" title="雨声与笔触 — 默认静音">
+      <svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" fill="currentColor"/>
+        <path d="M15 9a4.2 4.2 0 010 6M17.6 6.4a8 8 0 010 11.2" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
 </header>
 <div class="rule"></div>
 
@@ -161,9 +208,14 @@
     <div class="stage" id="stage">
       <canvas id="pond"></canvas>
       <span class="stamp" id="stamp">ROULEAU <b id="reelNo">INK-01</b><br><span id="dropRead">DROPS 00</span></span>
-      <span class="hud2"><span id="etudeRead">秋 AUTOMNE</span><br><span id="inkRead">浓淡 —</span></span>
-      <span class="hint">点击滴墨 · 拖笔成风 · 按住养墨 · B 唤游鱼</span>
+      <span class="hud2"><span id="etudeRead">秋 AUTOMNE</span><br><span id="heureRead">HEURE —</span></span>
+      <span class="hint">点击滴墨 · 拖笔成风 · 按住养墨 · Y 燕子掠水 · B 唤游鱼</span>
       <div id="tip"></div>
+    </div>
+    <div class="heurewrap">
+      <div class="hlab"><span>光线 HEURE — 拖动看同一池水的两次光</span><b id="hread">—</b></div>
+      <div class="heurebar" id="heurebar"><div class="hk" id="hk"></div></div>
+      <div class="heureticks"><span>夜 00</span><span>晨 06</span><span>午 12</span><span>暮 18</span><span>夜 24</span></div>
     </div>
   </section>
 
@@ -194,11 +246,11 @@
     </div>
 
     <div class="chips">
-      <span class="clab">四时之水 SAISONS</span>
-      <button class="chip" data-h="0">春 PRINTEMPS</button>
-      <button class="chip" data-h="1">夏 ÉTÉ</button>
-      <button class="chip on" data-h="2">秋 AUTOMNE</button>
-      <button class="chip" data-h="3">冬 HIVER</button>
+      <span class="clab">四时之水 SAISONS — L3.4 家族映射</span>
+      <button class="chip" data-h="0">春 · 睡莲</button>
+      <button class="chip" data-h="1">夏 · 罂粟田</button>
+      <button class="chip" data-h="2">秋 · 林间光</button>
+      <button class="chip" data-h="3">冬 · 晨雾</button>
     </div>
 
     <div class="btns">
@@ -207,23 +259,24 @@
       <button class="btn" id="bPlay">暂停 PAUSE</button>
       <button class="btn" id="bPNG">下载画卷 PNG ↓</button>
       <button class="btn" id="bFish">唤游鱼 POISSON</button>
+      <button class="btn" id="bSwallow">燕子掠水 HIRONDELLE</button>
       <button class="btn" id="bCopy">复制分享链接 COPIER</button>
     </div>
 
-    <p class="note">一滴墨落进静水，被<b>卷曲水流</b>撕开；拖笔注入<b>动量</b>，快扫自成漩涡。纸上洇是毛细血管的另一番研究。<br>
-    键：<b>空格</b> 暂停 · <b>1–4</b> 四时 · <b>X</b> 水纸 · <b>B</b> 游鱼 · <b>C</b> 复制</p>
+    <p class="note">一滴墨落进静水，被<b>卷曲水流</b>撕开；拖笔注入<b>动量</b>，快扫自成漩涡。燕子低飞过时，<b>翼尖会真的搅动画里的墨</b>。<br>
+    键：<b>空格</b> 暂停 · <b>1–4</b> 四时 · <b>X</b> 水纸 · <b>Y</b> 燕子 · <b>B</b> 游鱼 · <b>C</b> 复制</p>
   </aside>
 </main>
 
 <div id="colophon" title="连点三次，读一句手记">
-  <svg width="22" height="14" viewBox="0 0 64 40" fill="#1E242E" aria-hidden="true">
+  <svg width="22" height="14" viewBox="0 0 64 40" fill="#2b2b26" aria-hidden="true">
     <path d="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21
              C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26
              C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25
              C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19
              C 35 17, 33 17, 32 20 Z"/>
   </svg>
-  <span class="ctext">Atelier MIRA · N°028 · Canvas 2D · <b id="cophSeed">SEED —</b><br>Painted with code, plein air</span>
+  <span class="ctext">Atelier MIRA · N°028 · 睡莲 Nymphéas<br><b id="cophSeed">SEED —</b> · Painted with code, plein air</span>
 </div>
 <div id="hiddenNote">墨不听话，水也不听话，画就是它们吵架的地方。—— M 手记</div>
 
@@ -267,20 +320,43 @@ var seedStr=/[#&]seed=([0-9a-fA-F]+)/.exec(location.hash||"");
 var seed=seedStr?parseInt(seedStr[1],16):((Math.random()*0xFFFFFF)|0);
 function seedHex(){return ("000000"+seed.toString(16)).slice(-6);}
 
-/* ================= 四时之水（连续插值） ================= */
+/* ================= heure 时间系统（签名） =================
+   heure 0–24，默认取访客本地时间；光色叠加晨→暮变化 */
+var nowD=new Date();
+var hashT=/[#&]t=([0-9.]+)/.exec(location.hash||"");
+var heure=hashT?clamp(parseFloat(hashT[1]),0,24):(nowD.getHours()+nowD.getMinutes()/60);
+var HEURE_NAMES=[[5,'夜 MINUIT'],[8,'晨 AUBE'],[12,'午 JOUR'],[17,'昏 APRÈS-MIDI'],[20,'暮 CRÉPUSCULE'],[24,'夜 MINUIT']];
+function heureName(h){for(var i=0;i<HEURE_NAMES.length;i++)if(h<HEURE_NAMES[i][0])return HEURE_NAMES[i][1];return '夜 MINUIT';}
+/* 全局光色：晨冷平光 → 午白 → 暮金 → 夜蓝紫（HSL 路线，不用 RGB 直插） */
+function heureLight(){
+  var h=heure,night=0;
+  if(h>=20)night=Math.min(1,(h-20)/2.5);else if(h<5)night=Math.min(1,(5-h)/2.5);
+  var warm=Math.exp(-Math.pow((h-17.6)/2.4,2));      /* 暮金峰 */
+  var morn=Math.exp(-Math.pow((h-7)/2.6,2));          /* 晨冷峰 */
+  if(night>0.3)return {op:'multiply',col:rgba('#4E4A6B',0.20*night),s:'暮影'};
+  if(warm>0.22)return {op:'soft-light',col:rgba('#D98E4A',0.55*warm),s:'暮金'};
+  if(morn>0.25)return {op:'multiply',col:rgba('#C9CDD6',0.10*morn),s:'晨冷'};
+  return null;
+}
+
+/* ================= 四时之水（L3.4：四时在 §1.1 家族间映射） ================= */
 var SEASONS=[
- {name:'春 PRINTEMPS', paper:'#F0EDDA', dilute:'#8A9070', inkC:'#3A3226', flowK:1.15},
- {name:'夏 ÉTÉ', paper:'#F6EFDC', dilute:'#A89A70', inkC:'#382A20', flowK:1.3},
- {name:'秋 AUTOMNE', paper:'#F4EFE2', dilute:'#98968A', inkC:'#2E2A24', flowK:.9},
- {name:'冬 HIVER', paper:'#EDEFEA', dilute:'#7E8A96', inkC:'#1E242E', flowK:.62}
+ {name:'春 PRINTEMPS',fam:'睡莲 Nymphéas',   paper:'#F2EFE6', dilute:'#A9BFAD', inkC:'#31463B', flowK:1.15},
+ {name:'夏 ÉTÉ',      fam:'罂粟田 Champ',    paper:'#EDE4CC', dilute:'#B7C98B', inkC:'#4A4234', flowK:1.3},
+ {name:'秋 AUTOMNE',  fam:'林间光 Sous-bois',paper:'#E8E3CE', dilute:'#B5B98A', inkC:'#2F3B2C', flowK:.9},
+ {name:'冬 HIVER',    fam:'晨雾 Brume',      paper:'#E8E6DF', dilute:'#9AA7B8', inkC:'#39424E', flowK:.62}
 ];
 var hashH=/[#&]h=([0-3])/.exec(location.hash||"");
-var look=hashH?+hashH[1]:2, lookTarget=look;
+var look, lookTarget;
+if(hashH){look=+hashH[1];}
+else{look=[3,3,0,0,0,1,1,1,2,2,2,3][nowD.getMonth()];} /* 无指定时按真实月份进季 */
+lookTarget=look;
 function seasonAt(f){
   f=clamp(f,0,3);
   var i=Math.min(2,Math.floor(f)),t=f-i,A=SEASONS[i],B=SEASONS[i+1];
   return {
     name:t<.5?A.name:B.name,
+    fam:t<.5?A.fam:B.fam,
     paper:lerpColorHsl(A.paper,B.paper,t),
     dilute:lerpColorHsl(A.dilute,B.dilute,t),
     inkC:lerpColorHsl(A.inkC,B.inkC,t),
@@ -301,6 +377,55 @@ var stage=document.getElementById('stage'),cv=document.getElementById('pond'),
     ctx=cv.getContext('2d'),tip=document.getElementById('tip');
 var sim=document.createElement('canvas'),sctx=sim.getContext('2d');
 var paper=document.createElement('canvas'),pctx=paper.getContext('2d');
+
+/* ================= 燕子（§1.4.1 母题，path 原样） ================= */
+var SWALLOW_D="M32 20 C 26 12, 14 6, 4 8 C 12 12, 18 18, 24 21 C 14 20, 6 22, 2 28 C 10 26, 18 26, 25 26 C 27 30, 30 34, 34 36 C 33 32, 33 28, 34 25 C 42 22, 52 16, 62 4 C 54 10, 44 16, 36 19 C 35 17, 33 17, 32 20 Z";
+var swallowPath=new Path2D(SWALLOW_D);
+var swallow=null, ripples=[];
+function callSwallow(){
+  if(swallow)return;
+  var dir=Math.random()<.5?1:-1;
+  swallow={t:0,dir:dir,y0:H*(.30+Math.random()*.4),dip:H*(.05+Math.random()*.08),dur:2.6};
+  poke();
+}
+function easeIO(p){return p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;}
+function stepSwallow(dt){
+  if(!swallow)return;
+  swallow.t+=dt/swallow.dur;
+  var p=swallow.t;
+  if(p>1.12){swallow=null;return;}
+  var e=easeIO(clamp(p,0,1));
+  var x=swallow.dir>0?lerp(-70,W+70,e):lerp(W+70,-70,e);
+  /* 中段俯冲，翼尖点水后拉起 */
+  var dip=Math.sin(clamp((p-.28)/.44,0,1)*Math.PI);
+  var y=swallow.y0+dip*swallow.dip;
+  var vx=(swallow.dir*(W+140)/swallow.dur)*(p<1?(p<.5?4*p:4*(1-p)):0.001);
+  swallow.x=x;swallow.y=y;swallow.flap=Math.sin(p*22);
+  /* 翼尖搅水：俯冲段把动量写进墨场，并留下涟漪 */
+  if(dip>0.55&&p<1){
+    var gx=x/W*gw,gy=y/H*gh;
+    pushImpulse(gx,gy,clamp(vx*.02,-2.4,2.4),0.9*dip,3.4);
+    if(Math.random()<.3)ripples.push({x:x,y:y,r:2,a:.5});
+  }
+}
+function drawSwallow(){
+  var se=seasonAt(look),i;
+  for(i=ripples.length-1;i>=0;i--){
+    var rp=ripples[i];rp.r+=1.6;rp.a*=.94;
+    if(rp.a<.02){ripples.splice(i,1);continue;}
+    ctx.strokeStyle=rgba(se.inkC,rp.a);ctx.lineWidth=1;
+    ctx.beginPath();ctx.ellipse(rp.x,rp.y,rp.r,rp.r*.42,0,0,7);ctx.stroke();
+  }
+  if(!swallow||swallow.x===undefined)return;
+  ctx.save();
+  ctx.translate(swallow.x,swallow.y);
+  ctx.rotate(swallow.dir*0.06+swallow.flap*0.08);
+  ctx.scale(swallow.dir*1.5,1.5*(1+swallow.flap*.12));
+  ctx.translate(-32,-20);
+  ctx.globalAlpha=.88;ctx.fillStyle='#2b2b26';
+  ctx.fill(swallowPath);
+  ctx.restore();ctx.globalAlpha=1;
+}
 
 /* ================= 卷曲流场（种子，沿用） ================= */
 function makeField(sd,scale){
@@ -329,7 +454,7 @@ function buildFields(){
   fx1=f1.x;fy1=f1.y;fx2=f2.x;fy2=f2.y;
 }
 
-/* ================= 宣纸 ================= */
+/* ================= 宣纸（纸纹：斑点 + 长纤维，离屏一次） ================= */
 function makePaper(){
   var se=seasonAt(look);
   pctx.setTransform(dpr,0,0,dpr,0,0);
@@ -443,7 +568,7 @@ function step(t){
       var dk=S.mode==='xuan'?diff*(.25+grainA[k]*.75):diff;
       var avg=(inkB[k-1]+inkB[k+1]+inkB[k-gw]+inkB[k+gw])*.25;
       var v=inkB[k]*(1-dk)+avg*dk;
-      inkA[k]=v>.0015?v*.9993:0;
+      inkA[k]=v>.0015?v*.99965:0;
     }
   }
   /* 动量场衰减与自扩散 */
@@ -529,6 +654,7 @@ function render(){
   ctx.imageSmoothingQuality='high';
   ctx.drawImage(sim,0,0,gw,gh,0,0,W,H);
   drawFish();
+  drawSwallow();
   /* 藏家印 */
   ctx.save();
   ctx.translate(W-34,H-34);ctx.rotate(-.04);
@@ -538,7 +664,17 @@ function render(){
   ctx.font='15px Georgia,"Songti SC",serif';
   ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('墨',0,1);
+  /* 印旁一笔莲粉（≤8% 点缀） */
+  ctx.fillStyle='rgba(201,166,180,.8)';
+  ctx.beginPath();ctx.ellipse(-24,10,5,2.6,-.5,0,7);ctx.fill();
   ctx.restore();
+  /* heure 光色叠加：同一池水的晨→暮 */
+  var hz=heureLight();
+  if(hz){
+    ctx.globalCompositeOperation=hz.op;
+    ctx.fillStyle=hz.col;ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation='source-over';
+  }
   /* 颗粒 */
   ctx.globalAlpha=.04;ctx.globalCompositeOperation='multiply';
   ctx.fillStyle=grainPat;ctx.fillRect(0,0,W,H);
@@ -550,6 +686,70 @@ var grainPat=(function(){
   for(i=0;i<2000;i++){g.fillStyle='rgba(60,52,40,'+(.02+R()*.05)+')';g.fillRect(R()*140,R()*140,1,1);}
   return ctx.createPattern(t,'repeat');
 })();
+
+/* ================= 声景（L5：雨 + 笔触沙沙 + 远鸟鸣，默认 OFF） ================= */
+var ac=null,master=null,rainGain=null,brushGain=null,sndOn=false,birdTO=null;
+var ptrSpeed=0;
+function initAudio(){
+  var AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+  ac=new AC();
+  master=ac.createGain();master.gain.value=0;master.connect(ac.destination);
+  var len=2*ac.sampleRate,buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0),i;
+  for(i=0;i<len;i++)d[i]=Math.random()*2-1;
+  /* 雨：white noise → highpass 1.2kHz */
+  var src=ac.createBufferSource();src.buffer=buf;src.loop=true;
+  var hp=ac.createBiquadFilter();hp.type='highpass';hp.frequency.value=1200;
+  rainGain=ac.createGain();rainGain.gain.value=.05;
+  src.connect(hp);hp.connect(rainGain);rainGain.connect(master);src.start();
+  /* 笔触沙沙：bandpass noise，以指针速度为门限 */
+  var src2=ac.createBufferSource();src2.buffer=buf;src2.loop=true;src2.playbackRate.value=.72;
+  var bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=2400;bp.Q.value=.8;
+  brushGain=ac.createGain();brushGain.gain.value=0;
+  src2.connect(bp);bp.connect(brushGain);brushGain.connect(master);src2.start();
+  scheduleBird();
+  return true;
+}
+function chirp(){
+  if(!ac)return;
+  var t0=ac.currentTime+.02;
+  var o=ac.createOscillator(),g=ac.createGain(),m=ac.createOscillator(),mg=ac.createGain();
+  var f0=2400+Math.random()*400;
+  o.frequency.setValueAtTime(f0,t0);
+  o.frequency.exponentialRampToValueAtTime(f0+800,t0+.08);
+  m.frequency.value=30+Math.random()*40;mg.gain.value=120+Math.random()*160;
+  m.connect(mg);mg.connect(o.frequency);
+  g.gain.setValueAtTime(0,t0);
+  g.gain.linearRampToValueAtTime(.06,t0+.015);
+  g.gain.exponentialRampToValueAtTime(.0001,t0+.32);
+  o.connect(g);g.connect(master);
+  o.start(t0);m.start(t0);o.stop(t0+.35);m.stop(t0+.35);
+}
+function scheduleBird(){
+  clearTimeout(birdTO);
+  birdTO=setTimeout(function(){if(sndOn)chirp();scheduleBird();},2000+Math.random()*7000);
+}
+function setSnd(on){
+  sndOn=on;
+  document.getElementById('sndBtn').classList.toggle('on',on);
+  try{localStorage.setItem('mira-snd-028',on?'1':'0');}catch(e){}
+  if(on){
+    if(!ac&&!initAudio())return;
+    if(ac.state==='suspended')ac.resume();
+    master.gain.cancelScheduledValues(ac.currentTime);
+    master.gain.setValueAtTime(master.gain.value,ac.currentTime);
+    master.gain.linearRampToValueAtTime(.9,ac.currentTime+1.5); /* 1.5s 淡入 */
+  }else if(ac){
+    master.gain.cancelScheduledValues(ac.currentTime);
+    master.gain.setValueAtTime(master.gain.value,ac.currentTime);
+    master.gain.linearRampToValueAtTime(0,ac.currentTime+.4);
+  }
+}
+document.getElementById('sndBtn').addEventListener('click',function(){setSnd(!sndOn);});
+try{if(localStorage.getItem('mira-snd-028')==='1'){/* 记住状态，但仍需一次手势才开户 */
+  document.getElementById('sndBtn').classList.add('will');
+  var once=function(){setSnd(true);window.removeEventListener('pointerdown',once);};
+  window.addEventListener('pointerdown',once);
+}}catch(e){}
 
 /* ================= 指针：滴墨 / 画笔（动量） / 养墨 / 读浓淡 ================= */
 var drawing=false,moved=false,lastP=null,pressT=0,pressPos=null,pressTimer=null;
@@ -587,6 +787,7 @@ cv.addEventListener('pointermove',function(e){
     return;
   }
   var d=Math.hypot(p.x-lastP.x,p.y-lastP.y);
+  ptrSpeed=Math.max(ptrSpeed,d);
   if(d>4)moved=true;
   if(moved&&d>3){
     var steps=Math.ceil(d/6);
@@ -607,6 +808,26 @@ function endStroke(e){
 }
 cv.addEventListener('pointerup',endStroke);
 cv.addEventListener('pointerleave',function(){tip.style.display='none';});
+
+/* ================= heure 时间轴（拖动看两种光） ================= */
+var heurebar=document.getElementById('heurebar'),hk=document.getElementById('hk'),
+    hread=document.getElementById('hread'),heureRead=document.getElementById('heureRead');
+function syncHeure(){
+  hk.style.left=(heure/24*100)+'%';
+  var hh=Math.floor(heure),mm=Math.floor((heure-hh)*60);
+  var label=(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm+' · '+heureName(heure);
+  hread.textContent=label;
+  heureRead.textContent='HEURE '+label;
+}
+var hDrag=false;
+function heureFromEvent(e){
+  var r=heurebar.getBoundingClientRect();
+  heure=clamp((e.clientX-r.left)/r.width,0,1)*24;
+  syncHeure();writeHash();
+}
+heurebar.addEventListener('pointerdown',function(e){hDrag=true;heurebar.setPointerCapture(e.pointerId);heureFromEvent(e);poke();});
+heurebar.addEventListener('pointermove',function(e){if(hDrag)heureFromEvent(e);});
+heurebar.addEventListener('pointerup',function(){hDrag=false;});
 
 /* ================= 控件 ================= */
 function bindRange(id,out,fmt,fn){
@@ -631,10 +852,13 @@ modeChips.forEach(function(c){
   c.addEventListener('click',function(){S.mode=c.dataset.mode;syncMode();poke();});
 });
 var seasonChips=document.querySelectorAll('[data-h]');
+function syncSeasonChips(){
+  seasonChips.forEach(function(x){x.classList.toggle('on',+x.dataset.h===Math.round(lookTarget));});
+}
 seasonChips.forEach(function(c){
   c.addEventListener('click',function(){
     lookTarget=+c.dataset.h;
-    seasonChips.forEach(function(x){x.classList.toggle('on',x===c);});
+    syncSeasonChips();
     writeHash();poke();
   });
 });
@@ -660,8 +884,9 @@ document.getElementById('bPNG').addEventListener('click',function(){
   a.href=cv.toDataURL('image/png');a.click();
 });
 document.getElementById('bFish').addEventListener('click',function(){callFish();poke();});
+document.getElementById('bSwallow').addEventListener('click',function(){callSwallow();poke();});
 document.getElementById('bCopy').addEventListener('click',function(){
-  var url=location.href.split('#')[0]+'#seed='+seedHex()+'&h='+Math.round(look);
+  var url=location.href.split('#')[0]+'#seed='+seedHex()+'&h='+Math.round(look)+'&t='+heure.toFixed(1);
   var b=this,o=b.textContent;
   function done(){b.textContent='已复制 COPIÉ';setTimeout(function(){b.textContent=o;},1400);}
   if(navigator.clipboard&&navigator.clipboard.writeText){
@@ -669,7 +894,7 @@ document.getElementById('bCopy').addEventListener('click',function(){
   }else prompt('复制此链接',url);
 });
 function writeHash(){
-  var h='#seed='+seedHex()+'&h='+Math.round(look);
+  var h='#seed='+seedHex()+'&h='+Math.round(look)+'&t='+heure.toFixed(1);
   if(history.replaceState)history.replaceState(null,'',h);else location.hash=h;
 }
 function syncColophon(){
@@ -685,12 +910,16 @@ document.addEventListener('keydown',function(e){
   else if(k>='1'&&k<='4'){seasonChips[+k-1].click();}
   else if(k==='x'||k==='X'){S.mode=S.mode==='pond'?'xuan':'pond';syncMode();}
   else if(k==='b'||k==='B'){callFish();}
+  else if(k==='y'||k==='Y'){callSwallow();}
   else if(k==='c'||k==='C'){document.getElementById('bCopy').click();}
+  else if(k==='h'||k==='H'){document.querySelector('.dock').classList.toggle('hidden');}
+  else if(k==='ArrowRight'){heure=clamp(heure+.5,0,24);syncHeure();writeHash();}
+  else if(k==='ArrowLeft'){heure=clamp(heure-.5,0,24);syncHeure();writeHash();}
   poke();
 });
 
 /* ================= 彩蛋：闲置手记 ================= */
-var lastPoke=performance.now(),noteShown=false,fishTimer=0;
+var lastPoke=performance.now(),noteShown=false,swallowTimer=0;
 function poke(){
   lastPoke=performance.now();
   document.getElementById('hiddenNote').classList.remove('show');noteShown=false;
@@ -718,8 +947,7 @@ document.getElementById('colophon').addEventListener('click',(function(){
 
 /* ================= 主循环 ================= */
 var last=performance.now(),accT=0;
-var etudeRead=document.getElementById('etudeRead'),inkRead=document.getElementById('inkRead'),
-    dropRead=document.getElementById('dropRead');
+var etudeRead=document.getElementById('etudeRead'),dropRead=document.getElementById('dropRead');
 function loop(ts){
   var dt=Math.min(.05,(ts-last)/1000||.016);last=ts;
   look+=(lookTarget-look)*Math.min(1,dt*1.6);
@@ -728,10 +956,18 @@ function loop(ts){
     step(simT);
     if(accT>.033){step(simT+.07);accT=0;}
     stepFish(dt);
-    /* 闲置 24s 且池中有墨 → 游鱼自己来了 */
+    stepSwallow(dt);
+    /* 闲置 24s 且池中有墨 → 游鱼自己来了；再久一些，燕子也来 */
     if(!fish&&ts-lastPoke>24000&&dropCount>2)callFish();
-  }
+    if(!swallow&&ts-lastPoke>40000)callSwallow();
+  }else{stepSwallow(dt);}
   render();
+  /* 笔触沙沙随速度起落，停笔即止 */
+  if(sndOn&&brushGain){
+    var tgt=clamp(ptrSpeed*.006,0,.16);
+    brushGain.gain.setTargetAtTime(tgt,ac.currentTime,.08);
+  }
+  ptrSpeed*=.82;
   dropRead.textContent='DROPS '+String(dropCount).padStart(2,'0');
   etudeRead.textContent=seasonAt(look).name+(S.mode==='xuan'?' · XUAN':' · ÉTANG');
   if(!noteShown&&ts-lastPoke>45000){
@@ -742,12 +978,18 @@ function loop(ts){
 
 /* ================= boot ================= */
 resize();
-syncColophon();syncMode();writeHash();
+syncColophon();syncMode();syncSeasonChips();syncHeure();writeHash();
 window.addEventListener('resize',resize);
-/* 开场即有生命：三滴旧墨 */
+/* 开场即有生命：一池旧墨 + 一道被水流拖过的笔意 */
 (function seedInk(){
   var R=mulberry32(seed^0x1cc3);
-  for(var i=0;i<4;i++)dropInk(W*(.28+R()*.44),H*(.28+R()*.44),i<2,0,0);
+  for(var i=0;i<8;i++)dropInk(W*(.2+R()*.6),H*(.2+R()*.6),i<5,0,0);
+  /* 一笔旧扫：带方向的动量，让首屏就有"被撕开的山水" */
+  var sx=W*(.2+R()*.2),sy=H*(.3+R()*.3),ang=R()*6.28;
+  for(var j=0;j<14;j++){
+    var px2=sx+Math.cos(ang)*j*W*.018,py2=sy+Math.sin(ang)*j*H*.018;
+    dropInk(px2,py2,j<3,Math.cos(ang)*22,Math.sin(ang)*22);
+  }
 })();
 requestAnimationFrame(loop);
 })();

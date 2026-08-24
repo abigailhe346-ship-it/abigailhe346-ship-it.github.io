@@ -20,6 +20,7 @@
     --ease:cubic-bezier(.22,1,.36,1);
   }
   *{margin:0;padding:0;box-sizing:border-box}
+  body.booted *{transition:none!important}
   html,body{height:100%}
   body{background:#A9BFAD;color:var(--ink);font-family:var(--sans);overflow:hidden;
        -webkit-font-smoothing:antialiased}
@@ -620,11 +621,11 @@ function draw(now){
   const L=sampleLight(heure);
   const sun=sunPos();
   const dayF=Math.min(1,Math.max(0,Math.min((heure-5.2)/1.6,(20.6-heure)/1.6,1)));
-  /* --- 整幅皆水 --- */
+  /* --- 整幅皆水：远为天光倒影，近为深塘 --- */
   const wg=ctx.createLinearGradient(0,0,0,H);
-  wg.addColorStop(0,rgb(lerpHSL(L.sky,FAM.ciel,.3)));
+  wg.addColorStop(0,rgb(lerpHSL(L.sky,FAM.ciel,.45)));
   wg.addColorStop(.42,rgb(L.far));
-  wg.addColorStop(1,rgb(L.near));
+  wg.addColorStop(1,rgb(fade(L.near,FAM.prof,.45)));
   ctx.fillStyle=wg;ctx.fillRect(0,0,W,H);
   /* 日光碎金路 */
   if(sun.day&&L.warm>.15){
@@ -657,8 +658,20 @@ function draw(now){
     ctx.fillStyle=rgb(fade(FAM.ciel,L.near,.4),.22*tw);
     ctx.beginPath();ctx.arc(x,y,s.r,0,7);ctx.fill();
   });
+  /* --- 记忆三区：环、塘心、塘底（画框背面的铅笔字） --- */
+  const ringC=ringPos(0,7),ringR=Math.min(W,H)*.17;
+  const inkZone=fade(FAM.prof,L.near,.15);
+  ctx.setLineDash([3,7]);ctx.lineDashOffset=-t*6;
+  ctx.strokeStyle=rgb(inkZone,.4);ctx.lineWidth=1;
+  ctx.beginPath();ctx.ellipse(W*.24,H*.60,ringR+26,(ringR+26)*.82,0,0,7);ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.font="8.5px 'SF Mono',Menlo,monospace";ctx.textAlign="center";
+  ctx.fillStyle=rgb(inkZone,.62);
+  ctx.fillText("工作记忆 · WORKING ×7",W*.24,H*.60-ringR*.82-14);
+  ctx.fillText("情景记忆 · EPISODIC",W*.62,H*.36);
+  ctx.fillText("语义记忆 · SEMANTIC · 塘底的星",W*.84,H*.93);
   /* 柳枝 */
-  ctx.strokeStyle=rgb(fade(FAM.prof,L.sky,.2),.65);
+  ctx.strokeStyle=rgb(fade(FAM.prof,L.sky,.1),.78);
   const sway=Math.sin(t*.9)*8;
   for(let b=0;b<3;b++){
     ctx.lineWidth=1.6-b*.4;
@@ -733,7 +746,10 @@ function draw(now){
 
 /* ================= boot ================= */
 layoutPond();writeHash();
-if(innerWidth<760)document.body.classList.add("hideui");
+if(innerWidth<760){document.body.classList.add("hideui","booted");
+  setTimeout(()=>document.body.classList.remove("booted"),400)}
+/* QA/分享：#q=词 启动即检索（燕子点水） */
+if(hashParams.get("q")){$("q").value=hashParams.get("q");setTimeout(recall,500)}
 let last=performance.now();
 (function loop(now){
   const dt=Math.min(.05,(now-last)/1000);last=now;

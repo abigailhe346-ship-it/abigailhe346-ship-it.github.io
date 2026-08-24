@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sea Creature · 深海生物 — Atelier MIRA N°097</title>
 <!--
-  Atelier MIRA · N°097 · 深海光层系列 Les couches de lumière
-  同一尾标本的四节光：暮光 200m / 午夜 1000m / 深渊 4000m / 热泉口 2600m
-  家族色锚：#3ee6c4 生物荧光 · #5a9fd4 中层水色 · #050a12 深渊底
+  Atelier MIRA · N°097 · 自拟家族「深海光层 Les couches de lumière」
+  色温 ≈9000K：海面以上的时刻以另一种速度抵达深海，荧光是唯一暖源
+  #04080e 深渊夜 · #0b2a3c 暮光带水 · #2a4a66 中层蓝 · #46bfa8 生物荧光 · #8fc4e0 月色水色 · #d98a5a 热泉橘（点缀）
+  heure 时间系统：拖动海面时刻，暮→夜的下渗水色随之改变；光层 chips 是深度的四个驻点
 -->
 <style>
 :root{
@@ -43,6 +44,9 @@ header .back:hover{color:var(--acc)}
 .hero p{max-width:440px;color:var(--dim);font-size:14.5px;line-height:1.75}
 .micro{font:9px var(--mono);color:var(--dim);letter-spacing:.1em;text-transform:uppercase;line-height:2;text-align:right}
 .micro b{color:var(--ink);font-weight:400}
+.hero p.epi{font:italic 400 15px/1.7 var(--serif);color:var(--dim);margin:-8px 0 20px;max-width:440px}
+footer.colophon .sign{display:flex;align-items:center;gap:8px}
+footer.colophon .sign svg{opacity:.75;flex:none}
 
 /* ---------- stage ---------- */
 .stage-wrap{padding:0 4vw 2.2vw}
@@ -115,6 +119,7 @@ footer.colophon b{color:var(--acc);font-weight:400}
   .console .tag{writing-mode:horizontal-tb;transform:none;border-right:0;border-bottom:1px solid var(--line);padding:10px 18px}
   .keys{margin-left:0;text-align:left}
   header .mid{display:none}
+  .hint{display:none}
 }
 </style>
 
@@ -141,6 +146,7 @@ footer.colophon b{color:var(--acc);font-weight:400}
     <div>
       <div class="kicker">Abyssal specimen · Série «Couches de lumière»</div>
       <h1>Sea<br><em>Creature</em></h1>
+      <p class="epi">「海面以上的时刻，以另一种速度抵达深海。」</p>
       <p>一尾由种子决定的深海生物：触手数量、长度与卷曲写在它的基因里，顶点着色器替它感受水流。切换四节光层——暮光、午夜、深渊、热泉口——同一尾标本，四种印象。点击它，它会用全身的光回答你。</p>
     </div>
     <div class="micro">
@@ -193,6 +199,7 @@ footer.colophon b{color:var(--acc);font-weight:400}
           <button class="chip" data-mood="2"><em>深渊层</em>−4000M</button>
           <button class="chip" data-mood="3"><em>热泉口</em>VENT</button>
         </div>
+        <div class="sliders"><div class="slider"><label>海面时刻 HEURE<output id="hv">--:--</output></label><input id="heureCtl" type="range" min="0" max="2395" step="5" value="1200"></div></div>
       </div>
     </div>
     <div class="row">
@@ -215,7 +222,7 @@ footer.colophon b{color:var(--acc);font-weight:400}
           <button class="btn" id="share">复制分享链接</button>
           <button class="btn" id="dl">下载 PNG</button>
         </div>
-        <div class="keys"><b>R</b> 再生 <b>1–4</b> 光层 <b>V</b> 构成 <b>S</b> 存图 <b>C</b> 链接</div>
+        <div class="keys"><b>R</b> 再生 <b>1–4</b> 光层 <b>T</b> 时间 <b>V</b> 构成 <b>S</b> 存图 <b>C</b> 链接</div>
       </div>
     </div>
   </section>
@@ -232,7 +239,7 @@ footer.colophon b{color:var(--acc);font-weight:400}
 <footer class="colophon">
   <span>WEBGL · THREE.JS R128 · GLSL VERTEX SWAY</span>
   <span>SEED <b id="footSeed">#----</b> · PAINTED WITH CODE, PLEIN AIR</span>
-  <span>ATELIER MIRA · N°097/100</span>
+  <span class="sign"><svg width="20" height="13" viewBox="0 0 64 40" fill="currentColor" aria-hidden="true"><path d="M63.5 16.4 C 60 13.2, 56.5 11.8, 52.5 11.8 C 47.5 11.8, 42.5 12.6, 38.5 13.4 C 30.5 6.4, 20.5 2.2, 10.5 1 C 18.5 6.6, 26.5 11.2, 32 15.4 C 24 13.2, 14.5 11.4, 6.5 11 C 12 13.2, 16 14.6, 19.5 15.8 C 15.5 17.4, 11.5 19.4, 7.5 22.2 C 14 20.8, 20 19.8, 26 18.8 C 20 24.4, 14 30.4, 8 36.4 C 17 30.4, 26 25.2, 33 21.6 C 39 22, 45.5 21.2, 50.5 19.4 C 55 18.6, 59.5 17.6, 63.5 16.4 Z"/></svg>ATELIER MIRA · N°097/100 · 深海光层</span>
 </footer>
 
 <script src="../../../vendor/three.min.js"></script>
@@ -275,11 +282,31 @@ var MOODS=[
  {cn:'深渊层',en:'ABYSSAL',depth:4000,fog:0x020609,fogD:.058,hemiS:0x14202c,hemiG:0x010304,hemiI:1.0,keyC:0x4a6a80,keyI:.7,rimC:0x36d8c0,rimI:1.0,snowC:0x6a8ca0,snowO:.34,hueSh:.04,acc:'#35f0cf',bgCss:'#020508'},
  {cn:'热泉口',en:'HYDROTHERMAL',depth:2600,fog:0x160c08,fogD:.05,hemiS:0x6a3a24,hemiG:0x0a0503,hemiI:1.25,keyC:0xe8a05a,keyI:1.15,rimC:0xff7a3c,rimI:1.1,snowC:0xd8a880,snowO:.45,hueSh:-.34,acc:'#f08a4a',bgCss:'#0c0705'}
 ];
-var moodI=1,mood=MOODS[1],moodLerp={fog:new THREE.Color(0x061420),hemiS:new THREE.Color(0x2a4a66),hemiG:new THREE.Color(0x030810),key:new THREE.Color(0x8fc4e0),rim:new THREE.Color(0x3ee6c4),snow:new THREE.Color(0x9fc4d8),fogD:.042,hemiI:1.3,keyI:1.1,rimI:.85,snowO:.5,hueSh:0};
+var moodI=1,mood=MOODS[1],moodLerp={fog:new THREE.Color(0x061420),hemiS:new THREE.Color(0x2a4a66),hemiG:new THREE.Color(0x030810),key:new THREE.Color(0x8fc4e0),rim:new THREE.Color(0x46bfa8),snow:new THREE.Color(0x9fc4d8),fogD:.042,hemiI:1.3,keyI:1.1,rimI:.85,snowO:.5,hueSh:0};
+/* ================= heure 海面时刻（光层 = 深度的四个驻点） ================= */
+var HEURES=[
+ {h:6.5,cn:'晨',tint:[0.82,0.95,1.08],br:.85},
+ {h:12,cn:'午',tint:[1.06,1.04,0.98],br:1.15},
+ {h:17.5,cn:'暮',tint:[1.18,0.88,0.66],br:1.0},
+ {h:22,cn:'夜',tint:[0.66,0.78,1.12],br:.6}
+];
+var heure=(/[&#]h=(\d{1,2}(?:\.\d+)?)/.exec(location.hash)||[])[1];
+heure=heure!==undefined?Math.min(23.9,Math.max(0,+heure)):(new Date().getHours()+new Date().getMinutes()/60);
+var heureTouched=false;
+var _surf={tint:[1,1,1],br:1,cn:''};
+function heureSurf(){var pts=HEURES,hh=heure<pts[0].h?heure+24:heure;
+  for(var i=0;i<4;i++){var a=pts[i].h,b=i<3?pts[i+1].h:pts[0].h+24;
+    if(hh>=a&&hh<b){var f=(hh-a)/(b-a),A=pts[i],B=pts[(i+1)%4];
+      _surf.tint[0]=A.tint[0]+(B.tint[0]-A.tint[0])*f;_surf.tint[1]=A.tint[1]+(B.tint[1]-A.tint[1])*f;_surf.tint[2]=A.tint[2]+(B.tint[2]-A.tint[2])*f;
+      _surf.br=A.br+(B.br-A.br)*f;_surf.cn=f<.5?A.cn:B.cn;return _surf}}
+  return _surf}
+function fmtHeure(){var hh=Math.floor(heure)%24,mm=Math.floor((heure-Math.floor(heure))*60);return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+' · 海面'+_surf.cn}
+function syncHeureUI(){document.getElementById('heureCtl').value=Math.round(heure*100);heureSurf();document.getElementById('hv').textContent=fmtHeure()}
 function writeHash(){
   var h='#seed='+seed;
   if(moodI!==1)h+='&mood='+moodI;
   if(mode!=='solo')h+='&mode='+mode;
+  if(heureTouched)h+='&h='+heure.toFixed(1);
   history.replaceState(null,'',h);
 }
 function setMood(i){
@@ -456,6 +483,7 @@ function init(){
   if(hashMode)mode=hashMode;
   setMood(hashMood!==undefined?Math.min(3,+hashMood):1);
   setMode(mode);
+  syncHeureUI();
   loop();
 }
 
@@ -506,6 +534,7 @@ function bind(){
 
   // chips
   document.querySelectorAll('#moodChips .chip').forEach(function(b){b.addEventListener('click',function(){setMood(+b.dataset.mood)})});
+  document.getElementById('heureCtl').addEventListener('input',function(e){heure=+e.target.value/100;heureTouched=true;syncHeureUI();writeHash()});
   document.querySelectorAll('#modeChips .chip').forEach(function(b){b.addEventListener('click',function(){setMode(b.dataset.mode)})});
 
   // actions
@@ -520,7 +549,8 @@ function bind(){
     else if(k==='s')savePng();
     else if(k==='c')share();
     else if(k==='v'){var order=['solo','school','plate'];setMode(order[(order.indexOf(mode)+1)%3])}
-    else if(k>='1'&&k<='4')setMood(+k-1)});
+    else if(k>='1'&&k<='4')setMood(+k-1);
+    else if(k==='t'){heure=(heure+1)%24;heureTouched=true;syncHeureUI();writeHash()}});
 
   window.addEventListener('resize',function(){camera.aspect=stage.clientWidth/stage.clientHeight;camera.updateProjectionMatrix();renderer.setSize(stage.clientWidth,stage.clientHeight)});
 }
@@ -587,9 +617,14 @@ function loop(){
   scene.fog.color.copy(moodLerp.fog);scene.fog.density=moodLerp.fogD;
   scene.background.copy(moodLerp.fog);
   hemi.color.copy(moodLerp.hemiS);hemi.groundColor.copy(moodLerp.hemiG);hemi.intensity=moodLerp.hemiI;
-  key.color.copy(moodLerp.key);key.intensity=moodLerp.keyI;
+  key.color.copy(moodLerp.key);
   rim.color.copy(moodLerp.rim);rim.intensity=moodLerp.rimI;
   snow.material.color.copy(moodLerp.snow);snow.material.opacity=moodLerp.snowO;
+  // heure：海面时刻的下渗光（越深越弱）
+  var sf=heureSurf(),att=1/(1+mood.depth/450);
+  hemi.color.r*=1+(sf.tint[0]-1)*att;hemi.color.g*=1+(sf.tint[1]-1)*att;hemi.color.b*=1+(sf.tint[2]-1)*att;
+  key.color.r*=1+(sf.tint[0]-1)*att;key.color.g*=1+(sf.tint[1]-1)*att;key.color.b*=1+(sf.tint[2]-1)*att;
+  key.intensity=moodLerp.keyI*(1+(sf.br-1)*att);
 
   // camera
   var idle=now-lastAct;
